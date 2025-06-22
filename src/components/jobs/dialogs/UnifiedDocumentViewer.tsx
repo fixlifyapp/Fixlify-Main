@@ -1,36 +1,39 @@
-
-import React from "react";
+import React, { useState } from "react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { Invoice } from "@/hooks/useInvoices";
-import { Estimate } from "@/hooks/useEstimates";
 import { useUnifiedDocumentViewer } from "./unified/hooks/useUnifiedDocumentViewer";
 import { UnifiedDocumentViewerHeader } from "./unified/components/UnifiedDocumentViewerHeader";
 import { UnifiedDocumentViewerContent } from "./unified/components/UnifiedDocumentViewerContent";
 import { UnifiedDocumentViewerDialogs } from "./unified/components/UnifiedDocumentViewerDialogs";
-import { useDocumentOperations } from "./unified/hooks/useDocumentOperations";
 import { toast } from "sonner";
+import { Estimate, Invoice } from "@/types/documents";
+import { useEstimates } from "@/hooks/useEstimates";
 
 interface UnifiedDocumentViewerProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  document: Invoice | Estimate;
-  documentType: "invoice" | "estimate";
+  document: Estimate | Invoice;
+  documentType: "estimate" | "invoice";
   jobId: string;
-  onEdit?: () => void;
+  isOpen: boolean;
+  onClose: () => void;
+  onUpdate?: () => void;
   onConvertToInvoice?: (estimate: Estimate) => void;
-  onDocumentUpdated?: () => void;
 }
 
 export const UnifiedDocumentViewer = ({
-  open,
-  onOpenChange,
   document,
   documentType,
   jobId,
-  onEdit,
+  isOpen,
+  onClose,
+  onUpdate,
   onConvertToInvoice,
-  onDocumentUpdated
 }: UnifiedDocumentViewerProps) => {
+  const [isEditMode, setIsEditMode] = useState(false);
+  const { convertEstimateToInvoice } = useEstimates(jobId);
+  
+  const handleEdit = () => {
+    setIsEditMode(true);
+  };
+
   const {
     showSendDialog,
     setShowSendDialog,
@@ -45,7 +48,6 @@ export const UnifiedDocumentViewer = ({
     calculateTotalTax,
     calculateGrandTotal,
     getClientInfo,
-    handleEdit,
     handleSend,
     handleSendSuccess,
     handleEditSuccess
@@ -54,47 +56,30 @@ export const UnifiedDocumentViewer = ({
     documentType,
     jobId,
     onConvertToInvoice,
-    onDocumentUpdated
+    onDocumentUpdated: onUpdate
   });
 
-  // Use document operations hook for conversion
-  const { convertToInvoice, isSubmitting } = useDocumentOperations({
-    documentType,
-    existingDocument: document,
-    jobId,
-    formData: {
-      documentNumber,
-      items: lineItems.map(item => ({
-        description: item.description,
-        quantity: item.quantity,
-        unitPrice: item.unitPrice,
-        taxable: item.taxable
-      })),
-      notes: document.notes || '',
-      status: document.status || 'draft',
-      total: calculateGrandTotal()
-    },
-    lineItems,
-    notes: document.notes || '',
-    calculateGrandTotal
-  });
-
+  // Use only the convertEstimateToInvoice from useEstimates hook to avoid duplicates
   const handleConvert = async () => {
-    if (documentType === "estimate" && !isSubmitting) {
-      try {
-        const newInvoice = await convertToInvoice();
-        if (newInvoice && onConvertToInvoice) {
-          onConvertToInvoice(document as Estimate);
+    if (documentType !== "estimate") return;
+    
+    try {
+      const estimate = document as Estimate;
+      const success = await convertEstimateToInvoice(estimate.id);
+      
+      if (success) {
+        toast.success('Estimate converted to invoice successfully');
+        if (onConvertToInvoice) {
+          onConvertToInvoice(estimate);
         }
-        if (onDocumentUpdated) {
-          onDocumentUpdated();
+        if (onUpdate) {
+          onUpdate();
         }
-        // Close the viewer after successful conversion
-        onOpenChange(false);
-      } catch (error) {
-        console.error('Error converting estimate to invoice:', error);
-        toast.error('Failed to convert estimate to invoice');
+        onClose();
       }
+    } catch (error) {
+      console.error('Error converting estimate to invoice:', error);
+      toast.error('Failed to convert estimate to invoice');
     }
   };
 
@@ -108,7 +93,7 @@ export const UnifiedDocumentViewer = ({
 
   if (loading) {
     return (
-      <Dialog open={open} onOpenChange={onOpenChange}>
+      <Dialog open={isOpen} onOpenChange={onClose}>
         <DialogContent className="max-w-4xl h-[90vh] flex flex-col">
           <div className="flex-1 flex items-center justify-center">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
@@ -144,7 +129,7 @@ export const UnifiedDocumentViewer = ({
 
   return (
     <>
-      <Dialog open={open} onOpenChange={onOpenChange}>
+      <Dialog open={isOpen} onOpenChange={onClose}>
         <DialogContent className="max-w-6xl h-[90vh] flex flex-col">
           <UnifiedDocumentViewerHeader
             documentType={documentType}

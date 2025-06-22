@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -11,6 +10,8 @@ import { UnifiedPaymentDialog } from "@/components/jobs/dialogs/UnifiedPaymentDi
 import { formatDistanceToNow } from "date-fns";
 import { formatCurrency, roundToCurrency } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useJobDetails } from "./context/JobDetailsContext";
+import { executeDelayedRefresh } from "@/utils/refreshUtils";
 
 interface JobPaymentsProps {
   jobId: string;
@@ -20,6 +21,7 @@ export const JobPayments = ({ jobId }: JobPaymentsProps) => {
   const { payments, isLoading, totalPaid, totalRefunded, netAmount, refreshPayments } = usePayments(jobId);
   const { invoices, refreshInvoices } = useInvoices(jobId);
   const { refundPayment, deletePayment, isProcessing } = usePaymentActions(jobId, refreshPayments);
+  const { refreshFinancials } = useJobDetails();
   const [showPaymentDialog, setShowPaymentDialog] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState<any>(null);
   const isMobile = useIsMobile();
@@ -82,9 +84,12 @@ export const JobPayments = ({ jobId }: JobPaymentsProps) => {
     setShowPaymentDialog(false);
     setSelectedInvoice(null);
     
-    // Refresh both payments and invoices immediately
-    refreshPayments();
-    refreshInvoices();
+    // Use utility to handle all refreshes with proper delays
+    executeDelayedRefresh({
+      payments: refreshPayments,
+      invoices: refreshInvoices,
+      financials: refreshFinancials
+    });
   };
 
   // Calculate outstanding balance with proper rounding

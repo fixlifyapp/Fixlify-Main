@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { useProducts } from "@/hooks/useProducts";
@@ -24,8 +23,9 @@ export const EstimateUpsellStep = ({
   const [isSavingWarranty, setIsSavingWarranty] = useState(false);
   const { products: warrantyProducts, isLoading } = useProducts("Warranties");
 
-  // Get estimate ID from jobContext or other source
-  const estimateId = jobContext?.estimateId;
+  // Get document ID from jobContext - could be estimate or invoice
+  const documentId = jobContext?.estimateId || jobContext?.invoiceId;
+  const documentType = jobContext?.invoiceId ? 'invoice' : 'estimate';
 
   // Convert warranty products to upsell items and restore previous selections
   useEffect(() => {
@@ -47,24 +47,29 @@ export const EstimateUpsellStep = ({
   const handleUpsellToggle = async (itemId: string) => {
     if (isProcessing || isSavingWarranty) return;
     
+    const item = upsellItems.find(item => item.id === itemId);
+    if (!item || !documentId) {
+      toast.error("Unable to save warranty - missing information");
+      return;
+    }
+
+    const newSelectedState = !item.selected;
+    
+    // Update UI immediately for better responsiveness
+    setUpsellItems(prev => prev.map(upsellItem => 
+      upsellItem.id === itemId ? { ...upsellItem, selected: newSelectedState } : upsellItem
+    ));
+    
     setIsSavingWarranty(true);
     
     try {
-      const item = upsellItems.find(item => item.id === itemId);
-      if (!item || !estimateId) {
-        toast.error("Unable to save warranty - missing information");
-        return;
-      }
-
-      const newSelectedState = !item.selected;
-
       if (newSelectedState) {
         // Add warranty to database
         const { error: lineItemError } = await supabase
           .from('line_items')
           .insert({
-            parent_id: estimateId,
-            parent_type: 'estimate',
+            parent_id: documentId,
+            parent_type: documentType,
             description: item.title + (item.description ? ` - ${item.description}` : ''),
             quantity: 1,
             unit_price: item.price,
@@ -74,64 +79,81 @@ export const EstimateUpsellStep = ({
         if (lineItemError) {
           console.error('Error adding warranty line item:', lineItemError);
           toast.error(`Failed to add ${item.title}`);
+          // Revert UI on error
+          setUpsellItems(prev => prev.map(upsellItem => 
+            upsellItem.id === itemId ? { ...upsellItem, selected: !newSelectedState } : upsellItem
+          ));
           return;
         }
 
-        // Update estimate total
+        // Update document total
+        const tableName = documentType === 'estimate' ? 'estimates' : 'invoices';
         const { error: updateError } = await supabase
-          .from('estimates')
+          .from(tableName)
           .update({ 
             total: documentTotal + item.price
           })
-          .eq('id', estimateId);
+          .eq('id', documentId);
 
         if (updateError) {
-          console.error('Error updating estimate total:', updateError);
-          toast.error('Failed to update estimate total');
+          console.error(`Error updating ${documentType} total:`, updateError);
+          toast.error(`Failed to update ${documentType} total`);
+          // Revert UI on error
+          setUpsellItems(prev => prev.map(upsellItem => 
+            upsellItem.id === itemId ? { ...upsellItem, selected: !newSelectedState } : upsellItem
+          ));
           return;
         }
 
-        toast.success(`${item.title} added to estimate`);
+        toast.success(`${item.title} added to ${documentType}`);
       } else {
         // Remove warranty from database
         const { error: deleteError } = await supabase
           .from('line_items')
           .delete()
-          .eq('parent_id', estimateId)
-          .eq('parent_type', 'estimate')
+          .eq('parent_id', documentId)
+          .eq('parent_type', documentType)
           .eq('description', item.title + (item.description ? ` - ${item.description}` : ''));
 
         if (deleteError) {
           console.error('Error removing warranty line item:', deleteError);
           toast.error(`Failed to remove ${item.title}`);
+          // Revert UI on error
+          setUpsellItems(prev => prev.map(upsellItem => 
+            upsellItem.id === itemId ? { ...upsellItem, selected: !newSelectedState } : upsellItem
+          ));
           return;
         }
 
-        // Update estimate total
+        // Update document total
+        const tableName = documentType === 'estimate' ? 'estimates' : 'invoices';
         const { error: updateError } = await supabase
-          .from('estimates')
+          .from(tableName)
           .update({ 
             total: Math.max(0, documentTotal - item.price)
           })
-          .eq('id', estimateId);
+          .eq('id', documentId);
 
         if (updateError) {
-          console.error('Error updating estimate total:', updateError);
-          toast.error('Failed to update estimate total');
+          console.error(`Error updating ${documentType} total:`, updateError);
+          toast.error(`Failed to update ${documentType} total`);
+          // Revert UI on error
+          setUpsellItems(prev => prev.map(upsellItem => 
+            upsellItem.id === itemId ? { ...upsellItem, selected: !newSelectedState } : upsellItem
+          ));
           return;
         }
 
-        toast.success(`${item.title} removed from estimate`);
+        toast.success(`${item.title} removed from ${documentType}`);
       }
-
-      // Update local state
-      setUpsellItems(prev => prev.map(upsellItem => 
-        upsellItem.id === itemId ? { ...upsellItem, selected: newSelectedState } : upsellItem
-      ));
 
     } catch (error) {
       console.error('Error toggling warranty:', error);
       toast.error('Failed to update warranty');
+      // Revert UI on error
+      setUpsellItems(prev => prev.map(upsellItem => 
+        upsellItem.id === itemId ? { ...upsellItem, selected: !newSelectedState } : upsellItem
+      ));
     } finally {
       setIsSavingWarranty(false);
     }
@@ -148,11 +170,12 @@ export const EstimateUpsellStep = ({
     
     try {
       // Save notes if any
-      if (notes.trim() && estimateId) {
+      if (notes.trim() && documentId) {
+        const tableName = documentType === 'estimate' ? 'estimates' : 'invoices';
         const { error: notesError } = await supabase
-          .from('estimates')
+          .from(tableName)
           .update({ notes: notes.trim() })
-          .eq('id', estimateId);
+          .eq('id', documentId);
 
         if (notesError) {
           console.error('Error saving notes:', notesError);

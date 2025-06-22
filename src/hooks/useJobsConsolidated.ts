@@ -54,7 +54,18 @@ export const useJobsConsolidated = (options: UseJobsOptions = {}) => {
   }, [clientId, page, pageSize, user?.id, filters]);
 
   const fetchJobs = useCallback(async (useCache = true) => {
-    if (hasError || !user?.id) return;
+    if (!user?.id) {
+      console.log('❌ No user ID in useJobsConsolidated:', { userId: user?.id });
+      setIsLoading(false);
+      setHasError(true);
+      handleJobsError(new Error('User not authenticated'), 'useJobsConsolidated - authentication check');
+      return;
+    }
+
+    if (hasError) {
+      setIsLoading(false);
+      return;
+    }
 
     if (useCache) {
       const cached = jobsCache.get(cacheKey);

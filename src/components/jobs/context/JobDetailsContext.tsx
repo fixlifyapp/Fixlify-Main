@@ -1,16 +1,16 @@
-
-import { createContext, useContext, useState, useEffect, useRef } from "react";
+import React, { createContext, useContext, useRef, useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import { JobDetailsContextType } from "./types";
 import { useJobData } from "./useJobData";
 import { useJobStatusUpdate } from "./useJobStatusUpdate";
-import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
-const JobDetailsContext = createContext<JobDetailsContextType | undefined>(undefined);
+const JobDetailsContext = createContext<JobDetailsContextType | null>(null);
 
 export const useJobDetails = () => {
   const context = useContext(JobDetailsContext);
-  if (context === undefined) {
-    throw new Error("useJobDetails must be used within a JobDetailsProvider");
+  if (!context) {
+    throw new Error("useJobDetails must be used within JobDetailsProvider");
   }
   return context;
 };
@@ -23,6 +23,7 @@ export const JobDetailsProvider = ({
   children: React.ReactNode;
 }) => {
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [financialRefreshTrigger, setFinancialRefreshTrigger] = useState(0);
   const isMountedRef = useRef(true);
   const subscriptionRef = useRef<any>(null);
   
@@ -39,6 +40,13 @@ export const JobDetailsProvider = ({
     }
   };
   
+  const refreshFinancials = () => {
+    if (isMountedRef.current) {
+      console.log('🔄 Triggering financial refresh from context');
+      setFinancialRefreshTrigger(prev => prev + 1);
+    }
+  };
+  
   // Load job data with stable refresh trigger
   const {
     job,
@@ -52,20 +60,19 @@ export const JobDetailsProvider = ({
   // Handle status updates
   const { updateJobStatus: handleUpdateJobStatus } = useJobStatusUpdate(jobId, refreshJob);
   
-  // Optimized real-time subscription with minimal refresh
+  // Set up real-time subscription
   useEffect(() => {
     if (!jobId) return;
-
-    // Clean up previous subscription
+    
+    // Clean up any existing subscription
     if (subscriptionRef.current) {
       supabase.removeChannel(subscriptionRef.current);
     }
-
-    let debounceTimer: NodeJS.Timeout;
-    let isSubscribed = true;
+    
+    console.log(`Setting up real-time subscription for job ${jobId}`);
     
     const channel = supabase
-      .channel(`job-details-optimized-${jobId}`)
+      .channel(`job-details-${jobId}`)
       .on(
         'postgres_changes',
         {
@@ -75,38 +82,36 @@ export const JobDetailsProvider = ({
           filter: `id=eq.${jobId}`
         },
         (payload) => {
-          if (!isSubscribed || !isMountedRef.current) return;
-          
-          console.log('Real-time job update:', payload);
-          
-          // For status changes, update immediately without debounce
-          if (payload.eventType === 'UPDATE' && payload.new?.status !== payload.old?.status) {
-            setCurrentStatus(payload.new.status);
-            return;
+          console.log('Job update detected:', payload);
+          if (isMountedRef.current) {
+            refreshJob();
           }
-          
-          // For other changes, use longer debounce
-          clearTimeout(debounceTimer);
-          debounceTimer = setTimeout(() => {
-            if (isSubscribed && isMountedRef.current) {
-              refreshJob();
-            }
-          }, 2000); // 2 second debounce for non-status changes
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'clients',
+          filter: job?.clientId ? `id=eq.${job.clientId}` : undefined
+        },
+        (payload) => {
+          console.log('Client update detected:', payload);
+          if (isMountedRef.current) {
+            refreshJob();
+          }
         }
       )
       .subscribe();
-
+    
     subscriptionRef.current = channel;
-
+    
     return () => {
-      isSubscribed = false;
-      clearTimeout(debounceTimer);
-      if (subscriptionRef.current) {
-        supabase.removeChannel(subscriptionRef.current);
-        subscriptionRef.current = null;
-      }
+      console.log(`Cleaning up real-time subscription for job ${jobId}`);
+      supabase.removeChannel(channel);
     };
-  }, [jobId, setCurrentStatus]);
+  }, [jobId, job?.clientId]);
   
   const updateJobStatus = async (newStatus: string) => {
     // Optimistic update - update UI immediately without waiting
@@ -131,6 +136,8 @@ export const JobDetailsProvider = ({
       invoiceAmount,
       balance,
       refreshJob,
+      refreshFinancials,
+      financialRefreshTrigger,
       updateJobStatus
     }}>
       {children}

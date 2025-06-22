@@ -1,4 +1,3 @@
-
 export interface JobInfo {
   id: string;
   clientId: string;
@@ -26,5 +25,7 @@ export interface JobDetailsContextType {
   invoiceAmount: number;
   balance: number;
   refreshJob: () => void;
+  refreshFinancials: () => void;
+  financialRefreshTrigger: number;
   updateJobStatus: (newStatus: string) => Promise<void>;
 }

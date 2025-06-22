@@ -52,7 +52,11 @@ export const EstimatesList = ({ jobId, onEstimateConverted }: EstimatesListProps
   const handleEstimateUpdated = () => {
     console.log('Estimate updated, refreshing');
     setEditingEstimate(null);
-    refreshEstimates();
+    
+    // Add delay to ensure database changes are committed
+    setTimeout(() => {
+      refreshEstimates();
+    }, 500);
   };
 
   const handleViewerClosed = () => {

@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { PageLayout } from "@/components/layout/PageLayout";
 import { PageHeader } from "@/components/ui/page-header";
@@ -11,7 +10,8 @@ import { JobStatusesConfig } from "@/components/settings/configuration/JobStatus
 import { CustomFieldsConfig } from "@/components/settings/configuration/CustomFieldsConfig";
 import { LeadSourcesConfig } from "@/components/settings/configuration/LeadSourcesConfig";
 import { TaxConfig } from "@/components/settings/configuration/TaxConfig";
-import { Settings2, Tags, ListTodo, ClipboardList, FormInput, MessageCircle, Cog, Target, Zap, Receipt } from "lucide-react";
+import { DocumentNumberingConfig } from "@/components/settings/configuration/DocumentNumberingConfig";
+import { Settings2, Tags, ListTodo, ClipboardList, FormInput, MessageCircle, Cog, Target, Zap, Receipt, Hash } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 
 const ConfigurationPage = () => {
@@ -44,6 +44,10 @@ const ConfigurationPage = () => {
                   <Receipt className="h-4 w-4" />
                   Tax Settings
                 </TabsTrigger>
+                <TabsTrigger value="numbering" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground flex items-center gap-1.5">
+                  <Hash className="h-4 w-4" />
+                  Document Numbering
+                </TabsTrigger>
                 <TabsTrigger value="tags" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground flex items-center gap-1.5">
                   <Tags className="h-4 w-4" />
                   Tags
@@ -73,6 +77,9 @@ const ConfigurationPage = () => {
               </TabsContent>
               <TabsContent value="tax" className="m-0">
                 <TaxConfig />
+              </TabsContent>
+              <TabsContent value="numbering" className="m-0">
+                <DocumentNumberingConfig />
               </TabsContent>
               <TabsContent value="tags" className="m-0">
                 <TagsConfig />

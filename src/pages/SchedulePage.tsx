@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { PageLayout } from "@/components/layout/PageLayout";
 import { PageHeader } from "@/components/ui/page-header";
@@ -23,7 +22,7 @@ const SchedulePage = () => {
   const [showAIInsights, setShowAIInsights] = useState(false);
   const [scheduleError, setScheduleError] = useState<string | null>(null);
   
-  const { addJob } = useJobs();
+  const { addJob, refreshJobs } = useJobs();
 
   console.log('SchedulePage: Component mounted', { user, authLoading, view });
 
@@ -61,8 +60,8 @@ const SchedulePage = () => {
     try {
       const createdJob = await addJob(jobData);
       if (createdJob) {
-        console.log('SchedulePage: Job created successfully', { jobId: createdJob.id });
-        toast.success(`Job ${createdJob.id} has been created and scheduled`);
+        // Toast notification handled by ScheduleJobModal
+        refreshJobs();
         return createdJob;
       }
     } catch (error) {

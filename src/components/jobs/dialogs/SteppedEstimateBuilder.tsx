@@ -93,23 +93,31 @@ export const SteppedEstimateBuilder = ({
     }
   }, [open, existingEstimate]);
 
-  // Generate estimate number if creating new
+  // Generate estimate number if creating new - only once per session
   useEffect(() => {
     const generateEstimateNumber = async () => {
       if (open && !existingEstimate && !documentNumber) {
         try {
           const newNumber = await generateNextId('estimate');
           setDocumentNumber(newNumber);
+          console.log('Generated new estimate number:', newNumber);
         } catch (error) {
           console.error("Error generating estimate number:", error);
           const fallbackNumber = `EST-${Date.now()}`;
           setDocumentNumber(fallbackNumber);
         }
+      } else if (existingEstimate && !documentNumber) {
+        // Set existing estimate number
+        const existingNumber = existingEstimate.estimate_number || existingEstimate.number;
+        if (existingNumber) {
+          setDocumentNumber(existingNumber);
+          console.log('Using existing estimate number:', existingNumber);
+        }
       }
     };
 
     generateEstimateNumber();
-  }, [open, existingEstimate, documentNumber, setDocumentNumber]);
+  }, [open, existingEstimate]); // Removed documentNumber from dependencies to prevent regeneration
 
   const handleSaveAndContinue = async () => {
     if (lineItems.length === 0) {

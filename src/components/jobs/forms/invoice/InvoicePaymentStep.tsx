@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -31,7 +30,6 @@ export const InvoicePaymentStep = ({ invoice, onPayment, onSendInvoice }: Invoic
     setIsProcessingPayment(true);
     try {
       await onPayment(paymentAmount, paymentMethod, paymentReference, paymentNotes);
-      toast.success("Payment recorded successfully");
     } catch (error) {
       toast.error("Failed to record payment");
     } finally {

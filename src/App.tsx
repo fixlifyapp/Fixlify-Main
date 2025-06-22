@@ -48,9 +48,7 @@ import NotFound from "@/pages/NotFound";
 import { AppProviders } from "@/components/ui/AppProviders";
 import { AuthProvider } from "@/hooks/use-auth";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
-import PublicEnhancedPortal from "@/pages/PublicEnhancedPortal";
-import PublicJobPortal from "@/pages/PublicJobPortal";
-import ClientPortal from "@/pages/ClientPortal";
+import ClientPortal from "./pages/ClientPortal";
 
 const queryClient = new QueryClient();
 
@@ -99,11 +97,6 @@ function App() {
               </TooltipProvider>
             </AuthProvider>
           } />
-          <Route path="/portal/:accessId" element={<PublicRoute><PublicEnhancedPortal /></PublicRoute>} />
-          <Route path="/enhanced-portal/:accessId" element={<PublicRoute><PublicEnhancedPortal /></PublicRoute>} />
-          <Route path="/enhanced-portal/:clientId/:jobId" element={<PublicRoute><PublicEnhancedPortal /></PublicRoute>} />
-          <Route path="/client/:jobNumber" element={<PublicRoute><PublicJobPortal /></PublicRoute>} />
-          
           {/* Client Portal routes - completely public with token access */}
           <Route path="/portal/:accessToken" element={<PublicRoute><ClientPortal /></PublicRoute>} />
           

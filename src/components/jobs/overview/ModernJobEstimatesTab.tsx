@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -69,7 +68,10 @@ export const ModernJobEstimatesTab = ({
   const pendingApproval = estimatesState.filter(est => est.status === 'sent').length;
 
   const handleEstimateCreated = () => {
-    refreshEstimates();
+    // Add delay to ensure database changes are committed
+    setTimeout(() => {
+      refreshEstimates();
+    }, 500);
     setShowCreateForm(false);
     setEditingEstimate(null);
   };
@@ -111,7 +113,7 @@ export const ModernJobEstimatesTab = ({
       // Force a refresh to ensure the UI is updated
       setTimeout(() => {
         refreshEstimates();
-      }, 100);
+      }, 500); // Increased delay for delete operations
     }
   };
 
@@ -124,7 +126,12 @@ export const ModernJobEstimatesTab = ({
   const handleSendSuccess = () => {
     setShowSendDialog(false);
     setSendingEstimate(null);
-    refreshEstimates();
+    
+    // Add delay to ensure database changes are committed
+    setTimeout(() => {
+      refreshEstimates();
+    }, 500);
+    
     toast.success("Estimate sent successfully!");
   };
 
@@ -144,13 +151,15 @@ export const ModernJobEstimatesTab = ({
       
       if (success) {
         console.log('Estimate converted successfully, calling onEstimateConverted');
-        // Removed duplicate toast - the success notification is handled in useEstimates.ts
-        if (onEstimateConverted) {
-          onEstimateConverted();
-        }
-        if (onTabChange) {
-          onTabChange('invoices');
-        }
+        // Add delay before triggering callbacks and navigation
+        setTimeout(() => {
+          if (onEstimateConverted) {
+            onEstimateConverted();
+          }
+          if (onTabChange) {
+            onTabChange('invoices');
+          }
+        }, 500);
       }
     } catch (error) {
       console.error('Error converting estimate:', error);

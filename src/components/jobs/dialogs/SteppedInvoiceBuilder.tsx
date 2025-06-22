@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import {
   Dialog,
@@ -9,7 +8,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, ArrowRight, Check } from "lucide-react";
 import { UnifiedItemsStep } from "./unified/UnifiedItemsStep";
-import { InvoiceWarrantyDialog } from "./invoice-builder/InvoiceWarrantyDialog";
+import { EstimateUpsellStep } from "./estimate-builder/EstimateUpsellStep";
 import { UniversalSendDialog } from "./shared/UniversalSendDialog";
 import { useUnifiedDocumentBuilder } from "./unified/useUnifiedDocumentBuilder";
 import { Estimate } from "@/hooks/useEstimates";
@@ -107,12 +106,15 @@ export const SteppedInvoiceBuilder = ({
 
           if (!estimateError && estimateLineItems) {
             const hasWarrantiesInEstimate = estimateLineItems.some((item: any) => 
-              item.description?.toLowerCase().includes('warranty')
+              item.description?.toLowerCase().includes('warranty') ||
+              item.description?.toLowerCase().includes('protection') ||
+              item.description?.toLowerCase().includes('extended')
             );
             
             if (hasWarrantiesInEstimate) {
               setHasExistingWarranties(true);
               setIsCheckingWarranties(false);
+              console.log('Warranties found in original estimate, skipping upsell step');
               return;
             }
           }
@@ -127,9 +129,14 @@ export const SteppedInvoiceBuilder = ({
 
         if (!error && invoiceLineItems) {
           const hasWarranties = invoiceLineItems.some((item: any) => 
-            item.description?.toLowerCase().includes('warranty')
+            item.description?.toLowerCase().includes('warranty') ||
+            item.description?.toLowerCase().includes('protection') ||
+            item.description?.toLowerCase().includes('extended')
           );
           setHasExistingWarranties(hasWarranties);
+          if (hasWarranties) {
+            console.log('Warranties found in invoice, skipping upsell step');
+          }
         }
       } catch (error) {
         console.error('Error checking existing warranties:', error);
@@ -155,12 +162,41 @@ export const SteppedInvoiceBuilder = ({
         setInvoiceCreated(false);
         setSavedInvoice(null);
         console.log("Initializing invoice from estimate:", estimateToConvert.id);
+        
+        // Check if estimate already has warranties
+        checkEstimateForWarranties(estimateToConvert.id);
       }
       setCurrentStep("items");
       setSelectedUpsells([]);
       setUpsellNotes("");
     }
   }, [open, existingInvoice, estimateToConvert]);
+
+  // Helper function to check if estimate has warranties
+  const checkEstimateForWarranties = async (estimateId: string) => {
+    try {
+      const { data: lineItems } = await supabase
+        .from('line_items')
+        .select('*')
+        .eq('parent_id', estimateId)
+        .eq('parent_type', 'estimate');
+
+      if (lineItems) {
+        const hasWarranties = lineItems.some((item: any) => 
+          item.description?.toLowerCase().includes('warranty') ||
+          item.description?.toLowerCase().includes('protection') ||
+          item.description?.toLowerCase().includes('extended')
+        );
+        
+        if (hasWarranties) {
+          setHasExistingWarranties(true);
+          console.log('Warranties found in estimate, will skip upsell step');
+        }
+      }
+    } catch (error) {
+      console.error('Error checking estimate warranties:', error);
+    }
+  };
 
   const handleSaveAndContinue = async () => {
     if (lineItems.length === 0) {
@@ -178,11 +214,6 @@ export const SteppedInvoiceBuilder = ({
         setInvoiceCreated(true);
         console.log("✅ Invoice saved successfully:", invoice.id);
         toast.success("Invoice saved successfully!");
-        
-        // Wait a moment for warranty check to complete if it's running
-        if (isCheckingWarranties) {
-          await new Promise(resolve => setTimeout(resolve, 500));
-        }
         
         // Skip upsell step if warranties already exist
         if (hasExistingWarranties) {
@@ -229,22 +260,23 @@ export const SteppedInvoiceBuilder = ({
   };
 
   const handleDialogClose = () => {
-    if (currentStep === "send") {
-      setCurrentStep(hasExistingWarranties ? "items" : "upsell");
-    } else if (currentStep === "upsell") {
-      setCurrentStep("items");
-    } else {
+    // Only close dialog if user is on first step or explicitly wants to close
+    if (currentStep === "items") {
       onOpenChange(false);
     }
+    // For other steps, user should use navigation buttons
   };
 
   const handleSendDialogClose = () => {
-    // Return to the appropriate step based on warranty status
-    setCurrentStep(hasExistingWarranties ? "items" : "upsell");
+    // Don't change step when closing send dialog - stay on send step
+    // User can use back button to go to previous step if needed
   };
 
   const handleSendSuccess = () => {
     // Close the entire dialog after successful send
+    if (onInvoiceCreated && savedInvoice) {
+      onInvoiceCreated(savedInvoice);
+    }
     onOpenChange(false);
   };
 
@@ -439,20 +471,60 @@ export const SteppedInvoiceBuilder = ({
         </DialogContent>
       </Dialog>
 
-      {/* Compact Warranty Dialog - only show if no existing warranties */}
+      {/* Upsell Step Dialog - only show if no existing warranties */}
       {!hasExistingWarranties && (
-        <InvoiceWarrantyDialog
-          open={currentStep === "upsell"}
-          onOpenChange={(open) => {
-            if (!open) {
-              setCurrentStep("items");
-            }
-          }}
-          onContinue={handleUpsellContinue}
-          invoiceTotal={calculateGrandTotal()}
-          invoiceId={savedInvoice?.id || existingInvoice?.id}
-          wasConvertedFromEstimate={!!estimateToConvert}
-        />
+        <Dialog open={currentStep === "upsell"} onOpenChange={(open) => {
+          if (!open) {
+            setCurrentStep("items");
+          }
+        }}>
+          <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="flex flex-wrap items-center gap-2">
+                <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-sm font-medium">
+                  Step 2 of 3
+                </span>
+                Enhance Your Invoice
+                {documentNumber && <span className="text-sm text-muted-foreground">(#{documentNumber})</span>}
+              </DialogTitle>
+            </DialogHeader>
+            
+            <div className="py-6">
+              <EstimateUpsellStep
+                documentTotal={calculateGrandTotal()}
+                onContinue={handleUpsellContinue}
+                onBack={() => setCurrentStep("items")}
+                existingUpsellItems={selectedUpsells}
+                jobContext={{
+                  job_type: 'General Service',
+                  service_category: 'Maintenance',
+                  job_value: calculateGrandTotal(),
+                  client_history: clientInfo,
+                  invoiceId: savedInvoice?.id || existingInvoice?.id
+                }}
+              />
+            </div>
+            
+            {/* Navigation buttons for upsell step */}
+            <div className="flex justify-between pt-4 border-t">
+              <Button 
+                variant="outline" 
+                onClick={() => setCurrentStep("items")}
+              >
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Back to Items
+              </Button>
+              
+              <Button 
+                onClick={() => setCurrentStep("send")}
+                className="gap-2"
+              >
+                Continue to Send
+                <ArrowRight className="h-4 w-4" />
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       )}
 
       {/* Universal Send Dialog */}

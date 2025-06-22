@@ -436,6 +436,10 @@ export const useDocumentOperations = ({
           console.error('❌ Error copying line items:', lineItemsError);
           throw new Error(`Failed to copy line items: ${lineItemsError.message}`);
         }
+        
+        console.log('✅ Line items copied to invoice successfully');
+      } else {
+        console.log('⚠️ No line items to copy to invoice');
       }
 
       // Update estimate status to converted with improved error handling

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { PageLayout } from "@/components/layout/PageLayout";
 import { PageHeader } from "@/components/ui/page-header";
@@ -40,11 +39,13 @@ const JobsPage = () => {
   const { 
     jobs: optimizedJobs, 
     isLoading: isOptimizedLoading,
+    hasError: hasOptimizedError,
     totalCount,
     totalPages,
     hasNextPage,
     hasPreviousPage,
     refreshJobs: refreshOptimized,
+    clearError: clearOptimizedError,
     canCreate,
     canEdit,
     canDelete
@@ -111,7 +112,7 @@ const JobsPage = () => {
     try {
       const createdJob = await addJob(jobData);
       if (createdJob) {
-        toast.success(`Job ${createdJob.id} created successfully!`);
+        // Toast notification removed - already shown in ScheduleJobModal
         // Refresh optimized jobs immediately
         refreshOptimized();
         return createdJob;
@@ -215,7 +216,11 @@ const JobsPage = () => {
   };
 
   const handleRefreshJobs = () => {
-    refreshOptimized();
+    if (hasOptimizedError) {
+      clearOptimizedError();
+    } else {
+      refreshOptimized();
+    }
     setSelectedJobs([]);
     toast.success('Jobs refreshed');
   };
@@ -303,7 +308,6 @@ const JobsPage = () => {
         open={isCreateJobModalOpen} 
         onOpenChange={setIsCreateJobModalOpen}
         onJobCreated={handleJobCreated}
-        onSuccess={(job) => toast.success(`Job ${job.id} created successfully!`)}
       />
     </PageLayout>
   );

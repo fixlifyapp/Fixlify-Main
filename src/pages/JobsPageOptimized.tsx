@@ -67,7 +67,8 @@ const JobsPageOptimized = () => {
     try {
       const createdJob = await addJob(jobData);
       if (createdJob) {
-        toast.success(`Job ${createdJob.id} created successfully!`);
+        // Toast notification removed - already shown in ScheduleJobModal
+        // Refresh optimized jobs immediately
         refreshJobs();
         return createdJob;
       }
@@ -265,7 +266,7 @@ const JobsPageOptimized = () => {
         open={isCreateJobModalOpen} 
         onOpenChange={setIsCreateJobModalOpen}
         onJobCreated={handleJobCreated}
-        onSuccess={(job) => toast.success(`Job ${job.id} created successfully!`)}
+
       />
     </PageLayout>
   );

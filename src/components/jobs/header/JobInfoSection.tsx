@@ -1,4 +1,3 @@
-
 import { Badge } from "@/components/ui/badge";
 import { JobStatusBadge } from "./JobStatusBadge";
 import { ClientContactButtons } from "./ClientContactButtons";
@@ -6,6 +5,7 @@ import { FileText, CreditCard, CheckCircle, Hash, MapPin } from "lucide-react";
 import { useJobFinancials } from "@/hooks/useJobFinancials";
 import { useState, useEffect } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useJobDetails } from "../context/JobDetailsContext";
 
 interface JobInfoSectionProps {
   job: {
@@ -35,6 +35,7 @@ export const JobInfoSection = ({
 }: JobInfoSectionProps) => {
   const isMobile = useIsMobile();
   const [currentStatus, setCurrentStatus] = useState(status);
+  const { financialRefreshTrigger } = useJobDetails();
   
   useEffect(() => {
     if (status !== currentStatus) {
@@ -49,8 +50,17 @@ export const JobInfoSection = ({
     overdueAmount,
     paidInvoices,
     unpaidInvoices,
-    isLoading: isLoadingFinancials
+    isLoading: isLoadingFinancials,
+    refreshFinancials
   } = useJobFinancials(job.id);
+
+  // Refresh financials when trigger changes
+  useEffect(() => {
+    if (financialRefreshTrigger > 0) {
+      console.log('💰 Financial refresh triggered from context');
+      refreshFinancials();
+    }
+  }, [financialRefreshTrigger, refreshFinancials]);
 
   const formatCurrency = (amount: number) => `$${amount.toFixed(2)}`;
 

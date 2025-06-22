@@ -1,4 +1,3 @@
-
 import { useState, useRef } from "react";
 import { toast } from "sonner";
 import { usePaymentActions } from "@/hooks/usePaymentActions";
@@ -82,11 +81,6 @@ export const usePaymentForm = ({ invoice, jobId, onPaymentAdded, onClose }: UseP
     if (submitTimeoutRef.current) {
       clearTimeout(submitTimeoutRef.current);
     }
-    
-    // Set a timeout to reset submitting state in case of unexpected errors
-    submitTimeoutRef.current = setTimeout(() => {
-      setIsSubmitting(false);
-    }, 15000); // 15 second timeout
 
     try {
       console.log('Submitting payment for invoice:', invoice.id, 'amount:', roundedPaymentAmount, 'job:', jobId);
@@ -111,16 +105,8 @@ export const usePaymentForm = ({ invoice, jobId, onPaymentAdded, onClose }: UseP
         // Close dialog immediately
         onClose();
         
-        // Show success message
-        toast.success("Payment recorded successfully!");
-        
-        // Small delay to ensure dialog closes before refresh
-        setTimeout(() => {
-          if (onPaymentAdded) {
-            console.log('Triggering payment refresh callback');
-            onPaymentAdded();
-          }
-        }, 100);
+        // The refresh is already handled by usePaymentActions callback
+        // No need for additional refresh calls here
       } else {
         // addPayment already shows error toast
         console.error('Payment recording failed');

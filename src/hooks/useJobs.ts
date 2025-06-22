@@ -56,7 +56,17 @@ export const useJobs = (clientId?: string, enableCustomFields?: boolean) => {
 
   // Memoize fetchJobs to prevent infinite loops
   const fetchJobs = useCallback(async () => {
-    if (!isAuthenticated || !user?.id || hasError) {
+    if (!isAuthenticated || !user?.id) {
+      console.log('❌ Not authenticated or no user ID:', { isAuthenticated, userId: user?.id });
+      setIsLoading(false);
+      if (!isAuthenticated) {
+        setHasError(true);
+        handleJobsError(new Error('User not authenticated'), 'useJobs - authentication check');
+      }
+      return;
+    }
+
+    if (hasError) {
       setIsLoading(false);
       return;
     }
@@ -90,7 +100,13 @@ export const useJobs = (clientId?: string, enableCustomFields?: boolean) => {
         
         query = query.order('created_at', { ascending: false });
         
-        const { data, error } = await query;
+        // Add timeout to prevent hanging
+        const queryPromise = query;
+        const timeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Request timeout')), 15000)
+        );
+        
+        const { data, error } = await Promise.race([queryPromise, timeoutPromise]) as any;
         
         if (error) throw error;
         

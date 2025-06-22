@@ -57,20 +57,52 @@ export const useDocumentInitialization = ({
         // Load line items from database
         console.log("Loading line items for existing document:", existingDocument.id);
         try {
-          // Determine the parent type to query
           let queryParentType = documentType;
+          let queryParentId = existingDocument.id;
           
-          // If we're creating an invoice from an estimate, load estimate line items
-          if (documentType === 'invoice' && existingDocument && 'estimate_number' in existingDocument) {
-            queryParentType = 'estimate';
-            console.log("Converting from estimate - loading estimate line items");
+          // If we're editing an invoice that was converted from an estimate, load invoice line items first
+          if (documentType === 'invoice') {
+            const invoice = existingDocument as Invoice;
+            
+            // First try to load invoice line items
+            const { data: invoiceItems, error: invoiceError } = await supabase
+              .from('line_items')
+              .select('*')
+              .eq('parent_type', 'invoice')
+              .eq('parent_id', invoice.id);
+
+            if (!invoiceError && invoiceItems && invoiceItems.length > 0) {
+              console.log(`Loaded ${invoiceItems.length} line items from invoice`);
+              const transformedItems: LineItem[] = invoiceItems.map(item => ({
+                id: `temp-${Date.now()}-${Math.random()}`,
+                description: item.description || '',
+                quantity: item.quantity || 1,
+                unitPrice: Number(item.unit_price) || 0,
+                taxable: item.taxable !== false,
+                discount: 0,
+                ourPrice: 0,
+                name: item.description || '',
+                price: Number(item.unit_price) || 0,
+                total: (item.quantity || 1) * (Number(item.unit_price) || 0)
+              }));
+              setLineItems(transformedItems);
+              return; // Exit early if we found invoice items
+            }
+            
+            // If no invoice items found and this was converted from estimate, load estimate items
+            if (invoice.estimate_id) {
+              console.log("Invoice has no line items, loading from original estimate:", invoice.estimate_id);
+              queryParentType = 'estimate';
+              queryParentId = invoice.estimate_id;
+            }
           }
           
+          // Load line items for the determined parent
           const { data: items, error } = await supabase
             .from('line_items')
             .select('*')
             .eq('parent_type', queryParentType)
-            .eq('parent_id', existingDocument.id);
+            .eq('parent_id', queryParentId);
 
           if (error) {
             console.error("Error loading line items:", error);
@@ -95,10 +127,24 @@ export const useDocumentInitialization = ({
           console.error("Error fetching line items:", error);
         }
       } else {
-        // Generate new document number
-        const prefix = documentType === 'estimate' ? 'EST' : 'INV';
-        const timestamp = Date.now();
-        setDocumentNumber(`${prefix}-${timestamp}`);
+        // Generate new document number only once
+        if (!documentNumber) {
+          try {
+            const { data: newNumber, error } = await supabase.rpc('generate_next_id', {
+              p_entity_type: documentType
+            });
+            
+            if (error) throw error;
+            
+            setDocumentNumber(newNumber);
+            console.log(`Generated new ${documentType} number:`, newNumber);
+          } catch (error) {
+            console.error(`Error generating ${documentType} number:`, error);
+            const prefix = documentType === 'estimate' ? 'EST' : 'INV';
+            const fallbackNumber = `${prefix}-${Date.now()}`;
+            setDocumentNumber(fallbackNumber);
+          }
+        }
         setLineItems([]);
         setNotes("");
       }

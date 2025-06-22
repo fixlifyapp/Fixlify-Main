@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -18,15 +17,27 @@ export interface Estimate extends EstimateType {
 // Re-export LineItem for backward compatibility
 export type { LineItem };
 
-export const useEstimates = (jobId: string) => {
+export const useEstimates = (jobId?: string) => {
   const [estimates, setEstimates] = useState<Estimate[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isFetching, setIsFetching] = useState(false);
 
   const fetchEstimates = async () => {
-    if (!jobId) return;
-
+    // Prevent multiple simultaneous fetches
+    if (isFetching) {
+      console.log('⚠️ Fetch already in progress for estimates, skipping...');
+      return;
+    }
+    
+    if (!jobId) {
+      setEstimates([]);
+      setIsLoading(false);
+      return;
+    }
+    
     try {
-      console.log('📊 Fetching estimates for job:', jobId);
+      setIsFetching(true);
+      console.log('📊 Fetching estimates' + (jobId ? ` for job: ${jobId}` : ''));
       
       const { data, error } = await supabase
         .from('estimates')
@@ -69,6 +80,7 @@ export const useEstimates = (jobId: string) => {
       toast.error('Failed to load estimates');
     } finally {
       setIsLoading(false);
+      setIsFetching(false);
     }
   };
 
@@ -143,10 +155,11 @@ export const useEstimates = (jobId: string) => {
       }
 
       console.log('✅ Estimate converted to invoice successfully');
-      toast.success('Estimate converted to invoice successfully');
       
-      // Refresh estimates
-      await fetchEstimates();
+      // Add delay to ensure database changes are committed
+      setTimeout(() => {
+        fetchEstimates();
+      }, 500);
       
       return true;
     } catch (error) {
@@ -157,6 +170,7 @@ export const useEstimates = (jobId: string) => {
   };
 
   const refreshEstimates = () => {
+    console.log('🔄 Refreshing estimates...');
     fetchEstimates();
   };
 

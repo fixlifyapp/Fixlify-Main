@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -26,8 +25,15 @@ export interface Payment {
 export const usePayments = (jobId: string) => {
   const [payments, setPayments] = useState<Payment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isFetching, setIsFetching] = useState(false);
 
   const fetchPayments = async () => {
+    // Prevent multiple simultaneous fetches
+    if (isFetching) {
+      console.log('⚠️ Fetch already in progress for payments, skipping...');
+      return;
+    }
+    
     if (!jobId) {
       setPayments([]);
       setIsLoading(false);
@@ -35,6 +41,7 @@ export const usePayments = (jobId: string) => {
     }
 
     try {
+      setIsFetching(true);
       setIsLoading(true);
       console.log('Fetching payments for job:', jobId);
 
@@ -75,10 +82,12 @@ export const usePayments = (jobId: string) => {
       setPayments([]);
     } finally {
       setIsLoading(false);
+      setIsFetching(false);
     }
   };
 
   const refreshPayments = () => {
+    console.log('🔄 Refreshing payments...');
     fetchPayments();
   };
 

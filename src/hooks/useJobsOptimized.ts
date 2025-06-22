@@ -45,7 +45,18 @@ export const useJobsOptimized = (options: UseJobsOptimizedOptions = {}) => {
   );
 
   const fetchJobs = useCallback(async (useCache = true) => {
-    if (hasError || !user?.id) return;
+    if (!user?.id) {
+      console.log('❌ No user ID in useJobsOptimized:', { userId: user?.id });
+      setIsLoading(false);
+      setHasError(true);
+      handleJobsError(new Error('User not authenticated'), 'useJobsOptimized - authentication check');
+      return;
+    }
+
+    if (hasError) {
+      setIsLoading(false);
+      return;
+    }
 
     if (requestCache.has(cacheKey)) {
       try {

@@ -127,7 +127,7 @@ export const usePaymentActions = (jobId: string, onSuccess?: () => void) => {
       if (newBalance <= 0.01) { // Account for floating point precision
         newStatus = 'paid';
       } else if (newAmountPaid > 0) {
-        newStatus = 'partial';
+        newStatus = 'unpaid'; // Use 'unpaid' instead of 'partial' since 'partial' is not allowed
       } else {
         newStatus = 'draft'; // Fallback to draft instead of unpaid
       }
@@ -177,7 +177,12 @@ export const usePaymentActions = (jobId: string, onSuccess?: () => void) => {
 
       console.log('Payment successfully recorded');
       toast.success('Payment recorded successfully!');
-      if (onSuccess) onSuccess();
+      
+      // Add delay to ensure database changes are fully committed before triggering refresh
+      setTimeout(() => {
+        if (onSuccess) onSuccess();
+      }, 300); // 300ms delay to ensure DB transaction is complete
+      
       return true;
     } catch (error: any) {
       console.error('Error recording payment:', error);
@@ -236,7 +241,7 @@ export const usePaymentActions = (jobId: string, onSuccess?: () => void) => {
       if (newBalance <= 0) {
         newStatus = 'paid';
       } else if (newAmountPaid > 0) {
-        newStatus = 'partial';
+        newStatus = 'unpaid'; // Use 'unpaid' instead of 'partial' since 'partial' is not allowed
       }
 
       const { error: updateError } = await supabase
@@ -298,7 +303,7 @@ export const usePaymentActions = (jobId: string, onSuccess?: () => void) => {
       if (newBalance <= 0) {
         newStatus = 'paid';
       } else if (newAmountPaid > 0) {
-        newStatus = 'partial';
+        newStatus = 'unpaid'; // Use 'unpaid' instead of 'partial' since 'partial' is not allowed
       }
 
       const { error: updateError } = await supabase

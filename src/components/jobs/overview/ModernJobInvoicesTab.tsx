@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -16,6 +15,8 @@ import { useJobData } from "../dialogs/unified/hooks/useJobData";
 import { format } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { UnifiedPaymentDialog } from "../dialogs/UnifiedPaymentDialog";
+import { useJobDetails } from "../context/JobDetailsContext";
+import { executeDelayedRefresh } from "@/utils/refreshUtils";
 
 interface ModernJobInvoicesTabProps {
   jobId: string;
@@ -25,6 +26,7 @@ export const ModernJobInvoicesTab = ({ jobId }: ModernJobInvoicesTabProps) => {
   const { invoices, isLoading, refreshInvoices } = useInvoices(jobId);
   const { estimates } = useEstimates(jobId);
   const { clientInfo, loading: jobDataLoading } = useJobData(jobId);
+  const { refreshFinancials } = useJobDetails();
   const [showInvoiceBuilder, setShowInvoiceBuilder] = useState(false);
   const [showSendDialog, setShowSendDialog] = useState(false);
   const [showPaymentDialog, setShowPaymentDialog] = useState(false);
@@ -85,7 +87,11 @@ export const ModernJobInvoicesTab = ({ jobId }: ModernJobInvoicesTabProps) => {
         return;
       }
 
-      refreshInvoices();
+      // Add delay to ensure database changes are committed
+      setTimeout(() => {
+        refreshInvoices();
+      }, 500);
+      
       toast.success('Invoice deleted successfully');
     } catch (error) {
       console.error('Error deleting invoice:', error);
@@ -98,7 +104,12 @@ export const ModernJobInvoicesTab = ({ jobId }: ModernJobInvoicesTabProps) => {
   const handleSendSuccess = () => {
     setShowSendDialog(false);
     setSelectedInvoice(null);
-    refreshInvoices();
+    
+    // Add delay to ensure database changes are committed
+    setTimeout(() => {
+      refreshInvoices();
+    }, 500);
+    
     toast.success("Invoice sent successfully!");
   };
 
@@ -112,9 +123,11 @@ export const ModernJobInvoicesTab = ({ jobId }: ModernJobInvoicesTabProps) => {
     setShowPaymentDialog(false);
     setSelectedInvoice(null);
     
-    refreshInvoices();
-    
-    toast.success("Payment recorded successfully!");
+    // Use utility to handle all refreshes with proper delays
+    executeDelayedRefresh({
+      invoices: refreshInvoices,
+      financials: refreshFinancials
+    });
   };
 
   const handleViewerClosed = () => {

@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { PageLayout } from "@/components/layout/PageLayout";
@@ -13,7 +12,7 @@ const ClientDetailPage = () => {
   const { id: clientId } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [isCreateJobModalOpen, setIsCreateJobModalOpen] = useState(false);
-  const { addJob } = useJobs();
+  const { addJob, refreshJobs } = useJobs();
   
   console.log("🔍 ClientDetailPage - params:", { clientId });
   
@@ -21,8 +20,7 @@ const ClientDetailPage = () => {
     try {
       const createdJob = await addJob(jobData);
       if (createdJob) {
-        toast.success(`Job ${createdJob.id} created successfully!`);
-        navigate(`/jobs/${createdJob.id}`);
+        refreshJobs();
         return createdJob;
       }
     } catch (error) {

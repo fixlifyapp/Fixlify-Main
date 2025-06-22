@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -21,6 +20,7 @@ import { Estimate } from '@/hooks/useEstimates';
 import { Invoice } from '@/hooks/useInvoices';
 import { formatCurrency } from '@/lib/utils';
 import { toast } from 'sonner';
+import { useEstimates } from '@/hooks/useEstimates';
 
 export type DocumentType = 'estimate' | 'invoice';
 
@@ -41,6 +41,8 @@ export const UnifiedDocumentBuilder = ({
   jobId,
   onDocumentCreated
 }: UnifiedDocumentBuilderProps) => {
+  const { convertEstimateToInvoice } = useEstimates(jobId);
+  
   const {
     formData,
     jobData,
@@ -57,8 +59,7 @@ export const UnifiedDocumentBuilder = ({
     calculateSubtotal,
     calculateTotalTax,
     calculateGrandTotal,
-    saveDocumentChanges,
-    convertToInvoice
+    saveDocumentChanges
   } = useUnifiedDocumentBuilder({
     documentType,
     existingDocument,
@@ -125,12 +126,18 @@ export const UnifiedDocumentBuilder = ({
 
   const handleConvert = async () => {
     console.log('Converting estimate to invoice');
+    if (documentType !== 'estimate' || !existingDocument) return;
+    
     try {
-      const invoice = await convertToInvoice();
-      if (invoice && onDocumentCreated) {
-        onDocumentCreated(invoice);
+      const success = await convertEstimateToInvoice(existingDocument.id);
+      if (success) {
+        toast.success('Estimate converted to invoice successfully');
+        if (onDocumentCreated) {
+          // We don't have the new invoice object here, so just trigger a refresh
+          onDocumentCreated();
+        }
+        onOpenChange(false);
       }
-      onOpenChange(false);
     } catch (error) {
       console.error('Error converting to invoice:', error);
       toast.error('Failed to convert to invoice');

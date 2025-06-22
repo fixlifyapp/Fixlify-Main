@@ -3958,14 +3958,7 @@ export type Database = {
         }
         Returns: string
       }
-      get_enhanced_portal_data: {
-        Args: { p_client_id: string }
-        Returns: Json
-      }
-      get_job_portal_data: {
-        Args: { p_job_number: string }
-        Returns: Json
-      }
+
       get_popular_warranties_by_job_type: {
         Args: { p_job_type: string; p_limit?: number }
         Returns: {
@@ -4006,10 +3999,7 @@ export type Database = {
         Args: { user_uuid: string }
         Returns: string
       }
-      handle_job_portal_request: {
-        Args: { p_job_number: string }
-        Returns: Json
-      }
+
       log_security_event: {
         Args: {
           p_action: string
