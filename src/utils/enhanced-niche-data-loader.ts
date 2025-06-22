@@ -357,103 +357,135 @@ async function safeCreateEntity(
       userId = user.id;
     }
 
-    // Check if entities already exist for this user
-    const { data: existing, error: checkError } = await supabase
+    // Add user_id to all records
+    const dataWithUserId = data.map(item => ({
+      ...item,
+      user_id: userId
+    }));
+
+    // First, delete any existing data for this user to ensure clean slate
+    const { error: deleteError } = await supabase
       .from(tableName)
-      .select('id')
-      .or(`user_id.eq.${userId},user_id.is.null`)
-      .limit(1);
+      .delete()
+      .eq('user_id', userId);
 
-    if (checkError) {
-      console.error(`Error checking ${tableName}:`, checkError);
-      return false;
+    if (deleteError && deleteError.code !== 'PGRST116') {
+      console.error(`Error deleting existing ${tableName}:`, deleteError);
     }
 
-    // If entities exist for this user, skip creation
-    if (existing && existing.length > 0) {
-      console.log(`${tableName} already populated for user, skipping...`);
-      return true;
-    }
+    // Now insert the new data
+    const { data: insertedData, error } = await supabase
+      .from(tableName)
+      .insert(dataWithUserId)
+      .select();
 
-    // Add user_id to each entity if the table has that column
-    const dataWithUserId = data.map(item => {
-      // For tables that have user_id column
-      if (['products', 'tags', 'job_types', 'job_statuses'].includes(tableName)) {
-        return { ...item, user_id: userId };
+    if (error) {
+      console.error(`Error creating ${tableName}:`, error);
+      // Try inserting one by one if batch fails
+      let successCount = 0;
+      for (const item of dataWithUserId) {
+        const { error: singleError } = await supabase
+          .from(tableName)
+          .insert(item);
+        
+        if (!singleError) {
+          successCount++;
+        }
       }
-      return item;
-    });
-
-    // Insert entities in batches to avoid timeouts
-    const batchSize = 10;
-    for (let i = 0; i < dataWithUserId.length; i += batchSize) {
-      const batch = dataWithUserId.slice(i, i + batchSize);
-      const { error: insertError } = await supabase
-        .from(tableName)
-        .insert(batch);
-
-      if (insertError) {
-        console.error(`Error inserting ${tableName} batch:`, insertError);
-        // Continue with other batches even if one fails
-      }
+      console.log(`Created ${successCount}/${dataWithUserId.length} ${tableName} individually`);
+      return successCount > 0;
     }
 
+    console.log(`Successfully created ${insertedData?.length || 0} ${tableName}`);
     return true;
   } catch (error) {
-    console.error(`Error in safeCreateEntity for ${tableName}:`, error);
+    console.error(`Unexpected error creating ${tableName}:`, error);
     return false;
   }
+}
+
+// Helper function to get niche-specific data
+function getNicheData(businessNiche: string): { products: any[], tags: any[], jobTypes: any[] } | null {
+  const tags = nicheTags[businessNiche as keyof typeof nicheTags] || nicheTags.handyman;
+  const jobTypes = nicheJobTypes[businessNiche as keyof typeof nicheJobTypes] || nicheJobTypes.handyman;
+  const products = nicheProducts[businessNiche as keyof typeof nicheProducts] || nicheProducts.handyman;
+
+  if (!tags || !jobTypes || !products) {
+    return null;
+  }
+
+  // Add default fields to products
+  const productsWithDefaults = products.map(product => ({ 
+    ...product, 
+    stock_quantity: 0,
+    low_stock_threshold: 5
+  }));
+
+  return {
+    products: productsWithDefaults,
+    tags,
+    jobTypes
+  };
 }
 
 // Enhanced function to load niche-specific data
 export async function loadEnhancedNicheData(businessNiche: string): Promise<boolean> {
   try {
-    console.log(`Loading data for niche: ${businessNiche}`);
-    
-    // Get the current user
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
-      throw new Error("User not authenticated");
+      console.error("No authenticated user");
+      return false;
     }
 
-    // Create job statuses (with user association)
-    const statuses = [
-      { name: "New", description: "Newly created job", color: "#9E9E9E", sequence: 1 },
-      { name: "Scheduled", description: "Job has been scheduled", color: "#2196F3", sequence: 2, is_default: true },
-      { name: "In Progress", description: "Work in progress", color: "#FF9800", sequence: 3 },
-      { name: "On Hold", description: "Job is on hold", color: "#FFC107", sequence: 4 },
-      { name: "Completed", description: "Job completed", color: "#4CAF50", sequence: 5 },
-      { name: "Invoiced", description: "Invoice sent", color: "#00BCD4", sequence: 6 },
-      { name: "Paid", description: "Payment received", color: "#8BC34A", sequence: 7 },
-      { name: "Canceled", description: "Job canceled", color: "#F44336", sequence: 8 }
+    console.log(`Loading enhanced data for niche: ${businessNiche}`);
+
+    // First, create default data that's the same for all users
+    const defaultJobStatuses = [
+      { name: 'New', color: '#3B82F6' },
+      { name: 'In Progress', color: '#F59E0B' },
+      { name: 'Completed', color: '#10B981' },
+      { name: 'Cancelled', color: '#EF4444' },
+      { name: 'On Hold', color: '#6B7280' }
     ];
+
+    const defaultLeadSources = [
+      { name: 'Website' },
+      { name: 'Phone Call' },
+      { name: 'Email' },
+      { name: 'Referral' },
+      { name: 'Social Media' },
+      { name: 'Walk-in' }
+    ];
+
+    // Create default job statuses
+    await safeCreateEntity('job_statuses', defaultJobStatuses, 'name', user.id);
     
-    await safeCreateEntity('job_statuses', statuses, 'name', user.id);
+    // Create default lead sources
+    await safeCreateEntity('lead_sources', defaultLeadSources, 'name', user.id);
 
-    // Get niche-specific data or use defaults
-    const tags = nicheTags[businessNiche as keyof typeof nicheTags] || nicheTags.handyman;
-    const jobTypes = nicheJobTypes[businessNiche as keyof typeof nicheJobTypes] || nicheJobTypes.handyman;
-    const products = nicheProducts[businessNiche as keyof typeof nicheProducts] || nicheProducts.handyman;
+    // Get niche-specific data
+    const nicheData = getNicheData(businessNiche);
+    if (!nicheData) {
+      console.error(`No data found for niche: ${businessNiche}`);
+      return false;
+    }
 
-    // Create tags
-    await safeCreateEntity('tags', tags, 'name', user.id);
+    // Create entities in parallel for better performance
+    const results = await Promise.all([
+      safeCreateEntity('products', nicheData.products, 'name', user.id),
+      safeCreateEntity('tags', nicheData.tags, 'name', user.id),
+      safeCreateEntity('job_types', nicheData.jobTypes, 'name', user.id)
+    ]);
 
-    // Create job types
-    await safeCreateEntity('job_types', jobTypes, 'name', user.id);
+    const allSuccessful = results.every(result => result === true);
+    
+    if (allSuccessful) {
+      console.log(`Successfully loaded all enhanced data for ${businessNiche}`);
+    } else {
+      console.warn(`Some data failed to load for ${businessNiche}`);
+    }
 
-    // Create products with additional fields
-    const productsWithDefaults = products.map(product => ({ 
-      ...product, 
-      stock_quantity: 0,
-      low_stock_threshold: 5
-    }));
-    await safeCreateEntity('products', productsWithDefaults, 'name', user.id);
-
-    // Note: config_items table doesn't exist in the current schema
-    // These settings are handled through company_settings and other tables
-
-    console.log(`Successfully loaded data for ${businessNiche}`);
-    return true;
+    return allSuccessful;
   } catch (error) {
     console.error("Error loading enhanced niche data:", error);
     return false;
