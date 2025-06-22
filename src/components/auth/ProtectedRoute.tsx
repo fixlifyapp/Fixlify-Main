@@ -14,17 +14,18 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
   const { user, loading } = useAuth();
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [checkingOnboarding, setCheckingOnboarding] = useState(true);
+  const [userRole, setUserRole] = useState<string | null>(null);
   const navigate = useNavigate();
   
   useEffect(() => {
     if (!loading && !user) {
       toast.error("Authentication required", {
-        description: "Please sign in to access this page"
+        description: "Please sign in to continue"
       });
-      navigate('/auth');
+      navigate('/auth', { replace: true });
     }
   }, [user, loading, navigate]);
-  
+
   useEffect(() => {
     const checkOnboardingStatus = async () => {
       if (!user) {
@@ -33,46 +34,87 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
       }
 
       try {
+        // Get user profile with role
         const { data: profile, error } = await supabase
           .from('profiles')
-          .select('has_completed_onboarding')
+          .select('role, has_completed_onboarding')
           .eq('id', user.id)
           .single();
 
         if (error) {
-          console.error('Error checking onboarding status:', error);
-          // If there's an error, assume onboarding is needed
+          console.error('Error fetching profile:', error);
+          setCheckingOnboarding(false);
+          return;
+        }
+
+        setUserRole(profile?.role || 'technician');
+
+        // Only show onboarding for admins who haven't completed it
+        if (profile?.role === 'admin' && !profile?.has_completed_onboarding) {
+          console.log('Admin user needs onboarding');
           setShowOnboarding(true);
-        } else {
-          setShowOnboarding(!profile?.has_completed_onboarding);
         }
       } catch (error) {
         console.error('Error checking onboarding status:', error);
-        setShowOnboarding(true);
       } finally {
         setCheckingOnboarding(false);
       }
     };
 
-    checkOnboardingStatus();
-  }, [user]);
-  
+    if (user && !loading) {
+      checkOnboardingStatus();
+    }
+  }, [user, loading]);
+
   if (loading || checkingOnboarding) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      <div className="flex min-h-screen items-center justify-center p-4 bg-fixlyfy-bg-interface">
+        <div className="text-center">
+          <Loader2 size={40} className="mx-auto animate-spin text-fixlyfy mb-4" />
+          <p className="text-fixlyfy-text-secondary">Loading...</p>
+        </div>
       </div>
     );
   }
-  
+
   if (!user) {
     return <Navigate to="/auth" replace />;
   }
-  
+
+  const handleOnboardingComplete = async () => {
+    try {
+      // Update the user's onboarding status
+      const { error } = await supabase
+        .from('profiles')
+        .update({ has_completed_onboarding: true })
+        .eq('id', user.id);
+
+      if (error) {
+        console.error('Error updating onboarding status:', error);
+        toast.error('Failed to update onboarding status');
+        return;
+      }
+
+      setShowOnboarding(false);
+      toast.success('Welcome to Fixlyfy!', {
+        description: 'Your workspace has been set up successfully.'
+      });
+    } catch (error) {
+      console.error('Error completing onboarding:', error);
+      toast.error('Failed to complete onboarding');
+    }
+  };
+
   return (
     <>
       {children}
-      <EnhancedOnboardingModal open={showOnboarding} onOpenChange={setShowOnboarding} />
+      {showOnboarding && userRole === 'admin' && (
+        <EnhancedOnboardingModal 
+          open={showOnboarding} 
+          onOpenChange={setShowOnboarding}
+          onComplete={handleOnboardingComplete}
+        />
+      )}
     </>
   );
 }
