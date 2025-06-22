@@ -25,7 +25,6 @@ export default function AuthPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
-  const [hasAdminUser, setHasAdminUser] = useState<boolean | null>(null);
 
   console.log('🔐 AuthPage render state:', { 
     user: !!user, 
@@ -33,32 +32,8 @@ export default function AuthPage() {
     authLoading, 
     isAuthenticated,
     authError,
-    localError,
-    hasAdminUser 
+    localError
   });
-
-  // Check if there's an admin user in the system
-  useEffect(() => {
-    checkForAdminUser();
-  }, []);
-
-  const checkForAdminUser = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('role', 'admin')
-        .limit(1);
-
-      if (!error) {
-        setHasAdminUser(data && data.length > 0);
-      }
-    } catch (err) {
-      console.error('Error checking for admin user:', err);
-      // Default to showing sign-up if we can't check
-      setHasAdminUser(false);
-    }
-  };
 
   // Redirect if already authenticated
   useEffect(() => {
@@ -172,7 +147,7 @@ export default function AuthPage() {
   };
 
   // Show loading if auth is still loading
-  if (loading || hasAdminUser === null) {
+  if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center p-4 bg-fixlyfy-bg-interface">
         <div className="text-center">
@@ -194,7 +169,7 @@ export default function AuthPage() {
               F
             </div>
           </div>
-          <CardTitle className="text-3xl font-bold text-fixlyfy-text">Fixlyfy</CardTitle>
+          <CardTitle className="text-3xl font-bold text-fixlyfy-text">Fixlify</CardTitle>
           <CardDescription className="text-fixlyfy-text-secondary text-base">
             Field service management simplified
           </CardDescription>
@@ -218,16 +193,10 @@ export default function AuthPage() {
           )}
           
           <Tabs value={authTab} onValueChange={setAuthTab} defaultValue="login" className="w-full">
-            {!hasAdminUser ? (
-              <TabsList className="grid w-full grid-cols-2 mb-6 bg-gray-100">
-                <TabsTrigger value="login" className="data-[state=active]:bg-white">Sign In</TabsTrigger>
-                <TabsTrigger value="register" className="data-[state=active]:bg-white">Sign Up</TabsTrigger>
-              </TabsList>
-            ) : (
-              <TabsList className="grid w-full grid-cols-1 mb-6 bg-gray-100">
-                <TabsTrigger value="login" className="data-[state=active]:bg-white">Sign In</TabsTrigger>
-              </TabsList>
-            )}
+            <TabsList className="grid w-full grid-cols-2 mb-6 bg-gray-100">
+              <TabsTrigger value="login" className="data-[state=active]:bg-white">Sign In</TabsTrigger>
+              <TabsTrigger value="register" className="data-[state=active]:bg-white">Sign Up</TabsTrigger>
+            </TabsList>
             
             <TabsContent value="login" className="space-y-4">
               <form onSubmit={handleSignIn} className="space-y-4">
@@ -283,110 +252,103 @@ export default function AuthPage() {
                     </>
                   ) : "Sign In"}
                 </Button>
-                {hasAdminUser && (
-                  <p className="text-xs text-center text-fixlyfy-text-muted mt-4">
-                    New team members must be invited by an administrator
-                  </p>
-                )}
               </form>
             </TabsContent>
             
-            {!hasAdminUser && (
-              <TabsContent value="register" className="space-y-4">
-                <form onSubmit={handleSignUp} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="signup-email" className="text-fixlyfy-text font-medium">Email</Label>
+            <TabsContent value="register" className="space-y-4">
+              <form onSubmit={handleSignUp} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="signup-email" className="text-fixlyfy-text font-medium">Email</Label>
+                  <Input 
+                    id="signup-email" 
+                    type="email" 
+                    placeholder="your@email.com" 
+                    required 
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    disabled={authLoading}
+                    className="h-11"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="signup-password" className="text-fixlyfy-text font-medium">Password</Label>
+                  <div className="relative">
                     <Input 
-                      id="signup-email" 
-                      type="email" 
-                      placeholder="your@email.com" 
+                      id="signup-password" 
+                      type={showPassword ? "text" : "password"}
+                      placeholder="••••••••" 
                       required 
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
                       disabled={authLoading}
-                      className="h-11"
+                      className="h-11 pr-10"
                     />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-fixlyfy-text-muted hover:text-fixlyfy-text transition-colors"
+                      disabled={authLoading}
+                    >
+                      {showPassword ? (
+                        <EyeOff size={18} />
+                      ) : (
+                        <Eye size={18} />
+                      )}
+                    </button>
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="signup-password" className="text-fixlyfy-text font-medium">Password</Label>
-                    <div className="relative">
-                      <Input 
-                        id="signup-password" 
-                        type={showPassword ? "text" : "password"}
-                        placeholder="••••••••" 
-                        required 
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        disabled={authLoading}
-                        className="h-11 pr-10"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-fixlyfy-text-muted hover:text-fixlyfy-text transition-colors"
-                        disabled={authLoading}
-                      >
-                        {showPassword ? (
-                          <EyeOff size={18} />
-                        ) : (
-                          <Eye size={18} />
-                        )}
-                      </button>
-                    </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="confirm-password" className="text-fixlyfy-text font-medium">Confirm Password</Label>
+                  <div className="relative">
+                    <Input 
+                      id="confirm-password" 
+                      type={showConfirmPassword ? "text" : "password"}
+                      placeholder="••••••••" 
+                      required 
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      disabled={authLoading}
+                      className="h-11 pr-10"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-fixlyfy-text-muted hover:text-fixlyfy-text transition-colors"
+                      disabled={authLoading}
+                    >
+                      {showConfirmPassword ? (
+                        <EyeOff size={18} />
+                      ) : (
+                        <Eye size={18} />
+                      )}
+                    </button>
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="confirm-password" className="text-fixlyfy-text font-medium">Confirm Password</Label>
-                    <div className="relative">
-                      <Input 
-                        id="confirm-password" 
-                        type={showConfirmPassword ? "text" : "password"}
-                        placeholder="••••••••" 
-                        required 
-                        value={confirmPassword}
-                        onChange={(e) => setConfirmPassword(e.target.value)}
-                        disabled={authLoading}
-                        className="h-11 pr-10"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-fixlyfy-text-muted hover:text-fixlyfy-text transition-colors"
-                        disabled={authLoading}
-                      >
-                        {showConfirmPassword ? (
-                          <EyeOff size={18} />
-                        ) : (
-                          <Eye size={18} />
-                        )}
-                      </button>
-                    </div>
-                    <p className="text-xs text-fixlyfy-text-muted">
-                      Password must be at least 6 characters
-                    </p>
-                  </div>
-                  <Button 
-                    type="submit" 
-                    className="w-full h-11 bg-fixlyfy hover:bg-fixlyfy-light text-white font-medium"
-                    disabled={authLoading || !email || !password || !confirmPassword}
-                  >
-                    {authLoading ? (
-                      <>
-                        <Loader2 size={18} className="mr-2 animate-spin" />
-                        Creating account...
-                      </>
-                    ) : "Create Account"}
-                  </Button>
-                  <p className="text-xs text-center text-fixlyfy-text-muted mt-4">
-                    You'll be the company administrator
+                  <p className="text-xs text-fixlyfy-text-muted">
+                    Password must be at least 6 characters
                   </p>
-                </form>
-              </TabsContent>
-            )}
+                </div>
+                <Button 
+                  type="submit" 
+                  className="w-full h-11 bg-fixlyfy hover:bg-fixlyfy-light text-white font-medium"
+                  disabled={authLoading || !email || !password || !confirmPassword}
+                >
+                  {authLoading ? (
+                    <>
+                      <Loader2 size={18} className="mr-2 animate-spin" />
+                      Creating account...
+                    </>
+                  ) : "Create Account"}
+                </Button>
+                <p className="text-xs text-center text-fixlyfy-text-muted mt-4">
+                  You'll be the company administrator
+                </p>
+              </form>
+            </TabsContent>
           </Tabs>
         </CardContent>
         <CardFooter className="flex flex-col space-y-4 pt-6">
           <p className="text-xs text-center text-fixlyfy-text-muted">
-            By continuing, you agree to Fixlyfy's Terms of Service and Privacy Policy.
+            By continuing, you agree to Fixlify's Terms of Service and Privacy Policy.
           </p>
           <Button 
             variant="ghost" 
