@@ -343,13 +343,25 @@ const nicheJobTypes = {
 async function safeCreateEntity(
   tableName: string,
   data: any[],
-  uniqueField: string = 'name'
+  uniqueField: string = 'name',
+  userId?: string
 ): Promise<boolean> {
   try {
-    // Check if entities already exist
+    // Get the current user if not provided
+    if (!userId) {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        console.error(`No authenticated user for ${tableName}`);
+        return false;
+      }
+      userId = user.id;
+    }
+
+    // Check if entities already exist for this user
     const { data: existing, error: checkError } = await supabase
       .from(tableName)
       .select('id')
+      .or(`user_id.eq.${userId},user_id.is.null`)
       .limit(1);
 
     if (checkError) {
@@ -357,16 +369,25 @@ async function safeCreateEntity(
       return false;
     }
 
-    // If entities exist, skip creation
+    // If entities exist for this user, skip creation
     if (existing && existing.length > 0) {
-      console.log(`${tableName} already populated, skipping...`);
+      console.log(`${tableName} already populated for user, skipping...`);
       return true;
     }
 
+    // Add user_id to each entity if the table has that column
+    const dataWithUserId = data.map(item => {
+      // For tables that have user_id column
+      if (['products', 'tags', 'job_types', 'job_statuses'].includes(tableName)) {
+        return { ...item, user_id: userId };
+      }
+      return item;
+    });
+
     // Insert entities in batches to avoid timeouts
     const batchSize = 10;
-    for (let i = 0; i < data.length; i += batchSize) {
-      const batch = data.slice(i, i + batchSize);
+    for (let i = 0; i < dataWithUserId.length; i += batchSize) {
+      const batch = dataWithUserId.slice(i, i + batchSize);
       const { error: insertError } = await supabase
         .from(tableName)
         .insert(batch);
@@ -395,7 +416,7 @@ export async function loadEnhancedNicheData(businessNiche: string): Promise<bool
       throw new Error("User not authenticated");
     }
 
-    // Create job statuses (shared across all niches)
+    // Create job statuses (with user association)
     const statuses = [
       { name: "New", description: "Newly created job", color: "#9E9E9E", sequence: 1 },
       { name: "Scheduled", description: "Job has been scheduled", color: "#2196F3", sequence: 2, is_default: true },
@@ -407,65 +428,29 @@ export async function loadEnhancedNicheData(businessNiche: string): Promise<bool
       { name: "Canceled", description: "Job canceled", color: "#F44336", sequence: 8 }
     ];
     
-    await safeCreateEntity('job_statuses', statuses);
+    await safeCreateEntity('job_statuses', statuses, 'name', user.id);
 
     // Get niche-specific data or use defaults
     const tags = nicheTags[businessNiche as keyof typeof nicheTags] || nicheTags.handyman;
     const jobTypes = nicheJobTypes[businessNiche as keyof typeof nicheJobTypes] || nicheJobTypes.handyman;
     const products = nicheProducts[businessNiche as keyof typeof nicheProducts] || nicheProducts.handyman;
 
-    // Create tags with user association
-    const userTags = tags.map(tag => ({ ...tag, user_id: user.id }));
-    await safeCreateEntity('tags', userTags);
+    // Create tags
+    await safeCreateEntity('tags', tags, 'name', user.id);
 
-    // Create job types with user association
-    const userJobTypes = jobTypes.map(type => ({ ...type, user_id: user.id }));
-    await safeCreateEntity('job_types', userJobTypes);
+    // Create job types
+    await safeCreateEntity('job_types', jobTypes, 'name', user.id);
 
-    // Create products with user association
-    const userProducts = products.map(product => ({ 
+    // Create products with additional fields
+    const productsWithDefaults = products.map(product => ({ 
       ...product, 
-      user_id: user.id,
       stock_quantity: 0,
       low_stock_threshold: 5
     }));
-    await safeCreateEntity('products', userProducts);
+    await safeCreateEntity('products', productsWithDefaults, 'name', user.id);
 
-    // Create sample configuration items
-    const configItems = [
-      {
-        category: 'tax',
-        key: 'default_tax_rate',
-        value: '8.25',
-        label: 'Default Tax Rate (%)',
-        description: 'Default tax rate for invoices',
-        data_type: 'number',
-        is_active: true,
-        user_id: user.id
-      },
-      {
-        category: 'invoice',
-        key: 'payment_terms',
-        value: '30',
-        label: 'Payment Terms (Days)',
-        description: 'Default payment terms for invoices',
-        data_type: 'number',
-        is_active: true,
-        user_id: user.id
-      },
-      {
-        category: 'email',
-        key: 'send_reminders',
-        value: 'true',
-        label: 'Send Payment Reminders',
-        description: 'Automatically send payment reminders',
-        data_type: 'boolean',
-        is_active: true,
-        user_id: user.id
-      }
-    ];
-    
-    await safeCreateEntity('config_items', configItems);
+    // Note: config_items table doesn't exist in the current schema
+    // These settings are handled through company_settings and other tables
 
     console.log(`Successfully loaded data for ${businessNiche}`);
     return true;

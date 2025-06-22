@@ -215,9 +215,9 @@ export function EnhancedOnboardingModal({ open, onOpenChange }: EnhancedOnboardi
       await new Promise(resolve => setTimeout(resolve, 500));
     }
 
-    // Import the niche data loader function
-    const { loadNicheData } = await import("@/utils/niche-data-loader");
-    const success = await loadNicheData(niche);
+    // Import and use the enhanced niche data loader
+    const { loadEnhancedNicheData } = await import("@/utils/enhanced-niche-data-loader");
+    const success = await loadEnhancedNicheData(niche);
     
     if (!success) {
       throw new Error("Failed to load niche data");
@@ -242,17 +242,66 @@ export function EnhancedOnboardingModal({ open, onOpenChange }: EnhancedOnboardi
     setStep(3); // Move to setup progress step
 
     try {
+      // First ensure company_settings exists for the user
+      const { data: existingSettings } = await supabase
+        .from('company_settings')
+        .select('id')
+        .eq('user_id', user.id)
+        .single();
+
+      if (!existingSettings) {
+        // Create company_settings if it doesn't exist
+        const { error: createError } = await supabase
+          .from('company_settings')
+          .insert({
+            user_id: user.id,
+            company_name: '',
+            business_type: businessNiche,
+            business_niche: businessNiche,
+            company_address: '',
+            company_city: '',
+            company_state: '',
+            company_zip: '',
+            company_country: 'United States',
+            company_phone: '',
+            company_email: '',
+            company_website: '',
+            tax_id: '',
+            company_tagline: '',
+            company_description: '',
+            service_radius: 50,
+            service_zip_codes: '',
+            business_hours: {
+              monday: { start: "09:00", end: "17:00", enabled: true },
+              tuesday: { start: "09:00", end: "17:00", enabled: true },
+              wednesday: { start: "09:00", end: "17:00", enabled: true },
+              thursday: { start: "09:00", end: "17:00", enabled: true },
+              friday: { start: "09:00", end: "17:00", enabled: true },
+              saturday: { start: "09:00", end: "17:00", enabled: false },
+              sunday: { start: "09:00", end: "17:00", enabled: false }
+            }
+          });
+
+        if (createError) {
+          console.error("Error creating company settings:", createError);
+        }
+      }
+
       // Update the user's profile
       const { error: updateError } = await supabase
         .from('profiles')
         .update({
           referral_source: referralSource,
           business_niche: businessNiche,
-          has_completed_onboarding: true
-        } as Partial<Profile>)
+          has_completed_onboarding: true,
+          updated_at: new Date().toISOString()
+        })
         .eq('id', user.id);
       
-      if (updateError) throw updateError;
+      if (updateError) {
+        console.error("Profile update error:", updateError);
+        throw updateError;
+      }
 
       // Set up workspace with niche-specific data
       await setupWorkspace(businessNiche);
