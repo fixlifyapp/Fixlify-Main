@@ -1,4 +1,3 @@
-
 export type UserRole = 'admin' | 'technician' | 'dispatcher' | 'manager' | string;
 
 export interface Permission {
@@ -71,6 +70,8 @@ export const DEFAULT_PERMISSIONS: Record<UserRole, string[]> = {
     'invoices.view.assigned',
     // Products (view only)
     'products.view',
+    // Users (view only - to see team members)
+    'users.view',
     // Schedule (own only)
     'schedule.view.own', 'schedule.edit.own',
     // Reports (own only)

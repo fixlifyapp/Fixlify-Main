@@ -38,46 +38,15 @@ export const RBACProvider = ({ children }: { children: ReactNode }) => {
           
           if (error) {
             console.error("Error fetching user profile:", error);
-            console.warn("Profile not found, creating default user profile");
-            
-            // Try to create a profile for this user
-            const { data: newProfile, error: createError } = await supabase
-              .from('profiles')
-              .insert({
-                id: session.user.id,
-                name: session.user.email?.split('@')[0] || 'User',
-                email: session.user.email,
-                role: 'admin' // Default to admin for now
-              })
-              .select()
-              .single();
-              
-            if (createError) {
-              console.error("Error creating profile:", createError);
-              // Fallback to basic user data
-              setCurrentUser({
-                id: session.user.id,
-                name: session.user.email?.split('@')[0] || 'User',
-                email: session.user.email || 'unknown@example.com',
-                role: 'admin',
-                avatar: "https://github.com/shadcn.png"
-              });
-            } else {
-              setCurrentUser({
-                id: newProfile.id,
-                name: newProfile.name || session.user.email?.split('@')[0] || 'User',
-                email: newProfile.email || session.user.email || 'unknown@example.com',
-                role: (newProfile.role as UserRole) || 'admin',
-                avatar: newProfile.avatar_url || "https://github.com/shadcn.png"
-              });
-            }
+            console.warn("Profile not found - this should be created by the database trigger");
+            setCurrentUser(null);
           } else if (profile) {
             // Set the current user from profile data
             setCurrentUser({
               id: profile.id,
               name: profile.name || session.user.email?.split('@')[0] || 'User',
               email: profile.email || session.user.email || 'unknown@example.com',
-              role: (profile.role as UserRole) || 'admin',
+              role: (profile.role as UserRole) || 'technician',
               avatar: profile.avatar_url || "https://github.com/shadcn.png"
             });
           }
