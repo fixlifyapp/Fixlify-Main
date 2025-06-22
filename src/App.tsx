@@ -49,6 +49,7 @@ import { AppProviders } from "@/components/ui/AppProviders";
 import { AuthProvider } from "@/hooks/use-auth";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import ClientPortal from "./pages/ClientPortal";
+import AcceptInvitationPage from "./pages/AcceptInvitationPage";
 
 const queryClient = new QueryClient();
 
@@ -103,6 +104,9 @@ function App() {
           {/* Approval routes - public with no auth context */}
           <Route path="/approve/:token" element={<PublicRoute><ApprovalPage /></PublicRoute>} />
           <Route path="/approve/:token/success" element={<PublicRoute><ApprovalSuccessPage /></PublicRoute>} />
+          
+          {/* Team invitation acceptance - public route */}
+          <Route path="/accept-invitation" element={<PublicRoute><AcceptInvitationPage /></PublicRoute>} />
           
           {/* Root route - now public with auth context */}
           <Route path="/" element={
