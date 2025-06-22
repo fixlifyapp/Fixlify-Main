@@ -64,12 +64,13 @@ export function OnboardingModal({ open, onOpenChange }: OnboardingModalProps) {
 
     setIsLoading(true);
     try {
-      // Update the user's profile with custom fields
+      // Update the user's profile with custom fields and mark onboarding as complete
       const { error: updateError } = await supabase
         .from('profiles')
         .update({
           referral_source: referralSource,
-          business_niche: businessNiche
+          business_niche: businessNiche,
+          has_completed_onboarding: true
         } as Partial<Profile>)
         .eq('id', user.id);
       

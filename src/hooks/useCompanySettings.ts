@@ -10,6 +10,7 @@ export interface CompanySettings {
   // Company information
   company_name: string;
   business_type: string;
+  business_niche?: string; // Added business niche
   company_address: string;
   company_city: string;
   company_state: string;

@@ -275,20 +275,21 @@ export const loadNicheData = async (businessNiche: string) => {
   const loadingToast = toast.loading("Setting up your workspace...");
   
   try {
-    // Create job statuses
-    await createJobStatuses();
+    // Import and use the enhanced niche data loader
+    const { loadEnhancedNicheData } = await import("./enhanced-niche-data-loader");
+    const success = await loadEnhancedNicheData(businessNiche);
     
-    // Create tags
-    await createNicheTags(businessNiche);
+    if (!success) {
+      throw new Error("Failed to load enhanced niche data");
+    }
     
-    // Create job types
-    await createNicheJobTypes(businessNiche);
-    
-    // Create products
-    await createNicheProducts(businessNiche);
-    
-    // Create sample clients and jobs
-    await createSampleData();
+    // Optionally create sample data (skip if it causes issues)
+    try {
+      await createSampleData();
+    } catch (sampleError) {
+      console.log("Sample data creation skipped:", sampleError);
+      // Don't fail the whole process if sample data fails
+    }
     
     toast.dismiss(loadingToast);
     return true;

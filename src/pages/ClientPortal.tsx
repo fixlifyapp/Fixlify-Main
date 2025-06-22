@@ -187,7 +187,7 @@ const ClientPortal = () => {
 
     const estimates = portalData?.estimates || [];
     const invoices = portalData?.invoices || [];
-    
+
     return {
       estimates: {
         count: estimates.length,
@@ -425,27 +425,27 @@ const ClientPortal = () => {
 
               {/* Recent Activity - Mobile Optimized */}
               <Card className="border-0 shadow-sm">
-                <CardHeader>
+              <CardHeader>
                   <CardTitle className="flex items-center justify-between">
                     <span className="flex items-center gap-2">
                       <TrendingUp className="h-5 w-5 text-gray-600" />
-                      Recent Activity
+                  Recent Activity
                     </span>
                     <Button variant="ghost" size="sm" onClick={() => setActiveTab('history')}>
                       View All
                       <ChevronRight className="h-4 w-4 ml-1" />
                     </Button>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
                   {recentActivity.length > 0 ? (
                     <div className="space-y-3">
                       {recentActivity.map((item: any) => {
-                        const isEstimate = 'estimate_number' in item;
-                        const total = parseFloat(item.total?.toString() || '0');
-                        const documentNumber = isEstimate ? item.estimate_number : item.invoice_number;
+                      const isEstimate = 'estimate_number' in item;
+                      const total = parseFloat(item.total?.toString() || '0');
+                      const documentNumber = isEstimate ? item.estimate_number : item.invoice_number;
                         
-                        return (
+                      return (
                           <div
                             key={item.id}
                             className="flex items-center justify-between p-4 rounded-lg border hover:shadow-sm transition-all cursor-pointer"
@@ -455,10 +455,10 @@ const ClientPortal = () => {
                                 "h-10 w-10 rounded-lg flex items-center justify-center",
                                 isEstimate ? "bg-blue-100" : "bg-green-100"
                               )}>
-                                {isEstimate ? 
+                              {isEstimate ? 
                                   <FileText className="h-5 w-5 text-blue-600" /> : 
                                   <Receipt className="h-5 w-5 text-green-600" />
-                                }
+                              }
                               </div>
                               <div>
                                 <p className="font-medium text-gray-900">
@@ -473,19 +473,19 @@ const ClientPortal = () => {
                                 {getStatusIcon(item.status || item.payment_status)}
                                 <span className="ml-1">{item.status || item.payment_status || 'Draft'}</span>
                               </Badge>
-                            </div>
                           </div>
-                        );
-                      })}
-                    </div>
+                        </div>
+                      );
+                    })}
+                </div>
                   ) : (
                     <div className="text-center py-8 text-gray-500">
                       <History className="h-12 w-12 mx-auto mb-4 opacity-20" />
                       <p>No recent activity</p>
                     </div>
                   )}
-                </CardContent>
-              </Card>
+              </CardContent>
+            </Card>
             </div>
           )}
 
