@@ -3,6 +3,13 @@ import { User, UserRole, DEFAULT_PERMISSIONS } from './types';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 
+interface CustomRole {
+  id: string;
+  name: string;
+  description?: string;
+  permissions: string[];
+}
+
 interface RBACContextType {
   currentUser: User | null;
   loading: boolean;
@@ -11,6 +18,10 @@ interface RBACContextType {
   userRole: UserRole | null;
   setCurrentUser: (user: User | null) => void;
   allRoles: UserRole[];
+  customRoles: CustomRole[];
+  createCustomRole: (name: string, description: string, permissions: string[]) => Promise<boolean>;
+  updateCustomRole: (id: string, name: string, description: string, permissions: string[]) => Promise<boolean>;
+  deleteCustomRole: (id: string) => Promise<boolean>;
 }
 
 const RBACContext = createContext<RBACContextType | undefined>(undefined);
@@ -18,6 +29,7 @@ const RBACContext = createContext<RBACContextType | undefined>(undefined);
 export const RBACProvider = ({ children }: { children: ReactNode }) => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [customRoles, setCustomRoles] = useState<CustomRole[]>([]);
   
   useEffect(() => {
     // Fetch the current authenticated user from Supabase
@@ -29,10 +41,13 @@ export const RBACProvider = ({ children }: { children: ReactNode }) => {
         const { data: { session } } = await supabase.auth.getSession();
         
         if (session?.user) {
-          // Get user profile data with simplified query
+          // Get user profile data with custom role information
           const { data: profile, error } = await supabase
             .from('profiles')
-            .select('*')
+            .select(`
+              *,
+              custom_role:custom_roles(id, name, description, permissions)
+            `)
             .eq('id', session.user.id)
             .single();
           
@@ -47,9 +62,18 @@ export const RBACProvider = ({ children }: { children: ReactNode }) => {
               name: profile.name || session.user.email?.split('@')[0] || 'User',
               email: profile.email || session.user.email || 'unknown@example.com',
               role: (profile.role as UserRole) || 'technician',
-              avatar: profile.avatar_url || "https://github.com/shadcn.png"
+              avatar: profile.avatar_url || "https://github.com/shadcn.png",
+              customRole: profile.custom_role ? {
+                id: profile.custom_role.id,
+                name: profile.custom_role.name,
+                description: profile.custom_role.description,
+                permissions: profile.custom_role.permissions || []
+              } : undefined
             });
           }
+          
+          // Fetch custom roles for the current user
+          await fetchCustomRoles();
         } else {
           setCurrentUser(null);
         }
@@ -58,6 +82,23 @@ export const RBACProvider = ({ children }: { children: ReactNode }) => {
         setCurrentUser(null);
       } finally {
         setLoading(false);
+      }
+    };
+
+    const fetchCustomRoles = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('custom_roles')
+          .select('*')
+          .order('name');
+        
+        if (error) {
+          console.error("Error fetching custom roles:", error);
+        } else {
+          setCustomRoles(data || []);
+        }
+      } catch (error) {
+        console.error("Error in fetchCustomRoles:", error);
       }
     };
     
@@ -79,12 +120,17 @@ export const RBACProvider = ({ children }: { children: ReactNode }) => {
     };
   }, []);
 
-  // Enhanced permission check that properly handles wildcards and granular permissions
+  // Enhanced permission check that properly handles wildcards, granular permissions, and custom roles
   const hasPermission = (permission: string): boolean => {
     if (!currentUser) return false;
     
     const userRole = currentUser.role;
-    const rolePermissions = DEFAULT_PERMISSIONS[userRole] || [];
+    let rolePermissions = DEFAULT_PERMISSIONS[userRole] || [];
+    
+    // If user has a custom role, use its permissions instead
+    if (currentUser.customRole) {
+      rolePermissions = currentUser.customRole.permissions;
+    }
     
     // Admin has all permissions
     if (rolePermissions.includes('*')) return true;
@@ -119,6 +165,81 @@ export const RBACProvider = ({ children }: { children: ReactNode }) => {
     return currentUser.role === role;
   };
 
+  // Custom role management functions
+  const createCustomRole = async (name: string, description: string, permissions: string[]): Promise<boolean> => {
+    try {
+      const { error } = await supabase
+        .from('custom_roles')
+        .insert({
+          name,
+          description,
+          permissions,
+          created_by: currentUser?.id
+        });
+
+      if (error) {
+        toast.error('Failed to create custom role');
+        return false;
+      }
+
+      await fetchCustomRoles();
+      toast.success('Custom role created successfully');
+      return true;
+    } catch (error) {
+      console.error('Error creating custom role:', error);
+      toast.error('Failed to create custom role');
+      return false;
+    }
+  };
+
+  const updateCustomRole = async (id: string, name: string, description: string, permissions: string[]): Promise<boolean> => {
+    try {
+      const { error } = await supabase
+        .from('custom_roles')
+        .update({
+          name,
+          description,
+          permissions
+        })
+        .eq('id', id);
+
+      if (error) {
+        toast.error('Failed to update custom role');
+        return false;
+      }
+
+      await fetchCustomRoles();
+      toast.success('Custom role updated successfully');
+      return true;
+    } catch (error) {
+      console.error('Error updating custom role:', error);
+      toast.error('Failed to update custom role');
+      return false;
+    }
+  };
+
+  const deleteCustomRole = async (id: string): Promise<boolean> => {
+    try {
+      const { error } = await supabase
+        .from('custom_roles')
+        .delete()
+        .eq('id', id);
+
+      if (error) {
+        toast.error('Failed to delete custom role');
+        return false;
+      }
+
+      await fetchCustomRoles();
+      toast.success('Custom role deleted successfully');
+      return true;
+    } catch (error) {
+      console.error('Error deleting custom role:', error);
+      toast.error('Failed to delete custom role');
+      return false;
+    }
+  };
+
   // Get all available roles from DEFAULT_PERMISSIONS
   const defaultRoleKeys = Object.keys(DEFAULT_PERMISSIONS) as UserRole[] || [];
   const allRoles: UserRole[] = defaultRoleKeys;
@@ -131,6 +252,10 @@ export const RBACProvider = ({ children }: { children: ReactNode }) => {
     userRole: currentUser?.role || null,
     setCurrentUser,
     allRoles,
+    customRoles,
+    createCustomRole,
+    updateCustomRole,
+    deleteCustomRole,
   };
 
   return (

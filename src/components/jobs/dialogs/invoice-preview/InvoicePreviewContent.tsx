@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Calendar, User, MapPin } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
@@ -93,7 +92,7 @@ export const InvoicePreviewContent = ({
             <div>123 Business Park, Suite 456</div>
             <div>San Francisco, CA 94103</div>
             <div>(555) 123-4567</div>
-            <div>contact@fixlyfy.com</div>
+            <div>contact@fixlify.com</div>
           </div>
         </div>
         <div>

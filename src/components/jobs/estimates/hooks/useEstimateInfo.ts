@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -6,11 +5,11 @@ export const useEstimateInfo = (jobId?: string) => {
   const [jobInfo, setJobInfo] = useState<any>(null);
   const [clientInfo, setClientInfo] = useState<any>(null);
   const [companyInfo, setCompanyInfo] = useState<any>({
-    name: "Fixlyfy Services",
+    name: "Fixlify Services",
     logo: "/placeholder.svg",
-    address: "123 Business Ave",
+    address: "123 Business Ave, Suite 456",
     phone: "(555) 123-4567",
-    email: "info@fixlyfy.com",
+    email: "info@fixlify.com",
     legalText: "All estimates are valid for 30 days from the date of issue."
   });
   

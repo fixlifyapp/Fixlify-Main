@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 import { 
   DropdownMenu, 
@@ -24,14 +23,14 @@ const demoUsers: User[] = [
   {
     id: "1",
     name: "Admin User",
-    email: "admin@fixlyfy.com",
+    email: "admin@fixlify.com",
     role: "admin",
     avatar: "https://github.com/shadcn.png"
   },
   {
     id: "2",
     name: "Manager User",
-    email: "manager@fixlyfy.com",
+    email: "manager@fixlify.com",
     role: "manager",
     avatar: "https://avatars.githubusercontent.com/u/124599?v=4"
   },

@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -7,16 +6,35 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Shield, Users, Edit, Eye, Trash2, Plus } from "lucide-react";
 import { PERMISSIONS_LIST, DEFAULT_PERMISSIONS } from "@/components/auth/types";
+import { useRBAC } from "@/components/auth/RBACProvider";
+import { CreateCustomRoleModal } from "@/components/team/CreateCustomRoleModal";
 
 export const RolesPermissionsTab = () => {
   const [selectedRole, setSelectedRole] = useState<string>("admin");
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  
+  const { customRoles, deleteCustomRole } = useRBAC();
 
   const roles = [
-    { id: "admin", name: "Admin", color: "bg-red-100 text-red-800", members: 2 },
-    { id: "manager", name: "Manager", color: "bg-blue-100 text-blue-800", members: 3 },
-    { id: "dispatcher", name: "Dispatcher", color: "bg-green-100 text-green-800", members: 2 },
-    { id: "technician", name: "Technician", color: "bg-gray-100 text-gray-800", members: 8 }
+    { id: "admin", name: "Admin", color: "bg-red-100 text-red-800", members: 2, isCustom: false },
+    { id: "manager", name: "Manager", color: "bg-blue-100 text-blue-800", members: 3, isCustom: false },
+    { id: "dispatcher", name: "Dispatcher", color: "bg-green-100 text-green-800", members: 2, isCustom: false },
+    { id: "technician", name: "Technician", color: "bg-gray-100 text-gray-800", members: 8, isCustom: false },
+    ...customRoles.map(role => ({
+      id: role.id,
+      name: role.name,
+      color: "bg-purple-100 text-purple-800",
+      members: 0, // TODO: Count actual members
+      isCustom: true,
+      description: role.description
+    }))
   ];
+
+  const handleDeleteCustomRole = async (roleId: string) => {
+    if (confirm('Are you sure you want to delete this custom role?')) {
+      await deleteCustomRole(roleId);
+    }
+  };
 
   const permissionCategories = [
     { id: "jobs", name: "Jobs Management" },
@@ -57,14 +75,32 @@ export const RolesPermissionsTab = () => {
                 onClick={() => setSelectedRole(role.id)}
               >
                 <div className="flex items-center justify-between mb-2">
-                  <Badge className={role.color}>{role.name}</Badge>
-                  <span className="text-sm text-muted-foreground">{role.members} members</span>
+                  <div className="flex items-center gap-2">
+                    <Badge className={role.color}>{role.name}</Badge>
+                    {role.isCustom && <Badge variant="outline">Custom</Badge>}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-muted-foreground">{role.members} members</span>
+                    {role.isCustom && (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteCustomRole(role.id);
+                        }}
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </Button>
+                    )}
+                  </div>
                 </div>
                 <p className="text-sm text-muted-foreground">
                   {role.id === 'admin' && 'Full system access and control'}
                   {role.id === 'manager' && 'Manage teams, jobs, and reports'}
                   {role.id === 'dispatcher' && 'Schedule jobs and coordinate teams'}
                   {role.id === 'technician' && 'View assigned jobs and update status'}
+                  {role.isCustom && (role.description || 'Custom role with specific permissions')}
                 </p>
               </div>
             ))}
@@ -84,7 +120,14 @@ export const RolesPermissionsTab = () => {
           <div className="space-y-6">
             {permissionCategories.map((category) => {
               const categoryPermissions = PERMISSIONS_LIST.filter(p => p.category === category.id);
-              const rolePermissions = DEFAULT_PERMISSIONS[selectedRole as keyof typeof DEFAULT_PERMISSIONS] || [];
+              const selectedRoleData = roles.find(r => r.id === selectedRole);
+              let rolePermissions = DEFAULT_PERMISSIONS[selectedRole as keyof typeof DEFAULT_PERMISSIONS] || [];
+              
+              // If it's a custom role, get permissions from customRoles
+              if (selectedRoleData?.isCustom) {
+                const customRole = customRoles.find(cr => cr.id === selectedRole);
+                rolePermissions = customRole?.permissions || [];
+              }
               
               return (
                 <div key={category.id} className="space-y-3">
@@ -103,7 +146,7 @@ export const RolesPermissionsTab = () => {
                           </div>
                           <Switch 
                             checked={hasPermission}
-                            disabled={selectedRole === 'admin'}
+                            disabled={selectedRole === 'admin' || selectedRoleData?.isCustom}
                           />
                         </div>
                       );
@@ -123,7 +166,7 @@ export const RolesPermissionsTab = () => {
         </CardHeader>
         <CardContent>
           <div className="flex gap-2">
-            <Button variant="outline" size="sm">
+            <Button variant="outline" size="sm" onClick={() => setIsCreateModalOpen(true)}>
               <Plus className="h-4 w-4 mr-2" />
               Create Custom Role
             </Button>
@@ -138,6 +181,11 @@ export const RolesPermissionsTab = () => {
           </div>
         </CardContent>
       </Card>
+
+      <CreateCustomRoleModal 
+        open={isCreateModalOpen} 
+        onOpenChange={setIsCreateModalOpen} 
+      />
     </div>
   );
 };

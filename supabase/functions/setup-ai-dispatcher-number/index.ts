@@ -1,4 +1,3 @@
-
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.24.0'
 
@@ -89,9 +88,9 @@ serve(async (req) => {
           connect_instance_id: connectInstanceId,
           connect_phone_number_arn: `arn:aws:connect:${awsRegion}:${connectInstanceId?.split('/')[0]}:phone-number/${phoneNumber.replace('+', '')}`,
           ai_settings: {
-            business_name: 'Fixlyfy Services',
+            business_name: 'Fixlify Services',
             business_type: 'Field Service',
-            greeting: 'Hello! Thanks for calling Fixlyfy Services. I\'m your AI assistant and I\'m here to help with your service needs.',
+            greeting: 'Hello! Thanks for calling Fixlify Services. I\'m your AI assistant and I\'m here to help with your service needs.',
             voice_selection: 'alloy',
             emergency_detection_enabled: true,
             webhook_url: `${Deno.env.get('SUPABASE_URL')}/functions/v1/handle-ai-voice-call`
@@ -115,9 +114,9 @@ serve(async (req) => {
           connect_instance_id: connectInstanceId,
           connect_phone_number_arn: `arn:aws:connect:${awsRegion}:${connectInstanceId?.split('/')[0]}:phone-number/${phoneNumber.replace('+', '')}`,
           ai_settings: {
-            business_name: 'Fixlyfy Services',
+            business_name: 'Fixlify Services',
             business_type: 'Field Service',
-            greeting: 'Hello! Thanks for calling Fixlyfy Services. I\'m your AI assistant and I\'m here to help with your service needs.',
+            greeting: 'Hello! Thanks for calling Fixlify Services. I\'m your AI assistant and I\'m here to help with your service needs.',
             voice_selection: 'alloy',
             emergency_detection_enabled: true,
             webhook_url: `${Deno.env.get('SUPABASE_URL')}/functions/v1/handle-ai-voice-call`

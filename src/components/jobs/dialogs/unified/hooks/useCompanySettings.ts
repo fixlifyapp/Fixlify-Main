@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -64,16 +63,16 @@ export const useCompanySettings = () => {
         } else {
           // Fallback company info with all required properties
           setCompanyInfo({
-            name: 'FixLyfy Services',
+            name: 'Fixlify Services',
             businessType: 'Professional Service Solutions',
             address: '456 Professional Ave, Suite 100',
             city: 'Business City',
             state: 'BC',
             zip: 'V1V 1V1',
-            country: 'Canada',
+            country: 'United States',
             phone: '(555) 123-4567',
-            email: user.email || 'info@fixlyfy.com',
-            website: 'www.fixlyfy.com',
+            email: 'info@fixlify.com',
+            website: 'www.fixlify.com',
             taxId: '',
             logoUrl: '',
             tagline: 'Professional Service You Can Trust',
@@ -87,7 +86,7 @@ export const useCompanySettings = () => {
         console.error('Error fetching company settings:', error);
         // Set fallback data on error with all required properties
         setCompanyInfo({
-          name: 'FixLyfy Services',
+          name: 'Fixlify Services',
           businessType: 'Professional Service Solutions',
           phone: '(555) 123-4567',
           email: 'info@fixlyfy.com',

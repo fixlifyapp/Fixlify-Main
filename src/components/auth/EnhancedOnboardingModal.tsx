@@ -147,10 +147,28 @@ export function EnhancedOnboardingModal({ open, onOpenChange, onComplete }: Enha
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
-        await supabase
+        // Update profile to mark onboarding as complete
+        const { error: profileError } = await supabase
           .from('profiles')
-          .update({ has_completed_onboarding: true })
+          .update({ 
+            has_completed_onboarding: true,
+            business_niche: 'general' // Set a default niche
+          })
           .eq('id', user.id);
+
+        if (profileError) {
+          console.error('Error updating profile:', profileError);
+        }
+
+        // Ensure basic data is initialized (this should already be done by handle_new_user)
+        // But we'll double-check by calling the initialize function
+        const { error: initError } = await supabase.rpc('initialize_user_data', {
+          p_user_id: user.id
+        });
+
+        if (initError) {
+          console.error('Error initializing user data:', initError);
+        }
       }
       
       if (onComplete) {

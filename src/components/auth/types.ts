@@ -12,6 +12,13 @@ export interface RolePermissions {
   permissions: string[]; // Permission IDs
 }
 
+export interface CustomRole {
+  id: string;
+  name: string;
+  description?: string;
+  permissions: string[];
+}
+
 export interface User {
   id: string;
   name: string;
@@ -19,6 +26,7 @@ export interface User {
   role: UserRole;
   avatar?: string;
   phone?: string;
+  customRole?: CustomRole;
 }
 
 // Enhanced permissions per role based on business requirements

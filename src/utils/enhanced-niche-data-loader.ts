@@ -373,26 +373,52 @@ async function safeCreateEntity(
       console.error(`Error deleting existing ${tableName}:`, deleteError);
     }
 
-    // Now insert the new data
+    // Try batch insert first
     const { data: insertedData, error } = await supabase
       .from(tableName)
       .insert(dataWithUserId)
       .select();
 
     if (error) {
-      console.error(`Error creating ${tableName}:`, error);
+      console.error(`Batch insert failed for ${tableName}:`, error);
+      console.log(`Attempting individual inserts for ${tableName}...`);
+      
       // Try inserting one by one if batch fails
       let successCount = 0;
+      let failedItems: string[] = [];
+      
       for (const item of dataWithUserId) {
-        const { error: singleError } = await supabase
-          .from(tableName)
-          .insert(item);
-        
-        if (!singleError) {
-          successCount++;
+        try {
+          const { error: singleError, data: singleData } = await supabase
+            .from(tableName)
+            .insert(item)
+            .select()
+            .single();
+          
+          if (!singleError && singleData) {
+            successCount++;
+          } else {
+            // If it's a unique violation, consider it a success (data already exists)
+            if (singleError?.code === '23505') {
+              successCount++;
+              console.log(`${tableName} item already exists:`, item[uniqueField]);
+            } else {
+              failedItems.push(item[uniqueField] || 'Unknown');
+              console.error(`Failed to insert ${tableName} item:`, item[uniqueField], singleError);
+            }
+          }
+        } catch (err) {
+          failedItems.push(item[uniqueField] || 'Unknown');
+          console.error(`Exception inserting ${tableName} item:`, item[uniqueField], err);
         }
       }
+      
       console.log(`Created ${successCount}/${dataWithUserId.length} ${tableName} individually`);
+      
+      if (failedItems.length > 0) {
+        console.warn(`Failed items for ${tableName}:`, failedItems.join(', '));
+      }
+      
       return successCount > 0;
     }
 

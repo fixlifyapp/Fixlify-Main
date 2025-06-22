@@ -1,4 +1,3 @@
-
 import React from "react";
 import { DocumentType } from "../../UnifiedDocumentBuilder";
 
@@ -22,7 +21,7 @@ export const DocumentPreviewFooter = ({
           <div className="text-sm text-gray-600 space-y-2 max-w-2xl mx-auto">
             <p>
               This {documentType} contains confidential information. 
-              For questions, contact us at {companyInfo?.phone || '(555) 123-4567'} or {companyInfo?.email || 'info@fixlyfy.com'}.
+              For questions, contact us at {companyInfo?.phone || '(555) 123-4567'} or {companyInfo?.email || 'info@fixlify.com'}.
             </p>
             
             {documentType === 'estimate' && (

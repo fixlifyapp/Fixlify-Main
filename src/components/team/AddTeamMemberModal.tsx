@@ -39,7 +39,7 @@ export const AddTeamMemberModal = ({
   const [serviceArea, setServiceArea] = useState("");
   const [sendWelcomeEmail, setSendWelcomeEmail] = useState(true);
   
-  const { allRoles } = useRBAC();
+  const { allRoles, customRoles } = useRBAC();
   const { sendInvitation, isSubmitting } = useTeamInvitations();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -140,6 +140,11 @@ export const AddTeamMemberModal = ({
                   {allRoles.map((roleOption) => (
                     <SelectItem key={roleOption} value={roleOption}>
                       {roleOption.charAt(0).toUpperCase() + roleOption.slice(1)}
+                    </SelectItem>
+                  ))}
+                  {customRoles.map((customRole) => (
+                    <SelectItem key={customRole.id} value={customRole.name}>
+                      {customRole.name} (Custom)
                     </SelectItem>
                   ))}
                 </SelectContent>

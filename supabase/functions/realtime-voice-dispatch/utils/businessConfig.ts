@@ -1,4 +1,3 @@
-
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.24.0'
 
 export interface BusinessConfig {
@@ -38,7 +37,7 @@ export const getBusinessConfig = async (supabaseClient: any): Promise<BusinessCo
   // Create enhanced config with company data
   const businessConfig: BusinessConfig = {
     // Company info (prioritize company_settings, fallback to ai_agent_configs)
-    company_name: companySettings?.company_name || aiConfig?.company_name || 'Fixlyfy Services',
+    company_name: companySettings?.company_name || aiConfig?.company_name || 'Fixlify Services',
     business_type: companySettings?.business_type || aiConfig?.business_niche || 'HVAC & Plumbing Services',
     company_phone: companySettings?.company_phone || '(555) 123-4567',
     company_address: companySettings?.company_address || null,

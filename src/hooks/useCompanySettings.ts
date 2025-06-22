@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -50,8 +49,8 @@ const defaultCompanySettings: CompanySettings = {
   company_zip: '94103',
   company_country: 'United States',
   company_phone: '(555) 123-4567',
-  company_email: 'contact@fixlyfy.com',
-  company_website: 'https://www.fixlyfy.com',
+  company_email: 'contact@fixlify.com',
+  company_website: 'https://www.fixlify.com',
   tax_id: 'XX-XXXXXXX',
   company_tagline: 'Smart Solutions for Field Service Businesses',
   company_description: 'Professional HVAC, plumbing and electrical services to residential and commercial customers throughout the Bay Area. Our team of skilled technicians is available 24/7 for all your service needs.',
