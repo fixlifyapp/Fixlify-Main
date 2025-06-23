@@ -52,9 +52,14 @@ export function useConfigItems<T extends ConfigItem>(tableName: string) {
       let query = supabase.from(tableName as any).select('*');
       
       // Filter by user_id for data isolation (for tables that have user_id column)
-      // Tables like tags, lead_sources, job_types, payment_methods have user_id
-      if (['tags', 'lead_sources', 'job_types', 'payment_methods'].includes(tableName) && user?.id) {
+      // Tables like tags, lead_sources, job_types, job_statuses, payment_methods have user_id
+      if (['tags', 'lead_sources', 'job_types', 'job_statuses', 'payment_methods'].includes(tableName) && user?.id) {
         query = query.eq('user_id', user.id);
+      }
+      
+      // Custom fields table uses created_by instead of user_id
+      if (tableName === 'custom_fields' && user?.id) {
+        query = query.eq('created_by', user.id);
       }
       
       // For job statuses, order by sequence
@@ -92,8 +97,10 @@ export function useConfigItems<T extends ConfigItem>(tableName: string) {
   const addItem = async (item: Omit<T, 'id' | 'created_at'>) => {
     try {
       // Add user_id if the table supports it
-      const itemWithUser = ['tags', 'lead_sources', 'job_types', 'payment_methods'].includes(tableName) && user?.id
+      const itemWithUser = ['tags', 'lead_sources', 'job_types', 'job_statuses', 'payment_methods'].includes(tableName) && user?.id
         ? { ...item, user_id: user.id }
+        : tableName === 'custom_fields' && user?.id
+        ? { ...item, created_by: user.id }
         : item;
         
       const { data, error } = await supabase
