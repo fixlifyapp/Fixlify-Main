@@ -22,6 +22,8 @@ const getNichePreviewData = (nicheDbValue: string) => {
     "Electrical Services": { products: 9, tags: 11, jobTypes: 6 },
     "Garage Door Services": { products: 9, tags: 11, jobTypes: 6 },
     "General Handyman": { products: 7, tags: 11, jobTypes: 6 },
+    "General Contracting": { products: 32, tags: 14, jobTypes: 12 },
+    "Landscaping & Lawn Care": { products: 29, tags: 13, jobTypes: 12 },
     "Painting & Decorating": { products: 33, tags: 14, jobTypes: 12 },
     "Roofing Services": { products: 28, tags: 14, jobTypes: 8 },
     "Deck Builder": { products: 24, tags: 11, jobTypes: 8 },
@@ -178,7 +180,7 @@ export function NicheConfig({ userId }: NicheConfigProps) {
 
       // Use the enhanced initialization function to replace all data
       const { error: initError, data: initData } = await supabase.rpc(
-        'initialize_user_data_complete_enhanced',
+        'initialize_user_data_with_enhanced_niche_data',
         { 
           p_user_id: userId,
           p_business_niche: dbNicheValue
@@ -193,30 +195,21 @@ export function NicheConfig({ userId }: NicheConfigProps) {
           details: initError.details,
           hint: initError.hint
         });
-        // Fall back to old function if new one doesn't exist
-        const { error: fallbackError } = await supabase.rpc(
-          'initialize_user_data_complete',
-          { 
-            p_user_id: userId,
-            p_business_niche: dbNicheValue
-          }
-        );
-        if (fallbackError) {
-          console.error('Fallback function error:', fallbackError);
-          // Try the original function as last resort
-          const { error: originalError } = await supabase.rpc(
-            'initialize_user_data',
-            { 
-              p_user_id: userId,
-              p_business_niche: dbNicheValue
-            }
-          );
-          if (originalError) {
-            console.error('Original function error:', originalError);
-            throw originalError;
-          }
-        }
+        throw initError;
       }
+
+      console.log('Database initialization completed:', initData);
+
+      // Now use the enhanced niche data loader to populate products, tags, and job types
+      const { initializeNicheData } = await import('@/utils/enhanced-niche-data-loader');
+      const nicheDataResult = await initializeNicheData(dbNicheValue);
+      
+      if (!nicheDataResult.success) {
+        console.error('Enhanced niche data loading failed:', nicheDataResult.error);
+        throw new Error(nicheDataResult.error || 'Failed to load enhanced niche data');
+      }
+
+      console.log('Enhanced niche data loaded successfully:', nicheDataResult);
 
       console.log('Initialization completed successfully', initData);
 

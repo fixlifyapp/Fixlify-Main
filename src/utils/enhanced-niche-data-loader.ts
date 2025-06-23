@@ -393,6 +393,83 @@ const nicheProducts = {
     { name: "Color Consultation", category: "Service", price: 125.00, unit: "consultation" },
     { name: "Surface Preparation", category: "Service", price: 85.00, unit: "room" },
     { name: "Deck Staining", category: "Service", price: 425.00, unit: "deck" }
+  ],
+  
+  landscaping: [
+    // Plants & Materials
+    { name: "Grass Seed - Premium", category: "Materials", price: 45.00, unit: "bag" },
+    { name: "Grass Seed - Standard", category: "Materials", price: 28.00, unit: "bag" },
+    { name: "Sod - Premium", category: "Materials", price: 0.85, unit: "sq ft" },
+    { name: "Mulch - Hardwood", category: "Materials", price: 35.00, unit: "yard" },
+    { name: "Mulch - Cedar", category: "Materials", price: 42.00, unit: "yard" },
+    { name: "Topsoil", category: "Materials", price: 28.00, unit: "yard" },
+    { name: "Compost", category: "Materials", price: 32.00, unit: "yard" },
+    { name: "Fertilizer - Lawn", category: "Materials", price: 25.00, unit: "bag" },
+    { name: "Fertilizer - Garden", category: "Materials", price: 22.00, unit: "bag" },
+    { name: "Weed Killer", category: "Chemicals", price: 35.00, unit: "gallon" },
+    { name: "Pesticide", category: "Chemicals", price: 28.00, unit: "gallon" },
+    // Tools & Equipment
+    { name: "Lawn Mower - Push", category: "Equipment", price: 385.00, unit: "each" },
+    { name: "Lawn Mower - Riding", category: "Equipment", price: 2850.00, unit: "each" },
+    { name: "String Trimmer", category: "Equipment", price: 185.00, unit: "each" },
+    { name: "Leaf Blower", category: "Equipment", price: 225.00, unit: "each" },
+    { name: "Hedge Trimmer", category: "Equipment", price: 165.00, unit: "each" },
+    { name: "Chainsaw", category: "Equipment", price: 285.00, unit: "each" },
+    { name: "Shovel Set", category: "Tools", price: 45.00, unit: "set" },
+    { name: "Rake Set", category: "Tools", price: 35.00, unit: "set" },
+    { name: "Pruning Shears", category: "Tools", price: 25.00, unit: "each" },
+    { name: "Garden Hose", category: "Tools", price: 55.00, unit: "each" },
+    { name: "Sprinkler System", category: "Equipment", price: 185.00, unit: "zone" },
+    // Services
+    { name: "Lawn Mowing", category: "Service", price: 45.00, unit: "service" },
+    { name: "Lawn Care Package", category: "Service", price: 125.00, unit: "month" },
+    { name: "Landscape Design", category: "Service", price: 485.00, unit: "design" },
+    { name: "Tree Trimming", category: "Service", price: 185.00, unit: "tree" },
+    { name: "Tree Removal", category: "Service", price: 685.00, unit: "tree" },
+    { name: "Sod Installation", category: "Service", price: 1.25, unit: "sq ft" },
+    { name: "Mulch Installation", category: "Service", price: 85.00, unit: "yard" },
+    { name: "Irrigation Install", category: "Service", price: 285.00, unit: "zone" },
+    { name: "Seasonal Cleanup", category: "Service", price: 225.00, unit: "service" }
+  ],
+  
+  construction: [
+    // Building Materials
+    { name: "Lumber - 2x4x8", category: "Materials", price: 8.50, unit: "each" },
+    { name: "Lumber - 2x6x8", category: "Materials", price: 12.50, unit: "each" },
+    { name: "Lumber - 2x8x8", category: "Materials", price: 18.50, unit: "each" },
+    { name: "Plywood - 4x8 Sheet", category: "Materials", price: 45.00, unit: "sheet" },
+    { name: "Drywall - 4x8 Sheet", category: "Materials", price: 22.00, unit: "sheet" },
+    { name: "Insulation - Fiberglass", category: "Materials", price: 1.25, unit: "sq ft" },
+    { name: "Concrete Mix", category: "Materials", price: 5.50, unit: "bag" },
+    { name: "Rebar", category: "Materials", price: 8.50, unit: "foot" },
+    { name: "Roofing Shingles", category: "Materials", price: 125.00, unit: "square" },
+    { name: "Siding - Vinyl", category: "Materials", price: 3.85, unit: "sq ft" },
+    { name: "Windows - Standard", category: "Materials", price: 285.00, unit: "each" },
+    { name: "Doors - Interior", category: "Materials", price: 185.00, unit: "each" },
+    { name: "Doors - Exterior", category: "Materials", price: 385.00, unit: "each" },
+    // Tools & Equipment
+    { name: "Circular Saw", category: "Tools", price: 185.00, unit: "each" },
+    { name: "Drill Set", category: "Tools", price: 125.00, unit: "set" },
+    { name: "Hammer Set", category: "Tools", price: 85.00, unit: "set" },
+    { name: "Level - 4ft", category: "Tools", price: 65.00, unit: "each" },
+    { name: "Measuring Tape", category: "Tools", price: 25.00, unit: "each" },
+    { name: "Safety Equipment", category: "Safety", price: 125.00, unit: "set" },
+    { name: "Scaffolding Rental", category: "Equipment", price: 85.00, unit: "day" },
+    // Hardware
+    { name: "Nails - Framing", category: "Hardware", price: 45.00, unit: "box" },
+    { name: "Screws - Drywall", category: "Hardware", price: 35.00, unit: "box" },
+    { name: "Bolts & Fasteners", category: "Hardware", price: 55.00, unit: "set" },
+    // Services
+    { name: "Foundation Work", category: "Service", price: 25.00, unit: "sq ft" },
+    { name: "Framing", category: "Service", price: 15.00, unit: "sq ft" },
+    { name: "Roofing Installation", category: "Service", price: 8.50, unit: "sq ft" },
+    { name: "Siding Installation", category: "Service", price: 6.50, unit: "sq ft" },
+    { name: "Drywall Installation", category: "Service", price: 2.85, unit: "sq ft" },
+    { name: "Flooring Installation", category: "Service", price: 5.50, unit: "sq ft" },
+    { name: "Kitchen Remodel", category: "Service", price: 15000.00, unit: "kitchen" },
+    { name: "Bathroom Remodel", category: "Service", price: 8500.00, unit: "bathroom" },
+    { name: "Room Addition", category: "Service", price: 125.00, unit: "sq ft" },
+    { name: "Permit & Planning", category: "Service", price: 850.00, unit: "project" }
   ]
 };
 
@@ -590,6 +667,39 @@ const nicheTags = {
     { name: "Pressure Wash", category: "Service", color: "text-blue-600 border-blue-300" },
     { name: "Deck Staining", category: "Service", color: "text-green-600 border-green-300" },
     { name: "Cabinet Paint", category: "Service", color: "text-purple-600 border-purple-300" }
+  ],
+  
+  landscaping: [
+    { name: "Lawn Care", category: "Service", color: "text-green-600 border-green-300" },
+    { name: "Tree Service", category: "Service", color: "text-brown-600 border-brown-300" },
+    { name: "Landscape Design", category: "Service", color: "text-purple-600 border-purple-300" },
+    { name: "Irrigation", category: "Service", color: "text-blue-600 border-blue-300" },
+    { name: "Hardscaping", category: "Service", color: "text-gray-600 border-gray-300" },
+    { name: "Seasonal Cleanup", category: "Service", color: "text-orange-600 border-orange-300" },
+    { name: "Mulching", category: "Service", color: "text-yellow-600 border-yellow-300" },
+    { name: "Residential", category: "Type", color: "text-teal-600 border-teal-300" },
+    { name: "Commercial", category: "Type", color: "text-indigo-600 border-indigo-300" },
+    { name: "Front Yard", category: "Location", color: "text-cyan-600 border-cyan-300" },
+    { name: "Back Yard", category: "Location", color: "text-pink-600 border-pink-300" },
+    { name: "Maintenance", category: "Type", color: "text-red-600 border-red-300" },
+    { name: "Installation", category: "Type", color: "text-green-600 border-green-300" }
+  ],
+  
+  construction: [
+    { name: "New Construction", category: "Type", color: "text-blue-600 border-blue-300" },
+    { name: "Renovation", category: "Type", color: "text-green-600 border-green-300" },
+    { name: "Addition", category: "Type", color: "text-purple-600 border-purple-300" },
+    { name: "Kitchen Remodel", category: "Service", color: "text-orange-600 border-orange-300" },
+    { name: "Bathroom Remodel", category: "Service", color: "text-cyan-600 border-cyan-300" },
+    { name: "Basement Finish", category: "Service", color: "text-gray-600 border-gray-300" },
+    { name: "Framing", category: "Service", color: "text-yellow-600 border-yellow-300" },
+    { name: "Roofing", category: "Service", color: "text-red-600 border-red-300" },
+    { name: "Siding", category: "Service", color: "text-indigo-600 border-indigo-300" },
+    { name: "Flooring", category: "Service", color: "text-teal-600 border-teal-300" },
+    { name: "Residential", category: "Type", color: "text-pink-600 border-pink-300" },
+    { name: "Commercial", category: "Type", color: "text-brown-600 border-brown-300" },
+    { name: "Permit Required", category: "Status", color: "text-orange-600 border-orange-300" },
+    { name: "Emergency", category: "Priority", color: "text-red-600 border-red-300" }
   ]
 };
 
@@ -740,6 +850,36 @@ const nicheJobTypes = {
     { name: "Surface Preparation", description: "Prep surfaces for painting" },
     { name: "Touch-up Work", description: "Small paint touch-ups and repairs" },
     { name: "Faux Finishing", description: "Decorative painting techniques" }
+  ],
+  
+  landscaping: [
+    { name: "Lawn Mowing", description: "Regular grass cutting and maintenance", is_default: true },
+    { name: "Landscape Design", description: "Design outdoor spaces and gardens" },
+    { name: "Tree Trimming", description: "Prune and trim trees and shrubs" },
+    { name: "Tree Removal", description: "Remove unwanted or dangerous trees" },
+    { name: "Sod Installation", description: "Install new grass sod" },
+    { name: "Irrigation Install", description: "Install sprinkler and watering systems" },
+    { name: "Mulch Installation", description: "Apply mulch to garden beds" },
+    { name: "Seasonal Cleanup", description: "Fall and spring yard cleanup" },
+    { name: "Fertilization", description: "Apply fertilizer and lawn treatments" },
+    { name: "Weed Control", description: "Remove weeds and apply prevention" },
+    { name: "Hardscaping", description: "Install patios, walkways, and retaining walls" },
+    { name: "Garden Maintenance", description: "Ongoing garden care and upkeep" }
+  ],
+  
+  construction: [
+    { name: "Kitchen Remodel", description: "Complete kitchen renovation", is_default: true },
+    { name: "Bathroom Remodel", description: "Complete bathroom renovation" },
+    { name: "Room Addition", description: "Add new rooms to existing structure" },
+    { name: "Basement Finishing", description: "Convert basement to living space" },
+    { name: "New Construction", description: "Build new residential or commercial structures" },
+    { name: "Foundation Work", description: "Pour and repair foundations" },
+    { name: "Framing", description: "Build structural framework" },
+    { name: "Roofing Installation", description: "Install new roofing systems" },
+    { name: "Siding Installation", description: "Install exterior siding" },
+    { name: "Flooring Installation", description: "Install various types of flooring" },
+    { name: "Drywall Installation", description: "Install and finish drywall" },
+    { name: "General Renovation", description: "Various home improvement projects" }
   ]
 };
 
@@ -845,6 +985,8 @@ function getNicheData(businessNiche: string): { products: any[], tags: any[], jo
     "Plumbing Services": "plumbing",
     "Electrical Services": "electrical", 
     "General Handyman": "handyman",
+    "General Contracting": "construction",
+    "Landscaping & Lawn Care": "landscaping",
     "Roofing Services": "roofing",
     "Deck Builder": "deck_builder",
     "Moving Services": "moving",
@@ -939,5 +1081,87 @@ export async function loadEnhancedNicheData(businessNiche: string): Promise<bool
   } catch (error) {
     console.error("Error loading enhanced niche data:", error);
     return false;
+  }
+}
+
+// Main function to initialize niche data - this is what gets called from NicheConfig
+export async function initializeNicheData(businessNiche: string): Promise<{ success: boolean; error?: string; message?: string }> {
+  try {
+    console.log('Initializing niche data for:', businessNiche);
+    
+    // Map business niche names to data keys
+    const nicheKeyMap: { [key: string]: string } = {
+      "Painting & Decorating": "painting",
+      "Appliance Repair": "appliance_repair",
+      "Garage Door Services": "garage_door",
+      "HVAC Services": "hvac",
+      "Plumbing Services": "plumbing",
+      "Electrical Services": "electrical", 
+      "General Handyman": "handyman",
+      "General Contracting": "construction",
+      "Landscaping & Lawn Care": "landscaping",
+      "Roofing Services": "roofing",
+      "Deck Builder": "deck_builder",
+      "Moving Services": "moving",
+      "Air Conditioning": "air_conditioning",
+      "Waterproofing": "waterproofing",
+      "Drain Repair": "drain_repair"
+    };
+
+    const nicheKey = nicheKeyMap[businessNiche] || "handyman";
+    console.log('Using niche key:', nicheKey);
+
+    // Get the current user
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      return { success: false, error: "No authenticated user found" };
+    }
+
+    // Get niche-specific data
+    const products = nicheProducts[nicheKey as keyof typeof nicheProducts] || [];
+    const tags = nicheTags[nicheKey as keyof typeof nicheTags] || [];
+    const jobTypes = nicheJobTypes[nicheKey as keyof typeof nicheJobTypes] || [];
+
+    console.log('Data counts:', {
+      products: products.length,
+      tags: tags.length,
+      jobTypes: jobTypes.length
+    });
+
+    // Initialize products
+    if (products.length > 0) {
+      const success = await safeCreateEntity('products', products, 'name', user.id);
+      if (!success) {
+        console.warn('Failed to create some products, but continuing...');
+      }
+    }
+
+    // Initialize tags
+    if (tags.length > 0) {
+      const success = await safeCreateEntity('tags', tags, 'name', user.id);
+      if (!success) {
+        console.warn('Failed to create some tags, but continuing...');
+      }
+    }
+
+    // Initialize job types
+    if (jobTypes.length > 0) {
+      const success = await safeCreateEntity('job_types', jobTypes, 'name', user.id);
+      if (!success) {
+        console.warn('Failed to create some job types, but continuing...');
+      }
+    }
+
+    return { 
+      success: true, 
+      message: `Successfully initialized ${businessNiche} data: ${products.length} products, ${tags.length} tags, ${jobTypes.length} job types` 
+    };
+
+  } catch (error) {
+    console.error('Error in initializeNicheData:', error);
+    return { 
+      success: false, 
+      error: error instanceof Error ? error.message : 'Unknown error occurred' 
+    };
   }
 } 
