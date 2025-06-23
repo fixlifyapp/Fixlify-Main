@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
@@ -179,30 +178,43 @@ export const useJobsConsolidated = (options: UseJobsOptions = {}) => {
 
   // Real-time updates with error handling
   useEffect(() => {
-    if (!enableRealtime || hasError) return;
+    if (!enableRealtime || hasError || !user?.id) return;
 
     let debounceTimer: NodeJS.Timeout;
     let isSubscribed = true;
     
+    // Create a more specific channel name that includes user context
+    const channelName = `jobs-user-${user.id}-consolidated-${clientId || 'all'}`;
+    
     const channel = supabase
-      .channel(`jobs-realtime-${cacheKey}`)
+      .channel(channelName)
       .on(
         'postgres_changes',
         {
           event: '*',
           schema: 'public',
-          table: 'jobs'
+          table: 'jobs',
+          // Only listen to changes for jobs that belong to this user
+          filter: `user_id=eq.${user.id}`
         },
-        () => {
+        (payload) => {
           if (!isSubscribed || hasError) return;
+          
+          // Only refresh if the change is relevant to the current view
+          const isRelevant = !clientId || 
+            (payload.new && payload.new.client_id === clientId) ||
+            (payload.old && payload.old.client_id === clientId);
+          
+          if (!isRelevant) return;
           
           clearTimeout(debounceTimer);
           debounceTimer = setTimeout(() => {
             if (isSubscribed && isMountedRef.current && !hasError) {
+              console.log('Refreshing jobs due to relevant change:', payload.eventType);
               jobsCache.delete(cacheKey);
               fetchJobs(false);
             }
-          }, 3000);
+          }, 1000); // Reduced debounce time for faster updates
         }
       )
       .subscribe();
@@ -212,7 +224,7 @@ export const useJobsConsolidated = (options: UseJobsOptions = {}) => {
       clearTimeout(debounceTimer);
       supabase.removeChannel(channel);
     };
-  }, [fetchJobs, enableRealtime, cacheKey, hasError]);
+  }, [fetchJobs, enableRealtime, cacheKey, hasError, user?.id, clientId]);
 
   const totalPages = useMemo(() => Math.ceil(totalCount / pageSize), [totalCount, pageSize]);
   const hasNextPage = useMemo(() => page < totalPages, [page, totalPages]);
