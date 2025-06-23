@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/use-auth";
@@ -9,6 +8,22 @@ export default function Index() {
   const navigate = useNavigate();
   const { user, loading, error, isAuthenticated } = useAuth();
   const [redirecting, setRedirecting] = useState(false);
+  
+  console.log('🏠 Index component rendered', { loading, isAuthenticated, user, error });
+  
+  // Add a simple debug render at the top
+  if (typeof window !== 'undefined') {
+    console.log('🏠 Index component is rendering, current state:', { loading, isAuthenticated, error });
+  }
+
+  // Simple debug render to ensure component is working
+  if (loading === undefined) {
+    return (
+      <div style={{ padding: '20px', background: 'red', color: 'white' }}>
+        DEBUG: Index component loaded but auth state is undefined
+      </div>
+    );
+  }
   
   useEffect(() => {
     console.log('🏠 Index page state:', { 

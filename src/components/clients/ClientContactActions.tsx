@@ -1,10 +1,10 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Phone, Mail, MessageSquare, MapPin } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
+import { CallButton } from "@/components/calling/CallButton";
 
 interface ClientContactActionsProps {
   client: {
@@ -19,36 +19,6 @@ interface ClientContactActionsProps {
 
 export const ClientContactActions = ({ client, compact = false }: ClientContactActionsProps) => {
   const navigate = useNavigate();
-  const [isCallLoading, setIsCallLoading] = useState(false);
-
-  const handleCall = async () => {
-    if (!client.phone) {
-      toast.error('No phone number available');
-      return;
-    }
-
-    setIsCallLoading(true);
-    
-    try {
-      const { data, error } = await supabase.functions.invoke('telnyx-make-call', {
-        body: {
-          to: client.phone,
-          clientId: client.id
-        }
-      });
-
-      if (error || !data?.success) {
-        throw new Error(data?.error || 'Failed to initiate call');
-      }
-
-      toast.success(`Calling ${client.name}`);
-    } catch (error) {
-      console.error('Error making call:', error);
-      toast.error('Failed to make call: ' + error.message);
-    } finally {
-      setIsCallLoading(false);
-    }
-  };
 
   const handleEmail = () => {
     if (!client.email) {
@@ -83,19 +53,14 @@ export const ClientContactActions = ({ client, compact = false }: ClientContactA
   if (compact) {
     return (
       <div className="flex items-center gap-1">
-        <Button
+        <CallButton
+          phoneNumber={client.phone}
+          clientId={client.id}
+          clientName={client.name}
           variant="ghost"
-          size="sm"
-          onClick={handleCall}
-          disabled={!client.phone || isCallLoading}
-          className="h-8 w-8 p-0"
-        >
-          {isCallLoading ? (
-            <div className="animate-spin h-3 w-3 border border-gray-300 border-t-gray-600 rounded-full" />
-          ) : (
-            <Phone className="h-4 w-4" />
-          )}
-        </Button>
+          size="icon"
+          showText={false}
+        />
         <Button
           variant="ghost"
           size="sm"
@@ -129,25 +94,13 @@ export const ClientContactActions = ({ client, compact = false }: ClientContactA
 
   return (
     <div className="grid grid-cols-2 sm:flex sm:flex-row gap-2">
-      <Button
+      <CallButton
+        phoneNumber={client.phone}
+        clientId={client.id}
+        clientName={client.name}
         variant="outline"
         size="sm"
-        onClick={handleCall}
-        disabled={!client.phone || isCallLoading}
-        className="flex items-center justify-center gap-2 min-h-[40px] text-xs sm:text-sm"
-      >
-        {isCallLoading ? (
-          <>
-            <div className="animate-spin h-4 w-4 border border-gray-300 border-t-gray-600 rounded-full" />
-            <span className="hidden sm:inline">Calling...</span>
-          </>
-        ) : (
-          <>
-            <Phone className="h-4 w-4" />
-            <span>Call</span>
-          </>
-        )}
-      </Button>
+      />
       <Button
         variant="outline"
         size="sm"

@@ -1,4 +1,3 @@
-
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.24.0'
 
@@ -8,21 +7,22 @@ const corsHeaders = {
 }
 
 const TELNYX_API_KEY = Deno.env.get('TELNYX_API_KEY')
+const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
+const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders })
+    return new Response(null, { headers: corsHeaders })
   }
 
   try {
-    const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    )
-
-    const { action = 'call', to, from, clientId, jobId, call_control_id } = await req.json()
-
-    console.log('Telnyx action:', action, { to, from, clientId, jobId, call_control_id })
+    const supabaseClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
+    
+    const { action, to, from, call_control_id, clientId, connectionId } = await req.json()
+    
+    if (!TELNYX_API_KEY) {
+      throw new Error('TELNYX_API_KEY is not configured')
+    }
 
     let response
     let data
@@ -30,18 +30,24 @@ serve(async (req) => {
     switch (action) {
       case 'call':
         // Make outbound call
+        const callBody = {
+          to: to,
+          from: from,
+          webhook_url: `${SUPABASE_URL}/functions/v1/telnyx-voice-webhook`
+        };
+
+        // Add connection_id if provided
+        if (connectionId) {
+          callBody.connection_id = connectionId;
+        }
+
         response = await fetch('https://api.telnyx.com/v2/calls', {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${TELNYX_API_KEY}`,
             'Content-Type': 'application/json'
           },
-          body: JSON.stringify({
-            to: to,
-            from: from || '+12345678900', // Default number - should be configured
-            connection_id: 'your-connection-id', // Should be configured
-            webhook_url: `${Deno.env.get('SUPABASE_URL')}/functions/v1/telnyx-voice-webhook`
-          })
+          body: JSON.stringify(callBody)
         })
         data = await response.json()
         
@@ -54,7 +60,7 @@ serve(async (req) => {
           .from('telnyx_calls')
           .insert({
             call_control_id: data.data.call_control_id,
-            from_number: from || '+12345678900',
+            from_number: from,
             to_number: to,
             direction: 'outbound',
             status: 'initiated',

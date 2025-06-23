@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { useRBAC } from "@/components/auth/RBACProvider";
 import { useUnifiedRealtime } from "@/hooks/useUnifiedRealtime";
 import { Tables, TablesInsert, TablesUpdate } from "@/integrations/supabase/types";
+import { useAuth } from "@/hooks/use-auth";
 
 // Generic type for configuration items
 export interface ConfigItem {
@@ -43,11 +44,18 @@ export function useConfigItems<T extends ConfigItem>(tableName: string) {
   const [isLoading, setIsLoading] = useState(true);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const { hasPermission } = useRBAC();
+  const { user } = useAuth();
   
   const fetchItems = async () => {
     setIsLoading(true);
     try {
       let query = supabase.from(tableName as any).select('*');
+      
+      // Filter by user_id for data isolation (for tables that have user_id column)
+      // Tables like tags, lead_sources, job_types, payment_methods have user_id
+      if (['tags', 'lead_sources', 'job_types', 'payment_methods'].includes(tableName) && user?.id) {
+        query = query.eq('user_id', user.id);
+      }
       
       // For job statuses, order by sequence
       if (tableName === 'job_statuses') {
@@ -79,24 +87,33 @@ export function useConfigItems<T extends ConfigItem>(tableName: string) {
   
   useEffect(() => {
     fetchItems();
-  }, [tableName, refreshTrigger]);
+  }, [tableName, refreshTrigger, user?.id]);
   
   const addItem = async (item: Omit<T, 'id' | 'created_at'>) => {
     try {
+      // Add user_id if the table supports it
+      const itemWithUser = ['tags', 'lead_sources', 'job_types', 'payment_methods'].includes(tableName) && user?.id
+        ? { ...item, user_id: user.id }
+        : item;
+        
       const { data, error } = await supabase
         .from(tableName as any)
-        .insert(item as any)
+        .insert(itemWithUser as any)
         .select()
         .single();
         
       if (error) throw error;
       
+      // Optimistic update - add to local state immediately
+      setItems(prev => [...prev, data as unknown as T]);
+      
       toast.success(`${tableName.replace('_', ' ')} added successfully`);
-      // Real-time will handle the refresh automatically
       return data as unknown as T;
     } catch (error) {
       console.error(`Error adding ${tableName}:`, error);
       toast.error(`Failed to add ${tableName.replace('_', ' ')}`);
+      // On error, refresh to restore correct state
+      setRefreshTrigger(prev => prev + 1);
       return null;
     }
   };
@@ -112,12 +129,18 @@ export function useConfigItems<T extends ConfigItem>(tableName: string) {
         
       if (error) throw error;
       
+      // Optimistic update - update local state immediately
+      setItems(prev => prev.map(item => 
+        item.id === id ? { ...item, ...data } as T : item
+      ));
+      
       toast.success(`${tableName.replace('_', ' ')} updated successfully`);
-      // Real-time will handle the refresh automatically
       return data as unknown as T;
     } catch (error) {
       console.error(`Error updating ${tableName}:`, error);
       toast.error(`Failed to update ${tableName.replace('_', ' ')}`);
+      // On error, refresh to restore correct state
+      setRefreshTrigger(prev => prev + 1);
       return null;
     }
   };
@@ -131,12 +154,16 @@ export function useConfigItems<T extends ConfigItem>(tableName: string) {
         
       if (error) throw error;
       
+      // Optimistic update - remove from local state immediately
+      setItems(prev => prev.filter(item => item.id !== id));
+      
       toast.success(`${tableName.replace('_', ' ')} deleted successfully`);
-      // Real-time will handle the refresh automatically
       return true;
     } catch (error) {
       console.error(`Error deleting ${tableName}:`, error);
       toast.error(`Failed to delete ${tableName.replace('_', ' ')}`);
+      // On error, refresh to restore correct state
+      setRefreshTrigger(prev => prev + 1);
       return false;
     }
   };

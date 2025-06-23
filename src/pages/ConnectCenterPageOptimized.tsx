@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { PageLayout } from "@/components/layout/PageLayout";
 import { PageHeader } from "@/components/ui/page-header";
@@ -6,7 +5,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { LoadingSkeleton } from "@/components/ui/LoadingSkeleton";
 import { DispatcherMessagesView } from "@/components/connect/DispatcherMessagesView";
 import { EmailManagement } from "@/components/connect/EmailManagement";
-import { IncomingCallHandler } from "@/components/connect/IncomingCallHandler";
 import { CallMonitoring } from "@/components/connect/CallMonitoring";
 import { EmailComposer } from "@/components/connect/EmailComposer";
 import { Button } from "@/components/ui/button";
@@ -18,19 +16,16 @@ import { useMessageContext } from "@/contexts/MessageContext";
 import { useConnectCenterData } from "@/components/connect/hooks/useConnectCenterData";
 import { toast } from "sonner";
 import { TelnyxCallsView } from "@/components/telnyx/TelnyxCallsView";
-import { supabase } from "@/integrations/supabase/client";
-import { ActiveCallInterface } from "@/components/connect/ActiveCallInterface";
 
 const ConnectCenterPageOptimized = () => {
-  const [activeTab, setActiveTab] = useState("messages");
-  const [emailComposerOpen, setEmailComposerOpen] = useState(false);
-  const [isCallLoading, setIsCallLoading] = useState(false);
-  
-  const { openMessageDialog } = useMessageContext();
-  const { unreadCounts, ownedNumbers, isLoading, refreshData } = useConnectCenterData();
-
   const location = useLocation();
   const navigate = useNavigate();
+  const { openMessageDialog } = useMessageContext();
+  const [showEmailComposer, setShowEmailComposer] = useState(false);
+  const [activeTab, setActiveTab] = useState("messages");
+
+  const { unreadCounts, ownedNumbers, isLoading, refreshData } = useConnectCenterData();
+
   const searchParams = new URLSearchParams(location.search);
   const clientId = searchParams.get("clientId");
   const clientName = searchParams.get("clientName");
@@ -80,8 +75,8 @@ const ConnectCenterPageOptimized = () => {
           toast.error('Failed to open message dialog');
         }
       } else if (activeTab === "calls" && clientPhone) {
-        // Auto-initiate call for calls tab
-        await handleAutoCall();
+        // Redirect to communications page for calls
+        navigate(`/communications?tab=dialer&phoneNumber=${clientPhone}&clientId=${clientId}&clientName=${clientName}`);
       } else if (activeTab === "emails" && clientEmail && autoOpen) {
         // Email tab auto-open is handled by EmailManagement component
         console.log('Connect Center: Email auto-open will be handled by EmailManagement component');
@@ -96,32 +91,6 @@ const ConnectCenterPageOptimized = () => {
     }
   }, [clientId, clientName, clientPhone, clientEmail, activeTab, autoOpen, openMessageDialog, navigate, location]);
 
-  const handleAutoCall = async () => {
-    if (!clientPhone || !clientId) return;
-
-    setIsCallLoading(true);
-    
-    try {
-      const { data, error } = await supabase.functions.invoke('telnyx-make-call', {
-        body: {
-          to: clientPhone,
-          clientId: clientId
-        }
-      });
-
-      if (error || !data?.success) {
-        throw new Error(data?.error || 'Failed to initiate call');
-      }
-
-      toast.success(`Call initiated to ${clientName}`);
-    } catch (error) {
-      console.error('Error making call:', error);
-      toast.error('Failed to make call: ' + error.message);
-    } finally {
-      setIsCallLoading(false);
-    }
-  };
-
   const handleNewCommunication = () => {
     switch (activeTab) {
       case "messages":
@@ -132,11 +101,7 @@ const ConnectCenterPageOptimized = () => {
         });
         break;
       case "calls":
-        if (ownedNumbers.length === 0) {
-          toast.error("Please configure phone numbers first");
-        } else {
-          toast.info("Use the call monitoring interface below to manage calls");
-        }
+        navigate('/communications?tab=dialer');
         break;
       case "emails":
         // Email new conversation is handled by EmailManagement component
@@ -156,16 +121,14 @@ const ConnectCenterPageOptimized = () => {
 
   return (
     <PageLayout>
-      <IncomingCallHandler />
-      
       <PageHeader
         title="Connect Center"
-        subtitle={clientName ? `Communication with ${clientName}` : "Communication hub and call monitoring"}
+        subtitle={clientName ? `Communication with ${clientName}` : "Unified communication hub for messages, calls, and emails"}
         icon={MessageSquare}
         badges={[
-          { text: "Telnyx", icon: Phone, variant: "fixlyfy" as const },
-          { text: "Real-time Sync", icon: MessageSquare, variant: "info" as const },
-          ...(isCallLoading ? [{ text: "Calling...", icon: Phone, variant: "warning" as const }] : [])
+          { text: "Messages", icon: MessageSquare, variant: "fixlyfy" as const },
+          { text: "Calls", icon: Phone, variant: "success" as const },
+          { text: "Emails", icon: Mail, variant: "info" as const }
         ]}
         actionButton={{
           text: getActionButtonText(),
@@ -173,9 +136,6 @@ const ConnectCenterPageOptimized = () => {
           onClick: handleNewCommunication
         }}
       />
-
-      {/* Active Call Interface */}
-      <ActiveCallInterface />
       
       {isLoading ? (
         <LoadingSkeleton type="connect-tabs" />
@@ -210,7 +170,25 @@ const ConnectCenterPageOptimized = () => {
           </TabsContent>
           
           <TabsContent value="calls" className="mt-0">
-            <TelnyxCallsView />
+            <div className="space-y-4">
+              <div className="bg-blue-50 p-6 rounded-lg border border-blue-200">
+                <h3 className="text-lg font-semibold mb-2 flex items-center gap-2">
+                  <Phone className="h-5 w-5" />
+                  Call Management
+                </h3>
+                <p className="text-gray-600 mb-4">
+                  Access the dialer and call history from the Communications settings.
+                </p>
+                <Button 
+                  onClick={() => navigate('/communications?tab=dialer')}
+                  className="gap-2"
+                >
+                  <Phone className="h-4 w-4" />
+                  Go to Dialer
+                </Button>
+              </div>
+              <TelnyxCallsView />
+            </div>
           </TabsContent>
           
           <TabsContent value="emails" className="mt-0">
@@ -220,7 +198,7 @@ const ConnectCenterPageOptimized = () => {
       )}
 
       {/* Email Composer Dialog */}
-      <Dialog open={emailComposerOpen} onOpenChange={setEmailComposerOpen}>
+      <Dialog open={showEmailComposer} onOpenChange={setShowEmailComposer}>
         <DialogContent className="max-w-3xl">
           <EmailComposer 
             recipient={clientId && clientName && clientEmail ? {
@@ -228,10 +206,10 @@ const ConnectCenterPageOptimized = () => {
               name: clientName,
               email: clientEmail
             } : undefined}
-            onClose={() => setEmailComposerOpen(false)}
+            onClose={() => setShowEmailComposer(false)}
             onSent={() => {
               refreshData();
-              setEmailComposerOpen(false);
+              setShowEmailComposer(false);
             }}
           />
         </DialogContent>

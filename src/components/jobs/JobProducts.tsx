@@ -7,7 +7,9 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Dialog } from "@/components/ui/dialog";
 import { ProductEditDialog } from "./dialogs/ProductEditDialog";
+import { DeleteConfirmDialog } from "./dialogs/DeleteConfirmDialog";
 import { useProducts, Product } from "@/hooks/useProducts";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -22,11 +24,14 @@ export const JobProducts = ({ jobId, onDeleteProduct }: JobProductsProps) => {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
+  const [productToDelete, setProductToDelete] = useState<string | null>(null);
   
   const { 
     products, 
     categories, 
     isLoading, 
+    isDeleting,
     createProduct, 
     updateProduct, 
     deleteProduct 
@@ -74,7 +79,18 @@ export const JobProducts = ({ jobId, onDeleteProduct }: JobProductsProps) => {
     if (onDeleteProduct) {
       onDeleteProduct(productId);
     } else {
-      deleteProduct(productId);
+      setProductToDelete(productId);
+      setIsDeleteConfirmOpen(true);
+    }
+  };
+
+  const confirmDeleteProduct = async () => {
+    if (productToDelete) {
+      const success = await deleteProduct(productToDelete);
+      if (success) {
+        setIsDeleteConfirmOpen(false);
+        setProductToDelete(null);
+      }
     }
   };
 
@@ -226,6 +242,17 @@ export const JobProducts = ({ jobId, onDeleteProduct }: JobProductsProps) => {
           onSave={handleSaveProduct}
           categories={categories}
         />
+
+        {/* Delete Confirmation Dialog */}
+        <Dialog open={isDeleteConfirmOpen} onOpenChange={setIsDeleteConfirmOpen}>
+          <DeleteConfirmDialog 
+            title="Delete Product"
+            description="Are you sure you want to delete this product? This action cannot be undone."
+            onOpenChange={setIsDeleteConfirmOpen}
+            onConfirm={confirmDeleteProduct}
+            isDeleting={isDeleting}
+          />
+        </Dialog>
       </CardContent>
     </Card>
   );

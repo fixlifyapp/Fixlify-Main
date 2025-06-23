@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -49,10 +48,11 @@ export const useClients = (options: UseClientsOptions = {}) => {
       try {
         console.log("Fetching clients with simplified RLS...");
         
-        // Get total count
+        // Get total count - filtered by user_id
         const { count, error: countError } = await supabase
           .from('clients')
-          .select('*', { count: 'exact', head: true });
+          .select('*', { count: 'exact', head: true })
+          .or(`user_id.eq.${user?.id},created_by.eq.${user?.id}`);
         
         if (countError) {
           console.error("Error getting client count:", countError);
@@ -61,10 +61,11 @@ export const useClients = (options: UseClientsOptions = {}) => {
         
         setTotalCount(count || 0);
 
-        // Get paginated data
+        // Get paginated data - filtered by user_id
         const { data, error } = await supabase
           .from('clients')
           .select('*')
+          .or(`user_id.eq.${user?.id},created_by.eq.${user?.id}`)
           .order('created_at', { ascending: false })
           .range((page - 1) * pageSize, page * pageSize - 1);
           
@@ -100,7 +101,9 @@ export const useClients = (options: UseClientsOptions = {}) => {
         .from('clients')
         .insert({
           ...client,
-          id: clientId
+          id: clientId,
+          user_id: user?.id,
+          created_by: user?.id
         })
         .select()
         .single();
@@ -133,6 +136,7 @@ export const useClients = (options: UseClientsOptions = {}) => {
         .from('clients')
         .update(updates)
         .eq('id', id)
+        .or(`user_id.eq.${user?.id},created_by.eq.${user?.id}`)
         .select()
         .single();
         
@@ -161,7 +165,8 @@ export const useClients = (options: UseClientsOptions = {}) => {
       const { error } = await supabase
         .from('clients')
         .delete()
-        .eq('id', id);
+        .eq('id', id)
+        .or(`user_id.eq.${user?.id},created_by.eq.${user?.id}`);
         
       if (error) throw error;
       

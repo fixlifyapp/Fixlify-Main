@@ -3,7 +3,7 @@ import { useNavigate, Navigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/use-auth';
 import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
-import { EnhancedOnboardingModal } from "./EnhancedOnboardingModal";
+import { OnboardingModal } from "./OnboardingModal";
 import { supabase } from "@/integrations/supabase/client";
 
 interface ProtectedRouteProps {
@@ -51,8 +51,10 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
 
         // Only show onboarding for admins who haven't completed it
         if (profile?.role === 'admin' && !profile?.has_completed_onboarding) {
-          console.log('Admin user needs onboarding');
+          console.log('Admin user needs onboarding', profile);
           setShowOnboarding(true);
+        } else {
+          console.log('Onboarding not needed:', { role: profile?.role, completed: profile?.has_completed_onboarding });
         }
       } catch (error) {
         console.error('Error checking onboarding status:', error);
@@ -81,38 +83,13 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
     return <Navigate to="/auth" replace />;
   }
 
-  const handleOnboardingComplete = async () => {
-    try {
-      // Update the user's onboarding status
-      const { error } = await supabase
-        .from('profiles')
-        .update({ has_completed_onboarding: true })
-        .eq('id', user.id);
-
-      if (error) {
-        console.error('Error updating onboarding status:', error);
-        toast.error('Failed to update onboarding status');
-        return;
-      }
-
-      setShowOnboarding(false);
-      toast.success('Welcome to Fixlyfy!', {
-        description: 'Your workspace has been set up successfully.'
-      });
-    } catch (error) {
-      console.error('Error completing onboarding:', error);
-      toast.error('Failed to complete onboarding');
-    }
-  };
-
   return (
     <>
       {children}
       {showOnboarding && userRole === 'admin' && (
-        <EnhancedOnboardingModal 
+        <OnboardingModal 
           open={showOnboarding} 
           onOpenChange={setShowOnboarding}
-          onComplete={handleOnboardingComplete}
         />
       )}
     </>

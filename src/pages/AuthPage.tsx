@@ -8,7 +8,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Loader2, Eye, EyeOff, AlertCircle, RefreshCw } from "lucide-react";
-import { OnboardingModal } from "@/components/auth/OnboardingModal";
 import { useAuth } from "@/hooks/use-auth";
 import { testSupabaseAuth } from "@/utils/test-auth";
 import { fixAuthIssues } from "@/utils/auth-fix";
@@ -21,7 +20,6 @@ export default function AuthPage() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [authLoading, setAuthLoading] = useState(false);
   const [authTab, setAuthTab] = useState("login");
-  const [showOnboarding, setShowOnboarding] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
@@ -121,7 +119,8 @@ export default function AuthPage() {
         if (data.session) {
           console.log("✅ Sign up and auto sign in successful");
           toast.success("Account created and signed in successfully");
-          setShowOnboarding(true);
+          // Don't show onboarding here - let ProtectedRoute handle it
+          // Navigation will happen automatically
         } else {
           console.log("📧 Sign up successful, email confirmation required");
           toast.success("Account created successfully", {
@@ -361,11 +360,6 @@ export default function AuthPage() {
           </Button>
         </CardFooter>
       </Card>
-
-      <OnboardingModal 
-        open={showOnboarding} 
-        onOpenChange={setShowOnboarding} 
-      />
     </div>
   );
 }

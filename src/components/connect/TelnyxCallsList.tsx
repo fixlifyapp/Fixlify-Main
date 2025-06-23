@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -7,6 +6,7 @@ import { Phone, PhoneOff, Clock, User, MessageSquare, PhoneCall } from "lucide-r
 import { supabase } from "@/integrations/supabase/client";
 import { useMessageContext } from "@/contexts/MessageContext";
 import { toast } from "sonner";
+import { CallButton } from '@/components/calling/CallButton';
 
 interface TelnyxCall {
   id: string;
@@ -307,29 +307,14 @@ export const TelnyxCallsList = () => {
                     Message
                   </Button>
                   
-                  <Button
+                  <CallButton
+                    phoneNumber={getCallPhoneNumber(call)}
+                    clientId={call.clients?.id}
+                    clientName={call.clients?.name}
                     variant="outline"
                     size="sm"
-                    onClick={() => makeCall(
-                      getCallPhoneNumber(call),
-                      call.clients?.id,
-                      undefined
-                    )}
-                    disabled={callingNumber === getCallPhoneNumber(call)}
-                    className="gap-1"
-                  >
-                    {callingNumber === getCallPhoneNumber(call) ? (
-                      <>
-                        <div className="animate-spin h-3 w-3 border border-gray-300 border-t-gray-600 rounded-full" />
-                        Calling...
-                      </>
-                    ) : (
-                      <>
-                        <Phone className="h-3 w-3" />
-                        Call Back
-                      </>
-                    )}
-                  </Button>
+                    showText={true}
+                  />
                 </div>
               </div>
             ))}

@@ -1,4 +1,3 @@
-
 import { serve } from 'https://deno.land/std@0.190.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.24.0'
 
@@ -8,16 +7,29 @@ const corsHeaders = {
 }
 
 serve(async (req) => {
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
   }
 
   try {
     console.log('📱 SMS Invoice request received');
+    console.log('📱 Request method:', req.method);
+    console.log('📱 Request headers:', Object.fromEntries(req.headers.entries()));
     
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
-      throw new Error('No authorization header provided');
+      console.error('❌ No authorization header provided');
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: 'Authentication required'
+        }),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 401,
+        }
+      );
     }
 
     const supabaseAdmin = createClient(
@@ -28,19 +40,73 @@ serve(async (req) => {
     const token = authHeader.replace('Bearer ', '');
     const { data: userData, error: userError } = await supabaseAdmin.auth.getUser(token);
     if (userError || !userData.user) {
-      throw new Error('Failed to authenticate user');
+      console.error('❌ Failed to authenticate user:', userError);
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: 'Invalid authentication token'
+        }),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 401,
+        }
+      );
     }
 
-    const requestBody = await req.json()
-    console.log('Request body:', requestBody);
+    console.log('✅ User authenticated:', userData.user.id);
+
+    let requestBody;
+    try {
+      requestBody = await req.json()
+    } catch (parseError) {
+      console.error('❌ Failed to parse request body:', parseError);
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: 'Invalid request format'
+        }),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 400,
+        }
+      );
+    }
+
+    console.log('📱 Request body received:', { invoiceId: requestBody.invoiceId, recipientPhone: requestBody.recipientPhone });
     
     const { invoiceId, recipientPhone, message } = requestBody;
 
     if (!invoiceId || !recipientPhone) {
-      throw new Error('Missing required fields: invoiceId and recipientPhone');
+      console.error('❌ Missing required fields:', { invoiceId: !!invoiceId, recipientPhone: !!recipientPhone });
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: 'Missing required fields: invoiceId and recipientPhone'
+        }),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 400,
+        }
+      );
     }
 
-    console.log('Processing SMS for invoice:', invoiceId, 'to phone:', recipientPhone);
+    console.log('🔍 Processing SMS for invoice:', invoiceId, 'to phone:', recipientPhone);
+
+    // Validate phone number format
+    const cleanedPhone = recipientPhone.replace(/\D/g, '');
+    if (cleanedPhone.length < 10) {
+      console.error('❌ Invalid phone number format:', recipientPhone);
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: 'Invalid phone number format. Please enter a valid 10-digit phone number.'
+        }),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 400,
+        }
+      );
+    }
 
     const { data: invoice, error: invoiceError } = await supabaseAdmin
       .from('invoices')
@@ -61,10 +127,20 @@ serve(async (req) => {
       .single();
 
     if (invoiceError || !invoice) {
-      throw new Error('Invoice not found');
+      console.error('❌ Invoice lookup error:', invoiceError);
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: `Invoice not found: ${invoiceError?.message || 'Unknown error'}`
+        }),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 404,
+        }
+      );
     }
 
-    console.log('Invoice found:', invoice.invoice_number);
+    console.log('✅ Invoice found:', invoice.invoice_number);
 
     const client = invoice.jobs.clients;
 
@@ -85,7 +161,16 @@ serve(async (req) => {
 
     if (portalError || !portalToken) {
       console.error('❌ Failed to generate portal token:', portalError);
-      throw new Error('Failed to generate portal access token');
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: `Failed to generate portal access token: ${portalError?.message || 'Unknown error'}`
+        }),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 500,
+        }
+      );
     }
 
     console.log('✅ Portal access token generated:', portalToken);
@@ -116,10 +201,10 @@ serve(async (req) => {
       smsMessage = `Hi ${client.name || 'valued customer'}! Your invoice ${invoice.invoice_number} from ${companyName} is ready. Amount Due: $${amountDue.toFixed(2)}. View your invoice: ${portalLink}`;
     }
 
-    console.log('SMS message to send:', smsMessage);
-    console.log('SMS message length:', smsMessage.length);
+    console.log('📱 SMS message prepared, length:', smsMessage.length);
 
     // Use telnyx-sms function for sending
+    console.log('🔄 Calling telnyx-sms function...');
     const { data: smsData, error: smsError } = await supabaseAdmin.functions.invoke('telnyx-sms', {
       body: {
         recipientPhone: recipientPhone,
@@ -130,9 +215,34 @@ serve(async (req) => {
       }
     });
 
+    console.log('📱 Telnyx-sms response:', { success: smsData?.success, error: smsError });
+
     if (smsError) {
       console.error('❌ Error from telnyx-sms:', smsError);
-      throw new Error(smsError.message || 'Failed to send SMS');
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: `SMS service error: ${smsError.message || 'Failed to send SMS'}`
+        }),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 500,
+        }
+      );
+    }
+
+    if (!smsData?.success) {
+      console.error('❌ SMS sending failed:', smsData);
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: `SMS sending failed: ${smsData?.error || 'Unknown error'}`
+        }),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 500,
+        }
+      );
     }
 
     // Log SMS communication
@@ -152,11 +262,12 @@ serve(async (req) => {
           client_phone: client.phone,
           portal_link_included: true
         });
+      console.log('✅ SMS communication logged successfully');
     } catch (logError) {
-      console.warn('Failed to log communication:', logError);
+      console.warn('⚠️ Failed to log communication:', logError);
     }
 
-    console.log('SMS sent successfully');
+    console.log('✅ SMS sent successfully');
 
     return new Response(
       JSON.stringify({ 
@@ -172,11 +283,11 @@ serve(async (req) => {
       }
     )
   } catch (error) {
-    console.error('Error sending SMS:', error);
+    console.error('❌ Error in send-invoice-sms function:', error);
     return new Response(
       JSON.stringify({ 
         success: false, 
-        error: error.message 
+        error: error.message || 'Failed to send SMS'
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },

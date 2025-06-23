@@ -1,7 +1,7 @@
-
 import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useAuth } from "@/hooks/use-auth";
 
 export interface Product {
   id: string;
@@ -23,6 +23,7 @@ export const useProducts = (category?: string) => {
   const [isLoading, setIsLoading] = useState(true);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [isDeleting, setIsDeleting] = useState(false);
+  const { user } = useAuth();
 
   useEffect(() => {
     const fetchProducts = async () => {
@@ -35,6 +36,11 @@ export const useProducts = (category?: string) => {
         let query = supabase
           .from('products')
           .select('*');
+        
+        // Filter by user_id to ensure data isolation
+        if (user?.id) {
+          query = query.or(`user_id.eq.${user.id},created_by.eq.${user.id}`);
+        }
           
         if (category) {
           query = query.eq('category', category);
@@ -62,7 +68,7 @@ export const useProducts = (category?: string) => {
     };
     
     fetchProducts();
-  }, [category, refreshTrigger]); // Removed products.length from dependency
+  }, [category, refreshTrigger, user?.id]);
 
   // Get unique categories from products - memoized for performance
   const categories = useMemo(() => {
@@ -83,6 +89,8 @@ export const useProducts = (category?: string) => {
       const dbProduct: any = {
         ...product,
         ourprice: product.ourPrice,
+        user_id: user?.id,
+        created_by: user?.id
       };
       
       // Remove ourPrice as it's not a column in the database

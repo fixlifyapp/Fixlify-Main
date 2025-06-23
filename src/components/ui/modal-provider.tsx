@@ -1,66 +1,92 @@
-
 import React, { createContext, useContext, useState, ReactNode } from "react";
 import { Dialog } from "@/components/ui/dialog";
 import { ModalRenderer } from "./modal-renderer";
 
 // Define modal types
 export type ModalType = 
-  | "teamSelection" 
-  | "assignTechnician" 
-  | "deleteConfirm" 
-  | "prioritySelection" 
-  | "sourceSelection" 
-  | "jobType" 
-  | "refund" 
-  | "sendReminder"
-  | "invoiceCreate"
-  | "convertToInvoice"
-  | "jobDetailsEdit"
-  | "callClient"
-  | "messageClient";
+  | "newJob"
+  | "newProduct"
+  | "newClient"
+  | "newAppointment"
+  | "newExpense"
+  | "newQuote"
+  | "newAutomation"
+  | "newBusinessInfo"
+  | "newTeamMember"
+  | "newServiceArea"
+  | "newJobType"
+  | "newExpenseCategory"
+  | "messageClient"
+  | "editJobDetails"
+  | "convertToInvoice";
 
 // Base props that all modals will have
-export interface BaseModalProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
+interface BaseModalProps {
+  onClose?: () => void;
+  [key: string]: any;
 }
 
-// Define the structure for our modal context
+// Context state interface
+interface ModalState {
+  id: string;
+  type: ModalType;
+  props: BaseModalProps;
+}
+
 interface ModalContextType {
-  openModal: <T extends Record<string, any>>(type: ModalType, props?: T) => void;
-  closeModal: () => void;
-  modalType: ModalType | null;
-  modalProps: Record<string, any>;
+  modals: ModalState[];
+  openModal: (type: ModalType, props?: BaseModalProps) => void;
+  closeModal: (id?: string) => void;
+  closeAllModals: () => void;
 }
 
 const ModalContext = createContext<ModalContextType | undefined>(undefined);
 
-export const useModal = () => {
-  const context = useContext(ModalContext);
-  if (context === undefined) {
-    throw new Error("useModal must be used within a ModalProvider");
-  }
-  return context;
-};
-
 export const ModalProvider = ({ children }: { children: ReactNode }) => {
-  const [modalType, setModalType] = useState<ModalType | null>(null);
-  const [modalProps, setModalProps] = useState<Record<string, any>>({});
+  const [modals, setModals] = useState<ModalState[]>([]);
 
-  const openModal = <T extends Record<string, any>>(type: ModalType, props?: T) => {
-    setModalType(type);
-    setModalProps(props || {});
+  const openModal = (type: ModalType, props: BaseModalProps = {}) => {
+    const id = `${type}-${Date.now()}`;
+    const modalState: ModalState = {
+      id,
+      type,
+      props: {
+        ...props,
+        onClose: () => {
+          closeModal(id);
+          props.onClose?.();
+        }
+      }
+    };
+    
+    setModals(prev => [...prev, modalState]);
   };
 
-  const closeModal = () => {
-    setModalType(null);
-    setModalProps({});
+  const closeModal = (id?: string) => {
+    if (id) {
+      setModals(prev => prev.filter(modal => modal.id !== id));
+    } else {
+      // Close the most recent modal
+      setModals(prev => prev.slice(0, -1));
+    }
+  };
+
+  const closeAllModals = () => {
+    setModals([]);
   };
 
   return (
-    <ModalContext.Provider value={{ openModal, closeModal, modalType, modalProps }}>
+    <ModalContext.Provider value={{ modals, openModal, closeModal, closeAllModals }}>
       {children}
       <ModalRenderer />
     </ModalContext.Provider>
   );
+};
+
+export const useModal = () => {
+  const context = useContext(ModalContext);
+  if (!context) {
+    throw new Error("useModal must be used within a ModalProvider");
+  }
+  return context;
 };

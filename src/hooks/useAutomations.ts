@@ -191,11 +191,15 @@ export const useAutomations = () => {
         
       if (error) throw error;
       
-      await fetchAutomations();
+      // Optimistic update - remove from local state immediately
+      setAutomations(prev => prev.filter(automation => automation.id !== id));
+      
       toast.success('Automation deleted successfully');
     } catch (error) {
       console.error('Error deleting automation:', error);
       toast.error('Failed to delete automation');
+      // On error, refresh to restore correct state
+      await fetchAutomations();
     }
   };
 

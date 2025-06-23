@@ -1,4 +1,3 @@
-
 import { serve } from 'https://deno.land/std@0.190.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.24.0'
 
@@ -8,17 +7,29 @@ const corsHeaders = {
 }
 
 serve(async (req) => {
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
   }
 
   try {
     console.log('📱 SMS Estimate request received');
+    console.log('📱 Request method:', req.method);
+    console.log('📱 Request headers:', Object.fromEntries(req.headers.entries()));
     
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
       console.error('❌ No authorization header provided');
-      throw new Error('No authorization header provided');
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: 'Authentication required'
+        }),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 401,
+        }
+      );
     }
 
     const supabaseAdmin = createClient(
@@ -30,17 +41,53 @@ serve(async (req) => {
     const { data: userData, error: userError } = await supabaseAdmin.auth.getUser(token);
     if (userError || !userData.user) {
       console.error('❌ Failed to authenticate user:', userError);
-      throw new Error('Failed to authenticate user');
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: 'Invalid authentication token'
+        }),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 401,
+        }
+      );
     }
 
-    const requestBody = await req.json()
+    console.log('✅ User authenticated:', userData.user.id);
+
+    let requestBody;
+    try {
+      requestBody = await req.json()
+    } catch (parseError) {
+      console.error('❌ Failed to parse request body:', parseError);
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: 'Invalid request format'
+        }),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 400,
+        }
+      );
+    }
+
     console.log('📱 Request body received:', { estimateId: requestBody.estimateId, recipientPhone: requestBody.recipientPhone });
     
     const { estimateId, recipientPhone, message } = requestBody;
 
     if (!estimateId || !recipientPhone) {
       console.error('❌ Missing required fields:', { estimateId: !!estimateId, recipientPhone: !!recipientPhone });
-      throw new Error('Missing required fields: estimateId and recipientPhone');
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: 'Missing required fields: estimateId and recipientPhone'
+        }),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 400,
+        }
+      );
     }
 
     console.log('🔍 Processing SMS for estimate:', estimateId, 'to phone:', recipientPhone);
@@ -49,7 +96,16 @@ serve(async (req) => {
     const cleanedPhone = recipientPhone.replace(/\D/g, '');
     if (cleanedPhone.length < 10) {
       console.error('❌ Invalid phone number format:', recipientPhone);
-      throw new Error('Invalid phone number format. Please enter a valid 10-digit phone number.');
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: 'Invalid phone number format. Please enter a valid 10-digit phone number.'
+        }),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 400,
+        }
+      );
     }
 
     const { data: estimate, error: estimateError } = await supabaseAdmin
@@ -72,7 +128,16 @@ serve(async (req) => {
 
     if (estimateError || !estimate) {
       console.error('❌ Estimate lookup error:', estimateError);
-      throw new Error(`Estimate not found: ${estimateError?.message || 'Unknown error'}`);
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: `Estimate not found: ${estimateError?.message || 'Unknown error'}`
+        }),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 404,
+        }
+      );
     }
 
     console.log('✅ Estimate found:', estimate.estimate_number);
@@ -96,7 +161,16 @@ serve(async (req) => {
 
     if (portalError || !portalToken) {
       console.error('❌ Failed to generate portal token:', portalError);
-      throw new Error(`Failed to generate portal access token: ${portalError?.message || 'Unknown error'}`);
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: `Failed to generate portal access token: ${portalError?.message || 'Unknown error'}`
+        }),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 500,
+        }
+      );
     }
 
     console.log('✅ Portal access token generated');
@@ -135,12 +209,30 @@ serve(async (req) => {
 
     if (smsError) {
       console.error('❌ Error from telnyx-sms:', smsError);
-      throw new Error(`SMS service error: ${smsError.message || 'Failed to send SMS'}`);
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: `SMS service error: ${smsError.message || 'Failed to send SMS'}`
+        }),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 500,
+        }
+      );
     }
 
     if (!smsData?.success) {
       console.error('❌ SMS sending failed:', smsData);
-      throw new Error(`SMS sending failed: ${smsData?.error || 'Unknown error'}`);
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: `SMS sending failed: ${smsData?.error || 'Unknown error'}`
+        }),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 500,
+        }
+      );
     }
 
     // Log SMS communication

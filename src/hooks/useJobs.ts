@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
@@ -82,6 +81,9 @@ export const useJobs = (clientId?: string, enableCustomFields?: boolean) => {
             *,
             client:clients(id, name, email, phone, address, city, state, zip)
           `);
+        
+        // IMPORTANT: Filter by user_id to ensure data isolation
+        query = query.or(`user_id.eq.${user.id},created_by.eq.${user.id}`);
         
         // Apply client filter if specified
         if (clientId) {
@@ -212,6 +214,7 @@ export const useJobs = (clientId?: string, enableCustomFields?: boolean) => {
         id: jobId,
         title: autoTitle,
         address: clientAddress,
+        user_id: user?.id,
         created_by: user?.id,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
@@ -282,10 +285,21 @@ export const useJobs = (clientId?: string, enableCustomFields?: boolean) => {
 
       if (error) throw error;
 
+      // Optimistic update - immediately remove from local state
+      setJobs(prev => prev.filter(job => job.id !== jobId));
+      
       console.log('Job deleted successfully:', jobId);
+      import('@/components/ui/sonner').then(({ toast }) => {
+        toast.success('Job deleted successfully');
+      });
       return true;
     } catch (error) {
       console.error('Error deleting job:', error);
+      // On error, refresh to restore correct state
+      setRefreshTrigger(prev => prev + 1);
+      import('@/components/ui/sonner').then(({ toast }) => {
+        toast.error('Failed to delete job');
+      });
       throw error;
     }
   };
