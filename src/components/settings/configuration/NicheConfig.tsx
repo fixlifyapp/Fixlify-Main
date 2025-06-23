@@ -22,6 +22,7 @@ const getNichePreviewData = (nicheDbValue: string) => {
     "Electrical Services": { products: 9, tags: 11, jobTypes: 6 },
     "Garage Door Services": { products: 9, tags: 11, jobTypes: 6 },
     "General Handyman": { products: 7, tags: 11, jobTypes: 6 },
+    "Painting & Decorating": { products: 33, tags: 14, jobTypes: 12 },
     "Roofing Services": { products: 28, tags: 14, jobTypes: 8 },
     "Deck Builder": { products: 24, tags: 11, jobTypes: 8 },
     "Moving Services": { products: 21, tags: 11, jobTypes: 8 },

@@ -353,6 +353,46 @@ const nicheProducts = {
     { name: "Drain Line Repair", category: "Service", price: 125.00, unit: "foot" },
     { name: "Emergency Service", category: "Service", price: 325.00, unit: "service" },
     { name: "Preventive Maintenance", category: "Service", price: 175.00, unit: "service" }
+  ],
+  
+  painting: [
+    // Paint Products
+    { name: "Interior Paint - Premium", category: "Paint", price: 65.00, unit: "gallon" },
+    { name: "Interior Paint - Standard", category: "Paint", price: 45.00, unit: "gallon" },
+    { name: "Exterior Paint - Premium", category: "Paint", price: 75.00, unit: "gallon" },
+    { name: "Exterior Paint - Standard", category: "Paint", price: 55.00, unit: "gallon" },
+    { name: "Primer - Interior", category: "Paint", price: 35.00, unit: "gallon" },
+    { name: "Primer - Exterior", category: "Paint", price: 40.00, unit: "gallon" },
+    { name: "Wood Stain", category: "Stain", price: 45.00, unit: "gallon" },
+    { name: "Deck Stain", category: "Stain", price: 50.00, unit: "gallon" },
+    { name: "Polyurethane Finish", category: "Finish", price: 38.00, unit: "gallon" },
+    { name: "Varnish", category: "Finish", price: 42.00, unit: "gallon" },
+    // Tools & Equipment
+    { name: "Paint Brushes Set", category: "Tools", price: 25.00, unit: "set" },
+    { name: "Paint Rollers & Trays", category: "Tools", price: 18.00, unit: "set" },
+    { name: "Paint Sprayer", category: "Equipment", price: 450.00, unit: "each" },
+    { name: "Extension Pole", category: "Tools", price: 35.00, unit: "each" },
+    { name: "Ladder - 8ft", category: "Equipment", price: 185.00, unit: "each" },
+    { name: "Ladder - 12ft", category: "Equipment", price: 285.00, unit: "each" },
+    // Supplies
+    { name: "Drop Cloths", category: "Supplies", price: 12.00, unit: "each" },
+    { name: "Painter's Tape", category: "Supplies", price: 8.00, unit: "roll" },
+    { name: "Sandpaper Set", category: "Supplies", price: 15.00, unit: "set" },
+    { name: "Caulk & Sealant", category: "Supplies", price: 12.00, unit: "tube" },
+    { name: "Wallpaper", category: "Materials", price: 35.00, unit: "roll" },
+    { name: "Wallpaper Adhesive", category: "Supplies", price: 22.00, unit: "gallon" },
+    { name: "Paint Thinner", category: "Supplies", price: 18.00, unit: "gallon" },
+    // Services
+    { name: "Interior Room Painting", category: "Service", price: 350.00, unit: "room" },
+    { name: "Exterior House Painting", category: "Service", price: 2500.00, unit: "house" },
+    { name: "Cabinet Painting", category: "Service", price: 1200.00, unit: "kitchen" },
+    { name: "Trim & Baseboard Painting", category: "Service", price: 185.00, unit: "room" },
+    { name: "Wallpaper Installation", category: "Service", price: 450.00, unit: "room" },
+    { name: "Wallpaper Removal", category: "Service", price: 285.00, unit: "room" },
+    { name: "Pressure Washing", category: "Service", price: 285.00, unit: "service" },
+    { name: "Color Consultation", category: "Service", price: 125.00, unit: "consultation" },
+    { name: "Surface Preparation", category: "Service", price: 85.00, unit: "room" },
+    { name: "Deck Staining", category: "Service", price: 425.00, unit: "deck" }
   ]
 };
 
@@ -533,6 +573,23 @@ const nicheTags = {
     { name: "Preventive", category: "Type", color: "text-indigo-600 border-indigo-300" },
     { name: "Commercial", category: "Type", color: "text-cyan-600 border-cyan-300" },
     { name: "Residential", category: "Type", color: "text-pink-600 border-pink-300" }
+  ],
+  
+  painting: [
+    { name: "Interior Paint", category: "Type", color: "text-blue-600 border-blue-300" },
+    { name: "Exterior Paint", category: "Type", color: "text-green-600 border-green-300" },
+    { name: "Primer", category: "Product", color: "text-gray-600 border-gray-300" },
+    { name: "Wallpaper", category: "Product", color: "text-purple-600 border-purple-300" },
+    { name: "Stain", category: "Product", color: "text-orange-600 border-orange-300" },
+    { name: "Varnish", category: "Product", color: "text-yellow-600 border-yellow-300" },
+    { name: "Residential", category: "Type", color: "text-teal-600 border-teal-300" },
+    { name: "Commercial", category: "Type", color: "text-indigo-600 border-indigo-300" },
+    { name: "Touch-up", category: "Service", color: "text-pink-600 border-pink-300" },
+    { name: "Full Room", category: "Service", color: "text-cyan-600 border-cyan-300" },
+    { name: "Trim Work", category: "Service", color: "text-red-600 border-red-300" },
+    { name: "Pressure Wash", category: "Service", color: "text-blue-600 border-blue-300" },
+    { name: "Deck Staining", category: "Service", color: "text-green-600 border-green-300" },
+    { name: "Cabinet Paint", category: "Service", color: "text-purple-600 border-purple-300" }
   ]
 };
 
@@ -668,6 +725,21 @@ const nicheJobTypes = {
     { name: "Rooter Service", description: "Remove tree roots from drains" },
     { name: "Emergency Service", description: "24/7 emergency drain clearing" },
     { name: "Preventive Service", description: "Regular drain maintenance" }
+  ],
+  
+  painting: [
+    { name: "Interior Painting", description: "Paint interior rooms and spaces", is_default: true },
+    { name: "Exterior Painting", description: "Paint exterior walls and surfaces" },
+    { name: "Cabinet Painting", description: "Paint kitchen and bathroom cabinets" },
+    { name: "Trim & Molding", description: "Paint trim, baseboards, and molding" },
+    { name: "Wallpaper Installation", description: "Install wallpaper and wall coverings" },
+    { name: "Wallpaper Removal", description: "Remove old wallpaper and adhesive" },
+    { name: "Deck Staining", description: "Stain and seal outdoor decks" },
+    { name: "Pressure Washing", description: "Clean surfaces before painting" },
+    { name: "Color Consultation", description: "Help choose colors and finishes" },
+    { name: "Surface Preparation", description: "Prep surfaces for painting" },
+    { name: "Touch-up Work", description: "Small paint touch-ups and repairs" },
+    { name: "Faux Finishing", description: "Decorative painting techniques" }
   ]
 };
 
@@ -764,11 +836,31 @@ async function safeCreateEntity(
 
 // Helper function to get niche-specific data
 function getNicheData(businessNiche: string): { products: any[], tags: any[], jobTypes: any[] } | null {
-  const tags = nicheTags[businessNiche as keyof typeof nicheTags] || nicheTags.handyman;
-  const jobTypes = nicheJobTypes[businessNiche as keyof typeof nicheJobTypes] || nicheJobTypes.handyman;
-  const products = nicheProducts[businessNiche as keyof typeof nicheProducts] || nicheProducts.handyman;
+  // Map business niche names to data keys
+  const nicheKeyMap: { [key: string]: string } = {
+    "Painting & Decorating": "painting",
+    "Appliance Repair": "appliance_repair",
+    "Garage Door Services": "garage_door",
+    "HVAC Services": "hvac",
+    "Plumbing Services": "plumbing",
+    "Electrical Services": "electrical", 
+    "General Handyman": "handyman",
+    "Roofing Services": "roofing",
+    "Deck Builder": "deck_builder",
+    "Moving Services": "moving",
+    "Air Conditioning": "air_conditioning",
+    "Waterproofing": "waterproofing",
+    "Drain Repair": "drain_repair"
+  };
+
+  const nicheKey = nicheKeyMap[businessNiche] || businessNiche.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '');
+  
+  const tags = nicheTags[nicheKey as keyof typeof nicheTags] || nicheTags.handyman;
+  const jobTypes = nicheJobTypes[nicheKey as keyof typeof nicheJobTypes] || nicheJobTypes.handyman;
+  const products = nicheProducts[nicheKey as keyof typeof nicheProducts] || nicheProducts.handyman;
 
   if (!tags || !jobTypes || !products) {
+    console.log(`No data found for niche key: ${nicheKey} (from business niche: ${businessNiche})`);
     return null;
   }
 
