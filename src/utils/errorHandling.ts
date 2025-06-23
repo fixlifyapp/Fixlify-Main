@@ -136,12 +136,16 @@ export const handleJobsError = (error: any, context: string) => {
         }
       });
     } else if (errorMessage.includes('timeout') || errorMessage.includes('Request timeout')) {
+      // Timeout error toast disabled - too annoying for users
+      console.warn('Request timeout detected but toast disabled');
+      /*
       toast.error('Request timed out. Please check your connection.', {
         action: {
           label: 'Retry',
           onClick: () => window.location.reload()
         }
       });
+      */
     } else {
       // Only show generic error for non-network issues
       toast.error(`Failed to load jobs. Please try again.`, {

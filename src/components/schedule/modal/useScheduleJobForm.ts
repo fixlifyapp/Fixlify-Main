@@ -63,9 +63,14 @@ export const useScheduleJobForm = ({ preselectedClientId }: UseScheduleJobFormPr
   };
 
   const handleTagToggle = (tagId: string) => {
-    const newTags = formData.tags.includes(tagId)
-      ? formData.tags.filter(id => id !== tagId)
-      : [...formData.tags, tagId];
+    // Find the tag by ID to get its name
+    const tag = tags.find(t => t.id === tagId);
+    if (!tag) return;
+    
+    const tagName = tag.name;
+    const newTags = formData.tags.includes(tagName)
+      ? formData.tags.filter(name => name !== tagName)
+      : [...formData.tags, tagName];
     setFormData({ ...formData, tags: newTags });
   };
 

@@ -44,10 +44,10 @@ export const TagsTasksSection = ({
             {tags.map(tag => (
               <Badge
                 key={tag.id}
-                variant={formData.tags.includes(tag.id) ? "default" : "outline"}
+                variant={formData.tags.includes(tag.name) ? "default" : "outline"}
                 className="cursor-pointer"
                 onClick={() => handleTagToggle(tag.id)}
-                style={tag.color && formData.tags.includes(tag.id) ? 
+                style={tag.color && formData.tags.includes(tag.name) ? 
                   { backgroundColor: tag.color, color: 'white' } : 
                   tag.color ? { borderColor: tag.color, color: tag.color } : {}
                 }

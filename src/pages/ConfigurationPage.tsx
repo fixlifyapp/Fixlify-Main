@@ -11,7 +11,8 @@ import { CustomFieldsConfig } from "@/components/settings/configuration/CustomFi
 import { LeadSourcesConfig } from "@/components/settings/configuration/LeadSourcesConfig";
 import { TaxConfig } from "@/components/settings/configuration/TaxConfig";
 import { DocumentNumberingConfig } from "@/components/settings/configuration/DocumentNumberingConfig";
-import { Settings2, Tags, ListTodo, ClipboardList, FormInput, MessageCircle, Cog, Target, Zap, Receipt, Hash } from "lucide-react";
+import { PaymentMethodsConfig } from "@/components/settings/configuration/PaymentMethodsConfig";
+import { Settings2, Tags, ListTodo, ClipboardList, FormInput, MessageCircle, Cog, Target, Zap, Receipt, Hash, CreditCard } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 
 const ConfigurationPage = () => {
@@ -68,6 +69,10 @@ const ConfigurationPage = () => {
                   <MessageCircle className="h-4 w-4" />
                   Lead Sources
                 </TabsTrigger>
+                <TabsTrigger value="payment-methods" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground flex items-center gap-1.5">
+                  <CreditCard className="h-4 w-4" />
+                  Payment Methods
+                </TabsTrigger>
               </TabsList>
             </div>
             
@@ -95,6 +100,9 @@ const ConfigurationPage = () => {
               </TabsContent>
               <TabsContent value="lead-sources" className="m-0">
                 <LeadSourcesConfig />
+              </TabsContent>
+              <TabsContent value="payment-methods" className="m-0">
+                <PaymentMethodsConfig />
               </TabsContent>
             </div>
           </Tabs>
