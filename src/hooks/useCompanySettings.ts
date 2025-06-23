@@ -42,22 +42,22 @@ export interface CompanySettings {
 
 const defaultCompanySettings: CompanySettings = {
   company_name: '',
-  business_type: 'HVAC & Plumbing Services',
-  company_address: '123 Business Park, Suite 456',
-  company_city: 'San Francisco',
-  company_state: 'California',
-  company_zip: '94103',
-  company_country: 'United States',
-  company_phone: '(555) 123-4567',
-  company_email: 'contact@fixlify.com',
-  company_website: 'https://www.fixlify.com',
-  tax_id: 'XX-XXXXXXX',
-  company_tagline: 'Smart Solutions for Field Service Businesses',
-  company_description: 'Professional HVAC, plumbing and electrical services to residential and commercial customers throughout the Bay Area. Our team of skilled technicians is available 24/7 for all your service needs.',
+  business_type: '',
+  company_address: '',
+  company_city: '',
+  company_state: '',
+  company_zip: '',
+  company_country: '',
+  company_phone: '',
+  company_email: '',
+  company_website: '',
+  tax_id: '',
+  company_tagline: '',
+  company_description: '',
   service_radius: 50,
-  service_zip_codes: '94103, 94104, 94105, 94107, 94108, 94109, 94110, 94111, 94112, 94114, 94115, 94116, 94117, 94118, 94121, 94122, 94123, 94124, 94127, 94129, 94130, 94131, 94132, 94133, 94134, 94158',
+  service_zip_codes: '',
   business_hours: DEFAULT_BUSINESS_HOURS,
-  email_from_name: 'Support Team'
+  email_from_name: ''
 };
 
 export const useCompanySettings = () => {
