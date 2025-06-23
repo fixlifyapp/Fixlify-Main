@@ -23,7 +23,16 @@ const businessTypes = [
   "Plumbing Services",
   "Electrical Services",
   "Appliance Repair",
+  "Roofing Services",
+  "Deck Builder",
+  "Moving Services",
+  "Air Conditioning",
+  "Waterproofing",
+  "Drain Repair",
+  "Painting & Decorating",
+  "Landscaping & Lawn Care",
   "General Contracting",
+  "Cleaning Services",
   "Other"
 ];
 
@@ -97,17 +106,22 @@ export const UnifiedOnboardingModal = ({
 
       if (profileError) throw profileError;
 
-      // Update company settings
+      // Update company settings using upsert to avoid duplicate key errors
       const { error: companyError } = await supabase
         .from('company_settings')
-        .update({
+        .upsert({
+          user_id: userId,
           company_name: formData.businessName,
           business_type: formData.businessType,
           business_niche: formData.businessType
-        })
-        .eq('user_id', userId);
+        }, {
+          onConflict: 'user_id'
+        });
 
-      if (companyError) throw companyError;
+      if (companyError) {
+        console.error('Company settings error:', companyError);
+        throw companyError;
+      }
 
       // Initialize user defaults (job statuses, lead sources, payment methods)
       const { error: defaultsError } = await supabase.rpc(
@@ -145,9 +159,23 @@ export const UnifiedOnboardingModal = ({
       toast.success("Welcome to Fixlify! Your account is all set up.");
       onComplete();
       navigate('/dashboard');
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error during onboarding:", error);
-      toast.error("Failed to complete setup. Please try again.");
+      
+      // More specific error messages
+      let errorMessage = "Failed to complete setup. Please try again.";
+      
+      if (error.message?.includes('company_settings')) {
+        errorMessage = "Failed to save company information. Please try again.";
+      } else if (error.message?.includes('profiles')) {
+        errorMessage = "Failed to update profile. Please try again.";
+      } else if (error.message?.includes('niche')) {
+        errorMessage = "Failed to initialize business data. Please try again.";
+      } else if (error.message?.includes('defaults')) {
+        errorMessage = "Failed to set up defaults. Please try again.";
+      }
+      
+      toast.error(errorMessage);
     } finally {
       setIsLoading(false);
     }
