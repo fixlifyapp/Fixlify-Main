@@ -22,6 +22,8 @@ import { useState } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useClients, Client } from "@/hooks/useClients";
 import { toast } from "sonner";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { User, Phone, Mail, MapPin, Building2, FileText } from "lucide-react";
 
 interface ClientsCreateModalProps {
   open: boolean;
@@ -99,100 +101,247 @@ export const ClientsCreateModal = ({ open, onOpenChange, onSuccess }: ClientsCre
   
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[600px] max-h-[80vh] flex flex-col p-0">
-        <DialogHeader className="px-6 pt-6">
-          <DialogTitle>Add New Client</DialogTitle>
-          <DialogDescription>
+      <DialogContent className="sm:max-w-4xl max-h-[90vh] flex flex-col p-0 gap-0">
+        <DialogHeader className="px-4 sm:px-6 py-4 sm:py-6 border-b bg-gradient-to-r from-fixlyfy/5 to-fixlyfy/10">
+          <DialogTitle className="text-xl sm:text-2xl font-bold text-fixlyfy flex items-center gap-2">
+            <User className="h-5 w-5 sm:h-6 sm:w-6" />
+            Add New Client
+          </DialogTitle>
+          <DialogDescription className="text-sm sm:text-base text-fixlyfy-text-secondary">
             Fill in the details below to add a new client to your database. Phone number is required for messaging and communication.
           </DialogDescription>
         </DialogHeader>
         
         <form onSubmit={handleSubmit} className="flex flex-col h-full">
-          <ScrollArea className="flex-grow px-6" style={{ maxHeight: "calc(80vh - 170px)" }}>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 py-4">
-              <div className="space-y-2">
-                <Label htmlFor="clientType">Client Type *</Label>
-                <Select name="clientType" defaultValue="residential" required>
-                  <SelectTrigger id="clientType">
-                    <SelectValue placeholder="Select type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="residential">Residential</SelectItem>
-                    <SelectItem value="commercial">Commercial</SelectItem>
-                    <SelectItem value="property-manager">Property Manager</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="status">Status *</Label>
-                <Select name="status" defaultValue="active" required>
-                  <SelectTrigger id="status">
-                    <SelectValue placeholder="Select status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="active">Active</SelectItem>
-                    <SelectItem value="inactive">Inactive</SelectItem>
-                    <SelectItem value="lead">Lead</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="name">Name *</Label>
-                <Input id="name" name="name" placeholder="Full name or business name" required />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <Input id="email" name="email" type="email" placeholder="Email address" />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="phone">Phone *</Label>
-                <Input id="phone" name="phone" placeholder="Phone number (required for messaging)" required />
-                <p className="text-xs text-muted-foreground">Required for SMS messaging and communication</p>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="altPhone">Alternative Phone</Label>
-                <Input id="altPhone" name="altPhone" placeholder="Alternative phone (optional)" />
-              </div>
-              <div className="space-y-2 md:col-span-2">
-                <Label htmlFor="address">Address *</Label>
-                <Input id="address" name="address" placeholder="Street address" required />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="city">City *</Label>
-                <Input id="city" name="city" placeholder="City" required />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="state">State *</Label>
-                <Input id="state" name="state" placeholder="State/Province" required />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="zip">ZIP / Postal Code *</Label>
-                <Input id="zip" name="zip" placeholder="ZIP / Postal code" required />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="country">Country *</Label>
-                <Input id="country" name="country" placeholder="Country" defaultValue="United States" required />
-              </div>
-              <div className="space-y-2 md:col-span-2">
-                <Label htmlFor="notes">Notes</Label>
-                <Textarea 
-                  id="notes" 
-                  name="notes"
-                  placeholder="Add any additional notes about this client"
-                  className="resize-none"
-                  rows={3}
-                />
-              </div>
+          <ScrollArea className="flex-grow px-4 sm:px-6" style={{ maxHeight: "calc(90vh - 200px)" }}>
+            <div className="py-4 sm:py-6 space-y-6">
+              
+              {/* Client Type & Status */}
+              <Card className="border-fixlyfy/20">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base sm:text-lg flex items-center gap-2">
+                    <Building2 className="h-4 w-4 text-fixlyfy" />
+                    Client Information
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="clientType" className="text-sm font-medium">Client Type *</Label>
+                      <Select name="clientType" defaultValue="residential" required>
+                        <SelectTrigger id="clientType" className="h-10">
+                          <SelectValue placeholder="Select type" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="residential">Residential</SelectItem>
+                          <SelectItem value="commercial">Commercial</SelectItem>
+                          <SelectItem value="property-manager">Property Manager</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="status" className="text-sm font-medium">Status *</Label>
+                      <Select name="status" defaultValue="active" required>
+                        <SelectTrigger id="status" className="h-10">
+                          <SelectValue placeholder="Select status" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="active">Active</SelectItem>
+                          <SelectItem value="inactive">Inactive</SelectItem>
+                          <SelectItem value="lead">Lead</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Personal Information */}
+              <Card className="border-fixlyfy/20">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base sm:text-lg flex items-center gap-2">
+                    <User className="h-4 w-4 text-fixlyfy" />
+                    Personal Details
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="name" className="text-sm font-medium">Full Name *</Label>
+                    <Input 
+                      id="name" 
+                      name="name" 
+                      placeholder="Enter full name or business name" 
+                      required 
+                      className="h-10"
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Contact Information */}
+              <Card className="border-fixlyfy/20">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base sm:text-lg flex items-center gap-2">
+                    <Phone className="h-4 w-4 text-fixlyfy" />
+                    Contact Details
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="phone" className="text-sm font-medium">Phone Number *</Label>
+                      <div className="relative">
+                        <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-fixlyfy-text-secondary" />
+                        <Input 
+                          id="phone" 
+                          name="phone" 
+                          placeholder="(555) 123-4567" 
+                          required 
+                          className="h-10 pl-10"
+                        />
+                      </div>
+                      <p className="text-xs text-fixlyfy-text-secondary">Required for SMS messaging</p>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="altPhone" className="text-sm font-medium">Alternative Phone</Label>
+                      <div className="relative">
+                        <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-fixlyfy-text-secondary" />
+                        <Input 
+                          id="altPhone" 
+                          name="altPhone" 
+                          placeholder="(555) 987-6543" 
+                          className="h-10 pl-10"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="email" className="text-sm font-medium">Email Address</Label>
+                    <div className="relative">
+                      <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-fixlyfy-text-secondary" />
+                      <Input 
+                        id="email" 
+                        name="email" 
+                        type="email" 
+                        placeholder="client@example.com" 
+                        className="h-10 pl-10"
+                      />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Address Information */}
+              <Card className="border-fixlyfy/20">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base sm:text-lg flex items-center gap-2">
+                    <MapPin className="h-4 w-4 text-fixlyfy" />
+                    Address Information
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="address" className="text-sm font-medium">Street Address *</Label>
+                    <div className="relative">
+                      <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-fixlyfy-text-secondary" />
+                      <Input 
+                        id="address" 
+                        name="address" 
+                        placeholder="123 Main Street" 
+                        required 
+                        className="h-10 pl-10"
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="city" className="text-sm font-medium">City *</Label>
+                      <Input 
+                        id="city" 
+                        name="city" 
+                        placeholder="City" 
+                        required 
+                        className="h-10"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="state" className="text-sm font-medium">State *</Label>
+                      <Input 
+                        id="state" 
+                        name="state" 
+                        placeholder="State" 
+                        required 
+                        className="h-10"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="zip" className="text-sm font-medium">ZIP Code *</Label>
+                      <Input 
+                        id="zip" 
+                        name="zip" 
+                        placeholder="12345" 
+                        required 
+                        className="h-10"
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="country" className="text-sm font-medium">Country *</Label>
+                    <Input 
+                      id="country" 
+                      name="country" 
+                      placeholder="Country" 
+                      defaultValue="United States" 
+                      required 
+                      className="h-10"
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Additional Notes */}
+              <Card className="border-fixlyfy/20">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base sm:text-lg flex items-center gap-2">
+                    <FileText className="h-4 w-4 text-fixlyfy" />
+                    Additional Information
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    <Label htmlFor="notes" className="text-sm font-medium">Notes</Label>
+                    <Textarea 
+                      id="notes" 
+                      name="notes"
+                      placeholder="Add any additional notes about this client..."
+                      className="resize-none min-h-[80px]"
+                      rows={3}
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+
             </div>
           </ScrollArea>
           
-          <DialogFooter className="px-6 pb-6">
-            <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>
-              Cancel
-            </Button>
-            <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? "Adding..." : "Add Client"}
-            </Button>
+          <DialogFooter className="px-4 sm:px-6 py-4 border-t bg-fixlyfy-bg-interface/50 flex-shrink-0">
+            <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto sm:justify-end">
+              <Button 
+                variant="outline" 
+                onClick={() => onOpenChange(false)} 
+                disabled={isSubmitting}
+                className="w-full sm:w-auto order-2 sm:order-1"
+              >
+                Cancel
+              </Button>
+              <Button 
+                type="submit" 
+                disabled={isSubmitting}
+                className="w-full sm:w-auto bg-fixlyfy hover:bg-fixlyfy/90 order-1 sm:order-2"
+              >
+                {isSubmitting ? "Adding Client..." : "Add Client"}
+              </Button>
+            </div>
           </DialogFooter>
         </form>
       </DialogContent>

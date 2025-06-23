@@ -529,6 +529,7 @@ export type Database = {
           success_count: number | null
           template_id: string | null
           updated_at: string
+          user_id: string | null
         }
         Insert: {
           category?: string
@@ -545,6 +546,7 @@ export type Database = {
           success_count?: number | null
           template_id?: string | null
           updated_at?: string
+          user_id?: string | null
         }
         Update: {
           category?: string
@@ -561,6 +563,7 @@ export type Database = {
           success_count?: number | null
           template_id?: string | null
           updated_at?: string
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -797,6 +800,7 @@ export type Database = {
           tags: string[] | null
           type: string | null
           updated_at: string | null
+          user_id: string | null
           zip: string | null
         }
         Insert: {
@@ -816,6 +820,7 @@ export type Database = {
           tags?: string[] | null
           type?: string | null
           updated_at?: string | null
+          user_id?: string | null
           zip?: string | null
         }
         Update: {
@@ -835,6 +840,7 @@ export type Database = {
           tags?: string[] | null
           type?: string | null
           updated_at?: string | null
+          user_id?: string | null
           zip?: string | null
         }
         Relationships: []
@@ -932,6 +938,7 @@ export type Database = {
       company_settings: {
         Row: {
           business_hours: Json | null
+          business_niche: string | null
           business_type: string | null
           client_portal_url: string | null
           company_address: string | null
@@ -962,11 +969,13 @@ export type Database = {
           service_radius: number | null
           service_zip_codes: string | null
           tax_id: string | null
+          team_size: string | null
           updated_at: string
           user_id: string
         }
         Insert: {
           business_hours?: Json | null
+          business_niche?: string | null
           business_type?: string | null
           client_portal_url?: string | null
           company_address?: string | null
@@ -997,11 +1006,13 @@ export type Database = {
           service_radius?: number | null
           service_zip_codes?: string | null
           tax_id?: string | null
+          team_size?: string | null
           updated_at?: string
           user_id: string
         }
         Update: {
           business_hours?: Json | null
+          business_niche?: string | null
           business_type?: string | null
           client_portal_url?: string | null
           company_address?: string | null
@@ -1032,6 +1043,7 @@ export type Database = {
           service_radius?: number | null
           service_zip_codes?: string | null
           tax_id?: string | null
+          team_size?: string | null
           updated_at?: string
           user_id?: string
         }
@@ -1046,6 +1058,7 @@ export type Database = {
           last_message_at: string | null
           status: string | null
           updated_at: string | null
+          user_id: string | null
         }
         Insert: {
           client_id?: string | null
@@ -1055,6 +1068,7 @@ export type Database = {
           last_message_at?: string | null
           status?: string | null
           updated_at?: string | null
+          user_id?: string | null
         }
         Update: {
           client_id?: string | null
@@ -1064,6 +1078,7 @@ export type Database = {
           last_message_at?: string | null
           status?: string | null
           updated_at?: string | null
+          user_id?: string | null
         }
         Relationships: [
           {
@@ -1125,6 +1140,39 @@ export type Database = {
           options?: Json | null
           placeholder?: string | null
           required?: boolean | null
+        }
+        Relationships: []
+      }
+      custom_roles: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          description: string | null
+          id: string
+          name: string
+          permissions: Json
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          name: string
+          permissions?: Json
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          name?: string
+          permissions?: Json
+          updated_at?: string | null
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -1504,6 +1552,7 @@ export type Database = {
           title: string | null
           total: number
           updated_at: string
+          user_id: string | null
           valid_until: string | null
         }
         Insert: {
@@ -1531,6 +1580,7 @@ export type Database = {
           title?: string | null
           total?: number
           updated_at?: string
+          user_id?: string | null
           valid_until?: string | null
         }
         Update: {
@@ -1558,6 +1608,7 @@ export type Database = {
           title?: string | null
           total?: number
           updated_at?: string
+          user_id?: string | null
           valid_until?: string | null
         }
         Relationships: [
@@ -1586,6 +1637,7 @@ export type Database = {
           prefix: string
           start_value: number
           updated_at: string | null
+          user_id: string | null
         }
         Insert: {
           created_at?: string | null
@@ -1595,6 +1647,7 @@ export type Database = {
           prefix: string
           start_value?: number
           updated_at?: string | null
+          user_id?: string | null
         }
         Update: {
           created_at?: string | null
@@ -1604,6 +1657,7 @@ export type Database = {
           prefix?: string
           start_value?: number
           updated_at?: string | null
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -1696,6 +1750,7 @@ export type Database = {
           title: string | null
           total: number
           updated_at: string
+          user_id: string | null
         }
         Insert: {
           amount_paid?: number | null
@@ -1728,6 +1783,7 @@ export type Database = {
           title?: string | null
           total?: number
           updated_at?: string
+          user_id?: string | null
         }
         Update: {
           amount_paid?: number | null
@@ -1760,6 +1816,7 @@ export type Database = {
           title?: string | null
           total?: number
           updated_at?: string
+          user_id?: string | null
         }
         Relationships: [
           {
@@ -2021,6 +2078,7 @@ export type Database = {
           is_default: boolean | null
           name: string
           sequence: number | null
+          user_id: string | null
         }
         Insert: {
           color?: string | null
@@ -2031,6 +2089,7 @@ export type Database = {
           is_default?: boolean | null
           name: string
           sequence?: number | null
+          user_id?: string | null
         }
         Update: {
           color?: string | null
@@ -2041,6 +2100,7 @@ export type Database = {
           is_default?: boolean | null
           name?: string
           sequence?: number | null
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -2053,6 +2113,7 @@ export type Database = {
           id: string
           is_default: boolean | null
           name: string
+          user_id: string | null
         }
         Insert: {
           color?: string | null
@@ -2062,6 +2123,7 @@ export type Database = {
           id?: string
           is_default?: boolean | null
           name: string
+          user_id?: string | null
         }
         Update: {
           color?: string | null
@@ -2071,6 +2133,7 @@ export type Database = {
           id?: string
           is_default?: boolean | null
           name?: string
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -2097,6 +2160,7 @@ export type Database = {
           technician_id: string | null
           title: string | null
           updated_at: string | null
+          user_id: string | null
         }
         Insert: {
           address?: string | null
@@ -2120,6 +2184,7 @@ export type Database = {
           technician_id?: string | null
           title?: string | null
           updated_at?: string | null
+          user_id?: string | null
         }
         Update: {
           address?: string | null
@@ -2143,6 +2208,7 @@ export type Database = {
           technician_id?: string | null
           title?: string | null
           updated_at?: string | null
+          user_id?: string | null
         }
         Relationships: [
           {
@@ -2169,6 +2235,7 @@ export type Database = {
           id: string
           is_active: boolean | null
           name: string
+          user_id: string | null
         }
         Insert: {
           created_at?: string | null
@@ -2177,6 +2244,7 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           name: string
+          user_id?: string | null
         }
         Update: {
           created_at?: string | null
@@ -2185,6 +2253,7 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           name?: string
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -2279,6 +2348,7 @@ export type Database = {
           recipient: string | null
           sender: string | null
           status: string | null
+          user_id: string | null
         }
         Insert: {
           body: string
@@ -2292,6 +2362,7 @@ export type Database = {
           recipient?: string | null
           sender?: string | null
           status?: string | null
+          user_id?: string | null
         }
         Update: {
           body?: string
@@ -2305,6 +2376,7 @@ export type Database = {
           recipient?: string | null
           sender?: string | null
           status?: string | null
+          user_id?: string | null
         }
         Relationships: [
           {
@@ -2315,6 +2387,33 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      payment_methods: {
+        Row: {
+          color: string | null
+          created_at: string | null
+          id: string
+          name: string
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string | null
+          id?: string
+          name: string
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          color?: string | null
+          created_at?: string | null
+          id?: string
+          name?: string
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
       }
       payments: {
         Row: {
@@ -3022,6 +3121,7 @@ export type Database = {
           tags: string[] | null
           taxable: boolean | null
           updated_at: string | null
+          user_id: string | null
         }
         Insert: {
           category: string
@@ -3037,6 +3137,7 @@ export type Database = {
           tags?: string[] | null
           taxable?: boolean | null
           updated_at?: string | null
+          user_id?: string | null
         }
         Update: {
           category?: string
@@ -3052,6 +3153,7 @@ export type Database = {
           tags?: string[] | null
           taxable?: boolean | null
           updated_at?: string | null
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -3062,7 +3164,9 @@ export type Database = {
           business_niche: string | null
           call_masking_enabled: boolean | null
           created_at: string | null
+          custom_role_id: string | null
           email: string | null
+          has_completed_onboarding: boolean | null
           id: string
           internal_notes: string | null
           is_public: boolean | null
@@ -3083,7 +3187,9 @@ export type Database = {
           business_niche?: string | null
           call_masking_enabled?: boolean | null
           created_at?: string | null
+          custom_role_id?: string | null
           email?: string | null
+          has_completed_onboarding?: boolean | null
           id: string
           internal_notes?: string | null
           is_public?: boolean | null
@@ -3104,7 +3210,9 @@ export type Database = {
           business_niche?: string | null
           call_masking_enabled?: boolean | null
           created_at?: string | null
+          custom_role_id?: string | null
           email?: string | null
+          has_completed_onboarding?: boolean | null
           id?: string
           internal_notes?: string | null
           is_public?: boolean | null
@@ -3119,7 +3227,15 @@ export type Database = {
           updated_at?: string | null
           uses_two_factor?: boolean | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "profiles_custom_role_id_fkey"
+            columns: ["custom_role_id"]
+            isOneToOne: false
+            referencedRelation: "custom_roles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       report_schedules: {
         Row: {
@@ -3305,6 +3421,7 @@ export type Database = {
           created_by: string | null
           id: string
           name: string
+          user_id: string | null
         }
         Insert: {
           category: string
@@ -3313,6 +3430,7 @@ export type Database = {
           created_by?: string | null
           id?: string
           name: string
+          user_id?: string | null
         }
         Update: {
           category?: string
@@ -3321,6 +3439,7 @@ export type Database = {
           created_by?: string | null
           id?: string
           name?: string
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -3423,56 +3542,95 @@ export type Database = {
       telnyx_calls: {
         Row: {
           ai_transcript: string | null
+          answered_at: string | null
           appointment_data: Json | null
           appointment_scheduled: boolean | null
           call_control_id: string | null
           call_duration: number | null
           call_session_id: string | null
           call_status: string | null
+          client_id: string | null
           created_at: string | null
           direction: string | null
+          duration_seconds: number | null
           ended_at: string | null
+          from_number: string | null
           id: string
+          metadata: Json | null
           phone_number: string | null
+          phone_number_id: string | null
           started_at: string | null
+          status: string | null
+          streaming_active: boolean | null
           to_number: string | null
           user_id: string | null
         }
         Insert: {
           ai_transcript?: string | null
+          answered_at?: string | null
           appointment_data?: Json | null
           appointment_scheduled?: boolean | null
           call_control_id?: string | null
           call_duration?: number | null
           call_session_id?: string | null
           call_status?: string | null
+          client_id?: string | null
           created_at?: string | null
           direction?: string | null
+          duration_seconds?: number | null
           ended_at?: string | null
+          from_number?: string | null
           id?: string
+          metadata?: Json | null
           phone_number?: string | null
+          phone_number_id?: string | null
           started_at?: string | null
+          status?: string | null
+          streaming_active?: boolean | null
           to_number?: string | null
           user_id?: string | null
         }
         Update: {
           ai_transcript?: string | null
+          answered_at?: string | null
           appointment_data?: Json | null
           appointment_scheduled?: boolean | null
           call_control_id?: string | null
           call_duration?: number | null
           call_session_id?: string | null
           call_status?: string | null
+          client_id?: string | null
           created_at?: string | null
           direction?: string | null
+          duration_seconds?: number | null
           ended_at?: string | null
+          from_number?: string | null
           id?: string
+          metadata?: Json | null
           phone_number?: string | null
+          phone_number_id?: string | null
           started_at?: string | null
+          status?: string | null
+          streaming_active?: boolean | null
           to_number?: string | null
           user_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "telnyx_calls_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "telnyx_calls_phone_number_id_fkey"
+            columns: ["phone_number_id"]
+            isOneToOne: false
+            referencedRelation: "telnyx_phone_numbers"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       telnyx_configurations: {
         Row: {
@@ -3520,6 +3678,7 @@ export type Database = {
           area_code: string | null
           call_routing_stats: Json | null
           configured_at: string | null
+          connection_id: string | null
           country_code: string | null
           created_at: string | null
           id: string
@@ -3541,6 +3700,7 @@ export type Database = {
           area_code?: string | null
           call_routing_stats?: Json | null
           configured_at?: string | null
+          connection_id?: string | null
           country_code?: string | null
           created_at?: string | null
           id?: string
@@ -3562,6 +3722,7 @@ export type Database = {
           area_code?: string | null
           call_routing_stats?: Json | null
           configured_at?: string | null
+          connection_id?: string | null
           country_code?: string | null
           created_at?: string | null
           id?: string
@@ -3958,7 +4119,27 @@ export type Database = {
         }
         Returns: string
       }
-
+      get_enhanced_portal_data: {
+        Args: { p_client_id: string }
+        Returns: Json
+      }
+      get_job_portal_data: {
+        Args: { p_job_number: string }
+        Returns: Json
+      }
+      get_jobs_with_outdated_config: {
+        Args: { p_user_id: string }
+        Returns: {
+          job_id: string
+          job_title: string
+          current_job_type: string
+          current_tags: string[]
+          current_lead_source: string
+          suggested_job_type: string
+          available_tags: string[]
+          available_lead_sources: string[]
+        }[]
+      }
       get_popular_warranties_by_job_type: {
         Args: { p_job_type: string; p_limit?: number }
         Returns: {
@@ -3999,7 +4180,36 @@ export type Database = {
         Args: { user_uuid: string }
         Returns: string
       }
-
+      handle_job_portal_request: {
+        Args: { p_job_number: string }
+        Returns: Json
+      }
+      initialize_niche_data: {
+        Args: { p_user_id: string; p_business_niche: string }
+        Returns: undefined
+      }
+      initialize_remaining_niches: {
+        Args: { p_user_id: string; p_business_niche: string }
+        Returns: undefined
+      }
+      initialize_user_data: {
+        Args:
+          | { p_user_id: string }
+          | { p_user_id: string; p_business_niche?: string }
+        Returns: undefined
+      }
+      initialize_user_data_complete: {
+        Args: { p_user_id: string; p_business_niche?: string }
+        Returns: undefined
+      }
+      initialize_user_data_complete_enhanced: {
+        Args: { p_user_id: string; p_business_niche?: string }
+        Returns: undefined
+      }
+      initialize_user_defaults: {
+        Args: { p_user_id: string }
+        Returns: undefined
+      }
       log_security_event: {
         Args: {
           p_action: string
