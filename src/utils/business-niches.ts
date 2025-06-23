@@ -11,7 +11,8 @@ import {
   Shield, 
   Truck, 
   Hammer,
-  LucideIcon
+  LucideIcon,
+  Snowflake
 } from "lucide-react";
 
 export interface BusinessNiche {
@@ -93,6 +94,41 @@ export const businessNiches: BusinessNiche[] = [
     dbValue: "General Handyman",
     icon: Hammer,
     description: "Multi-service home maintenance"
+  },
+  { 
+    id: "deck_builder", 
+    label: "Deck Builder", 
+    dbValue: "Deck Builder",
+    icon: Hammer,
+    description: "Deck construction and repair"
+  },
+  { 
+    id: "moving", 
+    label: "Moving Services", 
+    dbValue: "Moving Services",
+    icon: Truck,
+    description: "Residential and commercial moving"
+  },
+  { 
+    id: "air_conditioning", 
+    label: "Air Conditioning", 
+    dbValue: "Air Conditioning",
+    icon: Snowflake,
+    description: "A/C installation and repair"
+  },
+  { 
+    id: "waterproofing", 
+    label: "Waterproofing", 
+    dbValue: "Waterproofing",
+    icon: Shield,
+    description: "Basement and foundation waterproofing"
+  },
+  { 
+    id: "drain_repair", 
+    label: "Drain Repair", 
+    dbValue: "Drain Repair",
+    icon: Droplets,
+    description: "Drain cleaning and repair services"
   }
 ];
 

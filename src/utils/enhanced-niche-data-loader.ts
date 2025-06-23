@@ -210,6 +210,149 @@ const nicheProducts = {
     { name: "Emergency Tarping", category: "Service", price: 325.00, unit: "service" },
     { name: "Gutter Installation", category: "Service", price: 12.50, unit: "foot" },
     { name: "Gutter Cleaning", category: "Service", price: 225.00, unit: "service" }
+  ],
+  
+  deck_builder: [
+    // Lumber & Materials
+    { name: "Pressure Treated 2x6", category: "Materials", price: 12.50, unit: "board" },
+    { name: "Pressure Treated 2x8", category: "Materials", price: 18.50, unit: "board" },
+    { name: "Composite Decking", category: "Materials", price: 45.00, unit: "board" },
+    { name: "Cedar Decking", category: "Materials", price: 35.00, unit: "board" },
+    { name: "Deck Posts 4x4", category: "Materials", price: 25.00, unit: "each" },
+    { name: "Deck Posts 6x6", category: "Materials", price: 45.00, unit: "each" },
+    // Hardware & Fasteners
+    { name: "Joist Hangers", category: "Hardware", price: 3.50, unit: "each" },
+    { name: "Post Brackets", category: "Hardware", price: 12.50, unit: "each" },
+    { name: "Deck Screws 5lb", category: "Hardware", price: 35.00, unit: "box" },
+    { name: "Hidden Fasteners", category: "Hardware", price: 85.00, unit: "box" },
+    { name: "Concrete Footings", category: "Materials", price: 15.00, unit: "bag" },
+    // Railings & Accessories
+    { name: "Wood Railing Kit", category: "Materials", price: 125.00, unit: "section" },
+    { name: "Aluminum Railing", category: "Materials", price: 225.00, unit: "section" },
+    { name: "Deck Stairs", category: "Materials", price: 325.00, unit: "set" },
+    { name: "Post Caps", category: "Accessories", price: 15.00, unit: "each" },
+    { name: "Deck Lighting", category: "Accessories", price: 45.00, unit: "fixture" },
+    // Finishes & Protection
+    { name: "Deck Stain", category: "Materials", price: 45.00, unit: "gallon" },
+    { name: "Wood Sealer", category: "Materials", price: 35.00, unit: "gallon" },
+    { name: "Deck Cleaner", category: "Materials", price: 25.00, unit: "gallon" },
+    // Services
+    { name: "Deck Design", category: "Service", price: 500.00, unit: "service" },
+    { name: "Deck Installation", category: "Service", price: 75.00, unit: "sq ft" },
+    { name: "Deck Repair", category: "Service", price: 325.00, unit: "service" },
+    { name: "Deck Refinishing", category: "Service", price: 8.50, unit: "sq ft" },
+    { name: "Permit Assistance", category: "Service", price: 250.00, unit: "service" }
+  ],
+  
+  moving: [
+    // Packing Materials
+    { name: "Small Moving Box", category: "Materials", price: 2.50, unit: "each" },
+    { name: "Medium Moving Box", category: "Materials", price: 3.50, unit: "each" },
+    { name: "Large Moving Box", category: "Materials", price: 4.50, unit: "each" },
+    { name: "Wardrobe Box", category: "Materials", price: 15.00, unit: "each" },
+    { name: "Dish Pack Box", category: "Materials", price: 8.50, unit: "each" },
+    { name: "Bubble Wrap Roll", category: "Materials", price: 25.00, unit: "roll" },
+    { name: "Packing Paper", category: "Materials", price: 35.00, unit: "bundle" },
+    { name: "Packing Tape", category: "Materials", price: 4.50, unit: "roll" },
+    { name: "Furniture Pads", category: "Materials", price: 15.00, unit: "each" },
+    { name: "Stretch Wrap", category: "Materials", price: 18.00, unit: "roll" },
+    // Moving Equipment
+    { name: "Dolly Rental", category: "Equipment", price: 25.00, unit: "day" },
+    { name: "Furniture Straps", category: "Equipment", price: 35.00, unit: "set" },
+    { name: "Moving Blankets", category: "Equipment", price: 85.00, unit: "dozen" },
+    // Services
+    { name: "Local Move (2 movers)", category: "Service", price: 120.00, unit: "hour" },
+    { name: "Local Move (3 movers)", category: "Service", price: 160.00, unit: "hour" },
+    { name: "Long Distance Move", category: "Service", price: 0.85, unit: "pound/mile" },
+    { name: "Packing Service", category: "Service", price: 85.00, unit: "hour" },
+    { name: "Unpacking Service", category: "Service", price: 75.00, unit: "hour" },
+    { name: "Furniture Assembly", category: "Service", price: 95.00, unit: "hour" },
+    { name: "Piano Moving", category: "Service", price: 325.00, unit: "service" },
+    { name: "Storage Service", category: "Service", price: 125.00, unit: "month" }
+  ],
+  
+  air_conditioning: [
+    // AC Units & Systems
+    { name: "Window AC Unit", category: "Equipment", price: 425.00, unit: "each" },
+    { name: "Portable AC Unit", category: "Equipment", price: 525.00, unit: "each" },
+    { name: "Split System AC", category: "Equipment", price: 2850.00, unit: "system" },
+    { name: "Central AC Unit", category: "Equipment", price: 3850.00, unit: "system" },
+    // Parts & Components
+    { name: "AC Capacitor", category: "Parts", price: 125.00, unit: "each" },
+    { name: "AC Contactor", category: "Parts", price: 85.00, unit: "each" },
+    { name: "Fan Motor", category: "Parts", price: 325.00, unit: "each" },
+    { name: "Compressor", category: "Parts", price: 1250.00, unit: "each" },
+    { name: "Evaporator Coil", category: "Parts", price: 825.00, unit: "each" },
+    { name: "Condenser Coil", category: "Parts", price: 925.00, unit: "each" },
+    { name: "Refrigerant R410A", category: "Materials", price: 125.00, unit: "pound" },
+    { name: "Thermostat", category: "Parts", price: 225.00, unit: "each" },
+    { name: "Air Filter", category: "Parts", price: 25.00, unit: "each" },
+    { name: "Drain Pan", category: "Parts", price: 85.00, unit: "each" },
+    // Services
+    { name: "AC Installation", category: "Service", price: 850.00, unit: "service" },
+    { name: "AC Repair", category: "Service", price: 225.00, unit: "service" },
+    { name: "AC Tune-Up", category: "Service", price: 175.00, unit: "service" },
+    { name: "Refrigerant Recharge", category: "Service", price: 325.00, unit: "service" },
+    { name: "Coil Cleaning", category: "Service", price: 225.00, unit: "service" },
+    { name: "Emergency Service", category: "Service", price: 425.00, unit: "service" },
+    { name: "Maintenance Plan", category: "Service", price: 325.00, unit: "year" }
+  ],
+  
+  waterproofing: [
+    // Waterproofing Materials
+    { name: "Waterproof Membrane", category: "Materials", price: 2.50, unit: "sq ft" },
+    { name: "Hydraulic Cement", category: "Materials", price: 25.00, unit: "bag" },
+    { name: "Waterproof Coating", category: "Materials", price: 85.00, unit: "5 gallon" },
+    { name: "Crack Injection Resin", category: "Materials", price: 125.00, unit: "gallon" },
+    { name: "Bentonite Clay", category: "Materials", price: 18.00, unit: "bag" },
+    { name: "Drainage Mat", category: "Materials", price: 3.50, unit: "sq ft" },
+    { name: "Vapor Barrier", category: "Materials", price: 0.85, unit: "sq ft" },
+    // Drainage Systems
+    { name: "French Drain Pipe", category: "Materials", price: 4.50, unit: "foot" },
+    { name: "Sump Pump", category: "Equipment", price: 325.00, unit: "each" },
+    { name: "Backup Sump Pump", category: "Equipment", price: 525.00, unit: "each" },
+    { name: "Drain Tile", category: "Materials", price: 3.50, unit: "foot" },
+    { name: "Gravel", category: "Materials", price: 45.00, unit: "ton" },
+    { name: "Window Well", category: "Materials", price: 125.00, unit: "each" },
+    // Sealants & Repairs
+    { name: "Foundation Sealant", category: "Materials", price: 35.00, unit: "tube" },
+    { name: "Concrete Patch", category: "Materials", price: 25.00, unit: "bag" },
+    { name: "Expansion Joint", category: "Materials", price: 8.50, unit: "foot" },
+    // Services
+    { name: "Basement Waterproofing", category: "Service", price: 125.00, unit: "linear ft" },
+    { name: "Foundation Repair", category: "Service", price: 425.00, unit: "crack" },
+    { name: "Sump Pump Install", category: "Service", price: 1250.00, unit: "service" },
+    { name: "French Drain Install", category: "Service", price: 85.00, unit: "linear ft" },
+    { name: "Moisture Assessment", category: "Service", price: 325.00, unit: "service" },
+    { name: "Emergency Water Removal", category: "Service", price: 525.00, unit: "service" }
+  ],
+  
+  drain_repair: [
+    // Drain Cleaning Equipment
+    { name: "Drain Snake 25ft", category: "Equipment", price: 125.00, unit: "each" },
+    { name: "Drain Snake 50ft", category: "Equipment", price: 225.00, unit: "each" },
+    { name: "Power Auger", category: "Equipment", price: 525.00, unit: "each" },
+    { name: "Hydro Jetter", category: "Equipment", price: 3250.00, unit: "each" },
+    { name: "Drain Camera", category: "Equipment", price: 1850.00, unit: "each" },
+    // Drain Parts & Materials
+    { name: "P-Trap", category: "Parts", price: 15.00, unit: "each" },
+    { name: "S-Trap", category: "Parts", price: 18.00, unit: "each" },
+    { name: "Drain Pipe 2\"", category: "Materials", price: 8.50, unit: "foot" },
+    { name: "Drain Pipe 4\"", category: "Materials", price: 12.50, unit: "foot" },
+    { name: "Cleanout Cap", category: "Parts", price: 12.00, unit: "each" },
+    { name: "Floor Drain", category: "Parts", price: 85.00, unit: "each" },
+    { name: "Drain Grate", category: "Parts", price: 35.00, unit: "each" },
+    // Chemicals & Treatments
+    { name: "Enzyme Cleaner", category: "Materials", price: 25.00, unit: "gallon" },
+    { name: "Root Killer", category: "Materials", price: 35.00, unit: "container" },
+    { name: "Grease Dissolver", category: "Materials", price: 28.00, unit: "gallon" },
+    // Services
+    { name: "Drain Cleaning", category: "Service", price: 225.00, unit: "service" },
+    { name: "Camera Inspection", category: "Service", price: 325.00, unit: "service" },
+    { name: "Hydro Jetting", category: "Service", price: 425.00, unit: "service" },
+    { name: "Drain Line Repair", category: "Service", price: 125.00, unit: "foot" },
+    { name: "Emergency Service", category: "Service", price: 325.00, unit: "service" },
+    { name: "Preventive Maintenance", category: "Service", price: 175.00, unit: "service" }
   ]
 };
 
@@ -318,6 +461,78 @@ const nicheTags = {
     { name: "Residential", category: "Type", color: "text-teal-600 border-teal-300" },
     { name: "Inspection", category: "Service", color: "text-green-600 border-green-300" },
     { name: "Warranty", category: "Service", color: "text-purple-600 border-purple-300" }
+  ],
+  
+  deck_builder: [
+    { name: "Wood Deck", category: "Type", color: "text-brown-600 border-brown-300" },
+    { name: "Composite Deck", category: "Type", color: "text-gray-600 border-gray-300" },
+    { name: "New Build", category: "Service", color: "text-green-600 border-green-300" },
+    { name: "Deck Repair", category: "Service", color: "text-red-600 border-red-300" },
+    { name: "Refinishing", category: "Service", color: "text-yellow-600 border-yellow-300" },
+    { name: "Railing Install", category: "Service", color: "text-blue-600 border-blue-300" },
+    { name: "Permit Required", category: "Status", color: "text-orange-600 border-orange-300" },
+    { name: "Commercial", category: "Type", color: "text-indigo-600 border-indigo-300" },
+    { name: "Residential", category: "Type", color: "text-teal-600 border-teal-300" },
+    { name: "Emergency", category: "Priority", color: "text-red-600 border-red-300" },
+    { name: "Warranty", category: "Service", color: "text-purple-600 border-purple-300" }
+  ],
+  
+  moving: [
+    { name: "Local Move", category: "Type", color: "text-blue-600 border-blue-300" },
+    { name: "Long Distance", category: "Type", color: "text-purple-600 border-purple-300" },
+    { name: "Commercial", category: "Type", color: "text-indigo-600 border-indigo-300" },
+    { name: "Residential", category: "Type", color: "text-teal-600 border-teal-300" },
+    { name: "Packing", category: "Service", color: "text-yellow-600 border-yellow-300" },
+    { name: "Storage", category: "Service", color: "text-orange-600 border-orange-300" },
+    { name: "Fragile Items", category: "Special", color: "text-red-600 border-red-300" },
+    { name: "Heavy Items", category: "Special", color: "text-gray-600 border-gray-300" },
+    { name: "Same Day", category: "Priority", color: "text-green-600 border-green-300" },
+    { name: "Weekend", category: "Schedule", color: "text-cyan-600 border-cyan-300" },
+    { name: "Insurance", category: "Service", color: "text-pink-600 border-pink-300" }
+  ],
+  
+  air_conditioning: [
+    { name: "Central AC", category: "Type", color: "text-blue-600 border-blue-300" },
+    { name: "Window Unit", category: "Type", color: "text-gray-600 border-gray-300" },
+    { name: "Split System", category: "Type", color: "text-purple-600 border-purple-300" },
+    { name: "Installation", category: "Service", color: "text-green-600 border-green-300" },
+    { name: "Repair", category: "Service", color: "text-red-600 border-red-300" },
+    { name: "Maintenance", category: "Service", color: "text-yellow-600 border-yellow-300" },
+    { name: "Emergency", category: "Priority", color: "text-red-600 border-red-300" },
+    { name: "Commercial", category: "Type", color: "text-indigo-600 border-indigo-300" },
+    { name: "Residential", category: "Type", color: "text-teal-600 border-teal-300" },
+    { name: "Energy Efficient", category: "Feature", color: "text-green-600 border-green-300" },
+    { name: "Warranty", category: "Service", color: "text-purple-600 border-purple-300" },
+    { name: "24/7 Service", category: "Availability", color: "text-orange-600 border-orange-300" }
+  ],
+  
+  waterproofing: [
+    { name: "Basement", category: "Location", color: "text-blue-600 border-blue-300" },
+    { name: "Foundation", category: "Location", color: "text-gray-600 border-gray-300" },
+    { name: "Crawl Space", category: "Location", color: "text-purple-600 border-purple-300" },
+    { name: "Interior", category: "Type", color: "text-teal-600 border-teal-300" },
+    { name: "Exterior", category: "Type", color: "text-indigo-600 border-indigo-300" },
+    { name: "Sump Pump", category: "Service", color: "text-green-600 border-green-300" },
+    { name: "French Drain", category: "Service", color: "text-yellow-600 border-yellow-300" },
+    { name: "Emergency", category: "Priority", color: "text-red-600 border-red-300" },
+    { name: "Mold Prevention", category: "Service", color: "text-orange-600 border-orange-300" },
+    { name: "Commercial", category: "Type", color: "text-cyan-600 border-cyan-300" },
+    { name: "Residential", category: "Type", color: "text-pink-600 border-pink-300" },
+    { name: "Warranty", category: "Service", color: "text-purple-600 border-purple-300" }
+  ],
+  
+  drain_repair: [
+    { name: "Kitchen Drain", category: "Location", color: "text-blue-600 border-blue-300" },
+    { name: "Bathroom Drain", category: "Location", color: "text-purple-600 border-purple-300" },
+    { name: "Main Line", category: "Location", color: "text-gray-600 border-gray-300" },
+    { name: "Floor Drain", category: "Location", color: "text-teal-600 border-teal-300" },
+    { name: "Clog Removal", category: "Service", color: "text-green-600 border-green-300" },
+    { name: "Camera Inspection", category: "Service", color: "text-yellow-600 border-yellow-300" },
+    { name: "Hydro Jetting", category: "Service", color: "text-orange-600 border-orange-300" },
+    { name: "Emergency", category: "Priority", color: "text-red-600 border-red-300" },
+    { name: "Preventive", category: "Type", color: "text-indigo-600 border-indigo-300" },
+    { name: "Commercial", category: "Type", color: "text-cyan-600 border-cyan-300" },
+    { name: "Residential", category: "Type", color: "text-pink-600 border-pink-300" }
   ]
 };
 
@@ -398,6 +613,61 @@ const nicheJobTypes = {
     { name: "Emergency Repair", description: "24/7 emergency roof repairs" },
     { name: "Storm Damage", description: "Assess and repair storm damage" },
     { name: "Maintenance", description: "Preventive roof maintenance" }
+  ],
+  
+  deck_builder: [
+    { name: "Deck Design", description: "Design and plan new deck construction", is_default: true },
+    { name: "New Installation", description: "Build new deck from scratch" },
+    { name: "Deck Repair", description: "Fix damaged boards, railings, or structure" },
+    { name: "Refinishing", description: "Sand, stain, and seal existing deck" },
+    { name: "Railing Install", description: "Install or replace deck railings" },
+    { name: "Permit Service", description: "Handle permits and inspections" },
+    { name: "Deck Extension", description: "Expand existing deck area" },
+    { name: "Emergency Repair", description: "Urgent deck safety repairs" }
+  ],
+  
+  moving: [
+    { name: "Local Move", description: "Move within the same city or area", is_default: true },
+    { name: "Long Distance", description: "Move to another city or state" },
+    { name: "Office Move", description: "Commercial or office relocation" },
+    { name: "Packing Only", description: "Professional packing services" },
+    { name: "Loading/Unloading", description: "Load or unload rental truck" },
+    { name: "Specialty Items", description: "Move pianos, artwork, or fragile items" },
+    { name: "Storage Move", description: "Move items to/from storage" },
+    { name: "Emergency Move", description: "Last-minute moving services" }
+  ],
+  
+  air_conditioning: [
+    { name: "AC Repair", description: "Fix air conditioning problems", is_default: true },
+    { name: "New Installation", description: "Install new AC system" },
+    { name: "AC Tune-Up", description: "Seasonal maintenance service" },
+    { name: "Refrigerant Service", description: "Check and recharge refrigerant" },
+    { name: "Coil Cleaning", description: "Clean evaporator and condenser coils" },
+    { name: "Duct Service", description: "Clean or repair AC ductwork" },
+    { name: "Emergency Repair", description: "24/7 emergency AC service" },
+    { name: "System Replacement", description: "Replace old AC system" }
+  ],
+  
+  waterproofing: [
+    { name: "Basement Waterproofing", description: "Seal and protect basement from water", is_default: true },
+    { name: "Foundation Repair", description: "Fix cracks and foundation issues" },
+    { name: "Sump Pump Install", description: "Install or replace sump pump system" },
+    { name: "French Drain", description: "Install interior/exterior drainage" },
+    { name: "Moisture Control", description: "Address humidity and moisture issues" },
+    { name: "Crawl Space", description: "Waterproof crawl space areas" },
+    { name: "Emergency Service", description: "Emergency water removal and drying" },
+    { name: "Mold Prevention", description: "Prevent mold with waterproofing" }
+  ],
+  
+  drain_repair: [
+    { name: "Drain Cleaning", description: "Clear clogged drains", is_default: true },
+    { name: "Camera Inspection", description: "Video inspection of drain lines" },
+    { name: "Hydro Jetting", description: "High-pressure drain cleaning" },
+    { name: "Line Repair", description: "Repair or replace drain pipes" },
+    { name: "Main Line Service", description: "Service main sewer line" },
+    { name: "Rooter Service", description: "Remove tree roots from drains" },
+    { name: "Emergency Service", description: "24/7 emergency drain clearing" },
+    { name: "Preventive Service", description: "Regular drain maintenance" }
   ]
 };
 
