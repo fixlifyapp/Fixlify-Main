@@ -176,6 +176,40 @@ const nicheProducts = {
     { name: "Minimum Service", category: "Service", price: 125.00, unit: "service" },
     { name: "Emergency Call", category: "Service", price: 225.00, unit: "service" },
     { name: "Project Consultation", category: "Service", price: 95.00, unit: "hour" }
+  ],
+  
+  roofing: [
+    // Shingles & Materials
+    { name: "Asphalt Shingles", category: "Materials", price: 35.00, unit: "bundle" },
+    { name: "Architectural Shingles", category: "Materials", price: 45.00, unit: "bundle" },
+    { name: "Metal Roofing", category: "Materials", price: 125.00, unit: "sheet" },
+    { name: "Clay Tiles", category: "Materials", price: 85.00, unit: "sq ft" },
+    { name: "Slate Tiles", category: "Materials", price: 125.00, unit: "sq ft" },
+    { name: "Cedar Shakes", category: "Materials", price: 350.00, unit: "square" },
+    // Underlayment & Protection
+    { name: "Felt Paper 15#", category: "Materials", price: 25.00, unit: "roll" },
+    { name: "Synthetic Underlayment", category: "Materials", price: 125.00, unit: "roll" },
+    { name: "Ice & Water Shield", category: "Materials", price: 85.00, unit: "roll" },
+    { name: "Drip Edge", category: "Materials", price: 8.50, unit: "10ft" },
+    { name: "Ridge Vent", category: "Materials", price: 45.00, unit: "10ft" },
+    // Flashing & Sealants
+    { name: "Step Flashing", category: "Materials", price: 2.50, unit: "piece" },
+    { name: "Valley Flashing", category: "Materials", price: 12.50, unit: "foot" },
+    { name: "Pipe Boot", category: "Materials", price: 15.00, unit: "each" },
+    { name: "Roofing Cement", category: "Materials", price: 25.00, unit: "gallon" },
+    { name: "Roofing Sealant", category: "Materials", price: 12.00, unit: "tube" },
+    // Gutters & Accessories
+    { name: "K-Style Gutter", category: "Materials", price: 8.50, unit: "foot" },
+    { name: "Downspout", category: "Materials", price: 12.50, unit: "10ft" },
+    { name: "Gutter Guard", category: "Materials", price: 15.00, unit: "foot" },
+    // Services
+    { name: "Roof Inspection", category: "Service", price: 250.00, unit: "service" },
+    { name: "Roof Repair", category: "Service", price: 450.00, unit: "service" },
+    { name: "Complete Tear-Off", category: "Service", price: 350.00, unit: "square" },
+    { name: "Roof Installation", category: "Service", price: 425.00, unit: "square" },
+    { name: "Emergency Tarping", category: "Service", price: 325.00, unit: "service" },
+    { name: "Gutter Installation", category: "Service", price: 12.50, unit: "foot" },
+    { name: "Gutter Cleaning", category: "Service", price: 225.00, unit: "service" }
   ]
 };
 
@@ -267,6 +301,23 @@ const nicheTags = {
     { name: "Emergency", category: "Priority", color: "text-red-600 border-red-300" },
     { name: "Indoor", category: "Location", color: "text-cyan-600 border-cyan-300" },
     { name: "Outdoor", category: "Location", color: "text-green-600 border-green-300" }
+  ],
+  
+  roofing: [
+    { name: "Shingle Roof", category: "Type", color: "text-blue-600 border-blue-300" },
+    { name: "Metal Roof", category: "Type", color: "text-gray-600 border-gray-300" },
+    { name: "Tile Roof", category: "Type", color: "text-orange-600 border-orange-300" },
+    { name: "Flat Roof", category: "Type", color: "text-purple-600 border-purple-300" },
+    { name: "Roof Repair", category: "Service", color: "text-red-600 border-red-300" },
+    { name: "New Installation", category: "Service", color: "text-green-600 border-green-300" },
+    { name: "Gutter Service", category: "Service", color: "text-cyan-600 border-cyan-300" },
+    { name: "Emergency", category: "Priority", color: "text-red-600 border-red-300" },
+    { name: "Storm Damage", category: "Issue", color: "text-yellow-600 border-yellow-300" },
+    { name: "Leak Repair", category: "Issue", color: "text-blue-600 border-blue-300" },
+    { name: "Commercial", category: "Type", color: "text-indigo-600 border-indigo-300" },
+    { name: "Residential", category: "Type", color: "text-teal-600 border-teal-300" },
+    { name: "Inspection", category: "Service", color: "text-green-600 border-green-300" },
+    { name: "Warranty", category: "Service", color: "text-purple-600 border-purple-300" }
   ]
 };
 
@@ -336,6 +387,17 @@ const nicheJobTypes = {
     { name: "Mounting", description: "TV, shelf, or picture mounting" },
     { name: "Maintenance", description: "Regular home maintenance" },
     { name: "Small Projects", description: "Minor home improvements" }
+  ],
+  
+  roofing: [
+    { name: "Roof Inspection", description: "Inspect roof condition and identify issues", is_default: true },
+    { name: "Roof Repair", description: "Repair damaged or leaking roofs" },
+    { name: "New Installation", description: "Install new roofing system" },
+    { name: "Re-roofing", description: "Complete roof replacement" },
+    { name: "Gutter Service", description: "Install or repair gutters and downspouts" },
+    { name: "Emergency Repair", description: "24/7 emergency roof repairs" },
+    { name: "Storm Damage", description: "Assess and repair storm damage" },
+    { name: "Maintenance", description: "Preventive roof maintenance" }
   ]
 };
 

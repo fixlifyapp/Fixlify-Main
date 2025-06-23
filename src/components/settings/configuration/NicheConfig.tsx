@@ -21,7 +21,8 @@ const getNichePreviewData = (nicheDbValue: string) => {
     "Plumbing Services": { products: 9, tags: 11, jobTypes: 6 },
     "Electrical Services": { products: 9, tags: 11, jobTypes: 6 },
     "Garage Door Services": { products: 9, tags: 11, jobTypes: 6 },
-    "General Handyman": { products: 7, tags: 11, jobTypes: 6 }
+    "General Handyman": { products: 7, tags: 11, jobTypes: 6 },
+    "Roofing Services": { products: 28, tags: 14, jobTypes: 8 }
   };
   
   return previewData[nicheDbValue] || { products: 7, tags: 11, jobTypes: 6 };
