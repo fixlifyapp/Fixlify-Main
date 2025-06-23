@@ -1,5 +1,6 @@
 -- Fix User Data Isolation - Ensure each user can only see their own data
 -- This migration adds proper user_id columns and RLS policies to isolate data between accounts
+-- APPLIED: This migration has been successfully applied to the database
 
 -- Step 1: Add user_id columns to tables that don't have them
 -- Note: Some tables might already have created_by or similar columns
@@ -42,19 +43,15 @@ ALTER TABLE public.products ADD COLUMN IF NOT EXISTS user_id uuid REFERENCES aut
 ALTER TABLE public.messages ADD COLUMN IF NOT EXISTS user_id uuid REFERENCES auth.users(id);
 
 -- Update existing messages
-UPDATE public.messages SET user_id = sender_id WHERE user_id IS NULL AND sender_id IS NOT NULL;
+UPDATE public.messages SET user_id = sender::uuid WHERE user_id IS NULL AND sender IS NOT NULL AND sender ~* '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$';
 
 -- Add user_id to conversations table if it doesn't exist
 ALTER TABLE public.conversations ADD COLUMN IF NOT EXISTS user_id uuid REFERENCES auth.users(id);
 
+UPDATE public.conversations c SET user_id = cl.user_id FROM public.clients cl WHERE c.client_id = cl.id AND c.user_id IS NULL;
+
 -- Add user_id to automations table if it doesn't exist
 ALTER TABLE public.automations ADD COLUMN IF NOT EXISTS user_id uuid REFERENCES auth.users(id);
-
--- Add user_id to config_items table if it doesn't exist
-ALTER TABLE public.config_items ADD COLUMN IF NOT EXISTS user_id uuid REFERENCES auth.users(id);
-
--- Add user_id to team_members table if it doesn't exist
-ALTER TABLE public.team_members ADD COLUMN IF NOT EXISTS user_id uuid REFERENCES auth.users(id);
 
 -- Add user_id to custom_roles table if it doesn't exist
 ALTER TABLE public.custom_roles ADD COLUMN IF NOT EXISTS user_id uuid REFERENCES auth.users(id);
@@ -233,35 +230,40 @@ CREATE POLICY "Users can delete own products"
 CREATE POLICY "Users can view own messages" 
   ON public.messages 
   FOR SELECT 
-  USING (auth.uid() = user_id OR auth.uid() = sender_id OR auth.uid() = recipient_id);
+  USING (auth.uid() = user_id OR auth.uid()::text = sender OR auth.uid()::text = recipient);
 
 CREATE POLICY "Users can create own messages" 
   ON public.messages 
   FOR INSERT 
-  WITH CHECK (auth.uid() = user_id OR auth.uid() = sender_id);
+  WITH CHECK (auth.uid()::text = sender);
 
 CREATE POLICY "Users can update own messages" 
   ON public.messages 
   FOR UPDATE 
-  USING (auth.uid() = user_id OR auth.uid() = sender_id)
-  WITH CHECK (auth.uid() = user_id OR auth.uid() = sender_id);
+  USING (auth.uid()::text = sender)
+  WITH CHECK (auth.uid()::text = sender);
 
 -- Conversations table - users can only see their own conversations
 CREATE POLICY "Users can view own conversations" 
   ON public.conversations 
   FOR SELECT 
-  USING (auth.uid() = user_id OR auth.uid() = ANY(participant_ids));
+  USING (auth.uid() = user_id);
 
 CREATE POLICY "Users can create own conversations" 
   ON public.conversations 
   FOR INSERT 
-  WITH CHECK (auth.uid() = user_id OR auth.uid() = ANY(participant_ids));
+  WITH CHECK (auth.uid() = user_id);
 
 CREATE POLICY "Users can update own conversations" 
   ON public.conversations 
   FOR UPDATE 
-  USING (auth.uid() = user_id OR auth.uid() = ANY(participant_ids))
-  WITH CHECK (auth.uid() = user_id OR auth.uid() = ANY(participant_ids));
+  USING (auth.uid() = user_id)
+  WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can delete own conversations"
+  ON public.conversations
+  FOR DELETE
+  USING (auth.uid() = user_id);
 
 -- Automations table - users can only see their own automations
 CREATE POLICY "Users can view own automations" 
@@ -284,40 +286,6 @@ CREATE POLICY "Users can delete own automations"
   ON public.automations 
   FOR DELETE 
   USING (auth.uid() = user_id OR auth.uid() = created_by);
-
--- Config items table - users can only see their own config
-CREATE POLICY "Users can view own config" 
-  ON public.config_items 
-  FOR SELECT 
-  USING (auth.uid() = user_id OR user_id IS NULL); -- Allow viewing default config
-
-CREATE POLICY "Users can create own config" 
-  ON public.config_items 
-  FOR INSERT 
-  WITH CHECK (auth.uid() = user_id);
-
-CREATE POLICY "Users can update own config" 
-  ON public.config_items 
-  FOR UPDATE 
-  USING (auth.uid() = user_id)
-  WITH CHECK (auth.uid() = user_id);
-
-CREATE POLICY "Users can delete own config" 
-  ON public.config_items 
-  FOR DELETE 
-  USING (auth.uid() = user_id);
-
--- Team members table - users can only see their own team
-CREATE POLICY "Users can view own team" 
-  ON public.team_members 
-  FOR SELECT 
-  USING (auth.uid() = user_id OR auth.uid() = member_id);
-
-CREATE POLICY "Users can manage own team" 
-  ON public.team_members 
-  FOR ALL 
-  USING (auth.uid() = user_id)
-  WITH CHECK (auth.uid() = user_id);
 
 -- Custom roles table - users can only see their own roles
 CREATE POLICY "Users can view own roles" 
@@ -352,8 +320,6 @@ ALTER TABLE public.products ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.messages ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.conversations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.automations ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.config_items ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.team_members ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.custom_roles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.telnyx_phone_numbers ENABLE ROW LEVEL SECURITY;
 
@@ -396,14 +362,6 @@ CREATE TRIGGER set_user_id_on_automations
   BEFORE INSERT ON public.automations
   FOR EACH ROW EXECUTE FUNCTION public.set_user_id();
 
-CREATE TRIGGER set_user_id_on_config_items
-  BEFORE INSERT ON public.config_items
-  FOR EACH ROW EXECUTE FUNCTION public.set_user_id();
-
-CREATE TRIGGER set_user_id_on_team_members
-  BEFORE INSERT ON public.team_members
-  FOR EACH ROW EXECUTE FUNCTION public.set_user_id();
-
 CREATE TRIGGER set_user_id_on_custom_roles
   BEFORE INSERT ON public.custom_roles
   FOR EACH ROW EXECUTE FUNCTION public.set_user_id();
@@ -421,7 +379,5 @@ CREATE INDEX IF NOT EXISTS idx_products_user_id ON public.products(user_id);
 CREATE INDEX IF NOT EXISTS idx_messages_user_id ON public.messages(user_id);
 CREATE INDEX IF NOT EXISTS idx_conversations_user_id ON public.conversations(user_id);
 CREATE INDEX IF NOT EXISTS idx_automations_user_id ON public.automations(user_id);
-CREATE INDEX IF NOT EXISTS idx_config_items_user_id ON public.config_items(user_id);
-CREATE INDEX IF NOT EXISTS idx_team_members_user_id ON public.team_members(user_id);
 CREATE INDEX IF NOT EXISTS idx_custom_roles_user_id ON public.custom_roles(user_id);
 CREATE INDEX IF NOT EXISTS idx_telnyx_phone_numbers_user_id ON public.telnyx_phone_numbers(user_id); 
