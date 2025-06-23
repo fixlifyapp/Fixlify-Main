@@ -203,8 +203,3 @@ export function useLeadSources() {
 export function useTags() {
   return useConfigItems<ConfigItem>('tags');
 }
-
-// Use the payment_methods table
-export function usePaymentMethods() {
-  return useConfigItems<ConfigItem>('payment_methods');
-}
