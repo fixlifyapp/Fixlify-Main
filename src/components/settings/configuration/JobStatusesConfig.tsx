@@ -4,6 +4,7 @@ import { useJobStatuses } from "@/hooks/useConfigItems";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
+import { toast } from "sonner";
 import * as z from "zod";
 
 const jobStatusSchema = z.object({
@@ -120,18 +121,37 @@ export function JobStatusesConfig() {
       isLoading={isLoading}
       canManage={canManage}
       onAdd={addItem}
-      onUpdate={updateItem}
-      onDelete={deleteItem}
+      onUpdate={(item) => {
+        // Prevent updating default statuses
+        if (item.is_default) {
+          toast.error("Default job statuses cannot be modified");
+          return Promise.resolve();
+        }
+        return updateItem(item);
+      }}
+      onDelete={(id) => {
+        // Find the status being deleted
+        const status = jobStatuses.find(s => s.id === id);
+        if (status?.is_default) {
+          toast.error("Default job statuses cannot be deleted");
+          return Promise.resolve();
+        }
+        return deleteItem(id);
+      }}
       refreshItems={refreshItems}
       renderCustomColumns={(status) => (
         <div className="flex flex-col">
           <span className="text-sm">Sequence: {status.sequence || 0}</span>
-          {status.is_default && <span className="text-sm text-green-600">Default</span>}
+          {status.is_default && (
+            <span className="text-sm text-green-600 font-medium">Default (Protected)</span>
+          )}
         </div>
       )}
       schema={jobStatusSchema}
       itemDialogFields={renderItemDialogFields}
       getInitialValues={getInitialValues}
+      disableEdit={(item) => item.is_default}
+      disableDelete={(item) => item.is_default}
     />
   );
 }

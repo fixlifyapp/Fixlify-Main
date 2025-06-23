@@ -109,82 +109,37 @@ export const UnifiedOnboardingModal = ({
 
       if (companyError) throw companyError;
 
-      // Initialize products with proper user_id
-      if (formData.setupProducts && formData.businessType) {
-        console.log("Initializing products for business type:", formData.businessType);
-        
-        // First, check if user already has products
-        const { data: existingProducts } = await supabase
-          .from('products')
-          .select('id')
-          .eq('user_id', userId)
-          .limit(1);
+      // Initialize user defaults (job statuses, lead sources, payment methods)
+      const { error: defaultsError } = await supabase.rpc(
+        'initialize_user_defaults',
+        { p_user_id: userId }
+      );
 
-        if (!existingProducts || existingProducts.length === 0) {
-          // Load niche-specific products
-          const module = await import(`@/utils/niche-data/${formData.businessType.toLowerCase().replace(/\s+/g, '-')}.ts`)
-            .catch(() => import('@/utils/niche-data/default.ts'));
-          
-          const products = module.products || [];
-          
-          if (products.length > 0) {
-            // Insert products with user_id
-            const productsWithUserId = products.map((product: any) => ({
-              ...product,
-              user_id: userId,
-              created_by: userId
-            }));
-
-            const { error: productsError } = await supabase
-              .from('products')
-              .insert(productsWithUserId);
-
-            if (productsError) {
-              console.error("Error creating products:", productsError);
-              throw productsError;
-            }
-            console.log(`Created ${products.length} products for user`);
-          }
-        }
+      if (defaultsError) {
+        console.error('Error initializing defaults:', defaultsError);
+        // Don't throw - continue with niche data
       }
 
-      // Initialize tags with proper user_id
-      if (formData.setupTags && formData.businessType) {
-        console.log("Initializing tags for business type:", formData.businessType);
-        
-        // Check if user already has tags
-        const { data: existingTags } = await supabase
-          .from('tags')
-          .select('id')
-          .eq('user_id', userId)
-          .limit(1);
-
-        if (!existingTags || existingTags.length === 0) {
-          // Load niche-specific tags
-          const module = await import(`@/utils/niche-data/${formData.businessType.toLowerCase().replace(/\s+/g, '-')}.ts`)
-            .catch(() => import('@/utils/niche-data/default.ts'));
-          
-          const tags = module.tags || [];
-          
-          if (tags.length > 0) {
-            // Insert tags with user_id
-            const tagsWithUserId = tags.map((tag: any) => ({
-              ...tag,
-              user_id: userId,
-              created_by: userId
-            }));
-
-            const { error: tagsError } = await supabase
-              .from('tags')
-              .insert(tagsWithUserId);
-
-            if (tagsError) {
-              console.error("Error creating tags:", tagsError);
-              throw tagsError;
-            }
-            console.log(`Created ${tags.length} tags for user`);
-          }
+      // Initialize niche-specific data
+      const { error: initError } = await supabase.rpc(
+        'initialize_user_data_with_enhanced_niche_data',
+        { 
+          p_user_id: userId,
+          p_business_niche: formData.businessType
         }
+      );
+
+      if (initError) {
+        console.error('Error initializing niche data:', initError);
+        // Don't throw - continue to load client-side data
+      }
+
+      // Load enhanced niche data from client
+      try {
+        const { initializeNicheData } = await import('@/utils/enhanced-niche-data-loader');
+        await initializeNicheData(formData.businessType);
+      } catch (error) {
+        console.error('Error loading enhanced niche data:', error);
       }
 
       toast.success("Welcome to Fixlify! Your account is all set up.");

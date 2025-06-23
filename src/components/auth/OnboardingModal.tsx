@@ -132,9 +132,20 @@ export function OnboardingModal({ open, onOpenChange }: OnboardingModalProps) {
         throw settingsError;
       }
 
-      // Initialize user data with complete configuration
+      // Initialize user defaults (job statuses, lead sources, payment methods)
+      const { error: defaultsError } = await supabase.rpc(
+        'initialize_user_defaults',
+        { p_user_id: user.id }
+      );
+
+      if (defaultsError) {
+        console.error('Error initializing defaults:', defaultsError);
+        // Don't throw - continue with niche data
+      }
+
+      // Initialize niche-specific data
       const { error: initError } = await supabase.rpc(
-        'initialize_user_data_complete',
+        'initialize_user_data_with_enhanced_niche_data',
         { 
           p_user_id: user.id,
           p_business_niche: formData.businessType
@@ -142,8 +153,16 @@ export function OnboardingModal({ open, onOpenChange }: OnboardingModalProps) {
       );
 
       if (initError) {
-        console.error('Error initializing user data:', initError);
-        throw initError;
+        console.error('Error initializing niche data:', initError);
+        // Don't throw - continue to load client-side data
+      }
+
+      // Load enhanced niche data from client
+      try {
+        const { initializeNicheData } = await import('@/utils/enhanced-niche-data-loader');
+        await initializeNicheData(formData.businessType);
+      } catch (error) {
+        console.error('Error loading enhanced niche data:', error);
       }
 
       // Update onboarding status
