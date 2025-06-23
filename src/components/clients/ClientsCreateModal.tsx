@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -113,8 +112,8 @@ export const ClientsCreateModal = ({ open, onOpenChange, onSuccess }: ClientsCre
         </DialogHeader>
         
         <form onSubmit={handleSubmit} className="flex flex-col h-full">
-          <ScrollArea className="flex-grow px-4 sm:px-6" style={{ maxHeight: "calc(90vh - 200px)" }}>
-            <div className="py-4 sm:py-6 space-y-6">
+          <ScrollArea className="flex-grow overflow-y-auto" style={{ maxHeight: "calc(90vh - 200px)" }}>
+            <div className="px-4 sm:px-6 py-4 sm:py-6 space-y-6">
               
               {/* Client Type & Status */}
               <Card className="border-fixlyfy/20">
