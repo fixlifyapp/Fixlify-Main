@@ -93,8 +93,10 @@ export const UnifiedOnboardingModal = ({
     try {
       setIsLoading(true);
       console.log("Starting onboarding data initialization for user:", userId);
+      console.log("Form data:", formData);
 
       // Update user profile with onboarding data
+      console.log("Updating profile...");
       const { error: profileError } = await supabase
         .from('profiles')
         .update({
@@ -104,26 +106,64 @@ export const UnifiedOnboardingModal = ({
         })
         .eq('id', userId);
 
-      if (profileError) throw profileError;
+      if (profileError) {
+        console.error("Profile update error:", profileError);
+        throw profileError;
+      }
+      console.log("Profile updated successfully");
 
-      // Update company settings using upsert to avoid duplicate key errors
-      const { error: companyError } = await supabase
+      // Update company settings - first check if it exists
+      console.log("Checking for existing company settings...");
+      const { data: existingCompany, error: selectError } = await supabase
         .from('company_settings')
-        .upsert({
-          user_id: userId,
-          company_name: formData.businessName,
-          business_type: formData.businessType,
-          business_niche: formData.businessType
-        }, {
-          onConflict: 'user_id'
-        });
+        .select('user_id')
+        .eq('user_id', userId)
+        .single();
 
-      if (companyError) {
-        console.error('Company settings error:', companyError);
-        throw companyError;
+      if (selectError && selectError.code !== 'PGRST116') {
+        // PGRST116 means no rows found, which is ok
+        console.error("Error checking company settings:", selectError);
+        throw selectError;
+      }
+
+      if (existingCompany) {
+        // Update existing record
+        console.log("Updating existing company settings...");
+        const { error: companyError } = await supabase
+          .from('company_settings')
+          .update({
+            company_name: formData.businessName,
+            business_type: formData.businessType,
+            business_niche: formData.businessType
+          })
+          .eq('user_id', userId);
+
+        if (companyError) {
+          console.error('Company settings update error:', companyError);
+          throw companyError;
+        }
+        console.log("Company settings updated successfully");
+      } else {
+        // Insert new record
+        console.log("Inserting new company settings...");
+        const { error: companyError } = await supabase
+          .from('company_settings')
+          .insert({
+            user_id: userId,
+            company_name: formData.businessName,
+            business_type: formData.businessType,
+            business_niche: formData.businessType
+          });
+
+        if (companyError) {
+          console.error('Company settings insert error:', companyError);
+          throw companyError;
+        }
+        console.log("Company settings inserted successfully");
       }
 
       // Initialize user defaults (job statuses, lead sources, payment methods)
+      console.log("Initializing user defaults...");
       const { error: defaultsError } = await supabase.rpc(
         'initialize_user_defaults',
         { p_user_id: userId }
@@ -132,9 +172,12 @@ export const UnifiedOnboardingModal = ({
       if (defaultsError) {
         console.error('Error initializing defaults:', defaultsError);
         // Don't throw - continue with niche data
+      } else {
+        console.log("User defaults initialized successfully");
       }
 
       // Initialize niche-specific data
+      console.log("Initializing niche-specific data for:", formData.businessType);
       const { error: initError } = await supabase.rpc(
         'initialize_user_data_with_enhanced_niche_data',
         { 
@@ -146,6 +189,8 @@ export const UnifiedOnboardingModal = ({
       if (initError) {
         console.error('Error initializing niche data:', initError);
         // Don't throw - continue to load client-side data
+      } else {
+        console.log("Niche data initialized successfully");
       }
 
       // Load enhanced niche data from client
