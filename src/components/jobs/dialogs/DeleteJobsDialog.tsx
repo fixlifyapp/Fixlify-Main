@@ -1,4 +1,3 @@
-
 import {
   Dialog,
   DialogContent,
@@ -10,7 +9,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
+import { useJobs } from "@/hooks/useJobs";
 
 interface DeleteJobsDialogProps {
   selectedJobs: string[];
@@ -21,24 +20,51 @@ interface DeleteJobsDialogProps {
 
 export function DeleteJobsDialog({ selectedJobs, onOpenChange, onSuccess, open }: DeleteJobsDialogProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const { deleteJob, canDelete } = useJobs();
 
   const handleDelete = async () => {
+    if (!canDelete) {
+      toast.error("You don't have permission to delete jobs");
+      return;
+    }
+
     setIsSubmitting(true);
     
     try {
-      // Delete all selected jobs from Supabase
-      const { error } = await supabase
-        .from('jobs')
-        .delete()
-        .in('id', selectedJobs);
-        
-      if (error) {
-        throw error;
+      // Delete all selected jobs using the proper deleteJob function
+      const deletePromises = selectedJobs.map(async (jobId) => {
+        try {
+          await deleteJob(jobId);
+          return { success: true, jobId };
+        } catch (error) {
+          console.error(`Failed to delete job ${jobId}:`, error);
+          return { success: false, jobId, error };
+        }
+      });
+
+      const results = await Promise.allSettled(deletePromises);
+      
+      // Count successful deletions
+      const successfulDeletions = results.filter(
+        (result) => result.status === 'fulfilled' && result.value.success
+      ).length;
+
+      const failedDeletions = selectedJobs.length - successfulDeletions;
+
+      if (successfulDeletions > 0) {
+        toast.success(`Successfully deleted ${successfulDeletions} job${successfulDeletions > 1 ? 's' : ''}`);
+      }
+
+      if (failedDeletions > 0) {
+        toast.error(`Failed to delete ${failedDeletions} job${failedDeletions > 1 ? 's' : ''}`);
+      }
+
+      // Call onSuccess if at least one job was deleted successfully
+      if (successfulDeletions > 0) {
+        onSuccess();
       }
       
-      onSuccess();
       onOpenChange(false);
-      toast.success(`Deleted ${selectedJobs.length} jobs successfully`);
     } catch (error) {
       console.error("Failed to delete jobs:", error);
       toast.error("Failed to delete jobs. Please try again.");
@@ -53,7 +79,7 @@ export function DeleteJobsDialog({ selectedJobs, onOpenChange, onSuccess, open }
         <DialogHeader>
           <DialogTitle>Delete Jobs</DialogTitle>
           <DialogDescription>
-            Are you sure you want to delete {selectedJobs.length} jobs? This action cannot be undone.
+            Are you sure you want to delete {selectedJobs.length} job{selectedJobs.length > 1 ? 's' : ''}? This action cannot be undone.
           </DialogDescription>
         </DialogHeader>
         
@@ -70,7 +96,7 @@ export function DeleteJobsDialog({ selectedJobs, onOpenChange, onSuccess, open }
             type="button" 
             variant="destructive" 
             onClick={handleDelete}
-            disabled={isSubmitting}
+            disabled={isSubmitting || !canDelete}
           >
             {isSubmitting ? "Deleting..." : "Delete Jobs"}
           </Button>
