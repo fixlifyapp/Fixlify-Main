@@ -11,12 +11,68 @@ interface ProtectedRouteProps {
   requireAdmin?: boolean;
 }
 
+interface Profile {
+  id: string;
+  role: string;
+  has_completed_onboarding: boolean;
+}
+
 export function ProtectedRoute({ children, requireAdmin = false }: ProtectedRouteProps) {
-  const { user, profile, isLoading } = useAuth();
+  const { user, loading } = useAuth();
   const location = useLocation();
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [isCheckingOnboarding, setIsCheckingOnboarding] = useState(true);
+  const [profile, setProfile] = useState<Profile | null>(null);
+  const [profileLoading, setProfileLoading] = useState(true);
 
+  // Fetch user profile
+  useEffect(() => {
+    const fetchProfile = async () => {
+      if (!user) {
+        setProfileLoading(false);
+        return;
+      }
+
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('id, role, has_completed_onboarding')
+          .eq('id', user.id)
+          .single();
+
+        if (error) {
+          console.error('Error fetching profile:', error);
+          // If profile doesn't exist, create a default one
+          if (error.code === 'PGRST116') {
+            const { data: newProfile, error: createError } = await supabase
+              .from('profiles')
+              .insert({
+                id: user.id,
+                email: user.email,
+                role: 'admin',
+                has_completed_onboarding: false
+              })
+              .select()
+              .single();
+
+            if (!createError && newProfile) {
+              setProfile(newProfile);
+            }
+          }
+        } else {
+          setProfile(data);
+        }
+      } catch (error) {
+        console.error('Error in profile fetch:', error);
+      } finally {
+        setProfileLoading(false);
+      }
+    };
+
+    fetchProfile();
+  }, [user]);
+
+  // Check onboarding status
   useEffect(() => {
     const checkOnboardingStatus = async () => {
       if (!user || !profile) {
@@ -30,24 +86,15 @@ export function ProtectedRoute({ children, requireAdmin = false }: ProtectedRout
         return;
       }
 
-      // Check if user has completed onboarding
-      const { data: profileData, error } = await supabase
-        .from('profiles')
-        .select('has_completed_onboarding')
-        .eq('id', user.id)
-        .single();
-
-      if (!error && profileData) {
-        setShowOnboarding(!profileData.has_completed_onboarding);
-      }
-      
+      // Show onboarding if not completed
+      setShowOnboarding(!profile.has_completed_onboarding);
       setIsCheckingOnboarding(false);
     };
 
     checkOnboardingStatus();
   }, [user, profile]);
 
-  if (isLoading || isCheckingOnboarding) {
+  if (loading || profileLoading || isCheckingOnboarding) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -62,7 +109,10 @@ export function ProtectedRoute({ children, requireAdmin = false }: ProtectedRout
   if (!profile) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto mb-4" />
+          <p className="text-muted-foreground">Setting up your profile...</p>
+        </div>
       </div>
     );
   }
@@ -74,6 +124,8 @@ export function ProtectedRoute({ children, requireAdmin = false }: ProtectedRout
 
   const handleOnboardingComplete = () => {
     setShowOnboarding(false);
+    // Update the profile state to reflect onboarding completion
+    setProfile(prev => prev ? { ...prev, has_completed_onboarding: true } : null);
   };
 
   return (
