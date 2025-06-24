@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent } from "@/components/ui/card";
 import { Building2, Users, Package, CheckCircle2, Loader2, AlertCircle } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
+import { NicheDataInitializer } from "@/services/nicheDataInitializer";
 
 interface UnifiedOnboardingModalProps {
   isOpen: boolean;
@@ -92,10 +93,10 @@ export const UnifiedOnboardingModal = ({
   const initializeUserData = async () => {
     try {
       setIsLoading(true);
-      console.log("Starting onboarding data initialization for user:", userId);
-      console.log("Form data:", formData);
+      console.log("Starting enhanced onboarding for user:", userId);
+      console.log("Business type selected:", formData.businessType);
 
-      // Update user profile with onboarding data
+      // Step 1: Update user profile
       console.log("Updating profile...");
       const { error: profileError } = await supabase
         .from('profiles')
@@ -112,7 +113,7 @@ export const UnifiedOnboardingModal = ({
       }
       console.log("Profile updated successfully");
 
-      // Update company settings - first check if it exists
+      // Step 2: Handle company settings
       console.log("Checking for existing company settings...");
       const { data: existingCompany, error: selectError } = await supabase
         .from('company_settings')
@@ -126,16 +127,19 @@ export const UnifiedOnboardingModal = ({
         throw selectError;
       }
 
+      const companyData = {
+        company_name: formData.businessName,
+        business_type: formData.businessType,
+        business_niche: formData.businessType,
+        team_size: formData.teamSize
+      };
+
       if (existingCompany) {
         // Update existing record
         console.log("Updating existing company settings...");
         const { error: companyError } = await supabase
           .from('company_settings')
-          .update({
-            company_name: formData.businessName,
-            business_type: formData.businessType,
-            business_niche: formData.businessType
-          })
+          .update(companyData)
           .eq('user_id', userId);
 
         if (companyError) {
@@ -148,12 +152,7 @@ export const UnifiedOnboardingModal = ({
         console.log("Inserting new company settings...");
         const { error: companyError } = await supabase
           .from('company_settings')
-          .insert({
-            user_id: userId,
-            company_name: formData.businessName,
-            business_type: formData.businessType,
-            business_niche: formData.businessType
-          });
+          .insert({ ...companyData, user_id: userId });
 
         if (companyError) {
           console.error('Company settings insert error:', companyError);
@@ -162,7 +161,7 @@ export const UnifiedOnboardingModal = ({
         console.log("Company settings inserted successfully");
       }
 
-      // Initialize user defaults (job statuses, lead sources, payment methods)
+      // Step 3: Initialize user defaults (job statuses, lead sources, payment methods)
       console.log("Initializing user defaults...");
       const { error: defaultsError } = await supabase.rpc(
         'initialize_user_defaults',
@@ -176,8 +175,22 @@ export const UnifiedOnboardingModal = ({
         console.log("User defaults initialized successfully");
       }
 
-      // Initialize niche-specific data
-      console.log("Initializing niche-specific data for:", formData.businessType);
+      // Step 4: Use the new NicheDataInitializer for enhanced setup
+      console.log("Initializing niche-specific data with NicheDataInitializer...");
+      const nicheInitializer = new NicheDataInitializer(userId, formData.businessType);
+      
+      const initResults = await nicheInitializer.initializeAllData({
+        setupProducts: formData.setupProducts,
+        setupTags: formData.setupTags,
+        setupCustomFields: true,
+        setupAutomations: true,
+        setupEmailTemplates: true
+      });
+
+      console.log("Niche initialization results:", initResults);
+
+      // Step 5: Also run the existing enhanced niche data RPC for compatibility
+      console.log("Running enhanced niche data RPC...");
       const { error: initError } = await supabase.rpc(
         'initialize_user_data_with_enhanced_niche_data',
         { 
@@ -187,21 +200,32 @@ export const UnifiedOnboardingModal = ({
       );
 
       if (initError) {
-        console.error('Error initializing niche data:', initError);
-        // Don't throw - continue to load client-side data
-      } else {
-        console.log("Niche data initialized successfully");
+        console.error('Error in enhanced niche data RPC:', initError);
+        // Don't throw - continue
       }
 
-      // Load enhanced niche data from client
+      // Step 6: Load client-side enhanced niche data
       try {
+        console.log("Loading client-side enhanced niche data...");
         const { initializeNicheData } = await import('@/utils/enhanced-niche-data-loader');
         await initializeNicheData(formData.businessType);
+        console.log("Client-side niche data loaded successfully");
       } catch (error) {
-        console.error('Error loading enhanced niche data:', error);
+        console.error('Error loading client-side niche data:', error);
       }
 
-      toast.success("Welcome to Fixlify! Your account is all set up.");
+      // Step 7: Verify data was created successfully
+      console.log("Verifying initialization...");
+      const [products, tags] = await Promise.all([
+        supabase.from('products').select('count').eq('user_id', userId),
+        supabase.from('tags').select('count').eq('user_id', userId)
+      ]);
+      
+      console.log(`Created ${products.data?.[0]?.count || 0} products`);
+      console.log(`Created ${tags.data?.[0]?.count || 0} tags`);
+
+      // Success!
+      toast.success(`Welcome to Fixlify! Your ${formData.businessType} workspace is ready.`);
       onComplete();
       navigate('/dashboard');
     } catch (error: any) {
@@ -214,6 +238,10 @@ export const UnifiedOnboardingModal = ({
         errorMessage = "Failed to save company information. Please try again.";
       } else if (error.message?.includes('profiles')) {
         errorMessage = "Failed to update profile. Please try again.";
+      } else if (error.message?.includes('products')) {
+        errorMessage = "Failed to create products. Manual setup may be required.";
+      } else if (error.message?.includes('tags')) {
+        errorMessage = "Failed to create tags. You can add them manually later.";
       } else if (error.message?.includes('niche')) {
         errorMessage = "Failed to initialize business data. Please try again.";
       } else if (error.message?.includes('defaults')) {
