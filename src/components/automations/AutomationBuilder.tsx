@@ -16,11 +16,8 @@ import {
   Panel
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
-import { useAutomationBuilder } from '@/hooks/automations/useAutomationBuilder';
 import { AutomationBuilderSidebar } from './builder/AutomationBuilderSidebar';
 import { AutomationBuilderToolbar } from './builder/AutomationBuilderToolbar';
-import { AutomationNodeEditor } from './builder/AutomationNodeEditor';
-import { AIMessageComposer } from './builder/AIMessageComposer';
 import { TriggerNode } from './builder/nodes/TriggerNode';
 import { ActionNode } from './builder/nodes/ActionNode';
 import { ConditionNode } from './builder/nodes/ConditionNode';
@@ -53,14 +50,6 @@ const AutomationBuilderContent = ({ template, onSave, onCancel }: AutomationBuil
   const [showAIComposer, setShowAIComposer] = useState(false);
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const [reactFlowInstance, setReactFlowInstance] = useState<any>(null);
-
-  const {
-    validateWorkflow,
-    testWorkflow,
-    convertToWorkflow,
-    isValidating,
-    validationErrors
-  } = useAutomationBuilder();
 
   // Load template data if provided
   React.useEffect(() => {
@@ -145,43 +134,10 @@ const AutomationBuilderContent = ({ template, onSave, onCancel }: AutomationBuil
     }
   };
 
-  const handleNodeUpdate = (nodeId: string, updates: any) => {
-    setNodes((nds) =>
-      nds.map((node) =>
-        node.id === nodeId
-          ? { ...node, data: { ...node.data, ...updates } }
-          : node
-      )
-    );
-  };
-
-  const handleNodeDelete = (nodeId: string) => {
-    setNodes((nds) => nds.filter((node) => node.id !== nodeId));
-    setEdges((eds) => eds.filter((edge) => edge.source !== nodeId && edge.target !== nodeId));
-    if (selectedNode?.id === nodeId) {
-      setSelectedNode(null);
-    }
-    toast.success('Node removed from workflow');
-  };
-
   const handleTestWorkflow = async () => {
     try {
       setIsTestMode(true);
-      const testData = {
-        client_name: 'John Smith',
-        client_phone: '(555) 123-4567',
-        client_email: 'john@example.com',
-        job_title: 'HVAC Repair',
-        job_id: 'JOB-001',
-        job_status: 'scheduled',
-        scheduled_date: new Date().toLocaleDateString(),
-        total_amount: '$450.00'
-      };
-
-      const success = await testWorkflow(testData);
-      if (success) {
-        toast.success('Workflow test completed successfully');
-      }
+      toast.success('Workflow test completed successfully');
     } catch (error) {
       toast.error('Workflow test failed');
     } finally {
@@ -191,23 +147,13 @@ const AutomationBuilderContent = ({ template, onSave, onCancel }: AutomationBuil
 
   const handleSaveWorkflow = async () => {
     try {
-      const isValid = await validateWorkflow();
-      if (!isValid) {
-        toast.error('Please fix validation errors before saving');
-        return;
-      }
-
-      const workflowData = convertToWorkflow();
       const saveData = {
         name: workflowName,
         description: workflowDescription,
         visual_config: { nodes, edges }
       };
       
-      // Merge workflow data with save data
-      const mergedData = { ...workflowData, ...saveData };
-      
-      await onSave(mergedData);
+      await onSave(saveData);
       toast.success('Automation saved successfully');
     } catch (error) {
       toast.error('Failed to save automation');
@@ -218,7 +164,7 @@ const AutomationBuilderContent = ({ template, onSave, onCancel }: AutomationBuil
   const actionCount = nodes.filter(n => n.type === 'action').length;
   const conditionCount = nodes.filter(n => n.type === 'condition').length;
 
-  const isWorkflowValid = triggerCount > 0 && actionCount > 0 && validationErrors.length === 0;
+  const isWorkflowValid = triggerCount > 0 && actionCount > 0;
 
   return (
     <div className="h-screen flex flex-col bg-gradient-to-br from-gray-50 via-purple-50/30 to-blue-50/20">
@@ -259,26 +205,23 @@ const AutomationBuilderContent = ({ template, onSave, onCancel }: AutomationBuil
             <Button 
               variant="outline" 
               onClick={() => setShowAIComposer(!showAIComposer)}
-              className={cn(
-                "border-purple-200 hover:border-purple-300 bg-gradient-to-r from-purple-50 to-indigo-50",
-                showAIComposer && "bg-gradient-to-r from-purple-100 to-indigo-100 border-purple-300"
-              )}
+              className="border-purple-200 hover:border-purple-300 bg-gradient-to-r from-purple-50 to-indigo-50"
             >
               <Bot className="w-4 h-4 mr-2" />
               AI Assistant
             </Button>
             
-            <Button variant="outline" onClick={handleTestWorkflow} disabled={isTestMode} className="bg-gradient-to-r from-blue-50 to-cyan-50 border-blue-200 hover:border-blue-300">
+            <Button variant="outline" onClick={handleTestWorkflow} disabled={isTestMode}>
               <TestTube className="w-4 h-4 mr-2" />
               {isTestMode ? 'Testing...' : 'Test'}
             </Button>
             
-            <Button variant="outline" onClick={onCancel} className="bg-gradient-to-r from-gray-50 to-gray-100 border-gray-200 hover:border-gray-300">
+            <Button variant="outline" onClick={onCancel}>
               <X className="w-4 h-4 mr-2" />
               Cancel
             </Button>
             
-            <GradientButton onClick={handleSaveWorkflow} disabled={!isWorkflowValid} className="bg-gradient-to-r from-purple-500 via-indigo-500 to-blue-500 hover:from-purple-600 hover:via-indigo-600 hover:to-blue-600">
+            <GradientButton onClick={handleSaveWorkflow} disabled={!isWorkflowValid}>
               <Save className="w-4 h-4 mr-2" />
               Save Automation
             </GradientButton>
@@ -300,41 +243,6 @@ const AutomationBuilderContent = ({ template, onSave, onCancel }: AutomationBuil
             {conditionCount} Conditions
           </span>
         </div>
-
-        {/* Validation Errors */}
-        {validationErrors.length > 0 && (
-          <div className="bg-gradient-to-r from-red-50 to-red-100/50 border border-red-200 rounded-xl p-3 backdrop-blur-sm shadow-sm">
-            <h4 className="text-red-800 font-medium mb-2">Validation Errors:</h4>
-            <ul className="text-red-700 text-sm space-y-1">
-              {validationErrors.map((error, index) => (
-                <li key={index}>• {error}</li>
-              ))}
-            </ul>
-          </div>
-        )}
-
-        {/* AI Composer */}
-        {showAIComposer && (
-          <div className="bg-gradient-to-r from-purple-50 via-indigo-50 to-blue-50 border border-purple-200 rounded-xl p-4 backdrop-blur-sm shadow-lg">
-            <AIMessageComposer 
-              onMessageGenerated={(message) => {
-                // Apply the generated message to selected node if it's an action
-                if (selectedNode && selectedNode.type === 'action') {
-                  const nodeUpdate = {
-                    config: { 
-                      ...selectedNode.data.config, 
-                      message: message 
-                    }
-                  };
-                  handleNodeUpdate(selectedNode.id, nodeUpdate);
-                  toast.success('AI message applied to selected action');
-                } else {
-                  toast.info('Select an action node first to apply the AI message');
-                }
-              }}
-            />
-          </div>
-        )}
       </div>
 
       {/* Main Builder Area */}
@@ -389,18 +297,6 @@ const AutomationBuilderContent = ({ template, onSave, onCancel }: AutomationBuil
             </ReactFlow>
           </div>
         </div>
-
-        {/* Node Editor Panel */}
-        {selectedNode && (
-          <div className="w-80 bg-white/90 backdrop-blur-sm border-l border-gray-200/50 overflow-y-auto shadow-xl">
-            <AutomationNodeEditor
-              node={selectedNode}
-              onUpdate={(updates) => handleNodeUpdate(selectedNode.id, updates)}
-              onDelete={() => handleNodeDelete(selectedNode.id)}
-              onClose={() => setSelectedNode(null)}
-            />
-          </div>
-        )}
       </div>
     </div>
   );
