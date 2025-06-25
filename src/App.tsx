@@ -16,7 +16,7 @@ import SchedulePage from "./pages/SchedulePage";
 import FinancePage from "./pages/FinancePage";
 import ConnectPage from "./pages/ConnectPage";
 import CommunicationsPage from "./pages/CommunicationsPage";
-import AICenterPage from "./pages/AICenterPage";
+import AiCenterPage from "./pages/AiCenterPage";
 import AutomationsPage from "./pages/AutomationsPage";
 import AutomationsVisualBuilderPage from "./pages/AutomationsVisualBuilderPage";
 import AutomationsFormBuilderPage from "./pages/AutomationsFormBuilderPage";
@@ -86,7 +86,7 @@ const App = () => (
             <Route path="/ai-center" element={
               <ProtectedRoute>
                 <PageLayout>
-                  <AICenterPage />
+                  <AiCenterPage />
                 </PageLayout>
               </ProtectedRoute>
             } />
