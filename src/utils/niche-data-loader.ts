@@ -2,7 +2,65 @@
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { applianceRepairProducts } from "@/data/appliance-repair-products";
+import { getProductsForNiche } from "@/data/niche-products";
 import { Profile } from "@/types/profile";
+
+// Function to load products for a specific niche
+export const loadNicheProducts = async (businessNiche: string, userId: string) => {
+  try {
+    // Get products for the niche
+    const nicheProducts = getProductsForNiche(businessNiche);
+    
+    if (nicheProducts.length === 0) {
+      console.log(`No products found for niche: ${businessNiche}`);
+      return true;
+    }
+
+    // Get existing products to avoid duplicates
+    const { data: existingProducts, error: fetchError } = await supabase
+      .from('products')
+      .select('name, user_id')
+      .eq('user_id', userId);
+
+    if (fetchError) throw fetchError;
+
+    // Filter out products that already exist
+    const existingProductNames = new Set(existingProducts?.map(p => p.name) || []);
+    const newProducts = nicheProducts.filter(p => !existingProductNames.has(p.name));
+
+    if (newProducts.length === 0) {
+      console.log('All products already exist for this niche');
+      return true;
+    }
+
+    // Add user_id to products
+    const productsWithUserId = newProducts.map(product => ({
+      ...product,
+      user_id: userId,
+      created_by: userId
+    }));
+
+    // Insert products in batches to avoid errors
+    const batchSize = 20;
+    for (let i = 0; i < productsWithUserId.length; i += batchSize) {
+      const batch = productsWithUserId.slice(i, i + batchSize);
+      const { error: insertError } = await supabase
+        .from('products')
+        .insert(batch);
+
+      if (insertError) {
+        console.error(`Error inserting products batch ${i / batchSize + 1}:`, insertError);
+        throw insertError;
+      }
+    }
+
+    console.log(`Successfully loaded ${newProducts.length} products for ${businessNiche}`);
+    return true;
+  } catch (error) {
+    console.error('Error loading niche products:', error);
+    return false;
+  }
+};
 
 // Tags for different niches
 const nicheTags = {
@@ -315,10 +373,35 @@ export const switchNiche = async (businessNiche: string, userId: string) => {
       .eq('id', userId);
 
     if (updateError) throw updateError;
+
+    // Update company settings if exists
+    const { error: settingsError } = await supabase
+      .from('company_settings')
+      .update({
+        business_niche: businessNiche,
+        updated_at: new Date().toISOString()
+      })
+      .eq('user_id', userId);
+
+    // Load products for the new niche
+    const productsLoaded = await loadNicheProducts(businessNiche, userId);
     
-    // Note: In a real application, you might want to ask the user if they want to
-    // keep their existing data or replace it when switching niches.
-    // For now, we'll just load the new niche data without clearing existing data.
+    if (!productsLoaded) {
+      console.warn('Failed to load products for the new niche');
+    }
+    
+    // Call the enhanced niche data initialization function
+    const { error: rpcError } = await supabase.rpc(
+      'initialize_user_data_with_enhanced_niche_data',
+      {
+        p_user_id: userId,
+        p_business_niche: businessNiche
+      }
+    );
+
+    if (rpcError) {
+      console.error('Error initializing niche data:', rpcError);
+    }
     
     toast.dismiss(loadingToast);
     toast.success("Successfully switched business niche!");

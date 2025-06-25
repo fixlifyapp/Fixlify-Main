@@ -1,8 +1,7 @@
-
-import { AutomationsPage as NewAutomationsPage } from "@/components/automations/AutomationsPage";
+import FixlifyAutomationsPage from "@/pages/FixlifyAutomationsPage";
 
 const AutomationsPage = () => {
-  return <NewAutomationsPage />;
+  return <FixlifyAutomationsPage />;
 };
 
 export default AutomationsPage;

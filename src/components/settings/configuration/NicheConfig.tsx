@@ -211,6 +211,16 @@ export function NicheConfig({ userId }: NicheConfigProps) {
 
       console.log('Enhanced niche data loaded successfully:', nicheDataResult);
 
+      // Load products for the new niche
+      const { loadNicheProducts } = await import('@/utils/niche-data-loader');
+      const productsLoaded = await loadNicheProducts(dbNicheValue, userId);
+      
+      if (productsLoaded) {
+        console.log('Products loaded successfully for niche:', dbNicheValue);
+      } else {
+        console.warn('Failed to load products for niche:', dbNicheValue);
+      }
+
       console.log('Initialization completed successfully', initData);
 
       setCurrentNiche(selectedNiche);

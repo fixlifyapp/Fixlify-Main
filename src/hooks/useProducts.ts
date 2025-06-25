@@ -39,7 +39,7 @@ export const useProducts = (category?: string) => {
         
         // Filter by user_id to ensure data isolation
         if (user?.id) {
-          query = query.or(`user_id.eq.${user.id},created_by.eq.${user.id}`);
+          query = query.eq('user_id', user.id);
         }
           
         if (category) {

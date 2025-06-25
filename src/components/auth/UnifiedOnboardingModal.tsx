@@ -205,13 +205,32 @@ export const UnifiedOnboardingModal = ({
       }
 
       // Step 6: Load client-side enhanced niche data
+      console.log('Initializing niche data for business type:', formData.businessType);
       try {
-        console.log("Loading client-side enhanced niche data...");
         const { initializeNicheData } = await import('@/utils/enhanced-niche-data-loader');
-        await initializeNicheData(formData.businessType);
-        console.log("Client-side niche data loaded successfully");
-      } catch (error) {
-        console.error('Error loading client-side niche data:', error);
+        const nicheResult = await initializeNicheData(formData.businessType);
+        
+        console.log('Niche data initialization result:', nicheResult);
+        
+        if (!nicheResult.success) {
+          console.error('Failed to initialize niche data:', nicheResult.error);
+          toast.error(`Failed to initialize business data: ${nicheResult.error || 'Unknown error'}`);
+        } else {
+          console.log('Niche data initialized successfully:', nicheResult.message);
+        }
+        
+        // Load products for the selected niche
+        const { loadNicheProducts } = await import('@/utils/niche-data-loader');
+        const productsLoaded = await loadNicheProducts(formData.businessType, userId);
+        
+        if (productsLoaded) {
+          console.log('Products loaded successfully for niche:', formData.businessType);
+        } else {
+          console.warn('Failed to load products for niche:', formData.businessType);
+        }
+      } catch (nicheError) {
+        console.error('Error initializing niche data:', nicheError);
+        toast.error('Failed to initialize business-specific data');
       }
 
       // Step 7: Verify data was created successfully

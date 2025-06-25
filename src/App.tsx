@@ -1,5 +1,5 @@
-import React from 'react';
-import { BrowserRouter, Routes, Route, Link } from 'react-router-dom';
+import React, { lazy } from 'react';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "@/components/ui/sonner";
@@ -39,6 +39,8 @@ const ProtectedRouteWithProviders = ({ children }: { children: React.ReactNode }
   );
 };
 
+const AdvancedDashboard = lazy(() => import("@/pages/AdvancedDashboard"));
+
 function App() {
   console.log('🚀 Fixlify App fully loaded');
   
@@ -47,37 +49,10 @@ function App() {
       <Toaster />
       <BrowserRouter>
         <Routes>
-          {/* Public routes */}
-          <Route path="/" element={
-            <AuthProvider>
-              <div style={{ padding: '20px', textAlign: 'center' }}>
-                <h1>🏠 Welcome to Fixlify</h1>
-                <p>Your comprehensive business management platform</p>
-                <div style={{ marginTop: '20px', display: 'flex', gap: '10px', justifyContent: 'center' }}>
-                  <Link to="/auth" style={{ 
-                    padding: '10px 20px', 
-                    background: '#8b5cf6', 
-                    color: 'white', 
-                    textDecoration: 'none',
-                    borderRadius: '5px'
-                  }}>
-                    Sign In
-                  </Link>
-                  <Link to="/dashboard" style={{ 
-                    padding: '10px 20px', 
-                    background: '#10b981', 
-                    color: 'white', 
-                    textDecoration: 'none',
-                    borderRadius: '5px'
-                  }}>
-                    Go to Dashboard
-                  </Link>
-                </div>
-              </div>
-            </AuthProvider>
-          } />
+          {/* Default route redirects to auth */}
+          <Route path="/" element={<Navigate to="/auth" replace />} />
           
-          {/* Auth route */}
+          {/* Auth routes */}
           <Route path="/auth" element={
             <AuthProvider>
               <TooltipProvider>
@@ -85,6 +60,9 @@ function App() {
               </TooltipProvider>
             </AuthProvider>
           } />
+          
+          {/* Legacy login route redirects to auth */}
+          <Route path="/login" element={<Navigate to="/auth" replace />} />
           
           {/* Protected routes */}
           <Route path="/dashboard" element={
@@ -174,6 +152,8 @@ function App() {
               </ProtectedRouteWithProviders>
             </AuthProvider>
           } />
+          
+
           
           <Route path="/analytics" element={
             <AuthProvider>
@@ -320,12 +300,29 @@ function App() {
             </AuthProvider>
           } />
           
+          <Route path="/dashboard/advanced" element={
+            <AuthProvider>
+              <ProtectedRouteWithProviders>
+                <React.Suspense fallback={<div>Loading...</div>}>
+                  <AdvancedDashboard />
+                </React.Suspense>
+              </ProtectedRouteWithProviders>
+            </AuthProvider>
+          } />
+          
           {/* 404 route */}
           <Route path="*" element={
-            <div style={{ padding: '20px', textAlign: 'center' }}>
-              <h1>404 - Page Not Found</h1>
-              <Link to="/">Go Home</Link>
-            </div>
+            <AuthProvider>
+              <TooltipProvider>
+                <div className="flex min-h-screen items-center justify-center p-4 bg-gradient-to-br from-gray-50 to-gray-100">
+                  <div className="text-center">
+                    <h1 className="text-2xl font-bold text-gray-900 mb-4">404 - Page Not Found</h1>
+                    <p className="text-gray-600 mb-6">The page you're looking for doesn't exist.</p>
+                    <Navigate to="/dashboard" replace />
+                  </div>
+                </div>
+              </TooltipProvider>
+            </AuthProvider>
           } />
         </Routes>
       </BrowserRouter>

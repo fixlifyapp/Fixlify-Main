@@ -1,7 +1,6 @@
-
-import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.24.0'
-import { createHmac } from 'https://deno.land/std@0.177.0/node/crypto.ts'
+import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { createHash } from 'https://deno.land/std@0.168.0/crypto/mod.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -9,153 +8,194 @@ const corsHeaders = {
 }
 
 serve(async (req) => {
+  // Handle CORS
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders })
+    return new Response('ok', { headers: corsHeaders })
   }
 
   try {
-    const supabaseClient = createClient(
+    const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+      {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false
+        }
+      }
     )
 
-    const mailgunApiKey = Deno.env.get('MAILGUN_API_KEY')
-    if (!mailgunApiKey) {
-      throw new Error('Mailgun API key not configured')
-    }
-
+    // Parse form data (Mailgun sends webhooks as form data)
     const formData = await req.formData()
-    const eventData = JSON.parse(formData.get('event-data') as string)
-    
-    // Verify webhook signature
+    const signature = formData.get('signature') as string
     const timestamp = formData.get('timestamp') as string
     const token = formData.get('token') as string
-    const signature = formData.get('signature') as string
     
-    const expectedSignature = createHmac('sha256', mailgunApiKey)
-      .update(timestamp + token)
-      .digest('hex')
-    
-    if (signature !== expectedSignature) {
-      console.error('Invalid webhook signature')
-      return new Response('Unauthorized', { status: 401 })
+    // Verify webhook signature
+    const isValid = await verifyWebhookSignature(signature, timestamp, token)
+    if (!isValid) {
+      return new Response(
+        JSON.stringify({ error: 'Invalid signature' }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 401 
+        }
+      )
     }
 
-    console.log('Mailgun webhook event:', eventData['event-type'])
-
-    switch (eventData['event-type']) {
+    // Parse event data
+    const event = formData.get('event') as string
+    const messageId = formData.get('Message-Id') as string
+    const recipient = formData.get('recipient') as string
+    
+    // Handle different event types
+    switch (event) {
       case 'delivered':
+        await updateEmailStatus(supabase, messageId, 'delivered', {
+          deliveredAt: timestamp
+        })
+        break
+        
       case 'opened':
+        await trackEmailEvent(supabase, messageId, 'opened', {
+          recipient,
+          timestamp,
+          ip: formData.get('ip'),
+          userAgent: formData.get('user-agent'),
+          deviceType: formData.get('device-type')
+        })
+        break
+        
       case 'clicked':
+        await trackEmailEvent(supabase, messageId, 'clicked', {
+          recipient,
+          timestamp,
+          url: formData.get('url'),
+          ip: formData.get('ip'),
+          userAgent: formData.get('user-agent')
+        })
+        break
+        
       case 'bounced':
       case 'failed':
-        await handleDeliveryEvent(supabaseClient, eventData)
+        await updateEmailStatus(supabase, messageId, 'failed', {
+          reason: formData.get('reason'),
+          code: formData.get('code'),
+          error: formData.get('error')
+        })
         break
-      
-      case 'stored':
-        await handleInboundEmail(supabaseClient, eventData)
+        
+      case 'unsubscribed':
+        await handleUnsubscribe(supabase, recipient)
+        break
+        
+      case 'complained':
+        await handleComplaint(supabase, recipient)
         break
     }
 
-    return new Response('OK', { headers: corsHeaders })
+    // Log raw webhook for debugging
+    const webhookData = {}
+    formData.forEach((value, key) => {
+      webhookData[key] = value
+    })
+    
+    await supabase.from('webhook_logs').insert({
+      provider: 'mailgun',
+      event_type: event,
+      payload: webhookData,
+      created_at: new Date().toISOString()
+    })
 
+    return new Response(
+      JSON.stringify({ received: true }),
+      { 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 200 
+      }
+    )
   } catch (error) {
-    console.error('Error in mailgun-webhook:', error)
-    return new Response('Error', { status: 500, headers: corsHeaders })
+    console.error('Error processing Mailgun webhook:', error)
+    return new Response(
+      JSON.stringify({ error: error.message }),
+      { 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 400 
+      }
+    )
   }
 })
 
-async function handleDeliveryEvent(supabaseClient: any, eventData: any) {
-  const messageId = eventData.message?.headers?.['message-id']
-  if (!messageId) return
-
-  const updateData: any = {
-    delivery_status: eventData['event-type']
-  }
-
-  if (eventData['event-type'] === 'opened') {
-    updateData.opened_at = new Date(eventData.timestamp * 1000).toISOString()
-  }
-
-  if (eventData['event-type'] === 'clicked') {
-    updateData.clicked_at = new Date(eventData.timestamp * 1000).toISOString()
-  }
-
-  await supabaseClient
-    .from('email_messages')
-    .update(updateData)
-    .eq('mailgun_message_id', messageId)
+async function verifyWebhookSignature(signature: string, timestamp: string, token: string): Promise<boolean> {
+  const apiKey = Deno.env.get('MAILGUN_API_KEY') ?? ''
+  const value = timestamp + token
+  
+  const hash = await createHash('sha256')
+    .update(value + apiKey)
+    .digest('hex')
+  
+  return hash === signature
 }
 
-async function handleInboundEmail(supabaseClient: any, eventData: any) {
-  const message = eventData.message
-  if (!message) return
-
-  // Extract domain from recipient to find company
-  const recipientDomain = message.headers.to.split('@')[1]
-  
-  const { data: companySettings } = await supabaseClient
-    .from('company_settings')
-    .select('*, id')
-    .eq('mailgun_domain', recipientDomain)
-    .single()
-
-  if (!companySettings) {
-    console.log('No company found for domain:', recipientDomain)
-    return
+async function updateEmailStatus(supabase: any, messageId: string, status: string, additionalData?: any) {
+  const updateData = {
+    status,
+    updated_at: new Date().toISOString(),
+    ...(additionalData && { metadata: additionalData })
   }
-
-  // Find or create conversation
-  const subject = message.headers.subject || 'No Subject'
-  const threadId = message.headers['in-reply-to'] || message.headers['message-id']
   
-  let conversationId
-  
-  // Try to find existing conversation by thread ID
-  const { data: existingConversation } = await supabaseClient
-    .from('email_conversations')
-    .select('id')
-    .eq('company_id', companySettings.id)
-    .eq('thread_id', threadId)
-    .single()
-
-  if (existingConversation) {
-    conversationId = existingConversation.id
-  } else {
-    // Create new conversation
-    const { data: newConversation, error } = await supabaseClient
-      .from('email_conversations')
-      .insert({
-        company_id: companySettings.id,
-        subject,
-        thread_id: threadId,
-        status: 'active'
-      })
-      .select('id')
-      .single()
-
-    if (error) {
-      console.error('Error creating conversation:', error)
-      return
-    }
+  const { error } = await supabase
+    .from('communication_logs')
+    .update(updateData)
+    .eq('external_id', messageId)
+    .eq('type', 'email')
     
-    conversationId = newConversation.id
+  if (error) {
+    console.error('Error updating email status:', error)
   }
+}
 
-  // Store the inbound email
-  await supabaseClient
-    .from('email_messages')
+async function trackEmailEvent(supabase: any, messageId: string, eventType: string, eventData: any) {
+  const { error } = await supabase
+    .from('email_events')
     .insert({
-      conversation_id: conversationId,
-      mailgun_message_id: message.headers['message-id'],
-      direction: 'inbound',
-      sender_email: message.headers.from,
-      recipient_email: message.headers.to,
-      subject,
-      body_html: message['body-html'] || '',
-      body_text: message['body-plain'] || '',
-      delivery_status: 'received'
+      message_id: messageId,
+      event_type: eventType,
+      event_data: eventData,
+      timestamp: new Date(parseInt(eventData.timestamp) * 1000).toISOString(),
+      created_at: new Date().toISOString()
     })
+    
+  if (error) {
+    console.error('Error tracking email event:', error)
+  }
+}
 
-  console.log('Stored inbound email for conversation:', conversationId)
+async function handleUnsubscribe(supabase: any, email: string) {
+  // Update customer preferences
+  const { error } = await supabase
+    .from('customer_preferences')
+    .upsert({
+      email,
+      email_opt_out: true,
+      email_opt_out_date: new Date().toISOString()
+    })
+    
+  if (error) {
+    console.error('Error handling unsubscribe:', error)
+  }
+}
+
+async function handleComplaint(supabase: any, email: string) {
+  // Mark email as complained and potentially block future sends
+  const { error } = await supabase
+    .from('email_complaints')
+    .insert({
+      email,
+      complained_at: new Date().toISOString()
+    })
+    
+  if (error) {
+    console.error('Error handling complaint:', error)
+  }
 }

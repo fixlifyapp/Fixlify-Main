@@ -30,17 +30,6 @@ export const PageLayout = ({ children }: PageLayoutProps) => {
         <SidebarInset className="flex-1 flex flex-col overflow-hidden">
           <Header />
           <main className={`flex-1 overflow-y-auto ${isMobile ? 'p-3' : 'p-6'}`}>
-            <div className="flex items-center gap-2 mb-4">
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={handleBack}
-                className="gap-2"
-              >
-                <ArrowLeft size={16} />
-                Back
-              </Button>
-            </div>
             {children}
           </main>
         </SidebarInset>
