@@ -204,7 +204,7 @@ export const UnifiedOnboardingModal = ({
         // Don't throw - continue
       }
 
-      // Step 6: Load client-side enhanced niche data
+      // Step 6: Try to load client-side enhanced niche data (but don't fail if it doesn't work)
       console.log('Initializing niche data for business type:', formData.businessType);
       try {
         const { initializeNicheData } = await import('@/utils/enhanced-niche-data-loader');
@@ -213,27 +213,29 @@ export const UnifiedOnboardingModal = ({
         console.log('Niche data initialization result:', nicheResult);
         
         if (!nicheResult.success) {
-          console.error('Failed to initialize niche data:', nicheResult.error);
-          toast.error(`Failed to initialize business data: ${nicheResult.error || 'Unknown error'}`);
+          console.warn('Failed to initialize niche data:', nicheResult.error);
+          // Don't show error toast, just log it
         } else {
           console.log('Niche data initialized successfully:', nicheResult.message);
         }
-        
-        // Load products for the selected niche
-        const { loadNicheProducts } = await import('@/utils/niche-data-loader');
-        const productsLoaded = await loadNicheProducts(formData.businessType, userId);
-        
-        if (productsLoaded) {
-          console.log('Products loaded successfully for niche:', formData.businessType);
-        } else {
-          console.warn('Failed to load products for niche:', formData.businessType);
-        }
       } catch (nicheError) {
-        console.error('Error initializing niche data:', nicheError);
-        toast.error('Failed to initialize business-specific data');
+        console.warn('Error initializing niche data:', nicheError);
+        // Don't show error toast, continue
       }
 
-      // Step 7: Verify data was created successfully
+      // Step 7: Ensure products are loaded using server function
+      console.log("Ensuring products are loaded via server function...");
+      const { data: productsResult, error: productsError } = await supabase.rpc(
+        'load_my_niche_products'
+      );
+
+      if (productsError) {
+        console.error('Failed to load products via RPC:', productsError);
+      } else {
+        console.log('Products loaded via RPC:', productsResult);
+      }
+
+      // Step 8: Verify data was created successfully
       console.log("Verifying initialization...");
       const [products, tags] = await Promise.all([
         supabase.from('products').select('count').eq('user_id', userId),

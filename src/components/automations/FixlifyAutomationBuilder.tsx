@@ -441,7 +441,7 @@ export const FixlifyAutomationBuilder = ({ initialData, onClose, onSuccess }: Au
                         className="min-h-[100px]"
                       />
                       <p className="text-xs text-gray-500">
-                        Available variables: {{'{client_name}'}}, {{'{job_id}'}}, {{'{amount}'}}
+                        Available variables: {'{client_name}'}, {'{job_id}'}, {'{amount}'}
                       </p>
                     </div>
                   )}

@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { PlusCircle, Pencil, Search, X, Trash } from "lucide-react";
+import { PlusCircle, Pencil, Search, X, Trash, Download } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
@@ -12,6 +12,10 @@ import { ProductEditDialog } from "./dialogs/ProductEditDialog";
 import { DeleteConfirmDialog } from "./dialogs/DeleteConfirmDialog";
 import { useProducts, Product } from "@/hooks/useProducts";
 import { Skeleton } from "@/components/ui/skeleton";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import { useAuth } from "@/hooks/use-auth";
+import { LoadProductsButton } from "@/components/products/LoadProductsButton";
 
 interface JobProductsProps {
   jobId: string;
@@ -26,6 +30,9 @@ export const JobProducts = ({ jobId, onDeleteProduct }: JobProductsProps) => {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
   const [productToDelete, setProductToDelete] = useState<string | null>(null);
+  const [isLoadingProducts, setIsLoadingProducts] = useState(false);
+  
+  const { user } = useAuth();
   
   const { 
     products, 
@@ -34,7 +41,8 @@ export const JobProducts = ({ jobId, onDeleteProduct }: JobProductsProps) => {
     isDeleting,
     createProduct, 
     updateProduct, 
-    deleteProduct 
+    deleteProduct,
+    refreshProducts 
   } = useProducts();
   
   const filteredProducts = products.filter(product => {
@@ -94,6 +102,34 @@ export const JobProducts = ({ jobId, onDeleteProduct }: JobProductsProps) => {
     }
   };
 
+  const loadNicheProducts = async () => {
+    if (!user) {
+      toast.error("Please login to load products");
+      return;
+    }
+
+    setIsLoadingProducts(true);
+    try {
+      const { data, error } = await supabase.rpc('load_my_niche_products');
+      
+      if (error) throw error;
+      
+      if (data.success) {
+        toast.success(`Successfully loaded ${data.inserted_count || 0} products for ${data.business_niche}`);
+        refreshProducts();
+      } else if (data.message === 'Products already exist') {
+        toast.info(`You already have ${data.product_count} products for ${data.business_niche}`);
+      } else {
+        toast.error("Failed to load products");
+      }
+    } catch (error: any) {
+      console.error('Error loading niche products:', error);
+      toast.error(`Failed to load products: ${error.message}`);
+    } finally {
+      setIsLoadingProducts(false);
+    }
+  };
+
   const getMarginPercentage = (product: Product) => {
     const margin = product.price - (product.ourPrice || 0);
     return margin > 0 ? ((margin / product.price) * 100).toFixed(0) : "0";
@@ -110,10 +146,23 @@ export const JobProducts = ({ jobId, onDeleteProduct }: JobProductsProps) => {
       <CardContent className="p-6">
         <div className="flex justify-between items-center mb-6">
           <h3 className="text-lg font-medium">Product Catalog</h3>
-          <Button onClick={handleCreateProduct} className="gap-2">
-            <PlusCircle size={16} />
-            New Product
-          </Button>
+          <div className="flex gap-2">
+            {products.length === 0 && !isLoading && (
+              <Button 
+                onClick={loadNicheProducts} 
+                className="gap-2"
+                variant="outline"
+                disabled={isLoadingProducts}
+              >
+                <Download size={16} />
+                {isLoadingProducts ? "Loading..." : "Load Products for My Niche"}
+              </Button>
+            )}
+            <Button onClick={handleCreateProduct} className="gap-2">
+              <PlusCircle size={16} />
+              New Product
+            </Button>
+          </div>
         </div>
 
         <div className="space-y-4 mb-6">
@@ -227,8 +276,14 @@ export const JobProducts = ({ jobId, onDeleteProduct }: JobProductsProps) => {
             </TableBody>
           </Table>
         ) : (
-          <div className="text-center py-8 text-muted-foreground">
-            <p>No products found. Try adjusting your search or filters.</p>
+          <div className="space-y-4">
+            <div className="text-center py-8 text-muted-foreground">
+              <p>No products found. Try adjusting your search or filters.</p>
+            </div>
+            {/* Show Load Products button if there are no products at all */}
+            {products.length === 0 && !isLoading && (
+              <LoadProductsButton onProductsLoaded={refreshProducts} />
+            )}
           </div>
         )}
         

@@ -200,25 +200,35 @@ export function NicheConfig({ userId }: NicheConfigProps) {
 
       console.log('Database initialization completed:', initData);
 
-      // Now use the enhanced niche data loader to populate products, tags, and job types
-      const { initializeNicheData } = await import('@/utils/enhanced-niche-data-loader');
-      const nicheDataResult = await initializeNicheData(dbNicheValue);
-      
-      if (!nicheDataResult.success) {
-        console.error('Enhanced niche data loading failed:', nicheDataResult.error);
-        throw new Error(nicheDataResult.error || 'Failed to load enhanced niche data');
+      // Now use the server function to load products
+      console.log('Loading products using server function...');
+      const { data: productsResult, error: productsError } = await supabase.rpc(
+        'load_my_niche_products'
+      );
+
+      if (productsError) {
+        console.error('Failed to load products via RPC:', productsError);
+      } else {
+        console.log('Products loaded via RPC:', productsResult);
+        if (productsResult?.success) {
+          console.log(`Successfully loaded ${productsResult.inserted_count || productsResult.product_count} products`);
+        }
       }
 
-      console.log('Enhanced niche data loaded successfully:', nicheDataResult);
-
-      // Load products for the new niche
-      const { loadNicheProducts } = await import('@/utils/niche-data-loader');
-      const productsLoaded = await loadNicheProducts(dbNicheValue, userId);
-      
-      if (productsLoaded) {
-        console.log('Products loaded successfully for niche:', dbNicheValue);
-      } else {
-        console.warn('Failed to load products for niche:', dbNicheValue);
+      // Try to load enhanced niche data but don't fail if it doesn't work
+      try {
+        const { initializeNicheData } = await import('@/utils/enhanced-niche-data-loader');
+        const nicheDataResult = await initializeNicheData(dbNicheValue);
+        
+        if (!nicheDataResult.success) {
+          console.warn('Enhanced niche data loading failed:', nicheDataResult.error);
+          // Don't throw error, continue
+        } else {
+          console.log('Enhanced niche data loaded successfully:', nicheDataResult);
+        }
+      } catch (nicheError) {
+        console.warn('Error loading enhanced niche data:', nicheError);
+        // Don't throw error, continue
       }
 
       console.log('Initialization completed successfully', initData);

@@ -158,6 +158,56 @@ const nicheTags = {
     { name: "Preventive", category: "Type", color: "text-indigo-600 border-indigo-300" },
     { name: "Commercial", category: "Type", color: "text-cyan-600 border-cyan-300" },
     { name: "Residential", category: "Type", color: "text-pink-600 border-pink-300" }
+  ],
+  
+  landscaping: [
+    { name: "Lawn Care", category: "Service", color: "text-green-600 border-green-300" },
+    { name: "Tree Service", category: "Service", color: "text-brown-600 border-brown-300" },
+    { name: "Irrigation", category: "Service", color: "text-blue-600 border-blue-300" },
+    { name: "Hardscaping", category: "Service", color: "text-gray-600 border-gray-300" },
+    { name: "Design", category: "Service", color: "text-purple-600 border-purple-300" },
+    { name: "Seasonal", category: "Type", color: "text-orange-600 border-orange-300" },
+    { name: "Commercial", category: "Type", color: "text-indigo-600 border-indigo-300" },
+    { name: "Residential", category: "Type", color: "text-teal-600 border-teal-300" },
+    { name: "Maintenance", category: "Service", color: "text-yellow-600 border-yellow-300" },
+    { name: "Installation", category: "Service", color: "text-red-600 border-red-300" },
+    { name: "Organic", category: "Type", color: "text-green-700 border-green-400" },
+    { name: "Mulching", category: "Service", color: "text-amber-600 border-amber-300" },
+    { name: "Fertilization", category: "Service", color: "text-lime-600 border-lime-300" }
+  ],
+  
+  painting: [
+    { name: "Interior", category: "Location", color: "text-blue-600 border-blue-300" },
+    { name: "Exterior", category: "Location", color: "text-green-600 border-green-300" },
+    { name: "Commercial", category: "Type", color: "text-purple-600 border-purple-300" },
+    { name: "Residential", category: "Type", color: "text-teal-600 border-teal-300" },
+    { name: "Cabinet", category: "Specialty", color: "text-brown-600 border-brown-300" },
+    { name: "Wallpaper", category: "Service", color: "text-pink-600 border-pink-300" },
+    { name: "Staining", category: "Service", color: "text-amber-600 border-amber-300" },
+    { name: "Pressure Washing", category: "Service", color: "text-cyan-600 border-cyan-300" },
+    { name: "Drywall", category: "Service", color: "text-gray-600 border-gray-300" },
+    { name: "Touch-up", category: "Service", color: "text-yellow-600 border-yellow-300" },
+    { name: "Spray Paint", category: "Method", color: "text-indigo-600 border-indigo-300" },
+    { name: "Eco-Friendly", category: "Type", color: "text-green-700 border-green-400" },
+    { name: "Lead Safe", category: "Certification", color: "text-red-600 border-red-300" },
+    { name: "Decorative", category: "Specialty", color: "text-purple-700 border-purple-400" }
+  ],
+  
+  roofing: [
+    { name: "Asphalt Shingle", category: "Material", color: "text-gray-600 border-gray-300" },
+    { name: "Metal Roof", category: "Material", color: "text-blue-600 border-blue-300" },
+    { name: "Tile Roof", category: "Material", color: "text-orange-600 border-orange-300" },
+    { name: "Flat Roof", category: "Type", color: "text-teal-600 border-teal-300" },
+    { name: "Emergency", category: "Priority", color: "text-red-600 border-red-300" },
+    { name: "Repair", category: "Service", color: "text-yellow-600 border-yellow-300" },
+    { name: "Replacement", category: "Service", color: "text-green-600 border-green-300" },
+    { name: "Inspection", category: "Service", color: "text-purple-600 border-purple-300" },
+    { name: "Commercial", category: "Type", color: "text-indigo-600 border-indigo-300" },
+    { name: "Residential", category: "Type", color: "text-pink-600 border-pink-300" },
+    { name: "Storm Damage", category: "Service", color: "text-red-700 border-red-400" },
+    { name: "Gutter Work", category: "Service", color: "text-cyan-600 border-cyan-300" },
+    { name: "Warranty", category: "Service", color: "text-green-700 border-green-400" },
+    { name: "Insurance Claim", category: "Service", color: "text-amber-600 border-amber-300" }
   ]
 };
 
@@ -260,6 +310,47 @@ const nicheJobTypes = {
     { name: "Rooter Service", description: "Remove tree roots from drains" },
     { name: "Emergency Service", description: "24/7 emergency drain clearing" },
     { name: "Preventive Service", description: "Regular drain maintenance" }
+  ],
+  
+  landscaping: [
+    { name: "Lawn Maintenance", description: "Regular lawn care service", is_default: true },
+    { name: "Landscape Design", description: "Design and planning services" },
+    { name: "Tree Service", description: "Tree trimming and removal" },
+    { name: "Hardscaping", description: "Patios, walkways, and retaining walls" },
+    { name: "Irrigation Install", description: "Sprinkler system installation" },
+    { name: "Seasonal Cleanup", description: "Spring and fall cleanup" },
+    { name: "Mulching", description: "Mulch delivery and installation" },
+    { name: "Sod Installation", description: "New lawn installation" },
+    { name: "Garden Design", description: "Garden planning and planting" },
+    { name: "Fertilization", description: "Lawn and plant fertilization" },
+    { name: "Pest Control", description: "Lawn and garden pest management" },
+    { name: "Snow Removal", description: "Winter snow removal services" }
+  ],
+  
+  painting: [
+    { name: "Interior Painting", description: "Paint interior walls and ceilings", is_default: true },
+    { name: "Exterior Painting", description: "Paint exterior surfaces" },
+    { name: "Cabinet Refinishing", description: "Refinish or paint cabinets" },
+    { name: "Wallpaper Install", description: "Install or remove wallpaper" },
+    { name: "Drywall Repair", description: "Patch and repair drywall" },
+    { name: "Staining", description: "Wood staining services" },
+    { name: "Pressure Washing", description: "Power wash surfaces" },
+    { name: "Commercial Painting", description: "Large commercial projects" },
+    { name: "Touch-up Work", description: "Small paint touch-ups" },
+    { name: "Texture Application", description: "Apply wall or ceiling texture" },
+    { name: "Color Consultation", description: "Color selection assistance" },
+    { name: "Deck Staining", description: "Stain and seal decks" }
+  ],
+  
+  roofing: [
+    { name: "Roof Inspection", description: "Comprehensive roof assessment", is_default: true },
+    { name: "Roof Repair", description: "Fix leaks and damage" },
+    { name: "Roof Replacement", description: "Complete roof replacement" },
+    { name: "Emergency Repair", description: "24/7 emergency roof repair" },
+    { name: "Gutter Service", description: "Gutter installation and repair" },
+    { name: "Storm Damage", description: "Storm damage assessment and repair" },
+    { name: "Maintenance", description: "Preventive roof maintenance" },
+    { name: "Insurance Claims", description: "Help with insurance claims" }
   ]
 };
 
