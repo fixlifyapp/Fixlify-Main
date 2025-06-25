@@ -1,12 +1,7 @@
-
-import React from 'react';
+import FixlifyAutomationsPage from "@/pages/FixlifyAutomationsPage";
 
 const AutomationsPage = () => {
-  return (
-    <div className="p-6">
-      <h1 className="text-2xl font-bold">Automations</h1>
-    </div>
-  );
+  return <FixlifyAutomationsPage />;
 };
 
 export default AutomationsPage;

@@ -1,231 +1,372 @@
 
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
+import { ModernCard, ModernCardContent, ModernCardHeader, ModernCardTitle } from '@/components/ui/modern-card';
+import { GradientButton } from '@/components/ui/gradient-button';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Separator } from '@/components/ui/separator';
+import { Input } from '@/components/ui/input';
+import { useAI } from '@/hooks/use-ai';
 import { 
-  Bot, 
   Sparkles, 
   Copy, 
   RefreshCw, 
+  Variable, 
+  Wand2, 
   MessageSquare,
-  Zap,
   User,
   Calendar,
   DollarSign,
-  MapPin
+  Phone,
+  MapPin,
+  Clock
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { supabase } from '@/integrations/supabase/client';
 
 interface AIMessageComposerProps {
-  onMessageGenerated: (message: string) => void;
+  value: string;
+  onChange: (value: string) => void;
+  messageType: 'sms' | 'email';
+  contextData?: any;
 }
 
-export const AIMessageComposer = ({ onMessageGenerated }: AIMessageComposerProps) => {
-  const [prompt, setPrompt] = useState('');
-  const [generatedMessage, setGeneratedMessage] = useState('');
+export const AIMessageComposer = ({ 
+  value, 
+  onChange, 
+  messageType, 
+  contextData = {} 
+}: AIMessageComposerProps) => {
   const [isGenerating, setIsGenerating] = useState(false);
+  const [aiPrompt, setAiPrompt] = useState('');
+  const [suggestions, setSuggestions] = useState<string[]>([]);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  
+  const { generateText } = useAI({
+    systemContext: `You are an expert at writing professional ${messageType === 'sms' ? 'SMS messages' : 'email content'} for field service businesses. Keep messages professional, helpful, and action-oriented. ${messageType === 'sms' ? 'Keep SMS messages under 160 characters when possible.' : 'For emails, include proper formatting and structure.'}`
+  });
 
   const availableVariables = [
-    { name: 'client_name', icon: User, description: 'Client full name' },
-    { name: 'client_phone', icon: MessageSquare, description: 'Client phone number' },
-    { name: 'client_email', icon: MessageSquare, description: 'Client email address' },
-    { name: 'job_title', icon: Zap, description: 'Job or service title' },
-    { name: 'scheduled_date', icon: Calendar, description: 'Appointment date' },
-    { name: 'scheduled_time', icon: Calendar, description: 'Appointment time' },
-    { name: 'total_amount', icon: DollarSign, description: 'Total job cost' },
-    { name: 'job_address', icon: MapPin, description: 'Job location' }
+    { key: 'client_name', label: 'Client Name', icon: User, example: 'John Smith' },
+    { key: 'client_phone', label: 'Client Phone', icon: Phone, example: '(555) 123-4567' },
+    { key: 'client_email', label: 'Client Email', icon: User, example: 'john@example.com' },
+    { key: 'client_address', label: 'Client Address', icon: MapPin, example: '123 Main St' },
+    { key: 'job_id', label: 'Job ID', icon: MessageSquare, example: 'JOB-001' },
+    { key: 'job_title', label: 'Job Title', icon: MessageSquare, example: 'HVAC Repair' },
+    { key: 'job_status', label: 'Job Status', icon: MessageSquare, example: 'Scheduled' },
+    { key: 'scheduled_date', label: 'Scheduled Date', icon: Calendar, example: 'March 15, 2024' },
+    { key: 'scheduled_time', label: 'Scheduled Time', icon: Clock, example: '2:00 PM' },
+    { key: 'total_amount', label: 'Total Amount', icon: DollarSign, example: '$450.00' },
+    { key: 'company_name', label: 'Company Name', icon: MessageSquare, example: 'Fixlify Services' },
+    { key: 'company_phone', label: 'Company Phone', icon: Phone, example: '(555) 987-6543' }
   ];
 
-  const quickPrompts = [
-    'Write a friendly appointment reminder SMS',
-    'Create a professional job completion follow-up email',
-    'Generate a payment reminder message',
-    'Write a thank you message after service completion',
-    'Create a message for rescheduling appointments'
-  ];
-
-  const generateMessage = async () => {
-    if (!prompt.trim()) {
-      toast.error('Please enter a prompt to generate a message');
+  const handleGenerateMessage = async () => {
+    if (!aiPrompt.trim()) {
+      toast.error('Please enter a prompt for message generation');
       return;
     }
 
     setIsGenerating(true);
-    
     try {
-      const { data, error } = await supabase.functions.invoke('generate-ai-message', {
-        body: { 
-          prompt: prompt,
-          context: 'automation_message',
-          variables: availableVariables.map(v => v.name)
-        }
-      });
+      const contextPrompt = `
+Generate a professional ${messageType} message for a field service business.
 
-      if (error) {
-        console.error('AI generation error:', error);
-        toast.error('Failed to generate message with AI');
-        return;
-      }
+Requirements:
+- ${messageType === 'sms' ? 'Keep it concise (under 160 characters if possible)' : 'Include proper email structure with subject and body'}
+- Include relevant variables using {{variable_name}} format
+- Be professional and helpful
+- Include a clear call to action
 
-      if (data?.message) {
-        setGeneratedMessage(data.message);
-        toast.success('AI message generated successfully!');
-      } else {
-        toast.error('No message was generated');
+Context: ${aiPrompt}
+
+Available variables: ${availableVariables.map(v => `{{${v.key}}}`).join(', ')}
+
+Example context data:
+${JSON.stringify({
+  client_name: 'John Smith',
+  job_title: 'HVAC System Repair',
+  scheduled_date: 'Tomorrow',
+  scheduled_time: '2:00 PM',
+  company_name: 'Fixlify Services'
+}, null, 2)}
+`;
+
+      const generatedMessage = await generateText(contextPrompt);
+      
+      if (generatedMessage) {
+        onChange(generatedMessage);
+        setSuggestions([generatedMessage]);
+        toast.success('Message generated successfully');
       }
     } catch (error) {
-      console.error('Error generating AI message:', error);
+      console.error('Error generating message:', error);
       toast.error('Failed to generate message');
     } finally {
       setIsGenerating(false);
     }
   };
 
-  const insertVariable = (variableName: string) => {
-    const variable = `{{${variableName}}}`;
-    if (generatedMessage) {
-      setGeneratedMessage(prev => prev + ' ' + variable);
-    } else {
-      setPrompt(prev => prev + ` Include ${variable} in the message`);
+  const handleGenerateVariations = async () => {
+    if (!value.trim()) {
+      toast.error('Please enter a base message first');
+      return;
+    }
+
+    setIsGenerating(true);
+    try {
+      const variationPrompt = `
+Create 3 variations of this ${messageType} message, each with a different tone but maintaining professionalism:
+
+Original message: "${value}"
+
+Generate:
+1. A friendly/casual version
+2. A formal/professional version  
+3. A urgent/action-oriented version
+
+Each should use the same variables and maintain the same core message.
+`;
+
+      const variations = await generateText(variationPrompt);
+      
+      if (variations) {
+        const variationList = variations.split('\n\n').filter(v => v.trim());
+        setSuggestions(variationList);
+        toast.success('Message variations generated');
+      }
+    } catch (error) {
+      console.error('Error generating variations:', error);
+      toast.error('Failed to generate variations');
+    } finally {
+      setIsGenerating(false);
     }
   };
 
-  const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text);
-    toast.success('Copied to clipboard');
+  const insertVariable = (variableKey: string) => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const currentValue = value;
+    const newValue = currentValue.substring(0, start) + `{{${variableKey}}}` + currentValue.substring(end);
+    
+    onChange(newValue);
+
+    // Set cursor position after the inserted variable
+    setTimeout(() => {
+      textarea.setSelectionRange(start + variableKey.length + 4, start + variableKey.length + 4);
+      textarea.focus();
+    }, 0);
   };
 
-  const useGeneratedMessage = () => {
-    if (generatedMessage) {
-      onMessageGenerated(generatedMessage);
-      setGeneratedMessage('');
-      setPrompt('');
-    }
+  const previewMessage = () => {
+    const sampleData = {
+      client_name: 'John Smith',
+      client_phone: '(555) 123-4567',
+      client_email: 'john@example.com',
+      client_address: '123 Main St, Anytown, USA',
+      job_id: 'JOB-001',
+      job_title: 'HVAC System Repair',
+      job_status: 'Scheduled',
+      scheduled_date: 'March 15, 2024',
+      scheduled_time: '2:00 PM',
+      total_amount: '$450.00',
+      company_name: 'Fixlify Services',
+      company_phone: '(555) 987-6543'
+    };
+
+    let preview = value;
+    Object.keys(sampleData).forEach(key => {
+      const regex = new RegExp(`{{${key}}}`, 'g');
+      preview = preview.replace(regex, sampleData[key]);
+    });
+
+    return preview;
   };
 
   return (
-    <Card className="w-full bg-gradient-to-br from-purple-50/50 to-white border-purple-200">
-      <CardHeader className="pb-4">
-        <CardTitle className="flex items-center gap-2 text-lg">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-r from-purple-500 to-purple-600 flex items-center justify-center">
-            <Bot className="w-4 h-4 text-white" />
+    <div className="space-y-6">
+      {/* AI Generation */}
+      <ModernCard variant="elevated">
+        <ModernCardHeader>
+          <ModernCardTitle icon={Sparkles}>
+            AI Message Generator
+          </ModernCardTitle>
+        </ModernCardHeader>
+        <ModernCardContent className="space-y-4">
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-gray-700">
+              Describe the message you want to generate:
+            </label>
+            <Input
+              placeholder="e.g., Send appointment reminder for tomorrow's HVAC repair visit"
+              value={aiPrompt}
+              onChange={(e) => setAiPrompt(e.target.value)}
+            />
           </div>
-          AI Message Composer
-          <Badge className="bg-gradient-to-r from-purple-500 to-purple-600 text-white">
-            <Sparkles className="w-3 h-3 mr-1" />
-            Powered by OpenAI
-          </Badge>
-        </CardTitle>
-      </CardHeader>
-      
-      <CardContent className="space-y-4">
-        {/* Quick Prompts */}
-        <div>
-          <label className="text-sm font-medium text-gray-700 mb-2 block">Quick Prompts</label>
-          <div className="flex flex-wrap gap-2">
-            {quickPrompts.map((quickPrompt, index) => (
-              <Button
-                key={index}
-                variant="outline"
-                size="sm"
-                onClick={() => setPrompt(quickPrompt)}
-                className="text-xs border-purple-200 hover:border-purple-300 hover:bg-purple-50"
-              >
-                {quickPrompt}
-              </Button>
-            ))}
-          </div>
-        </div>
-
-        {/* Prompt Input */}
-        <div>
-          <label className="text-sm font-medium text-gray-700 mb-2 block">
-            Describe the message you want to create
-          </label>
-          <Textarea
-            value={prompt}
-            onChange={(e) => setPrompt(e.target.value)}
-            placeholder="Example: Write a friendly SMS reminder for customers about their appointment tomorrow, include their name and appointment time"
-            className="min-h-[80px] border-purple-200 focus:border-purple-300 focus:ring-purple-200"
-          />
-        </div>
-
-        {/* Generate Button */}
-        <Button
-          onClick={generateMessage}
-          disabled={isGenerating || !prompt.trim()}
-          className="w-full bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700"
-        >
-          {isGenerating ? (
-            <>
-              <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-              Generating...
-            </>
-          ) : (
-            <>
-              <Sparkles className="w-4 h-4 mr-2" />
+          
+          <div className="flex gap-2">
+            <GradientButton
+              onClick={handleGenerateMessage}
+              disabled={isGenerating}
+              loading={isGenerating}
+              className="flex-1"
+            >
+              <Wand2 className="w-4 h-4 mr-2" />
               Generate Message
-            </>
-          )}
-        </Button>
-
-        {/* Generated Message */}
-        {generatedMessage && (
-          <div className="space-y-3">
-            <label className="text-sm font-medium text-gray-700 block">Generated Message</label>
-            <div className="bg-white border border-gray-200 rounded-lg p-4 relative">
-              <p className="text-gray-800 whitespace-pre-wrap">{generatedMessage}</p>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => copyToClipboard(generatedMessage)}
-                className="absolute top-2 right-2"
-              >
-                <Copy className="w-4 h-4" />
-              </Button>
-            </div>
-            <div className="flex gap-2">
-              <Button
-                onClick={useGeneratedMessage}
-                className="flex-1 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700"
-              >
-                Use This Message
-              </Button>
-              <Button
-                variant="outline"
-                onClick={generateMessage}
-                disabled={isGenerating}
-                className="border-purple-200 hover:border-purple-300"
-              >
-                <RefreshCw className="w-4 h-4" />
-              </Button>
-            </div>
+            </GradientButton>
+            
+            <Button
+              variant="outline"
+              onClick={handleGenerateVariations}
+              disabled={isGenerating || !value.trim()}
+            >
+              <RefreshCw className="w-4 h-4 mr-2" />
+              Variations
+            </Button>
           </div>
-        )}
+        </ModernCardContent>
+      </ModernCard>
 
-        {/* Available Variables */}
-        <div>
-          <label className="text-sm font-medium text-gray-700 mb-2 block">Available Variables</label>
-          <div className="grid grid-cols-2 gap-2">
-            {availableVariables.map((variable) => (
-              <Button
-                key={variable.name}
-                variant="outline"
-                size="sm"
-                onClick={() => insertVariable(variable.name)}
-                className="justify-start text-xs border-gray-200 hover:border-purple-300 hover:bg-purple-50"
-                title={variable.description}
+      {/* Message Editor */}
+      <ModernCard variant="elevated">
+        <ModernCardHeader>
+          <ModernCardTitle icon={MessageSquare}>
+            Message Content
+          </ModernCardTitle>
+        </ModernCardHeader>
+        <ModernCardContent className="space-y-4">
+          <Textarea
+            ref={textareaRef}
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
+            placeholder={messageType === 'sms' 
+              ? "Enter your SMS message... Use {{client_name}} for variables"
+              : "Enter your email content... Use {{client_name}} for variables"
+            }
+            className="min-h-32"
+          />
+          
+          <div className="flex items-center justify-between text-sm text-gray-600">
+            <span>
+              Characters: {value.length}
+              {messageType === 'sms' && value.length > 160 && (
+                <Badge variant="destructive" className="ml-2">
+                  Over SMS limit
+                </Badge>
+              )}
+            </span>
+            
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                navigator.clipboard.writeText(value);
+                toast.success('Message copied to clipboard');
+              }}
+            >
+              <Copy className="w-4 h-4 mr-1" />
+              Copy
+            </Button>
+          </div>
+        </ModernCardContent>
+      </ModernCard>
+
+      {/* Variables */}
+      <ModernCard variant="elevated">
+        <ModernCardHeader>
+          <ModernCardTitle icon={Variable}>
+            Available Variables
+          </ModernCardTitle>
+        </ModernCardHeader>
+        <ModernCardContent className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+            {availableVariables.map((variable) => {
+              const IconComponent = variable.icon;
+              return (
+                <Button
+                  key={variable.key}
+                  variant="outline"
+                  size="sm"
+                  onClick={() => insertVariable(variable.key)}
+                  className="justify-start h-auto p-3 hover:bg-fixlyfy/5 hover:border-fixlyfy"
+                >
+                  <IconComponent className="w-4 h-4 mr-2 text-fixlyfy" />
+                  <div className="text-left">
+                    <div className="font-medium text-gray-900">
+                      {variable.label}
+                    </div>
+                    <div className="text-xs text-gray-500">
+                      {`{{${variable.key}}}`}
+                    </div>
+                  </div>
+                </Button>
+              );
+            })}
+          </div>
+        </ModernCardContent>
+      </ModernCard>
+
+      {/* Preview */}
+      {value && (
+        <ModernCard variant="elevated">
+          <ModernCardHeader>
+            <ModernCardTitle>Message Preview</ModernCardTitle>
+          </ModernCardHeader>
+          <ModernCardContent>
+            <div className="bg-gray-50 p-4 rounded-lg border">
+              <p className="text-sm text-gray-700 whitespace-pre-wrap">
+                {previewMessage()}
+              </p>
+            </div>
+            <p className="text-xs text-gray-500 mt-2">
+              * Preview uses sample data. Actual messages will use real client information.
+            </p>
+          </ModernCardContent>
+        </ModernCard>
+      )}
+
+      {/* AI Suggestions */}
+      {suggestions.length > 0 && (
+        <ModernCard variant="elevated">
+          <ModernCardHeader>
+            <ModernCardTitle icon={Sparkles}>
+              AI Suggestions
+            </ModernCardTitle>
+          </ModernCardHeader>
+          <ModernCardContent className="space-y-3">
+            {suggestions.map((suggestion, index) => (
+              <div
+                key={index}
+                className="p-3 bg-gray-50 rounded-lg border hover:bg-gray-100 cursor-pointer transition-colors"
+                onClick={() => onChange(suggestion)}
               >
-                <variable.icon className="w-3 h-3 mr-1" />
-                {`{{${variable.name}}}`}
-              </Button>
+                <p className="text-sm text-gray-700 whitespace-pre-wrap">
+                  {suggestion}
+                </p>
+                <div className="flex justify-between items-center mt-2">
+                  <span className="text-xs text-gray-500">
+                    Click to use this message
+                  </span>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      navigator.clipboard.writeText(suggestion);
+                      toast.success('Suggestion copied');
+                    }}
+                  >
+                    <Copy className="w-3 h-3" />
+                  </Button>
+                </div>
+              </div>
             ))}
-          </div>
-        </div>
-      </CardContent>
-    </Card>
+          </ModernCardContent>
+        </ModernCard>
+      )}
+    </div>
   );
 };

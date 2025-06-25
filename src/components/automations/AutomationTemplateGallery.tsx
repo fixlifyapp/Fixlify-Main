@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { ModernCard, ModernCardContent } from '@/components/ui/modern-card';
+import { ModernCard, ModernCardContent, ModernCardHeader, ModernCardTitle } from '@/components/ui/modern-card';
 import { GradientButton } from '@/components/ui/gradient-button';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -19,8 +19,7 @@ import {
   Clock,
   Users,
   Award,
-  Sparkles,
-  Play
+  Sparkles
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -41,7 +40,7 @@ export const AutomationTemplateGallery = ({
   const [selectedCategory, setSelectedCategory] = useState('all');
 
   const getCategoryIcon = (categoryId: string) => {
-    const icons: Record<string, any> = {
+    const icons = {
       missed_call: Phone,
       appointment: Calendar,
       payment: DollarSign,
@@ -55,14 +54,14 @@ export const AutomationTemplateGallery = ({
   const filteredTemplates = templates.filter(template => {
     const matchesSearch = template.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          template.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         template.tags?.some((tag: string) => tag.toLowerCase().includes(searchQuery.toLowerCase()));
+                         template.tags.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()));
     
     const matchesCategory = selectedCategory === 'all' || template.category === selectedCategory;
     
     return matchesSearch && matchesCategory;
   });
 
-  const TemplateCard = ({ template, isRecommended = false }: { template: any, isRecommended?: boolean }) => {
+  const TemplateCard = ({ template, isRecommended = false }) => {
     const CategoryIcon = getCategoryIcon(template.category);
     
     return (
@@ -70,31 +69,31 @@ export const AutomationTemplateGallery = ({
         variant="elevated" 
         hoverable 
         className={cn(
-          "group transition-all duration-300 h-full",
-          isRecommended && "ring-2 ring-purple-500/30 shadow-lg bg-gradient-to-br from-purple-50/50 to-white"
+          "group transition-all duration-300",
+          isRecommended && "ring-2 ring-fixlyfy/20 shadow-lg"
         )}
       >
-        <ModernCardContent className="p-6 h-full flex flex-col">
-          <div className="space-y-4 flex-1">
+        <ModernCardContent className="p-6">
+          <div className="space-y-4">
             {/* Header */}
             <div className="flex items-start justify-between">
               <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
+                <div className="w-12 h-12 rounded-xl bg-gradient-to-r from-fixlyfy to-fixlyfy-light flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
                   <CategoryIcon className="w-6 h-6 text-white" />
                 </div>
-                <div className="flex-1 min-w-0">
-                  <h3 className="font-semibold text-gray-900 group-hover:text-purple-600 transition-colors truncate">
+                <div>
+                  <h3 className="font-semibold text-gray-900 group-hover:text-fixlyfy transition-colors">
                     {template.name}
                   </h3>
-                  <div className="flex flex-wrap items-center gap-2 mt-1">
+                  <div className="flex items-center gap-2 mt-1">
                     {template.is_featured && (
-                      <Badge className="bg-gradient-to-r from-yellow-400 to-yellow-500 text-white text-xs">
+                      <Badge className="bg-gradient-to-r from-yellow-400 to-yellow-500 text-white">
                         <Award className="w-3 h-3 mr-1" />
                         Featured
                       </Badge>
                     )}
                     {isRecommended && (
-                      <Badge className="bg-gradient-to-r from-purple-500 to-purple-600 text-white text-xs">
+                      <Badge className="bg-gradient-to-r from-fixlyfy to-fixlyfy-light text-white">
                         <Sparkles className="w-3 h-3 mr-1" />
                         Recommended
                       </Badge>
@@ -103,10 +102,10 @@ export const AutomationTemplateGallery = ({
                 </div>
               </div>
               
-              <div className="text-right text-sm text-gray-500 flex-shrink-0">
+              <div className="text-right text-sm text-gray-500">
                 <div className="flex items-center gap-1">
                   <Users className="w-3 h-3" />
-                  {template.usage_count || 0}
+                  {template.usage_count}
                 </div>
                 {template.success_rate && (
                   <div className="flex items-center gap-1 mt-1 text-green-600">
@@ -118,7 +117,7 @@ export const AutomationTemplateGallery = ({
             </div>
 
             {/* Description */}
-            <p className="text-gray-600 text-sm line-clamp-3 flex-1">
+            <p className="text-gray-600 text-sm line-clamp-2">
               {template.description}
             </p>
 
@@ -140,37 +139,32 @@ export const AutomationTemplateGallery = ({
 
             {/* Tags */}
             <div className="flex flex-wrap gap-1">
-              {template.tags?.slice(0, 3).map((tag: string, index: number) => (
+              {template.tags.slice(0, 3).map((tag, index) => (
                 <Badge key={index} variant="secondary" className="text-xs">
                   {tag}
                 </Badge>
               ))}
-              {template.tags?.length > 3 && (
+              {template.tags.length > 3 && (
                 <Badge variant="secondary" className="text-xs">
                   +{template.tags.length - 3} more
                 </Badge>
               )}
             </div>
-          </div>
 
-          {/* Actions */}
-          <div className="flex gap-2 pt-4 border-t border-gray-100">
-            <GradientButton
-              size="sm"
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                console.log('Template card clicked:', template);
-                onUseTemplate(template);
-              }}
-              className="flex-1 shadow-md hover:shadow-lg transition-all duration-300 bg-gradient-to-r from-purple-500 to-purple-600"
-            >
-              <Play className="w-4 h-4 mr-1" />
-              Use Template
-            </GradientButton>
-            <Button size="sm" variant="outline" className="border-gray-200 hover:border-purple-300">
-              Preview
-            </Button>
+            {/* Actions */}
+            <div className="flex gap-2 pt-2">
+              <GradientButton
+                size="sm"
+                onClick={() => onUseTemplate(template)}
+                className="flex-1 shadow-md hover:shadow-lg transition-all duration-300"
+              >
+                <Zap className="w-4 h-4 mr-1" />
+                Use Template
+              </GradientButton>
+              <Button size="sm" variant="outline">
+                Preview
+              </Button>
+            </div>
           </div>
         </ModernCardContent>
       </ModernCard>
@@ -187,7 +181,7 @@ export const AutomationTemplateGallery = ({
             placeholder="Search templates..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10 border-gray-200 focus:border-purple-300 focus:ring-purple-200"
+            className="pl-10"
           />
         </div>
         
@@ -196,7 +190,7 @@ export const AutomationTemplateGallery = ({
             size="sm"
             variant={selectedCategory === 'all' ? 'default' : 'outline'}
             onClick={() => setSelectedCategory('all')}
-            className={selectedCategory === 'all' ? 'bg-gradient-to-r from-purple-500 to-purple-600 text-white' : 'border-gray-200 hover:border-purple-300'}
+            className={selectedCategory === 'all' ? 'bg-gradient-to-r from-fixlyfy to-fixlyfy-light text-white' : ''}
           >
             All Templates
           </Button>
@@ -210,9 +204,7 @@ export const AutomationTemplateGallery = ({
                 onClick={() => setSelectedCategory(category.id)}
                 className={cn(
                   "flex items-center gap-1",
-                  selectedCategory === category.id 
-                    ? 'bg-gradient-to-r from-purple-500 to-purple-600 text-white' 
-                    : 'border-gray-200 hover:border-purple-300'
+                  selectedCategory === category.id && 'bg-gradient-to-r from-fixlyfy to-fixlyfy-light text-white'
                 )}
               >
                 <Icon className="w-3 h-3" />
@@ -230,14 +222,14 @@ export const AutomationTemplateGallery = ({
         <TabsList className="grid w-full grid-cols-2 lg:w-auto lg:grid-cols-2 bg-white border border-gray-200 shadow-sm rounded-xl p-1">
           <TabsTrigger 
             value="recommended"
-            className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-500 data-[state=active]:to-purple-600 data-[state=active]:text-white rounded-lg font-medium transition-all duration-300"
+            className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-fixlyfy data-[state=active]:to-fixlyfy-light data-[state=active]:text-white rounded-lg font-medium transition-all duration-300"
           >
             <Sparkles className="w-4 h-4 mr-2" />
             Recommended
           </TabsTrigger>
           <TabsTrigger 
             value="all"
-            className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-500 data-[state=active]:to-purple-600 data-[state=active]:text-white rounded-lg font-medium transition-all duration-300"
+            className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-fixlyfy data-[state=active]:to-fixlyfy-light data-[state=active]:text-white rounded-lg font-medium transition-all duration-300"
           >
             <Star className="w-4 h-4 mr-2" />
             All Templates
@@ -252,8 +244,8 @@ export const AutomationTemplateGallery = ({
               ))}
             </div>
           ) : (
-            <div className="text-center py-12 bg-gradient-to-br from-purple-50 to-purple-100/50 rounded-2xl">
-              <Sparkles className="w-12 h-12 text-purple-400 mx-auto mb-4" />
+            <div className="text-center py-12">
+              <Sparkles className="w-12 h-12 text-gray-400 mx-auto mb-4" />
               <h3 className="text-lg font-medium text-gray-900 mb-2">No Recommendations Yet</h3>
               <p className="text-gray-600">Complete your profile setup to get personalized template recommendations.</p>
             </div>
@@ -268,7 +260,7 @@ export const AutomationTemplateGallery = ({
               ))}
             </div>
           ) : (
-            <div className="text-center py-12 bg-gradient-to-br from-gray-50 to-gray-100/50 rounded-2xl">
+            <div className="text-center py-12">
               <Search className="w-12 h-12 text-gray-400 mx-auto mb-4" />
               <h3 className="text-lg font-medium text-gray-900 mb-2">No Templates Found</h3>
               <p className="text-gray-600">Try adjusting your search or filters to find more templates.</p>

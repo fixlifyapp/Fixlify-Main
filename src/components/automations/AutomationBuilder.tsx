@@ -16,15 +16,18 @@ import {
   Panel
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
+import { useAutomationBuilder } from '@/hooks/automations/useAutomationBuilder';
 import { AutomationBuilderSidebar } from './builder/AutomationBuilderSidebar';
 import { AutomationBuilderToolbar } from './builder/AutomationBuilderToolbar';
+import { AutomationNodeEditor } from './builder/AutomationNodeEditor';
 import { TriggerNode } from './builder/nodes/TriggerNode';
 import { ActionNode } from './builder/nodes/ActionNode';
 import { ConditionNode } from './builder/nodes/ConditionNode';
 import { Button } from '@/components/ui/button';
 import { GradientButton } from '@/components/ui/gradient-button';
 import { Badge } from '@/components/ui/badge';
-import { Play, Save, TestTube, Zap, AlertCircle, CheckCircle2, Bot, X } from 'lucide-react';
+import { Separator } from '@/components/ui/separator';
+import { Play, Save, TestTube, Zap, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
@@ -47,9 +50,16 @@ const AutomationBuilderContent = ({ template, onSave, onCancel }: AutomationBuil
   const [workflowName, setWorkflowName] = useState(template?.name || 'New Automation');
   const [workflowDescription, setWorkflowDescription] = useState(template?.description || '');
   const [isTestMode, setIsTestMode] = useState(false);
-  const [showAIComposer, setShowAIComposer] = useState(false);
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const [reactFlowInstance, setReactFlowInstance] = useState<any>(null);
+
+  const {
+    validateWorkflow,
+    testWorkflow,
+    convertToWorkflow,
+    isValidating,
+    validationErrors
+  } = useAutomationBuilder();
 
   // Load template data if provided
   React.useEffect(() => {
@@ -104,7 +114,6 @@ const AutomationBuilderContent = ({ template, onSave, onCancel }: AutomationBuil
       };
 
       setNodes((nds) => nds.concat(newNode));
-      toast.success(`${type} node added to workflow`);
     },
     [reactFlowInstance, setNodes]
   );
@@ -120,7 +129,7 @@ const AutomationBuilderContent = ({ template, onSave, onCancel }: AutomationBuil
       case 'action':
         return {
           action_type: 'send_sms',
-          message: 'Hello, your job has been scheduled for {{scheduled_date}}.',
+          message: 'Hello {{client_name}}, your job {{job_title}} has been scheduled.',
           delay: 0
         };
       case 'condition':
@@ -134,9 +143,46 @@ const AutomationBuilderContent = ({ template, onSave, onCancel }: AutomationBuil
     }
   };
 
+  const handleNodeUpdate = (nodeId: string, updates: any) => {
+    setNodes((nds) =>
+      nds.map((node) =>
+        node.id === nodeId
+          ? { ...node, data: { ...node.data, ...updates } }
+          : node
+      )
+    );
+  };
+
+  const handleNodeDelete = (nodeId: string) => {
+    setNodes((nds) => nds.filter((node) => node.id !== nodeId));
+    setEdges((eds) => eds.filter((edge) => edge.source !== nodeId && edge.target !== nodeId));
+    if (selectedNode?.id === nodeId) {
+      setSelectedNode(null);
+    }
+  };
+
   const handleTestWorkflow = async () => {
     try {
       setIsTestMode(true);
+      const testData = {
+        client_name: 'John Smith',
+        client_phone: '(555) 123-4567',
+        client_email: 'john@example.com',
+        job_title: 'HVAC Repair',
+        job_id: 'JOB-001',
+        job_status: 'scheduled',
+        scheduled_date: new Date().toLocaleDateString(),
+        total_amount: '$450.00'
+      };
+
+      const workflowData = {
+        nodes,
+        edges,
+        name: workflowName,
+        description: workflowDescription
+      };
+
+      await testWorkflow(workflowData, testData);
       toast.success('Workflow test completed successfully');
     } catch (error) {
       toast.error('Workflow test failed');
@@ -147,13 +193,20 @@ const AutomationBuilderContent = ({ template, onSave, onCancel }: AutomationBuil
 
   const handleSaveWorkflow = async () => {
     try {
-      const saveData = {
+      const workflowData = convertToWorkflow({
+        nodes,
+        edges,
         name: workflowName,
-        description: workflowDescription,
-        visual_config: { nodes, edges }
-      };
-      
-      await onSave(saveData);
+        description: workflowDescription
+      });
+
+      const isValid = await validateWorkflow();
+      if (!isValid) {
+        toast.error('Please fix validation errors before saving');
+        return;
+      }
+
+      await onSave(workflowData);
       toast.success('Automation saved successfully');
     } catch (error) {
       toast.error('Failed to save automation');
@@ -164,63 +217,42 @@ const AutomationBuilderContent = ({ template, onSave, onCancel }: AutomationBuil
   const actionCount = nodes.filter(n => n.type === 'action').length;
   const conditionCount = nodes.filter(n => n.type === 'condition').length;
 
-  const isWorkflowValid = triggerCount > 0 && actionCount > 0;
+  const isWorkflowValid = triggerCount > 0 && actionCount > 0 && validationErrors.length === 0;
 
   return (
-    <div className="h-screen flex flex-col bg-gradient-to-br from-gray-50 via-purple-50/30 to-blue-50/20">
+    <div className="h-full flex flex-col bg-gray-50">
       {/* Header */}
-      <div className="bg-white/80 backdrop-blur-sm border-b border-gray-200/50 p-4 space-y-4 shadow-sm">
+      <div className="bg-white border-b border-gray-200 p-4 space-y-4">
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
           <div className="space-y-2 flex-1">
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-xl bg-gradient-to-r from-purple-500 via-purple-600 to-indigo-600 flex items-center justify-center shadow-lg">
-                <Zap className="w-4 h-4 text-white" />
-              </div>
-              <input
-                type="text"
-                value={workflowName}
-                onChange={(e) => setWorkflowName(e.target.value)}
-                className="text-xl font-bold bg-transparent border-none outline-none focus:ring-2 focus:ring-purple-500/20 rounded px-2 py-1 flex-1"
-                placeholder="Automation Name"
-              />
-            </div>
+            <input
+              type="text"
+              value={workflowName}
+              onChange={(e) => setWorkflowName(e.target.value)}
+              className="text-2xl font-bold bg-transparent border-none outline-none focus:ring-2 focus:ring-fixlyfy/20 rounded px-2 py-1 w-full"
+              placeholder="Automation Name"
+            />
             <input
               type="text"
               value={workflowDescription}
               onChange={(e) => setWorkflowDescription(e.target.value)}
-              className="text-gray-600 bg-transparent border-none outline-none focus:ring-2 focus:ring-purple-500/20 rounded px-2 py-1 w-full"
+              className="text-gray-600 bg-transparent border-none outline-none focus:ring-2 focus:ring-fixlyfy/20 rounded px-2 py-1 w-full"
               placeholder="Add description..."
             />
           </div>
 
           <div className="flex items-center gap-3">
-            <Badge variant={isWorkflowValid ? "default" : "destructive"} className={cn(
-              "flex items-center gap-1",
-              isWorkflowValid && "bg-gradient-to-r from-green-500 to-green-600"
-            )}>
+            <Badge variant={isWorkflowValid ? "default" : "destructive"} className="flex items-center gap-1">
               {isWorkflowValid ? <CheckCircle2 className="w-3 h-3" /> : <AlertCircle className="w-3 h-3" />}
               {isWorkflowValid ? 'Valid' : 'Invalid'}
             </Badge>
-            
-            <Button 
-              variant="outline" 
-              onClick={() => setShowAIComposer(!showAIComposer)}
-              className="border-purple-200 hover:border-purple-300 bg-gradient-to-r from-purple-50 to-indigo-50"
-            >
-              <Bot className="w-4 h-4 mr-2" />
-              AI Assistant
-            </Button>
-            
             <Button variant="outline" onClick={handleTestWorkflow} disabled={isTestMode}>
               <TestTube className="w-4 h-4 mr-2" />
               {isTestMode ? 'Testing...' : 'Test'}
             </Button>
-            
             <Button variant="outline" onClick={onCancel}>
-              <X className="w-4 h-4 mr-2" />
               Cancel
             </Button>
-            
             <GradientButton onClick={handleSaveWorkflow} disabled={!isWorkflowValid}>
               <Save className="w-4 h-4 mr-2" />
               Save Automation
@@ -230,25 +262,37 @@ const AutomationBuilderContent = ({ template, onSave, onCancel }: AutomationBuil
 
         {/* Stats */}
         <div className="flex items-center gap-6 text-sm text-gray-600">
-          <span className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded-full bg-gradient-to-r from-blue-500 to-blue-600 shadow-sm"></div>
+          <span className="flex items-center gap-1">
+            <div className="w-3 h-3 rounded bg-blue-500"></div>
             {triggerCount} Triggers
           </span>
-          <span className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded-full bg-gradient-to-r from-green-500 to-green-600 shadow-sm"></div>
+          <span className="flex items-center gap-1">
+            <div className="w-3 h-3 rounded bg-green-500"></div>
             {actionCount} Actions
           </span>
-          <span className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded-full bg-gradient-to-r from-yellow-500 to-orange-500 shadow-sm"></div>
+          <span className="flex items-center gap-1">
+            <div className="w-3 h-3 rounded bg-yellow-500"></div>
             {conditionCount} Conditions
           </span>
         </div>
+
+        {/* Validation Errors */}
+        {validationErrors.length > 0 && (
+          <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+            <h4 className="text-red-800 font-medium mb-2">Validation Errors:</h4>
+            <ul className="text-red-700 text-sm space-y-1">
+              {validationErrors.map((error, index) => (
+                <li key={index}>• {error}</li>
+              ))}
+            </ul>
+          </div>
+        )}
       </div>
 
       {/* Main Builder Area */}
-      <div className="flex-1 flex overflow-hidden">
+      <div className="flex-1 flex visual-workflow-builder">
         {/* Sidebar */}
-        <AutomationBuilderSidebar onNodeDrag={() => {}} />
+        <AutomationBuilderSidebar onNodeDrag={(nodeType) => {}} />
 
         {/* Flow Canvas */}
         <div className="flex-1 relative">
@@ -266,21 +310,11 @@ const AutomationBuilderContent = ({ template, onSave, onCancel }: AutomationBuil
               onInit={setReactFlowInstance}
               nodeTypes={nodeTypes}
               fitView
-              className="bg-gradient-to-br from-gray-50/50 via-purple-50/20 to-blue-50/10"
+              className="bg-gray-50"
             >
-              <Background gap={20} size={1} color="#e5e7eb" className="opacity-50" />
-              <Controls className="bg-white/80 backdrop-blur-sm border border-gray-200 rounded-xl shadow-lg" />
-              <MiniMap 
-                className="bg-white/80 backdrop-blur-sm border border-gray-200 rounded-xl shadow-lg"
-                nodeColor={(node) => {
-                  switch (node.type) {
-                    case 'trigger': return '#3b82f6';
-                    case 'action': return '#10b981';
-                    case 'condition': return '#f59e0b';
-                    default: return '#8b5cf6';
-                  }
-                }}
-              />
+              <Background />
+              <Controls />
+              <MiniMap />
               
               <Panel position="top-right">
                 <AutomationBuilderToolbar
@@ -290,13 +324,24 @@ const AutomationBuilderContent = ({ template, onSave, onCancel }: AutomationBuil
                     setNodes([]);
                     setEdges([]);
                     setSelectedNode(null);
-                    toast.success('Workflow cleared');
                   }}
                 />
               </Panel>
             </ReactFlow>
           </div>
         </div>
+
+        {/* Node Editor Panel */}
+        {selectedNode && (
+          <div className="w-80 bg-white border-l border-gray-200 overflow-y-auto">
+            <AutomationNodeEditor
+              node={selectedNode}
+              onUpdate={(updates) => handleNodeUpdate(selectedNode.id, updates)}
+              onDelete={() => handleNodeDelete(selectedNode.id)}
+              onClose={() => setSelectedNode(null)}
+            />
+          </div>
+        )}
       </div>
     </div>
   );

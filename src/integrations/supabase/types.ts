@@ -4629,10 +4629,6 @@ export type Database = {
       }
     }
     Functions: {
-      check_products_access: {
-        Args: { p_user_id: string }
-        Returns: Json
-      }
       check_rate_limit: {
         Args: {
           p_identifier: string
@@ -4661,10 +4657,6 @@ export type Database = {
         Args: { p_keep_system_users?: boolean; p_dry_run?: boolean }
         Returns: Json
       }
-      clear_my_products: {
-        Args: Record<PropertyKey, never>
-        Returns: Json
-      }
       create_product_manual: {
         Args: {
           p_name: string
@@ -4690,10 +4682,6 @@ export type Database = {
           user_id: string | null
         }
       }
-      debug_niche_switch: {
-        Args: { p_new_niche: string }
-        Returns: Json
-      }
       delete_all_users: {
         Args: Record<PropertyKey, never>
         Returns: Json
@@ -4709,14 +4697,6 @@ export type Database = {
       delete_user_with_data: {
         Args: { user_email: string }
         Returns: undefined
-      }
-      diagnose_product_creation: {
-        Args: Record<PropertyKey, never>
-        Returns: {
-          check_name: string
-          status: string
-          details: string
-        }[]
       }
       execute_automation: {
         Args: { p_automation_id: string; p_trigger_data: Json }
@@ -4875,14 +4855,6 @@ export type Database = {
         Args: { p_user_id: string }
         Returns: undefined
       }
-      load_my_niche_products: {
-        Args: Record<PropertyKey, never>
-        Returns: Json
-      }
-      load_niche_products_direct: {
-        Args: { p_user_id: string; p_business_niche: string }
-        Returns: Json
-      }
       log_security_event: {
         Args: {
           p_action: string
@@ -4908,27 +4880,8 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: Json
       }
-      repair_user_products: {
-        Args: Record<PropertyKey, never>
-        Returns: {
-          user_id: string
-          email: string
-          business_niche: string
-          status: string
-          products_loaded: number
-          errors: Json
-        }[]
-      }
-      safe_insert_products: {
-        Args: { p_products: Json; p_user_id: string }
-        Returns: Json
-      }
       send_invoice_sms: {
         Args: { invoice_id: string; recipient_phone: string; message: string }
-        Returns: Json
-      }
-      test_create_products: {
-        Args: { p_user_id: string; p_business_niche: string }
         Returns: Json
       }
       test_products_functionality: {

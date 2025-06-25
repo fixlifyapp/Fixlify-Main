@@ -31,31 +31,6 @@ export const RBACProvider = ({ children }: { children: ReactNode }) => {
   const [loading, setLoading] = useState(true);
   const [customRoles, setCustomRoles] = useState<CustomRole[]>([]);
   
-  const fetchCustomRoles = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('custom_roles')
-        .select('*')
-        .order('name');
-      
-      if (error) {
-        console.error("Error fetching custom roles:", error);
-      } else {
-        const mappedRoles = (data || []).map(role => ({
-          id: role.id,
-          name: role.name,
-          description: role.description || '',
-          permissions: Array.isArray(role.permissions) 
-            ? role.permissions.filter((p): p is string => typeof p === 'string')
-            : []
-        }));
-        setCustomRoles(mappedRoles);
-      }
-    } catch (error) {
-      console.error("Error in fetchCustomRoles:", error);
-    }
-  };
-  
   useEffect(() => {
     // Fetch the current authenticated user from Supabase
     const fetchCurrentUser = async () => {
@@ -92,9 +67,7 @@ export const RBACProvider = ({ children }: { children: ReactNode }) => {
                 id: profile.custom_role.id,
                 name: profile.custom_role.name,
                 description: profile.custom_role.description,
-                permissions: Array.isArray(profile.custom_role.permissions) 
-                  ? profile.custom_role.permissions.filter((p): p is string => typeof p === 'string')
-                  : []
+                permissions: profile.custom_role.permissions || []
               } : undefined
             });
           }
@@ -109,6 +82,23 @@ export const RBACProvider = ({ children }: { children: ReactNode }) => {
         setCurrentUser(null);
       } finally {
         setLoading(false);
+      }
+    };
+
+    const fetchCustomRoles = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('custom_roles')
+          .select('*')
+          .order('name');
+        
+        if (error) {
+          console.error("Error fetching custom roles:", error);
+        } else {
+          setCustomRoles(data || []);
+        }
+      } catch (error) {
+        console.error("Error in fetchCustomRoles:", error);
       }
     };
     

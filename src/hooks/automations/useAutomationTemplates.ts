@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useOrganization } from '@/contexts/OrganizationContext';
@@ -118,22 +117,25 @@ export const useAutomationTemplates = () => {
 
   // Get recommended templates based on organization type
   const recommendedTemplates = useMemo(() => {
-    if (!templates.length) return [];
+    if (!organization || !templates.length) return [];
 
     // Basic recommendation logic - can be enhanced with AI
-    const featuredTemplates = templates.filter(t => t.is_featured);
+    const industryTemplates = templates.filter(t => 
+      t.tags.includes(organization.industry?.toLowerCase() || '')
+    );
+
     const popularTemplates = templates
       .sort((a, b) => b.usage_count - a.usage_count)
       .slice(0, 3);
 
     // Combine and deduplicate
-    const recommended = [...featuredTemplates, ...popularTemplates];
+    const recommended = [...industryTemplates, ...popularTemplates];
     const uniqueTemplates = Array.from(
       new Map(recommended.map(t => [t.id, t])).values()
     );
 
     return uniqueTemplates.slice(0, 6);
-  }, [templates]);
+  }, [templates, organization]);
 
   // Filter templates based on category and search
   const filteredTemplates = useMemo(() => {
@@ -157,42 +159,30 @@ export const useAutomationTemplates = () => {
     return filtered;
   }, [templates, selectedCategory, searchQuery]);
 
-  // Use template - FIXED VERSION
+  // Use template
   const useTemplate = async (templateId: string) => {
     try {
-      console.log('Loading template:', templateId);
       const template = templates.find(t => t.id === templateId);
-      if (!template) {
-        console.error('Template not found:', templateId);
-        throw new Error('Template not found');
-      }
+      if (!template) throw new Error('Template not found');
 
       // Increment usage count
-      const { error: updateError } = await supabase
+      await supabase
         .from('automation_templates')
         .update({ usage_count: template.usage_count + 1 })
         .eq('id', templateId);
 
-      if (updateError) {
-        console.error('Error updating usage count:', updateError);
-      }
-
       // Log template usage for analytics
       if (organization?.id) {
-        const { error: logError } = await supabase
+        await supabase
           .from('automation_template_usage')
           .insert({
             template_id: templateId,
             organization_id: organization.id,
             used_at: new Date().toISOString()
           });
-
-        if (logError) {
-          console.error('Error logging template usage:', logError);
-        }
       }
 
-      console.log('Template loaded successfully:', template);
+      toast.success('Template loaded successfully');
       return template;
     } catch (error) {
       console.error('Error using template:', error);
