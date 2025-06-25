@@ -1,4 +1,3 @@
-
 import React, { useCallback, useState, useRef } from 'react';
 import {
   ReactFlow,
@@ -28,7 +27,6 @@ import { GradientButton } from '@/components/ui/gradient-button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Play, Save, TestTube, Zap, AlertCircle, CheckCircle2 } from 'lucide-react';
-import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
 const nodeTypes: NodeTypes = {

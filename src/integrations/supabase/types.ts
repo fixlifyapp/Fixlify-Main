@@ -4682,6 +4682,10 @@ export type Database = {
           user_id: string | null
         }
       }
+      delete_all_users: {
+        Args: Record<PropertyKey, never>
+        Returns: Json
+      }
       delete_job_as_admin: {
         Args: { job_id: string }
         Returns: Json
