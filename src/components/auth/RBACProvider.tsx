@@ -1,4 +1,3 @@
-
 import { createContext, useContext, ReactNode, useEffect, useState } from 'react';
 import { User, UserRole, DEFAULT_PERMISSIONS } from './types';
 import { toast } from 'sonner';
@@ -46,7 +45,9 @@ export const RBACProvider = ({ children }: { children: ReactNode }) => {
           id: role.id,
           name: role.name,
           description: role.description || '',
-          permissions: Array.isArray(role.permissions) ? role.permissions : []
+          permissions: Array.isArray(role.permissions) 
+            ? role.permissions.filter((p): p is string => typeof p === 'string')
+            : []
         }));
         setCustomRoles(mappedRoles);
       }
@@ -91,7 +92,9 @@ export const RBACProvider = ({ children }: { children: ReactNode }) => {
                 id: profile.custom_role.id,
                 name: profile.custom_role.name,
                 description: profile.custom_role.description,
-                permissions: Array.isArray(profile.custom_role.permissions) ? profile.custom_role.permissions : []
+                permissions: Array.isArray(profile.custom_role.permissions) 
+                  ? profile.custom_role.permissions.filter((p): p is string => typeof p === 'string')
+                  : []
               } : undefined
             });
           }

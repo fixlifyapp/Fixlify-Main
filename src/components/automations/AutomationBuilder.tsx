@@ -131,7 +131,7 @@ const AutomationBuilderContent = ({ template, onSave, onCancel }: AutomationBuil
       case 'action':
         return {
           action_type: 'send_sms',
-          message: 'Hello {{client_name}}, your job {{job_title}} has been scheduled for {{scheduled_date}}.',
+          message: 'Hello, your job has been scheduled for {{scheduled_date}}.',
           delay: 0
         };
       case 'condition':
@@ -198,12 +198,16 @@ const AutomationBuilderContent = ({ template, onSave, onCancel }: AutomationBuil
       }
 
       const workflowData = convertToWorkflow();
-      await onSave({
-        ...workflowData,
+      const saveData = {
         name: workflowName,
         description: workflowDescription,
         visual_config: { nodes, edges }
-      });
+      };
+      
+      // Merge workflow data with save data
+      const mergedData = { ...workflowData, ...saveData };
+      
+      await onSave(mergedData);
       toast.success('Automation saved successfully');
     } catch (error) {
       toast.error('Failed to save automation');
@@ -316,13 +320,13 @@ const AutomationBuilderContent = ({ template, onSave, onCancel }: AutomationBuil
               onMessageGenerated={(message) => {
                 // Apply the generated message to selected node if it's an action
                 if (selectedNode && selectedNode.type === 'action') {
-                  handleNodeUpdate(selectedNode.id, { 
-                    ...selectedNode.data,
+                  const nodeUpdate = {
                     config: { 
                       ...selectedNode.data.config, 
                       message: message 
                     }
-                  });
+                  };
+                  handleNodeUpdate(selectedNode.id, nodeUpdate);
                   toast.success('AI message applied to selected action');
                 } else {
                   toast.info('Select an action node first to apply the AI message');

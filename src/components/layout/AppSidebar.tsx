@@ -1,3 +1,4 @@
+
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { 
@@ -9,7 +10,7 @@ import {
   SidebarMenuItem,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
-import { LayoutDashboard, Briefcase, Users, Calendar, DollarSign, MessageSquare, BarChart3, Settings, Bot, Zap, UserCheck, ExternalLink, Phone } from "lucide-react";
+import { LayoutDashboard, Briefcase, Users, Calendar, DollarSign, MessageSquare, BarChart3, Settings, Bot, Zap, UserCheck, ExternalLink, Phone, Workflow, FileText } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { TrackingWrapper } from "@/components/ui/TrackingWrapper";
 
@@ -62,6 +63,16 @@ export function AppSidebar() {
     icon: Zap,
     href: '/automations',
     color: "text-fixlyfy"
+  }, {
+    label: 'Visual Builder',
+    icon: Workflow,
+    href: '/automations/visual-builder',
+    color: "text-purple-600"
+  }, {
+    label: 'Form Builder',
+    icon: FileText,
+    href: '/automations/form-builder',
+    color: "text-blue-600"
   }, {
     label: 'Analytics',
     icon: BarChart3,
