@@ -324,31 +324,31 @@ export type Database = {
       }
       automation_actions: {
         Row: {
-          action_config: Json
+          action_config: Json | null
           action_type: string
           automation_id: string | null
-          created_at: string
+          created_at: string | null
           delay_minutes: number | null
           id: string
-          sequence_order: number | null
+          order_index: number | null
         }
         Insert: {
-          action_config?: Json
+          action_config?: Json | null
           action_type: string
           automation_id?: string | null
-          created_at?: string
+          created_at?: string | null
           delay_minutes?: number | null
           id?: string
-          sequence_order?: number | null
+          order_index?: number | null
         }
         Update: {
-          action_config?: Json
+          action_config?: Json | null
           action_type?: string
           automation_id?: string | null
-          created_at?: string
+          created_at?: string | null
           delay_minutes?: number | null
           id?: string
-          sequence_order?: number | null
+          order_index?: number | null
         }
         Relationships: [
           {
@@ -359,6 +359,261 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      automation_communication_logs: {
+        Row: {
+          content: string | null
+          cost: number | null
+          created_at: string | null
+          created_by_automation: string | null
+          direction: string | null
+          error_details: Json | null
+          external_id: string | null
+          from_email: string | null
+          from_number: string | null
+          id: string
+          metadata: Json | null
+          provider: string | null
+          response_received: boolean | null
+          response_received_at: string | null
+          status: string | null
+          subject: string | null
+          to_email: string | null
+          to_number: string | null
+          type: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          content?: string | null
+          cost?: number | null
+          created_at?: string | null
+          created_by_automation?: string | null
+          direction?: string | null
+          error_details?: Json | null
+          external_id?: string | null
+          from_email?: string | null
+          from_number?: string | null
+          id?: string
+          metadata?: Json | null
+          provider?: string | null
+          response_received?: boolean | null
+          response_received_at?: string | null
+          status?: string | null
+          subject?: string | null
+          to_email?: string | null
+          to_number?: string | null
+          type?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          content?: string | null
+          cost?: number | null
+          created_at?: string | null
+          created_by_automation?: string | null
+          direction?: string | null
+          error_details?: Json | null
+          external_id?: string | null
+          from_email?: string | null
+          from_number?: string | null
+          id?: string
+          metadata?: Json | null
+          provider?: string | null
+          response_received?: boolean | null
+          response_received_at?: string | null
+          status?: string | null
+          subject?: string | null
+          to_email?: string | null
+          to_number?: string | null
+          type?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "automation_communication_logs_created_by_automation_fkey"
+            columns: ["created_by_automation"]
+            isOneToOne: false
+            referencedRelation: "automation_workflows"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      automation_conditions: {
+        Row: {
+          automation_id: string | null
+          condition_group: number | null
+          created_at: string | null
+          field_name: string
+          id: string
+          operator: string
+          value: string | null
+        }
+        Insert: {
+          automation_id?: string | null
+          condition_group?: number | null
+          created_at?: string | null
+          field_name: string
+          id?: string
+          operator: string
+          value?: string | null
+        }
+        Update: {
+          automation_id?: string | null
+          condition_group?: number | null
+          created_at?: string | null
+          field_name?: string
+          id?: string
+          operator?: string
+          value?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "automation_conditions_automation_id_fkey"
+            columns: ["automation_id"]
+            isOneToOne: false
+            referencedRelation: "automations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      automation_execution_logs: {
+        Row: {
+          actions_executed: Json | null
+          automation_id: string | null
+          completed_at: string | null
+          created_at: string | null
+          error_message: string | null
+          id: string
+          organization_id: string | null
+          started_at: string | null
+          status: string
+          trigger_data: Json | null
+          trigger_type: string
+        }
+        Insert: {
+          actions_executed?: Json | null
+          automation_id?: string | null
+          completed_at?: string | null
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          organization_id?: string | null
+          started_at?: string | null
+          status: string
+          trigger_data?: Json | null
+          trigger_type: string
+        }
+        Update: {
+          actions_executed?: Json | null
+          automation_id?: string | null
+          completed_at?: string | null
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          organization_id?: string | null
+          started_at?: string | null
+          status?: string
+          trigger_data?: Json | null
+          trigger_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "automation_execution_logs_automation_id_fkey"
+            columns: ["automation_id"]
+            isOneToOne: false
+            referencedRelation: "automations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "automation_execution_logs_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      automation_history: {
+        Row: {
+          actions_executed: Json | null
+          created_at: string | null
+          error_details: Json | null
+          execution_status: string | null
+          execution_time_ms: number | null
+          id: string
+          trigger_id: string | null
+          variables_used: Json | null
+          workflow_id: string
+        }
+        Insert: {
+          actions_executed?: Json | null
+          created_at?: string | null
+          error_details?: Json | null
+          execution_status?: string | null
+          execution_time_ms?: number | null
+          id?: string
+          trigger_id?: string | null
+          variables_used?: Json | null
+          workflow_id: string
+        }
+        Update: {
+          actions_executed?: Json | null
+          created_at?: string | null
+          error_details?: Json | null
+          execution_status?: string | null
+          execution_time_ms?: number | null
+          id?: string
+          trigger_id?: string | null
+          variables_used?: Json | null
+          workflow_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "automation_history_workflow_id_fkey"
+            columns: ["workflow_id"]
+            isOneToOne: false
+            referencedRelation: "automation_workflows"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      automation_message_templates: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          is_default: boolean | null
+          name: string
+          subject: string | null
+          type: string
+          updated_at: string
+          variables: Json | null
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          is_default?: boolean | null
+          name: string
+          subject?: string | null
+          type: string
+          updated_at?: string
+          variables?: Json | null
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          is_default?: boolean | null
+          name?: string
+          subject?: string | null
+          type?: string
+          updated_at?: string
+          variables?: Json | null
+        }
+        Relationships: []
       }
       automation_performance: {
         Row: {
@@ -391,15 +646,7 @@ export type Database = {
           success_rate?: number | null
           triggers_fired?: number | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "automation_performance_automation_id_fkey"
-            columns: ["automation_id"]
-            isOneToOne: false
-            referencedRelation: "automations"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       automation_runs: {
         Row: {
@@ -435,12 +682,114 @@ export type Database = {
           status?: string
           trigger_data?: Json | null
         }
+        Relationships: []
+      }
+      automation_template_usage: {
+        Row: {
+          id: string
+          template_id: string
+          used_at: string | null
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          template_id: string
+          used_at?: string | null
+          user_id: string
+        }
+        Update: {
+          id?: string
+          template_id?: string
+          used_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      automation_templates: {
+        Row: {
+          action_type: string
+          average_revenue: number | null
+          badge: string | null
+          category: string
+          config: Json | null
+          created_at: string | null
+          description: string | null
+          estimated_time: string | null
+          estimated_time_saved: string | null
+          icon: string | null
+          id: string
+          is_active: boolean | null
+          is_featured: boolean | null
+          is_system: boolean | null
+          name: string
+          organization_id: string | null
+          preview_image_url: string | null
+          required_integrations: string[] | null
+          success_rate: number | null
+          tags: string[] | null
+          template_config: Json
+          trigger_type: string
+          updated_at: string | null
+          usage_count: number | null
+        }
+        Insert: {
+          action_type: string
+          average_revenue?: number | null
+          badge?: string | null
+          category: string
+          config?: Json | null
+          created_at?: string | null
+          description?: string | null
+          estimated_time?: string | null
+          estimated_time_saved?: string | null
+          icon?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_featured?: boolean | null
+          is_system?: boolean | null
+          name: string
+          organization_id?: string | null
+          preview_image_url?: string | null
+          required_integrations?: string[] | null
+          success_rate?: number | null
+          tags?: string[] | null
+          template_config?: Json
+          trigger_type: string
+          updated_at?: string | null
+          usage_count?: number | null
+        }
+        Update: {
+          action_type?: string
+          average_revenue?: number | null
+          badge?: string | null
+          category?: string
+          config?: Json | null
+          created_at?: string | null
+          description?: string | null
+          estimated_time?: string | null
+          estimated_time_saved?: string | null
+          icon?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_featured?: boolean | null
+          is_system?: boolean | null
+          name?: string
+          organization_id?: string | null
+          preview_image_url?: string | null
+          required_integrations?: string[] | null
+          success_rate?: number | null
+          tags?: string[] | null
+          template_config?: Json
+          trigger_type?: string
+          updated_at?: string | null
+          usage_count?: number | null
+        }
         Relationships: [
           {
-            foreignKeyName: "automation_runs_automation_id_fkey"
-            columns: ["automation_id"]
+            foreignKeyName: "automation_templates_organization_id_fkey"
+            columns: ["organization_id"]
             isOneToOne: false
-            referencedRelation: "automations"
+            referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
         ]
@@ -449,28 +798,25 @@ export type Database = {
         Row: {
           automation_id: string | null
           conditions: Json | null
-          created_at: string
-          event_type: string | null
+          created_at: string | null
           id: string
-          schedule_config: Json | null
+          trigger_config: Json | null
           trigger_type: string
         }
         Insert: {
           automation_id?: string | null
           conditions?: Json | null
-          created_at?: string
-          event_type?: string | null
+          created_at?: string | null
           id?: string
-          schedule_config?: Json | null
+          trigger_config?: Json | null
           trigger_type: string
         }
         Update: {
           automation_id?: string | null
           conditions?: Json | null
-          created_at?: string
-          event_type?: string | null
+          created_at?: string | null
           id?: string
-          schedule_config?: Json | null
+          trigger_config?: Json | null
           trigger_type?: string
         }
         Relationships: [
@@ -513,59 +859,149 @@ export type Database = {
         }
         Relationships: []
       }
+      automation_workflows: {
+        Row: {
+          category: string | null
+          created_at: string | null
+          created_by: string | null
+          description: string | null
+          execution_count: number | null
+          id: string
+          last_triggered_at: string | null
+          name: string
+          organization_id: string
+          performance_metrics: Json | null
+          status: string | null
+          success_count: number | null
+          template_config: Json | null
+          template_id: string | null
+          updated_at: string | null
+          user_id: string
+          visual_config: Json | null
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          execution_count?: number | null
+          id?: string
+          last_triggered_at?: string | null
+          name: string
+          organization_id: string
+          performance_metrics?: Json | null
+          status?: string | null
+          success_count?: number | null
+          template_config?: Json | null
+          template_id?: string | null
+          updated_at?: string | null
+          user_id: string
+          visual_config?: Json | null
+        }
+        Update: {
+          category?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          execution_count?: number | null
+          id?: string
+          last_triggered_at?: string | null
+          name?: string
+          organization_id?: string
+          performance_metrics?: Json | null
+          status?: string | null
+          success_count?: number | null
+          template_config?: Json | null
+          template_id?: string | null
+          updated_at?: string | null
+          user_id?: string
+          visual_config?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "automation_workflows_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       automations: {
         Row: {
           category: string
-          created_at: string
+          created_at: string | null
           created_by: string | null
           description: string | null
           failure_count: number | null
           id: string
-          last_run_at: string | null
+          is_active: boolean | null
+          is_paused: boolean | null
+          last_triggered_at: string | null
           name: string
-          next_run_at: string | null
-          run_count: number | null
-          status: string
+          organization_id: string | null
           success_count: number | null
           template_id: string | null
-          updated_at: string
-          user_id: string | null
+          trigger_count: number | null
+          updated_at: string | null
         }
         Insert: {
-          category?: string
-          created_at?: string
+          category: string
+          created_at?: string | null
           created_by?: string | null
           description?: string | null
           failure_count?: number | null
           id?: string
-          last_run_at?: string | null
+          is_active?: boolean | null
+          is_paused?: boolean | null
+          last_triggered_at?: string | null
           name: string
-          next_run_at?: string | null
-          run_count?: number | null
-          status?: string
+          organization_id?: string | null
           success_count?: number | null
           template_id?: string | null
-          updated_at?: string
-          user_id?: string | null
+          trigger_count?: number | null
+          updated_at?: string | null
         }
         Update: {
           category?: string
-          created_at?: string
+          created_at?: string | null
           created_by?: string | null
           description?: string | null
           failure_count?: number | null
           id?: string
-          last_run_at?: string | null
+          is_active?: boolean | null
+          is_paused?: boolean | null
+          last_triggered_at?: string | null
           name?: string
-          next_run_at?: string | null
-          run_count?: number | null
-          status?: string
+          organization_id?: string | null
           success_count?: number | null
           template_id?: string | null
-          updated_at?: string
-          user_id?: string | null
+          trigger_count?: number | null
+          updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "automations_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "automations_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "automations_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "automation_templates"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       call_routing_logs: {
         Row: {
@@ -852,8 +1288,12 @@ export type Database = {
           content: string | null
           created_at: string
           delivered_at: string | null
+          direction: string | null
+          error_message: string | null
           external_id: string | null
+          from_address: string | null
           id: string
+          job_id: string | null
           metadata: Json | null
           opened_at: string | null
           provider: string
@@ -861,7 +1301,10 @@ export type Database = {
           sent_at: string | null
           status: string | null
           subject: string | null
+          to_address: string | null
           type: string
+          updated_at: string | null
+          user_id: string | null
         }
         Insert: {
           clicked_at?: string | null
@@ -869,8 +1312,12 @@ export type Database = {
           content?: string | null
           created_at?: string
           delivered_at?: string | null
+          direction?: string | null
+          error_message?: string | null
           external_id?: string | null
+          from_address?: string | null
           id?: string
+          job_id?: string | null
           metadata?: Json | null
           opened_at?: string | null
           provider: string
@@ -878,7 +1325,10 @@ export type Database = {
           sent_at?: string | null
           status?: string | null
           subject?: string | null
+          to_address?: string | null
           type: string
+          updated_at?: string | null
+          user_id?: string | null
         }
         Update: {
           clicked_at?: string | null
@@ -886,8 +1336,12 @@ export type Database = {
           content?: string | null
           created_at?: string
           delivered_at?: string | null
+          direction?: string | null
+          error_message?: string | null
           external_id?: string | null
+          from_address?: string | null
           id?: string
+          job_id?: string | null
           metadata?: Json | null
           opened_at?: string | null
           provider?: string
@@ -895,45 +1349,74 @@ export type Database = {
           sent_at?: string | null
           status?: string | null
           subject?: string | null
+          to_address?: string | null
           type?: string
+          updated_at?: string | null
+          user_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "communication_logs_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "fact_jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "communication_logs_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       communication_templates: {
         Row: {
           content: string
-          created_at: string
+          created_at: string | null
           id: string
-          is_default: boolean | null
           name: string
+          organization_id: string
+          preview_data: Json | null
           subject: string | null
-          type: string
-          updated_at: string
+          type: string | null
+          updated_at: string | null
           variables: Json | null
         }
         Insert: {
           content: string
-          created_at?: string
+          created_at?: string | null
           id?: string
-          is_default?: boolean | null
           name: string
+          organization_id: string
+          preview_data?: Json | null
           subject?: string | null
-          type: string
-          updated_at?: string
+          type?: string | null
+          updated_at?: string | null
           variables?: Json | null
         }
         Update: {
           content?: string
-          created_at?: string
+          created_at?: string | null
           id?: string
-          is_default?: boolean | null
           name?: string
+          organization_id?: string
+          preview_data?: Json | null
           subject?: string | null
-          type?: string
-          updated_at?: string
+          type?: string | null
+          updated_at?: string | null
           variables?: Json | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "communication_templates_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       company_settings: {
         Row: {
@@ -2143,6 +2626,7 @@ export type Database = {
           client_id: string | null
           created_at: string | null
           created_by: string | null
+          created_by_automation: string | null
           date: string | null
           description: string | null
           id: string
@@ -2167,6 +2651,7 @@ export type Database = {
           client_id?: string | null
           created_at?: string | null
           created_by?: string | null
+          created_by_automation?: string | null
           date?: string | null
           description?: string | null
           id: string
@@ -2191,6 +2676,7 @@ export type Database = {
           client_id?: string | null
           created_at?: string | null
           created_by?: string | null
+          created_by_automation?: string | null
           date?: string | null
           description?: string | null
           id?: string
@@ -2216,6 +2702,13 @@ export type Database = {
             columns: ["client_id"]
             isOneToOne: false
             referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "jobs_created_by_automation_fkey"
+            columns: ["created_by_automation"]
+            isOneToOne: false
+            referencedRelation: "automation_workflows"
             referencedColumns: ["id"]
           },
           {
@@ -2387,6 +2880,27 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      organizations: {
+        Row: {
+          created_at: string | null
+          id: string
+          name: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          name: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          name?: string
+          updated_at?: string | null
+        }
+        Relationships: []
       }
       payment_methods: {
         Row: {
@@ -3172,6 +3686,7 @@ export type Database = {
           is_public: boolean | null
           labor_cost_per_hour: number | null
           name: string | null
+          organization_id: string | null
           phone: string | null
           referral_source: string | null
           role: string | null
@@ -3179,6 +3694,7 @@ export type Database = {
           status: string | null
           two_factor_enabled: boolean | null
           updated_at: string | null
+          user_id: string | null
           uses_two_factor: boolean | null
         }
         Insert: {
@@ -3195,6 +3711,7 @@ export type Database = {
           is_public?: boolean | null
           labor_cost_per_hour?: number | null
           name?: string | null
+          organization_id?: string | null
           phone?: string | null
           referral_source?: string | null
           role?: string | null
@@ -3202,6 +3719,7 @@ export type Database = {
           status?: string | null
           two_factor_enabled?: boolean | null
           updated_at?: string | null
+          user_id?: string | null
           uses_two_factor?: boolean | null
         }
         Update: {
@@ -3218,6 +3736,7 @@ export type Database = {
           is_public?: boolean | null
           labor_cost_per_hour?: number | null
           name?: string | null
+          organization_id?: string | null
           phone?: string | null
           referral_source?: string | null
           role?: string | null
@@ -3225,6 +3744,7 @@ export type Database = {
           status?: string | null
           two_factor_enabled?: boolean | null
           updated_at?: string | null
+          user_id?: string | null
           uses_two_factor?: boolean | null
         }
         Relationships: [
@@ -3740,6 +4260,30 @@ export type Database = {
         }
         Relationships: []
       }
+      todos: {
+        Row: {
+          id: number
+          inserted_at: string
+          is_complete: boolean | null
+          task: string | null
+          user_id: string
+        }
+        Insert: {
+          id?: number
+          inserted_at?: string
+          is_complete?: boolean | null
+          task?: string | null
+          user_id: string
+        }
+        Update: {
+          id?: number
+          inserted_at?: string
+          is_complete?: boolean | null
+          task?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_actions: {
         Row: {
           action_type: string
@@ -4094,6 +4638,66 @@ export type Database = {
         }
         Returns: boolean
       }
+      check_user_data: {
+        Args: { user_email: string }
+        Returns: {
+          table_name: string
+          record_count: number
+        }[]
+      }
+      check_user_products_by_email: {
+        Args: { p_email: string }
+        Returns: Json
+      }
+      check_user_products_status: {
+        Args: Record<PropertyKey, never>
+        Returns: Json
+      }
+      cleanup_all_user_data: {
+        Args: { p_keep_system_users?: boolean; p_dry_run?: boolean }
+        Returns: Json
+      }
+      create_product_manual: {
+        Args: {
+          p_name: string
+          p_category: string
+          p_price?: number
+          p_ourprice?: number
+          p_description?: string
+        }
+        Returns: {
+          category: string
+          cost: number | null
+          created_at: string | null
+          created_by: string | null
+          description: string | null
+          id: string
+          name: string
+          ourprice: number | null
+          price: number
+          sku: string | null
+          tags: string[] | null
+          taxable: boolean | null
+          updated_at: string | null
+          user_id: string | null
+        }
+      }
+      delete_job_as_admin: {
+        Args: { job_id: string }
+        Returns: Json
+      }
+      delete_job_with_related_data: {
+        Args: { job_id: string }
+        Returns: Json
+      }
+      delete_user_with_data: {
+        Args: { user_email: string }
+        Returns: undefined
+      }
+      execute_automation: {
+        Args: { p_automation_id: string; p_trigger_data: Json }
+        Returns: string
+      }
       generate_approval_token: {
         Args: {
           p_document_type: string
@@ -4118,6 +4722,23 @@ export type Database = {
           p_domain_restriction?: string
         }
         Returns: string
+      }
+      get_current_user_info: {
+        Args: Record<PropertyKey, never>
+        Returns: Json
+      }
+      get_data_summary: {
+        Args: Record<PropertyKey, never>
+        Returns: Json
+      }
+      get_default_job_statuses: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          name: string
+          color: string
+          sequence: number
+          is_default: boolean
+        }[]
       }
       get_enhanced_portal_data: {
         Args: { p_client_id: string }
@@ -4149,6 +4770,10 @@ export type Database = {
           popularity_percentage: number
         }[]
       }
+      get_product_with_computed_fields: {
+        Args: { product_row: Database["public"]["Tables"]["products"]["Row"] }
+        Returns: Json
+      }
       get_service_areas: {
         Args: { p_team_member_id: string }
         Returns: {
@@ -4176,6 +4801,10 @@ export type Database = {
           name: string
         }[]
       }
+      get_user_organization_id: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
       get_user_role: {
         Args: { user_uuid: string }
         Returns: string
@@ -4183,6 +4812,14 @@ export type Database = {
       handle_job_portal_request: {
         Args: { p_job_number: string }
         Returns: Json
+      }
+      increment_workflow_metrics: {
+        Args: {
+          workflow_id: string
+          execution_count?: number
+          success_count?: number
+        }
+        Returns: undefined
       }
       initialize_niche_data: {
         Args: { p_user_id: string; p_business_niche: string }
@@ -4206,6 +4843,10 @@ export type Database = {
         Args: { p_user_id: string; p_business_niche?: string }
         Returns: undefined
       }
+      initialize_user_data_with_enhanced_niche_data: {
+        Args: { p_user_id: string; p_business_niche: string }
+        Returns: Json
+      }
       initialize_user_defaults: {
         Args: { p_user_id: string }
         Returns: undefined
@@ -4219,8 +4860,32 @@ export type Database = {
         }
         Returns: undefined
       }
+      populate_niche_products: {
+        Args: { p_niche: string }
+        Returns: number
+      }
+      populate_painting_products_for_user: {
+        Args: Record<PropertyKey, never>
+        Returns: Json
+      }
+      populate_products_for_user_by_email: {
+        Args: { p_email: string; p_niche?: string }
+        Returns: Json
+      }
+      reload_products_for_current_niche: {
+        Args: Record<PropertyKey, never>
+        Returns: Json
+      }
       send_invoice_sms: {
         Args: { invoice_id: string; recipient_phone: string; message: string }
+        Returns: Json
+      }
+      test_products_functionality: {
+        Args: Record<PropertyKey, never>
+        Returns: Json
+      }
+      test_products_visibility: {
+        Args: Record<PropertyKey, never>
         Returns: Json
       }
       update_team_member_commission: {

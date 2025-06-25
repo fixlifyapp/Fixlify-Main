@@ -1,0 +1,328 @@
+
+/* Enhanced Automation System Styles with Fixlify Design */
+
+/* Main automation page styling */
+.automation-page {
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 50%, #f3e8ff 100%);
+  min-height: 100vh;
+}
+
+/* Gradient backgrounds matching Fixlify theme */
+.gradient-primary {
+  background: linear-gradient(135deg, #8A4DD5 0%, #B084F9 100%);
+}
+
+.gradient-success {
+  background: linear-gradient(135deg, #10B981 0%, #34D399 100%);
+}
+
+.gradient-warning {
+  background: linear-gradient(135deg, #F59E0B 0%, #FBBF24 100%);
+}
+
+.gradient-info {
+  background: linear-gradient(135deg, #3B82F6 0%, #60A5FA 100%);
+}
+
+/* Enhanced card shadows */
+.shadow-card {
+  box-shadow: 
+    0 4px 6px -1px rgba(0, 0, 0, 0.1),
+    0 2px 4px -1px rgba(0, 0, 0, 0.06),
+    0 0 0 1px rgba(139, 92, 246, 0.05);
+}
+
+.shadow-card-hover {
+  box-shadow: 
+    0 10px 15px -3px rgba(0, 0, 0, 0.1),
+    0 4px 6px -2px rgba(0, 0, 0, 0.05),
+    0 0 0 1px rgba(139, 92, 246, 0.1);
+}
+
+/* Automation builder responsive layout */
+.automation-builder {
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  height: 100vh;
+  gap: 0;
+}
+
+@media (max-width: 1024px) {
+  .automation-builder {
+    grid-template-columns: 280px 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .automation-builder {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+  }
+  
+  .workflow-sidebar {
+    height: 40vh;
+    overflow-y: auto;
+    border-right: none;
+    border-bottom: 1px solid #e5e7eb;
+  }
+  
+  .react-flow-wrapper {
+    height: 60vh;
+  }
+}
+
+/* Enhanced node styles */
+.workflow-node {
+  background: white;
+  border: 2px solid #e5e7eb;
+  border-radius: 12px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  transition: all 0.2s ease;
+  min-width: 180px;
+  max-width: 280px;
+}
+
+.workflow-node:hover {
+  border-color: #8A4DD5;
+  box-shadow: 0 8px 25px -8px rgba(139, 92, 246, 0.3);
+  transform: translateY(-2px);
+}
+
+.workflow-node.selected {
+  border-color: #8A4DD5;
+  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
+}
+
+/* Node type specific styling */
+.workflow-node.trigger {
+  border-left: 4px solid #3B82F6;
+}
+
+.workflow-node.action {
+  border-left: 4px solid #10B981;
+}
+
+.workflow-node.condition {
+  border-left: 4px solid #F59E0B;
+}
+
+/* Enhanced connection styling */
+.react-flow__edge-path {
+  stroke: #8A4DD5;
+  stroke-width: 2;
+}
+
+.react-flow__edge.selected .react-flow__edge-path {
+  stroke: #6D28D9;
+  stroke-width: 3;
+}
+
+.react-flow__connection-path {
+  stroke: #8A4DD5;
+  stroke-width: 2;
+  stroke-dasharray: 5;
+}
+
+/* Control button styling */
+.react-flow__controls-button {
+  background: white !important;
+  border: 1px solid #e5e7eb !important;
+  color: #6b7280 !important;
+  transition: all 0.2s ease !important;
+}
+
+.react-flow__controls-button:hover {
+  background: #8A4DD5 !important;
+  color: white !important;
+  border-color: #8A4DD5 !important;
+}
+
+/* Minimap styling */
+.react-flow__minimap {
+  background: #f8fafc !important;
+  border: 1px solid #e5e7eb !important;
+  border-radius: 8px !important;
+}
+
+/* Template gallery enhancements */
+.template-card {
+  transition: all 0.3s ease;
+  border: 1px solid #e5e7eb;
+  background: white;
+}
+
+.template-card:hover {
+  border-color: #8A4DD5;
+  transform: translateY(-4px);
+  box-shadow: 0 10px 25px -8px rgba(139, 92, 246, 0.25);
+}
+
+.template-card.recommended {
+  border: 2px solid #8A4DD5;
+  background: linear-gradient(135deg, #ffffff 0%, #f3e8ff 100%);
+}
+
+/* AI composer styling */
+.ai-composer {
+  background: linear-gradient(135deg, #ffffff 0%, #faf5ff 100%);
+  border: 1px solid #e879f9;
+  border-radius: 12px;
+}
+
+.ai-suggestion {
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+}
+
+.ai-suggestion:hover {
+  background: linear-gradient(135deg, #f3e8ff 0%, #faf5ff 100%);
+  border-color: #8A4DD5;
+}
+
+/* Variable pill styling */
+.variable-pill {
+  background: linear-gradient(135deg, #8A4DD5 0%, #B084F9 100%);
+  color: white;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+/* Analytics chart styling */
+.recharts-wrapper {
+  font-family: inherit;
+}
+
+.recharts-cartesian-axis-tick-value {
+  fill: #6b7280;
+  font-size: 12px;
+}
+
+.recharts-legend-item-text {
+  color: #374151 !important;
+}
+
+/* Mobile optimizations */
+@media (max-width: 640px) {
+  .automation-page {
+    padding: 1rem;
+  }
+  
+  .workflow-node {
+    min-width: 140px;
+    font-size: 0.875rem;
+  }
+  
+  .react-flow__handle {
+    width: 8px;
+    height: 8px;
+  }
+  
+  .template-card {
+    margin-bottom: 1rem;
+  }
+  
+  .ai-composer {
+    padding: 0.75rem;
+  }
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  .workflow-node {
+    background: #1f2937;
+    border-color: #374151;
+    color: #f9fafb;
+  }
+  
+  .workflow-node:hover {
+    border-color: #B084F9;
+  }
+  
+  .template-card {
+    background: #1f2937;
+    border-color: #374151;
+    color: #f9fafb;
+  }
+  
+  .ai-composer {
+    background: #1f2937;
+    border-color: #e879f9;
+  }
+}
+
+/* Animation enhancements */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.fade-in-up {
+  animation: fadeInUp 0.5s ease-out;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+.pulse {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Loading states */
+.loading-skeleton {
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: loading 1.5s infinite;
+}
+
+@keyframes loading {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+/* Accessibility improvements */
+.workflow-node:focus {
+  outline: 2px solid #8A4DD5;
+  outline-offset: 2px;
+}
+
+.template-card:focus {
+  outline: 2px solid #8A4DD5;
+  outline-offset: 2px;
+}
+
+/* Print styles */
+@media print {
+  .automation-page {
+    background: white;
+  }
+  
+  .workflow-node {
+    border: 1px solid #000;
+    box-shadow: none;
+  }
+  
+  .react-flow__edge-path {
+    stroke: #000;
+  }
+}
