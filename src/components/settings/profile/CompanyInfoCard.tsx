@@ -5,12 +5,12 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Edit, Save, X } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface CompanyInfo {
   company_name: string;
-  business_type: string;
   company_address: string;
   company_city: string;
   company_state: string;
@@ -42,7 +42,6 @@ export const CompanyInfoCard = ({ companyInfo, onUpdate, isLoading }: CompanyInf
       // Ensure we're passing the correct field name for custom domain
       const updateData = {
         company_name: formData.company_name,
-        business_type: formData.business_type,
         company_address: formData.company_address,
         company_city: formData.company_city,
         company_state: formData.company_state,
@@ -125,28 +124,15 @@ export const CompanyInfoCard = ({ companyInfo, onUpdate, isLoading }: CompanyInf
         )}
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label htmlFor="company_name">Company Name</Label>
-            <Input
-              id="company_name"
-              value={formData.company_name}
-              onChange={(e) => handleInputChange('company_name', e.target.value)}
-              disabled={!isEditing}
-              placeholder="Your Company Name"
-            />
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="business_type">Business Type</Label>
-            <Input
-              id="business_type"
-              value={formData.business_type}
-              onChange={(e) => handleInputChange('business_type', e.target.value)}
-              disabled={!isEditing}
-              placeholder="e.g., HVAC & Plumbing Services"
-            />
-          </div>
+        <div className="space-y-2">
+          <Label htmlFor="company_name">Company Name</Label>
+          <Input
+            id="company_name"
+            value={formData.company_name}
+            onChange={(e) => handleInputChange('company_name', e.target.value)}
+            disabled={!isEditing}
+            placeholder="Your Company Name"
+          />
         </div>
 
         <div className="space-y-2">
@@ -197,7 +183,7 @@ export const CompanyInfoCard = ({ companyInfo, onUpdate, isLoading }: CompanyInf
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
-            <Label htmlFor="company_phone">Phone</Label>
+            <Label htmlFor="company_phone">Owner Phone Number</Label>
             <Input
               id="company_phone"
               value={formData.company_phone}

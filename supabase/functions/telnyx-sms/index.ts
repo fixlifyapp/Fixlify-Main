@@ -126,7 +126,7 @@ async function sendSMSAndStore(supabaseAdmin: any, fromNumber: string, recipient
   
   if (job_id && !originalMessage.includes('hub.fixlify.app/portal/') && !originalMessage.includes('hub.fixlify.app/approve/')) {
     console.log('🔗 Adding job portal link for job:', job_id);
-    const jobPortalLink = `https://portal.fixlify.app/client/${job_id}`;
+    const jobPortalLink = `https://hub.fixlify.app/client/${job_id}`;
     finalMessage = `${originalMessage}\n\nView details: ${jobPortalLink}`;
     console.log('✅ Job portal link added to message');
   }

@@ -1,4 +1,4 @@
-import React, { lazy } from 'react';
+import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -13,9 +13,10 @@ import ClientDetailPage from "@/pages/ClientDetailPage";
 import SchedulePage from "@/pages/SchedulePage";
 import FinancePage from "@/pages/FinancePage";
 import ConnectCenterPageOptimized from "@/pages/ConnectCenterPageOptimized";
-import CommunicationsSettingsPage from "@/pages/CommunicationsSettingsPage";
+
 import AiCenterPage from "@/pages/AiCenterPage";
 import AutomationsPage from "@/pages/AutomationsPage";
+import { AdvancedWorkflowAutomation } from "@/components/automations/AdvancedWorkflowAutomation";
 import AnalyticsPage from "@/pages/AnalyticsPage";
 import TeamManagementPage from "@/pages/TeamManagementPage";
 import SettingsPage from "@/pages/SettingsPage";
@@ -23,12 +24,40 @@ import ProfileCompanyPage from "@/pages/ProfileCompanyPage";
 import ConfigurationPage from "@/pages/ConfigurationPage";
 import ProductsPage from "@/pages/ProductsPage";
 import IntegrationsPage from "@/pages/IntegrationsPage";
+import PhoneNumbersPage from "./pages/PhoneNumbersPage";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { AppProviders } from "@/components/ui/AppProviders";
+import TestDebug from "@/pages/TestDebug";
+import MessagingDebugPage from "@/pages/MessagingDebugPage";
+import JobCreationTestPage from "@/pages/JobCreationTestPage";
+import { automationTrigger } from "@/services/automation-trigger";
 
 const queryClient = new QueryClient();
 
-// Wrapper component for protected routes with providers
+import { ErrorBoundary } from "@/components/ErrorBoundary";
+
+// Initialize automation trigger service
+if (typeof window !== 'undefined') {
+  // Delay initialization to avoid errors during startup
+  setTimeout(() => {
+    try {
+      automationTrigger.scheduleTimeTriggers();
+    } catch (error) {
+      console.error('Failed to initialize automation triggers:', error);
+    }
+  }, 1000);
+}
+
+// Test route for debugging
+const TestPage = () => (
+  <div style={{ padding: '20px', background: 'lightgreen', minHeight: '100vh' }}>
+    <h1>🧪 Test Route Working</h1>
+    <p>This page confirms routing is functional</p>
+    <a href="/dashboard" style={{ color: 'blue' }}>Go to Dashboard</a>
+  </div>
+);
+
+// Simple wrapper for protected routes
 const ProtectedRouteWithProviders = ({ children }: { children: React.ReactNode }) => {
   return (
     <ProtectedRoute>
@@ -39,18 +68,36 @@ const ProtectedRouteWithProviders = ({ children }: { children: React.ReactNode }
   );
 };
 
-const AdvancedDashboard = lazy(() => import("@/pages/AdvancedDashboard"));
-
 function App() {
-  console.log('🚀 Fixlify App fully loaded');
+  console.log('🚀 Fixlify App loaded');
   
   return (
-    <QueryClientProvider client={queryClient}>
-      <Toaster />
-      <BrowserRouter>
-        <Routes>
-          {/* Default route redirects to auth */}
-          <Route path="/" element={<Navigate to="/auth" replace />} />
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <TooltipProvider>
+          <Toaster />
+          <BrowserRouter>
+            <Routes>
+              {/* Test route for debugging */}
+              <Route path="/test" element={<TestPage />} />
+              <Route path="/debug" element={<TestDebug />} />
+          <Route path="/messaging-debug" element={
+            <AuthProvider>
+              <ProtectedRouteWithProviders>
+                <MessagingDebugPage />
+              </ProtectedRouteWithProviders>
+            </AuthProvider>
+          } />
+          <Route path="/job-test" element={
+            <AuthProvider>
+              <ProtectedRouteWithProviders>
+                <JobCreationTestPage />
+              </ProtectedRouteWithProviders>
+            </AuthProvider>
+          } />
+          
+          {/* Default route */}
+          <Route path="/" element={<Navigate to="/dashboard" replace />} />
           
           {/* Auth routes */}
           <Route path="/auth" element={
@@ -61,10 +108,9 @@ function App() {
             </AuthProvider>
           } />
           
-          {/* Legacy login route redirects to auth */}
           <Route path="/login" element={<Navigate to="/auth" replace />} />
           
-          {/* Protected routes */}
+          {/* Main protected routes */}
           <Route path="/dashboard" element={
             <AuthProvider>
               <ProtectedRouteWithProviders>
@@ -129,13 +175,7 @@ function App() {
             </AuthProvider>
           } />
           
-          <Route path="/communications" element={
-            <AuthProvider>
-              <ProtectedRouteWithProviders>
-                <CommunicationsSettingsPage />
-              </ProtectedRouteWithProviders>
-            </AuthProvider>
-          } />
+
           
           <Route path="/ai-center" element={
             <AuthProvider>
@@ -153,7 +193,13 @@ function App() {
             </AuthProvider>
           } />
           
-
+          <Route path="/automations/advanced" element={
+            <AuthProvider>
+              <ProtectedRouteWithProviders>
+                <AdvancedWorkflowAutomation />
+              </ProtectedRouteWithProviders>
+            </AuthProvider>
+          } />
           
           <Route path="/analytics" element={
             <AuthProvider>
@@ -212,6 +258,14 @@ function App() {
             </AuthProvider>
           } />
           
+          <Route path="/phone-numbers" element={
+            <AuthProvider>
+              <ProtectedRouteWithProviders>
+                <PhoneNumbersPage />
+              </ProtectedRouteWithProviders>
+            </AuthProvider>
+          } />
+          
           <Route path="/settings/products" element={
             <AuthProvider>
               <ProtectedRouteWithProviders>
@@ -244,89 +298,27 @@ function App() {
             </AuthProvider>
           } />
           
-          <Route path="/settings/telnyx" element={
-            <AuthProvider>
-              <ProtectedRouteWithProviders>
-                <CommunicationsSettingsPage />
-              </ProtectedRouteWithProviders>
-            </AuthProvider>
-          } />
-          
-          <Route path="/settings/ai" element={
-            <AuthProvider>
-              <ProtectedRouteWithProviders>
-                <CommunicationsSettingsPage />
-              </ProtectedRouteWithProviders>
-            </AuthProvider>
-          } />
-          
-          <Route path="/ai-settings" element={
-            <AuthProvider>
-              <ProtectedRouteWithProviders>
-                <CommunicationsSettingsPage />
-              </ProtectedRouteWithProviders>
-            </AuthProvider>
-          } />
-          
-          <Route path="/settings/profile-company" element={
-            <AuthProvider>
-              <ProtectedRouteWithProviders>
-                <ProfileCompanyPage />
-              </ProtectedRouteWithProviders>
-            </AuthProvider>
-          } />
-          
-          <Route path="/settings/configuration-page" element={
-            <AuthProvider>
-              <ProtectedRouteWithProviders>
-                <ConfigurationPage />
-              </ProtectedRouteWithProviders>
-            </AuthProvider>
-          } />
-          
-          <Route path="/settings/products-page" element={
-            <AuthProvider>
-              <ProtectedRouteWithProviders>
-                <ProductsPage />
-              </ProtectedRouteWithProviders>
-            </AuthProvider>
-          } />
-          
-          <Route path="/settings/integrations-page" element={
-            <AuthProvider>
-              <ProtectedRouteWithProviders>
-                <IntegrationsPage />
-              </ProtectedRouteWithProviders>
-            </AuthProvider>
-          } />
-          
-          <Route path="/dashboard/advanced" element={
-            <AuthProvider>
-              <ProtectedRouteWithProviders>
-                <React.Suspense fallback={<div>Loading...</div>}>
-                  <AdvancedDashboard />
-                </React.Suspense>
-              </ProtectedRouteWithProviders>
-            </AuthProvider>
-          } />
-          
-          {/* 404 route */}
+          {/* 404 fallback */}
           <Route path="*" element={
-            <AuthProvider>
-              <TooltipProvider>
-                <div className="flex min-h-screen items-center justify-center p-4 bg-gradient-to-br from-gray-50 to-gray-100">
-                  <div className="text-center">
-                    <h1 className="text-2xl font-bold text-gray-900 mb-4">404 - Page Not Found</h1>
-                    <p className="text-gray-600 mb-6">The page you're looking for doesn't exist.</p>
-                    <Navigate to="/dashboard" replace />
-                  </div>
-                </div>
-              </TooltipProvider>
-            </AuthProvider>
+            <div style={{ 
+              padding: '40px', 
+              textAlign: 'center', 
+              minHeight: '100vh',
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'center',
+              alignItems: 'center'
+            }}>
+              <h1>404 - Page Not Found</h1>
+              <p>The page you're looking for doesn't exist.</p>
+              <a href="/dashboard" style={{ color: 'blue', marginTop: '20px' }}>Go to Dashboard</a>
+            </div>
           } />
-        </Routes>
-      </BrowserRouter>
-    </QueryClientProvider>
+            </Routes>
+          </BrowserRouter>
+        </TooltipProvider>
+      </QueryClientProvider>
+    </ErrorBoundary>
   );
 }
 

@@ -43,18 +43,24 @@ export function PhoneNumberPurchase() {
 
   const checkClaimableNumber = async () => {
     try {
-      const { data, error } = await supabase.functions.invoke('telnyx-phone-numbers', {
-        body: {
-          action: 'check_claimable',
-          phone_number: '+14375249932'
-        }
-      });
+      // Check for available Telnyx numbers that can be claimed
+      const { data, error } = await supabase
+        .from('telnyx_phone_numbers')
+        .select('phone_number, status, user_id')
+        .in('phone_number', ['+14375290279', '+14375249932'])
+        .eq('status', 'available')
+        .is('user_id', null)
+        .limit(1)
+        .single();
 
-      if (error) throw error;
+      if (error && error.code !== 'PGRST116') {
+        console.error('Error checking claimable numbers:', error);
+        return;
+      }
       
-      if (data.claimable) {
+      if (data) {
         setClaimableNumber({
-          phone_number: '+14375249932',
+          phone_number: data.phone_number,
           status: 'available_to_claim',
           user_id: null,
           source: 'claimable'
@@ -69,17 +75,36 @@ export function PhoneNumberPurchase() {
   const claimNumberMutation = useMutation({
     mutationFn: async (phoneNumber: string) => {
       console.log('Claiming number:', phoneNumber);
-      const { data, error } = await supabase.functions.invoke('telnyx-phone-numbers', {
-        body: {
-          action: 'claim_existing',
-          phone_number: phoneNumber
-        }
-      });
+      
+      // Get current user
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      if (userError || !user) {
+        throw new Error('You must be logged in to claim a phone number');
+      }
+      
+      // Update the phone number to assign it to the current user
+      const { data, error } = await supabase
+        .from('telnyx_phone_numbers')
+        .update({
+          user_id: user.id,
+          status: 'active',
+          purchased_at: new Date().toISOString()
+        })
+        .eq('phone_number', phoneNumber)
+        .eq('status', 'available')
+        .is('user_id', null)
+        .select()
+        .single();
 
       if (error) {
         console.error('Claim error:', error);
-        throw error;
+        throw new Error('Failed to claim phone number: ' + error.message);
       }
+      
+      if (!data) {
+        throw new Error('Phone number is no longer available to claim');
+      }
+      
       console.log('Claim response:', data);
       return data;
     },

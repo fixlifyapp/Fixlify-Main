@@ -12,6 +12,16 @@ import {
 import { LayoutDashboard, Briefcase, Users, Calendar, DollarSign, MessageSquare, BarChart3, Settings, Bot, Zap, UserCheck, ExternalLink, Phone } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { TrackingWrapper } from "@/components/ui/TrackingWrapper";
+import { cn } from "@/lib/utils";
+
+interface RouteItem {
+  label: string;
+  icon: any;
+  href: string;
+  color: string;
+  indent?: boolean;
+  isSection?: boolean;
+}
 
 export function AppSidebar() {
   const location = useLocation();
@@ -48,11 +58,6 @@ export function AppSidebar() {
     href: '/connect',
     color: "text-fixlyfy"
   }, {
-    label: 'Communications',
-    icon: Phone,
-    href: '/communications',
-    color: "text-fixlyfy"
-  }, {
     label: 'AI Center',
     icon: Bot,
     href: '/ai-center',
@@ -71,6 +76,11 @@ export function AppSidebar() {
     label: 'Team',
     icon: UserCheck,
     href: '/team',
+    color: "text-fixlyfy"
+  }, {
+    label: 'Phone Numbers',
+    icon: Phone,
+    href: '/phone-numbers',
     color: "text-fixlyfy"
   }, {
     label: 'Settings',
@@ -133,7 +143,11 @@ export function AppSidebar() {
                   <SidebarMenuButton 
                     asChild
                     isActive={location.pathname === route.href}
-                    className="w-full justify-start text-base font-medium transition-all duration-200 hover:scale-[1.02] data-[active=true]:bg-gradient-primary data-[active=true]:text-white data-[active=true]:shadow-md hover:data-[active=true]:shadow-lg"
+                    className={cn(
+                      "w-full justify-start text-base font-medium transition-all duration-200 hover:scale-[1.02] data-[active=true]:bg-gradient-primary data-[active=true]:text-white data-[active=true]:shadow-md hover:data-[active=true]:shadow-lg",
+                      route.indent ? "ml-6 text-sm" : "",
+                      route.isSection ? "font-semibold" : ""
+                    )}
                     tooltip={route.label}
                   >
                     <Button 

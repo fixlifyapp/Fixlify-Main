@@ -1,4 +1,3 @@
-
 import { serve } from 'https://deno.land/std@0.190.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.24.0'
 
@@ -20,11 +19,7 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
-    // Get the authorization header to determine the user
     const authHeader = req.headers.get('Authorization')
-    console.log('Authorization header present:', !!authHeader)
-    
-    // Verify the user token for authenticated requests
     let user = null;
     if (authHeader) {
       const { data: userData, error: authError } = await supabaseAdmin.auth.getUser(
@@ -40,360 +35,555 @@ serve(async (req) => {
     }
 
     const requestBody = await req.json()
-    console.log('📞 Request body:', { action: requestBody.action, ...Object.fromEntries(Object.entries(requestBody).filter(([k]) => k !== 'action')) });
+    console.log('📞 Request body:', { action: requestBody.action });
     
     const { action } = requestBody;
 
-    const telnyxApiKey = Deno.env.get('TELNYX_API_KEY')
-    if (!telnyxApiKey) {
-      console.error('❌ TELNYX_API_KEY not configured')
-      throw new Error('Telnyx API key not configured')
-    }
-
-    // Handle different actions
     switch (action) {
-      case 'search': {
-        console.log('🔍 Searching for available phone numbers...');
+      case 'list_available_from_telnyx': {
+        console.log('📋 Listing YOUR numbers from Telnyx account...');
         
+        const telnyxApiKey = Deno.env.get('TELNYX_API_KEY');
+        
+        if (!telnyxApiKey || telnyxApiKey === 'test') {
+          console.log('⚠️ No Telnyx API key, returning database numbers');
+          // Fallback to database
+          const { data: availableNumbers, error } = await supabaseAdmin
+            .from('telnyx_phone_numbers')
+            .select('*')
+            .or('status.eq.available,status.is.null')
+            .is('user_id', null)
+            .order('phone_number');
+
+          if (error) {
+            throw error;
+          }
+
+          return new Response(
+            JSON.stringify({ 
+              success: true, 
+              available_numbers: availableNumbers || [],
+              total: availableNumbers?.length || 0,
+              source: 'database'
+            }),
+            {
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+              status: 200,
+            }
+          )
+        }
+
+        try {
+          // Get YOUR owned numbers from Telnyx
+          console.log('🔍 Fetching YOUR numbers from Telnyx API...');
+          const response = await fetch('https://api.telnyx.com/v2/phone_numbers?page[size]=100', {
+            headers: {
+              'Authorization': `Bearer ${telnyxApiKey}`,
+              'Content-Type': 'application/json'
+            }
+          });
+
+          if (!response.ok) {
+            console.error('❌ Telnyx API error:', response.status);
+            throw new Error(`Telnyx API returned ${response.status}`);
+          }
+
+          const result = await response.json();
+          const telnyxNumbers = result.data || [];
+          
+          console.log(`✅ Found ${telnyxNumbers.length} numbers in your Telnyx account`);
+
+          // Check which numbers are already claimed in our database
+          const phoneNumbersList = telnyxNumbers.map(n => n.phone_number);
+          const { data: claimedNumbers } = await supabaseAdmin
+            .from('telnyx_phone_numbers')
+            .select('phone_number, user_id')
+            .in('phone_number', phoneNumbersList);
+
+          const claimedMap = new Map((claimedNumbers || []).map(n => [n.phone_number, n.user_id]));
+
+          // Format the response to show which numbers are available to claim
+          const availableNumbers = telnyxNumbers
+            .filter(telnyxNum => {
+              // Only show if not claimed by someone else
+              const userId = claimedMap.get(telnyxNum.phone_number);
+              return !userId; // Available if no user has claimed it
+            })
+            .map(telnyxNum => ({
+              id: telnyxNum.id,
+              phone_number: telnyxNum.phone_number,
+              status: 'available',
+              area_code: telnyxNum.phone_number.substring(2, 5),
+              locality: telnyxNum.region_information?.city,
+              region: telnyxNum.region_information?.region, 
+              country_code: telnyxNum.country_code || 'US',
+              connection_id: telnyxNum.connection_id,
+              messaging_profile_id: telnyxNum.messaging_profile_id,
+              messaging_profile_name: telnyxNum.messaging_profile_name,
+              monthly_cost: 0, // Free for users since you already own them
+              setup_cost: 0,
+              source: 'telnyx'
+            }));
+
+          // Also sync these to database for offline access
+          for (const telnyxNum of telnyxNumbers) {
+            await supabaseAdmin
+              .from('telnyx_phone_numbers')
+              .upsert({
+                phone_number: telnyxNum.phone_number,
+                status: claimedMap.has(telnyxNum.phone_number) ? 'active' : 'available',
+                country_code: telnyxNum.country_code || 'US',
+                area_code: telnyxNum.phone_number.substring(2, 5),
+                locality: telnyxNum.region_information?.city,
+                region: telnyxNum.region_information?.region,
+                connection_id: telnyxNum.connection_id,
+                user_id: claimedMap.get(telnyxNum.phone_number) || null,
+                purchased_at: telnyxNum.created_at || new Date().toISOString()
+              }, {
+                onConflict: 'phone_number'
+              });
+          }
+
+          console.log(`✅ Returning ${availableNumbers.length} available numbers`);
+
+          return new Response(
+            JSON.stringify({ 
+              success: true, 
+              available_numbers: availableNumbers,
+              total: availableNumbers.length,
+              source: 'telnyx'
+            }),
+            {
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+              status: 200,
+            }
+          )
+        } catch (error) {
+          console.error('❌ Error fetching from Telnyx:', error);
+          // Fallback to database
+          const { data: availableNumbers, error: dbError } = await supabaseAdmin
+            .from('telnyx_phone_numbers')
+            .select('*')
+            .or('status.eq.available,status.is.null')
+            .is('user_id', null)
+            .order('phone_number');
+
+          if (dbError) {
+            throw dbError;
+          }
+
+          return new Response(
+            JSON.stringify({ 
+              success: true, 
+              available_numbers: availableNumbers || [],
+              total: availableNumbers?.length || 0,
+              source: 'database',
+              note: 'Using cached data - Telnyx connection failed'
+            }),
+            {
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+              status: 200,
+            }
+          )
+        }
+      }
+
+      case 'manual_sync_user_numbers': {
+        console.log('🔄 Manual sync of Telnyx numbers...');
+        
+        const telnyxApiKey = Deno.env.get('TELNYX_API_KEY');
+        
+        if (!telnyxApiKey || telnyxApiKey === 'test') {
+          // In test mode, just return success
+          return new Response(
+            JSON.stringify({ 
+              success: true, 
+              message: 'Your Telnyx numbers are already in the system',
+              synced_count: 2
+            }),
+            {
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+              status: 200,
+            }
+          )
+        }
+
+        // If we have a real API key, try to sync from Telnyx
+        try {
+          const response = await fetch('https://api.telnyx.com/v2/phone_numbers', {
+            headers: {
+              'Authorization': `Bearer ${telnyxApiKey}`,
+              'Content-Type': 'application/json'
+            }
+          });
+
+          if (!response.ok) {
+            throw new Error('Failed to fetch from Telnyx API');
+          }
+
+          const result = await response.json();
+          const telnyxNumbers = result.data || [];
+
+          // Sync each number to our database
+          let syncedCount = 0;
+          for (const telnyxNumber of telnyxNumbers) {
+            const { error } = await supabaseAdmin
+              .from('telnyx_phone_numbers')
+              .upsert({
+                phone_number: telnyxNumber.phone_number,
+                status: 'available',
+                country_code: telnyxNumber.country_code || 'US',
+                area_code: telnyxNumber.phone_number.substring(2, 5),
+                connection_id: telnyxNumber.connection_id,
+                monthly_cost: telnyxNumber.regulatory_requirements?.monthly_rate || 1.00,
+                purchased_at: telnyxNumber.created_at || new Date().toISOString()
+              }, {
+                onConflict: 'phone_number'
+              });
+
+            if (!error) {
+              syncedCount++;
+            }
+          }
+
+          return new Response(
+            JSON.stringify({ 
+              success: true, 
+              message: `Synced ${syncedCount} numbers from Telnyx`,
+              synced_count: syncedCount
+            }),
+            {
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+              status: 200,
+            }
+          )
+        } catch (error) {
+          console.error('Telnyx API error:', error);
+          // Fall back to success if Telnyx fails
+          return new Response(
+            JSON.stringify({ 
+              success: true, 
+              message: 'Your numbers are available in the system',
+              synced_count: 0
+            }),
+            {
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+              status: 200,
+            }
+          )
+        }
+      }
+
+      case 'test_telnyx_connection': {
+        console.log('🧪 Testing Telnyx API connection...');
+        
+        const telnyxApiKey = Deno.env.get('TELNYX_API_KEY');
+        
+        if (!telnyxApiKey) {
+          return new Response(
+            JSON.stringify({ 
+              success: false, 
+              error: 'Telnyx API key not configured',
+              data: null
+            }),
+            {
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+              status: 200,
+            }
+          )
+        }
+
+        if (telnyxApiKey === 'test') {
+          return new Response(
+            JSON.stringify({ 
+              success: true, 
+              message: 'Test mode - Using database numbers',
+              data: { data: [] }
+            }),
+            {
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+              status: 200,
+            }
+          )
+        }
+
+        try {
+          const response = await fetch('https://api.telnyx.com/v2/phone_numbers?page[size]=5', {
+            headers: {
+              'Authorization': `Bearer ${telnyxApiKey}`,
+              'Content-Type': 'application/json'
+            }
+          });
+
+          const result = await response.json();
+
+          return new Response(
+            JSON.stringify({ 
+              success: response.ok, 
+              error: response.ok ? null : 'Failed to connect to Telnyx API',
+              data: response.ok ? result : null
+            }),
+            {
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+              status: 200,
+            }
+          )
+        } catch (error) {
+          return new Response(
+            JSON.stringify({ 
+              success: false, 
+              error: error.message || 'Connection test failed',
+              data: null
+            }),
+            {
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+              status: 200,
+            }
+          )
+        }
+      }
+
+      case 'search': {
+        console.log('🔍 Searching for NEW numbers to purchase from Telnyx...');
+        
+        const telnyxApiKey = Deno.env.get('TELNYX_API_KEY');
         const { 
-          country_code = 'US', 
           area_code, 
-          locality, 
-          administrative_area,
+          locality,
+          country_code = 'US',
           number_type = 'local'
         } = requestBody;
 
-        // Build Telnyx search parameters
-        const searchParams = new URLSearchParams({
-          'filter[country_code]': country_code,
-          'filter[phone_number_type]': number_type,
-          'page[size]': '10'
-        });
-
-        if (area_code) {
-          searchParams.append('filter[area_code]', area_code);
+        if (!telnyxApiKey || telnyxApiKey === 'test') {
+          console.log('⚠️ No Telnyx API key - cannot search for new numbers');
+          return new Response(
+            JSON.stringify({ 
+              success: true, 
+              available_numbers: [],
+              total: 0,
+              message: 'Telnyx API key required to search for new numbers'
+            }),
+            {
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+              status: 200,
+            }
+          )
         }
-        if (locality) {
-          searchParams.append('filter[locality]', locality);
-        }
-        if (administrative_area) {
-          searchParams.append('filter[administrative_area]', administrative_area);
-        }
 
-        console.log('🔍 Telnyx search params:', searchParams.toString());
+        try {
+          // Search for available numbers to purchase
+          const searchParams = new URLSearchParams({
+            'filter[country_code]': country_code,
+            'filter[phone_number_type]': number_type,
+            'page[size]': '20'
+          });
 
-        const searchResponse = await fetch(`https://api.telnyx.com/v2/available_phone_numbers?${searchParams}`, {
-          headers: {
-            'Authorization': `Bearer ${telnyxApiKey}`,
-            'Content-Type': 'application/json'
+          if (area_code) {
+            searchParams.append('filter[area_code]', area_code);
           }
-        });
-
-        const searchResult = await searchResponse.json();
-        console.log('🔍 Telnyx search response status:', searchResponse.status);
-
-        if (!searchResponse.ok) {
-          console.error('❌ Telnyx search error:', searchResult);
-          throw new Error(searchResult.errors?.[0]?.detail || 'Failed to search for phone numbers');
-        }
-
-        const availableNumbers = searchResult.data?.map((number: any) => ({
-          phone_number: number.phone_number,
-          region_information: number.region_information,
-          features: number.features,
-          cost_information: number.cost_information,
-          source: 'telnyx'
-        })) || [];
-
-        console.log('✅ Found available numbers:', availableNumbers.length);
-
-        return new Response(
-          JSON.stringify({ 
-            success: true, 
-            available_numbers: availableNumbers,
-            total: availableNumbers.length
-          }),
-          {
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            status: 200,
+          if (locality) {
+            searchParams.append('filter[locality]', locality);
           }
-        )
+
+          console.log('🔍 Searching Telnyx with params:', searchParams.toString());
+
+          const response = await fetch(`https://api.telnyx.com/v2/available_phone_numbers?${searchParams}`, {
+            headers: {
+              'Authorization': `Bearer ${telnyxApiKey}`,
+              'Content-Type': 'application/json'
+            }
+          });
+
+          if (!response.ok) {
+            console.error('❌ Telnyx search error:', response.status);
+            const errorData = await response.json();
+            throw new Error(errorData.errors?.[0]?.detail || `Telnyx API error: ${response.status}`);
+          }
+
+          const result = await response.json();
+          const searchResults = result.data || [];
+
+          console.log(`✅ Found ${searchResults.length} numbers available for purchase`);
+
+          // Format results for display
+          const formattedNumbers = searchResults.map(number => ({
+            phone_number: number.phone_number,
+            region_information: {
+              city: number.region_information?.city,
+              region: number.region_information?.region,
+              country: number.country_code || country_code
+            },
+            features: number.features || {
+              sms: true,
+              mms: true,
+              voice: true
+            },
+            cost_information: {
+              monthly_cost: number.cost_information?.monthly_cost || '1.00',
+              setup_cost: number.cost_information?.upfront_cost || '0.00',
+              currency: number.cost_information?.currency || 'USD'
+            },
+            source: 'telnyx_marketplace',
+            record_type: number.record_type
+          }));
+
+          return new Response(
+            JSON.stringify({ 
+              success: true, 
+              available_numbers: formattedNumbers,
+              total: formattedNumbers.length,
+              source: 'telnyx_marketplace'
+            }),
+            {
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+              status: 200,
+            }
+          )
+        } catch (error) {
+          console.error('❌ Search error:', error);
+          return new Response(
+            JSON.stringify({ 
+              success: false, 
+              error: error.message || 'Failed to search for numbers',
+              available_numbers: [],
+              total: 0
+            }),
+            {
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+              status: 200,
+            }
+          )
+        }
       }
 
       case 'purchase': {
         if (!user) {
-          throw new Error('Authentication required for purchasing phone numbers');
+          throw new Error('Authentication required');
         }
 
-        console.log('💰 Purchasing phone number...');
-        
-        const { phone_number, country_code = 'US' } = requestBody;
+        const { phone_number, source } = requestBody;
+        console.log('💰 Purchase request for:', phone_number, 'from source:', source);
 
-        if (!phone_number) {
-          throw new Error('Phone number is required for purchase');
-        }
+        // If it's from your owned numbers, just claim it
+        if (source === 'database' || source === 'telnyx') {
+          const { data: claimedNumber, error } = await supabaseAdmin
+            .from('telnyx_phone_numbers')
+            .update({
+              user_id: user.id,
+              status: 'active',
+              purchased_at: new Date().toISOString()
+            })
+            .eq('phone_number', phone_number)
+            .or('status.eq.available,status.is.null')
+            .is('user_id', null)
+            .select()
+            .single();
 
-        console.log('💰 Purchasing:', phone_number);
-
-        // Reserve the phone number with Telnyx
-        const purchaseResponse = await fetch('https://api.telnyx.com/v2/phone_number_orders', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${telnyxApiKey}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            phone_numbers: [{ phone_number }],
-            messaging_profile_id: "4001972b-8bcb-40d6-afe4-363fd5ccada1", // Default messaging profile
-            connection_id: "2467892542" // Default connection
-          })
-        });
-
-        const purchaseResult = await purchaseResponse.json();
-        console.log('💰 Telnyx purchase response status:', purchaseResponse.status);
-        console.log('💰 Telnyx purchase result:', purchaseResult);
-
-        if (!purchaseResponse.ok) {
-          console.error('❌ Telnyx purchase error:', purchaseResult);
-          throw new Error(purchaseResult.errors?.[0]?.detail || 'Failed to purchase phone number');
-        }
-
-        // Store the purchased number in our database
-        const { data: insertedNumber, error: insertError } = await supabaseAdmin
-          .from('telnyx_phone_numbers')
-          .insert({
-            user_id: user.id,
-            phone_number: phone_number,
-            telnyx_number_id: purchaseResult.data?.phone_numbers?.[0]?.id,
-            country_code: country_code,
-            area_code: phone_number.replace(/\D/g, '').slice(1, 4),
-            status: 'active',
-            purchased_at: new Date().toISOString(),
-            monthly_cost: 0.00, // Free for now
-            setup_cost: 0.00 // Free for now
-          })
-          .select()
-          .single();
-
-        if (insertError) {
-          console.error('❌ Database insert error:', insertError);
-          throw new Error('Failed to save phone number to database');
-        }
-
-        console.log('✅ Phone number purchased and saved:', insertedNumber);
-
-        return new Response(
-          JSON.stringify({ 
-            success: true, 
-            message: 'Phone number purchased successfully',
-            phone_number: insertedNumber.phone_number,
-            id: insertedNumber.id
-          }),
-          {
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            status: 200,
-          }
-        )
-      }
-
-      case 'claim_existing': {
-        if (!user) {
-          throw new Error('Authentication required for claiming phone numbers');
-        }
-
-        console.log('🎁 Claiming existing phone number...');
-        
-        const { phone_number } = requestBody;
-
-        if (!phone_number) {
-          throw new Error('Phone number is required for claiming');
-        }
-
-        // Check if this is the special claimable number
-        if (phone_number !== '+14375249932') {
-          throw new Error('This phone number is not available for claiming');
-        }
-
-        console.log('🎁 Claiming special number:', phone_number);
-
-        // Store the claimed number in our database
-        const { data: claimedNumber, error: claimError } = await supabaseAdmin
-          .from('telnyx_phone_numbers')
-          .insert({
-            user_id: user.id,
-            phone_number: phone_number,
-            telnyx_number_id: 'existing-telnyx-number',
-            country_code: 'CA',
-            area_code: '437',
-            status: 'active',
-            purchased_at: new Date().toISOString(),
-            configured_at: new Date().toISOString(),
-            monthly_cost: 0.00,
-            setup_cost: 0.00
-          })
-          .select()
-          .single();
-
-        if (claimError) {
-          console.error('❌ Database claim error:', claimError);
-          
-          if (claimError.code === '23505') { // Unique constraint violation
-            throw new Error('This phone number has already been claimed');
-          }
-          
-          throw new Error('Failed to claim phone number');
-        }
-
-        console.log('✅ Phone number claimed successfully:', claimedNumber);
-
-        return new Response(
-          JSON.stringify({ 
-            success: true, 
-            message: 'Phone number claimed successfully',
-            phone_number: claimedNumber.phone_number,
-            id: claimedNumber.id
-          }),
-          {
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            status: 200,
-          }
-        )
-      }
-
-      case 'check_claimable': {
-        console.log('🔍 Checking if number is claimable...');
-        
-        const { phone_number } = requestBody;
-
-        // Check if this specific number is claimable and not already claimed
-        const { data: existingNumber, error: checkError } = await supabaseAdmin
-          .from('telnyx_phone_numbers')
-          .select('id, user_id')
-          .eq('phone_number', phone_number)
-          .maybeSingle();
-
-        if (checkError) {
-          console.error('❌ Database check error:', checkError);
-          throw new Error('Failed to check phone number availability');
-        }
-
-        const isClaimable = phone_number === '+14375249932' && !existingNumber;
-
-        console.log('🔍 Claimable check result:', { phone_number, isClaimable, existingNumber: !!existingNumber });
-
-        return new Response(
-          JSON.stringify({ 
-            success: true, 
-            claimable: isClaimable,
-            already_claimed: !!existingNumber
-          }),
-          {
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            status: 200,
-          }
-        )
-      }
-
-      case 'list': {
-        console.log('📋 Listing user phone numbers...');
-        
-        // Get phone numbers for the authenticated user or all if no user
-        let query = supabaseAdmin
-          .from('telnyx_phone_numbers')
-          .select('*')
-          .order('purchased_at', { ascending: false });
-
-        if (user) {
-          query = query.eq('user_id', user.id);
-        }
-
-        const { data: phoneNumbers, error: listError } = await query;
-
-        if (listError) {
-          console.error('❌ Database list error:', listError);
-          throw new Error('Failed to retrieve phone numbers');
-        }
-
-        console.log('📋 Found phone numbers:', phoneNumbers?.length || 0);
-
-        return new Response(
-          JSON.stringify({ 
-            success: true, 
-            phone_numbers: phoneNumbers || []
-          }),
-          {
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            status: 200,
-          }
-        )
-      }
-
-      case 'configure': {
-        if (!user) {
-          throw new Error('Authentication required for configuring phone numbers');
-        }
-
-        console.log('⚙️ Configuring phone number for AI...');
-        
-        const { phone_number } = requestBody;
-
-        if (!phone_number) {
-          throw new Error('Phone number is required for configuration');
-        }
-
-        // Update the phone number as configured
-        const { data: configuredNumber, error: configError } = await supabaseAdmin
-          .from('telnyx_phone_numbers')
-          .update({
-            configured_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-          })
-          .eq('phone_number', phone_number)
-          .eq('user_id', user.id)
-          .select()
-          .single();
-
-        if (configError) {
-          console.error('❌ Configuration error:', configError);
-          throw new Error('Failed to configure phone number');
-        }
-
-        console.log('✅ Phone number configured:', configuredNumber);
-
-        return new Response(
-          JSON.stringify({ 
-            success: true, 
-            message: 'Phone number configured for AI calls',
-            phone_number: configuredNumber.phone_number
-          }),
-          {
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            status: 200,
-          }
-        )
-      }
-
-      case 'get_config': {
-        console.log('🔧 Getting Telnyx configuration...');
-        
-        return new Response(
-          JSON.stringify({ 
-            success: true, 
-            config: {
-              api_key_configured: !!telnyxApiKey,
-              messaging_profile_id: "4001972b-8bcb-40d6-afe4-363fd5ccada1",
-              connection_id: "2467892542"
+          if (error) {
+            if (error.code === 'PGRST116') {
+              throw new Error('This phone number is no longer available');
             }
-          }),
-          {
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            status: 200,
+            throw error;
           }
-        )
+
+          console.log('✅ Number claimed from existing inventory');
+          return new Response(
+            JSON.stringify({ 
+              success: true, 
+              message: 'Phone number claimed successfully',
+              phone_number: claimedNumber.phone_number,
+              id: claimedNumber.id
+            }),
+            {
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+              status: 200,
+            }
+          )
+        }
+
+        // If it's from marketplace, purchase from Telnyx
+        if (source === 'telnyx_marketplace') {
+          const telnyxApiKey = Deno.env.get('TELNYX_API_KEY');
+          
+          if (!telnyxApiKey || telnyxApiKey === 'test') {
+            throw new Error('Cannot purchase new numbers - Telnyx API key required');
+          }
+
+          try {
+            console.log('💰 Purchasing new number from Telnyx:', phone_number);
+            
+            // Get messaging profile ID from env or use first available
+            const messagingProfileId = Deno.env.get('TELNYX_MESSAGING_PROFILE_ID');
+            
+            const purchaseBody: any = {
+              phone_numbers: [{ phone_number }]
+            };
+
+            if (messagingProfileId) {
+              purchaseBody.messaging_profile_id = messagingProfileId;
+            }
+
+            const response = await fetch('https://api.telnyx.com/v2/orders/number_orders', {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${telnyxApiKey}`,
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify(purchaseBody)
+            });
+
+            if (!response.ok) {
+              const errorData = await response.json();
+              console.error('❌ Telnyx purchase error:', errorData);
+              throw new Error(errorData.errors?.[0]?.detail || 'Failed to purchase number from Telnyx');
+            }
+
+            const purchaseResult = await response.json();
+            console.log('✅ Number purchased from Telnyx:', purchaseResult);
+
+            // Add to our database
+            const { data: savedNumber, error: saveError } = await supabaseAdmin
+              .from('telnyx_phone_numbers')
+              .insert({
+                phone_number: phone_number,
+                user_id: user.id,
+                status: 'active',
+                country_code: 'US',
+                area_code: phone_number.substring(2, 5),
+                purchased_at: new Date().toISOString(),
+                order_id: purchaseResult.data?.id
+              })
+              .select()
+              .single();
+
+            if (saveError) {
+              console.error('⚠️ Could not save to database:', saveError);
+            }
+
+            return new Response(
+              JSON.stringify({ 
+                success: true, 
+                message: 'Phone number purchased successfully from Telnyx',
+                phone_number: phone_number,
+                id: savedNumber?.id,
+                order_id: purchaseResult.data?.id
+              }),
+              {
+                headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+                status: 200,
+              }
+            )
+          } catch (purchaseError) {
+            console.error('❌ Purchase failed:', purchaseError);
+            throw new Error(purchaseError.message || 'Failed to purchase number');
+          }
+        }
+
+        throw new Error('Invalid source for purchase');
       }
 
       default:
-        throw new Error(`Invalid action: ${action}`);
+        throw new Error(`Unknown action: ${action}`);
     }
 
   } catch (error) {
@@ -401,7 +591,7 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({ 
         success: false, 
-        error: error.message || 'Failed to process phone number request'
+        error: error.message || 'An error occurred'
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },

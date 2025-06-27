@@ -28,6 +28,14 @@ export function useAI(options: UseAIOptions = {}) {
     try {
       console.log("Sending AI request with prompt:", prompt);
       
+      // Get current session
+      const { data: { session } } = await supabase.auth.getSession();
+      console.log("Auth session exists:", !!session);
+      
+      if (!session) {
+        throw new Error("You must be logged in to use AI features");
+      }
+      
       // Check if we need to refresh insights based on time
       const shouldRefresh = customOptions?.forceRefresh || options.forceRefresh || await shouldRefreshAIInsights();
       
@@ -42,20 +50,35 @@ export function useAI(options: UseAIOptions = {}) {
             customOptions.fetchBusinessData : options.fetchBusinessData,
           userId: user?.id,
           forceRefresh: shouldRefresh
+        },
+        headers: {
+          Authorization: `Bearer ${session.access_token}`
         }
       });
       
       if (error) {
         console.error("Supabase function error:", error);
-        throw new Error(error.message);
+        console.error("Error details:", { message: error.message, code: error.code, details: error.details });
+        
+        // Check for specific error types
+        if (error.message?.includes("not configured")) {
+          throw new Error("AI service is not properly configured. Please contact support.");
+        } else if (error.message?.includes("unauthorized")) {
+          throw new Error("You don't have permission to use AI features.");
+        } else {
+          throw new Error(error.message || "Failed to connect to AI service");
+        }
       }
       
       if (!data || !data.generatedText) {
         console.error("Missing generatedText in response:", data);
+        console.error("Full response:", JSON.stringify(data, null, 2));
         throw new Error("Invalid response format from AI service");
       }
       
       console.log("AI response data:", data);
+      console.log("Generated text:", data.generatedText);
+      console.log("Generated text type:", typeof data.generatedText);
       
       // Store business data if returned
       if (data.businessData) {

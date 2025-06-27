@@ -6,6 +6,15 @@ import { LayoutDashboard, Briefcase, Users, Calendar, DollarSign, MessageSquare,
 import { useLocation, useNavigate } from "react-router-dom";
 import { TrackingWrapper } from "@/components/ui/TrackingWrapper";
 
+interface RouteItem {
+  label: string;
+  icon: any;
+  href: string;
+  color: string;
+  indent?: boolean;
+  isSection?: boolean;
+}
+
 interface SidebarProps extends React.HTMLAttributes<HTMLDivElement> {}
 
 export function Sidebar({
@@ -118,7 +127,9 @@ export function Sidebar({
                       "w-full justify-start text-base font-medium transition-all duration-200 hover:scale-[1.02]", 
                       location.pathname === route.href 
                         ? "bg-gradient-primary text-white shadow-md hover:shadow-lg" 
-                        : "text-fixlyfy-text hover:bg-fixlyfy/10 hover:text-fixlyfy"
+                        : "text-fixlyfy-text hover:bg-fixlyfy/10 hover:text-fixlyfy",
+                      route.indent ? "ml-6 text-sm" : "",
+                      route.isSection ? "font-semibold" : ""
                     )} 
                     onClick={() => handleNavigation(route.href)}
                   >

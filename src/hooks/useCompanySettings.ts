@@ -1,226 +1,150 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from './use-auth';
 import { toast } from 'sonner';
-import { BusinessHours, DEFAULT_BUSINESS_HOURS } from '@/types/businessHours';
+import { DEFAULT_TIMEZONE } from '@/utils/timezones';
 
-export interface CompanySettings {
-  id?: string;
-  user_id?: string;
-  // Company information
-  company_name: string;
-  business_type: string;
-  business_niche?: string; // Added business niche
-  company_address: string;
-  company_city: string;
-  company_state: string;
-  company_zip: string;
-  company_country: string;
-  // Contact information
-  company_phone: string;
-  company_email: string;
-  company_website: string;
-  tax_id: string;
-  // Branding
-  company_logo_url?: string;
-  company_tagline: string;
-  company_description: string;
-  // Service areas
-  service_radius: number;
-  service_zip_codes: string;
-  // Business hours
-  business_hours: BusinessHours;
-  // Email settings
-  custom_domain_name?: string;
-  mailgun_domain?: string;
-  email_from_name?: string;
-  email_from_address?: string;
-  domain_verification_status?: string;
-  mailgun_settings?: any;
-  created_at?: string;
-  updated_at?: string;
+interface CompanySettings {
+  company_name?: string;
+  company_email?: string;
+  company_phone?: string;
+  company_address?: string;
+  company_city?: string;
+  company_state?: string;
+  company_zip?: string;
+  company_country?: string;
+  company_website?: string;
+  company_timezone?: string;
+  business_type?: string;
+  tax_id?: string;
+  logo_url?: string;
+  [key: string]: any;
 }
 
-const defaultCompanySettings: CompanySettings = {
-  company_name: '',
-  business_type: '',
-  company_address: '',
-  company_city: '',
-  company_state: '',
-  company_zip: '',
-  company_country: '',
-  company_phone: '',
-  company_email: '',
-  company_website: '',
-  tax_id: '',
-  company_tagline: '',
-  company_description: '',
-  service_radius: 50,
-  service_zip_codes: '',
-  business_hours: DEFAULT_BUSINESS_HOURS,
-  email_from_name: ''
-};
-
 export const useCompanySettings = () => {
-  const [settings, setSettings] = useState<CompanySettings>(defaultCompanySettings);
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
+  const [companySettings, setCompanySettings] = useState<CompanySettings | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const { user } = useAuth();
 
-  useEffect(() => {
-    fetchSettings();
-  }, []);
+  const fetchCompanySettings = async () => {
+    if (!user?.id) {
+      setIsLoading(false);
+      return;
+    }
 
-  const fetchSettings = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        console.error('No authenticated user found');
-        setLoading(false);
-        return;
-      }
-
-      console.log('fetchSettings - Current user ID:', user.id);
-
-      // Always fetch with explicit user_id filter and single() to ensure we get exactly one record
       const { data, error } = await supabase
         .from('company_settings')
         .select('*')
         .eq('user_id', user.id)
-        .maybeSingle();
+        .single();
 
-      if (error && error.code !== 'PGRST116') {
+      if (error && error.code !== 'PGRST116') { // PGRST116 = no rows returned
         console.error('Error fetching company settings:', error);
-        setLoading(false);
-        return;
-      }
-
-      if (data) {
-        const businessHours = data.business_hours ? 
-          (typeof data.business_hours === 'string' ? JSON.parse(data.business_hours) : data.business_hours) :
-          DEFAULT_BUSINESS_HOURS;
-          
-        console.log('fetchSettings - Found company settings for user:', user.id);
-        console.log('fetchSettings - Company name from DB:', data.company_name);
-        
-        setSettings({ 
-          ...defaultCompanySettings, 
-          ...data,
-          business_hours: businessHours
-        });
+        toast.error('Failed to load company settings');
+      } else if (data) {
+        // Ensure timezone is set
+        if (!data.company_timezone) {
+          data.company_timezone = DEFAULT_TIMEZONE;
+        }
+        // Ensure business_hours is set
+        if (!data.business_hours) {
+          data.business_hours = {
+            monday: { open: "09:00", close: "17:00", enabled: true },
+            tuesday: { open: "09:00", close: "17:00", enabled: true },
+            wednesday: { open: "09:00", close: "17:00", enabled: true },
+            thursday: { open: "09:00", close: "17:00", enabled: true },
+            friday: { open: "09:00", close: "17:00", enabled: true },
+            saturday: { open: "09:00", close: "15:00", enabled: false },
+            sunday: { open: "10:00", close: "14:00", enabled: false }
+          };
+        }
+        setCompanySettings(data);
       } else {
-        console.log('fetchSettings - No settings found, creating default for user:', user.id);
-        
-        // Create default settings if none exist
-        const newSettings = {
-          ...defaultCompanySettings,
-          company_name: ''
+        // No settings found, create minimal default
+        const defaultSettings = {
+          user_id: user.id,
+          company_timezone: DEFAULT_TIMEZONE,
+          business_hours: {
+            monday: { open: "09:00", close: "17:00", enabled: true },
+            tuesday: { open: "09:00", close: "17:00", enabled: true },
+            wednesday: { open: "09:00", close: "17:00", enabled: true },
+            thursday: { open: "09:00", close: "17:00", enabled: true },
+            friday: { open: "09:00", close: "17:00", enabled: true },
+            saturday: { open: "09:00", close: "15:00", enabled: false },
+            sunday: { open: "10:00", close: "14:00", enabled: false }
+          }
+          // All other fields will be null/empty by default
         };
         
-        const { error: insertError } = await supabase
+        const { data: newData, error: createError } = await supabase
           .from('company_settings')
-          .insert({
-            user_id: user.id,
-            ...newSettings,
-            business_hours: JSON.stringify(DEFAULT_BUSINESS_HOURS)
-          });
+          .insert(defaultSettings)
+          .select()
+          .single();
         
-        if (!insertError) {
-          console.log('fetchSettings - Created new company settings for user:', user.id);
-          setSettings(newSettings);
-        } else {
-          console.error('Error creating company settings:', insertError);
+        if (createError) {
+          console.error('Error creating default company settings:', createError);
+        } else if (newData) {
+          setCompanySettings(newData);
         }
       }
     } catch (error) {
-      console.error('Error in fetchSettings:', error);
+      console.error('Error in fetchCompanySettings:', error);
       toast.error('Failed to load company settings');
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
 
-  const updateSettings = async (updates: Partial<CompanySettings>) => {
-    setSaving(true);
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('No user found');
+  const updateCompanySettings = async (updates: Partial<CompanySettings>) => {
+    if (!user?.id) return;
 
-      console.log('updateSettings - User ID:', user.id);
-      console.log('updateSettings - Updates:', updates);
-      
-      const newSettings = { ...settings, ...updates };
-      
-      // Prepare data for database with explicit user_id
-      const dataToUpdate = {
-        user_id: user.id, // Explicitly set user_id
-        ...newSettings,
-        business_hours: JSON.stringify(newSettings.business_hours)
-      };
-      
-      console.log('updateSettings - Saving to database with user_id:', user.id);
-      console.log('updateSettings - Company name being saved:', dataToUpdate.company_name);
-      
-      // Use upsert with explicit user_id conflict resolution
+    try {
+      // If timezone is being updated, validate it
+      if (updates.company_timezone && !isValidTimezone(updates.company_timezone)) {
+        toast.error('Invalid timezone selected');
+        return;
+      }
+
       const { data, error } = await supabase
         .from('company_settings')
-        .upsert(dataToUpdate, {
-          onConflict: 'user_id'
-        })
+        .update(updates)
+        .eq('user_id', user.id)
         .select()
         .single();
 
       if (error) {
-        console.error('Database update error:', error);
-        throw error;
+        console.error('Error updating company settings:', error);
+        toast.error('Failed to update company settings');
+      } else if (data) {
+        setCompanySettings(data);
+        toast.success('Company settings updated successfully');
       }
-
-      console.log('updateSettings - Database update successful:', data);
-      console.log('updateSettings - Saved company name:', data.company_name);
-
-      // Sync business hours with AI agent config if it exists
-      if (updates.business_hours) {
-        await syncBusinessHoursWithAIAgent(user.id, updates.business_hours);
-      }
-
-      setSettings(newSettings);
-      toast.success('Company settings updated successfully');
     } catch (error) {
-      console.error('Error updating company settings:', error);
+      console.error('Error in updateCompanySettings:', error);
       toast.error('Failed to update company settings');
-      throw error;
-    } finally {
-      setSaving(false);
     }
   };
 
-  const syncBusinessHoursWithAIAgent = async (userId: string, businessHours: BusinessHours) => {
-    try {
-      const { data: aiConfig } = await supabase
-        .from('ai_agent_configs')
-        .select('id')
-        .eq('user_id', userId)
-        .maybeSingle();
-
-      if (aiConfig) {
-        await supabase
-          .from('ai_agent_configs')
-          .update({
-            business_hours: businessHours,
-            updated_at: new Date().toISOString()
-          })
-          .eq('user_id', userId);
-        
-        console.log('AI agent business hours synced with company settings');
-      }
-    } catch (error) {
-      console.error('Error syncing business hours with AI agent:', error);
-    }
-  };
+  useEffect(() => {
+    fetchCompanySettings();
+  }, [user?.id]);
 
   return {
-    settings,
-    loading,
-    saving,
-    updateSettings,
-    refetch: fetchSettings
+    companySettings,
+    isLoading,
+    updateCompanySettings,
+    refetch: fetchCompanySettings
   };
+};
+
+// Helper function to validate timezone
+const isValidTimezone = (tz: string): boolean => {
+  try {
+    Intl.DateTimeFormat(undefined, { timeZone: tz });
+    return true;
+  } catch (error) {
+    return false;
+  }
 };

@@ -19,11 +19,18 @@ const PREFIXES = {
 
 export const generateNextId = async (entityType: 'job' | 'estimate' | 'invoice' | 'client'): Promise<string> => {
   try {
-    // First, check if we have a counter for this entity type
+    // Get current user
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      throw new Error('User not authenticated');
+    }
+
+    // First, check if we have a counter for this entity type and user
     const { data: counter, error: fetchError } = await supabase
       .from('id_counters')
       .select('*')
       .eq('entity_type', entityType)
+      .eq('user_id', user.id)
       .single();
 
     let nextNumber: number;
@@ -38,7 +45,8 @@ export const generateNextId = async (entityType: 'job' | 'estimate' | 'invoice' 
           entity_type: entityType,
           prefix: PREFIXES[entityType],
           current_value: nextNumber,
-          start_value: STARTING_VALUES[entityType]
+          start_value: STARTING_VALUES[entityType],
+          user_id: user.id
         });
     } else if (counter) {
       // Counter exists, increment it
@@ -47,7 +55,8 @@ export const generateNextId = async (entityType: 'job' | 'estimate' | 'invoice' 
       await supabase
         .from('id_counters')
         .update({ current_value: nextNumber })
-        .eq('entity_type', entityType);
+        .eq('entity_type', entityType)
+        .eq('user_id', user.id);
     } else {
       throw new Error('Unexpected error fetching counter');
     }

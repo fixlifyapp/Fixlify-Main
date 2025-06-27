@@ -12,7 +12,8 @@ import {
   Wrench, 
   Target, 
   TrendingUp,
-  RefreshCw
+  RefreshCw,
+  Bug
 } from "lucide-react";
 import { JobsList } from "@/components/jobs/JobsList";
 import { JobsFilters } from "@/components/jobs/JobsFilters";
@@ -21,6 +22,7 @@ import { ScheduleJobModal } from "@/components/schedule/ScheduleJobModal";
 import { useJobsConsolidated } from "@/hooks/useJobsConsolidated";
 import { useJobs } from "@/hooks/useJobs";
 import { toast } from "sonner";
+import { debugJobCreation } from "@/utils/debug-job-creation";
 
 const JobsPageOptimized = () => {
   const [isGridView, setIsGridView] = useState(false);
@@ -176,6 +178,19 @@ const JobsPageOptimized = () => {
     toast.success('Jobs refreshed');
   };
 
+  const handleDebugJobCreation = async () => {
+    const results = await debugJobCreation();
+    console.log('Debug results:', results);
+    
+    // Show toast with summary
+    const failures = Object.entries(results).filter(([_, result]) => !result.success);
+    if (failures.length === 0) {
+      toast.success('All job creation checks passed! ✅');
+    } else {
+      toast.error(`${failures.length} checks failed. See console for details.`);
+    }
+  };
+
   return (
     <PageLayout>
       <AnimatedContainer animation="fade-in">
@@ -204,6 +219,17 @@ const JobsPageOptimized = () => {
                 filters={filters}
               />
               <div className="flex items-center gap-2">
+                {process.env.NODE_ENV === 'development' && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleDebugJobCreation}
+                    className="flex gap-2 rounded-xl"
+                    title="Debug job creation"
+                  >
+                    <Bug size={18} />
+                  </Button>
+                )}
                 <Button
                   variant="ghost"
                   size="sm"

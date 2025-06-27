@@ -1,25 +1,34 @@
-
 import React from "react";
 import ReactDOM from "react-dom/client";
-import App from "./App.tsx";
+import App from "./App.tsx";  // Add .tsx extension
 import "./index.css";
 
-// Preload critical resources
-const preloadResources = () => {
-  // Preload fonts
-  const fontLink = document.createElement('link');
-  fontLink.rel = 'preload';
-  fontLink.as = 'font';
-  fontLink.type = 'font/woff2';
-  fontLink.crossOrigin = 'anonymous';
-  document.head.appendChild(fontLink);
-};
+console.log("Main.tsx starting...");
 
-// Initialize app
-preloadResources();
+const rootElement = document.getElementById("root");
 
-ReactDOM.createRoot(document.getElementById("root")!).render(
-  <React.StrictMode>
-    <App />
-  </React.StrictMode>,
-);
+if (!rootElement) {
+  throw new Error("Root element not found");
+}
+
+try {
+  console.log("Creating React root...");
+  const root = ReactDOM.createRoot(rootElement);
+  
+  console.log("Rendering App...");
+  root.render(
+    <React.StrictMode>
+      <App />
+    </React.StrictMode>
+  );
+  
+  console.log("App rendered successfully!");
+} catch (error) {
+  console.error("Failed to render app:", error);
+  rootElement.innerHTML = `
+    <div style="padding: 40px; color: red; font-family: monospace;">
+      <h1>Render Error</h1>
+      <pre>${error}</pre>
+    </div>
+  `;
+}

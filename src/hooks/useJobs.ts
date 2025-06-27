@@ -170,7 +170,7 @@ export const useJobs = (clientId?: string, enableCustomFields?: boolean) => {
       if (!validStatus) {
         console.warn(`Job status "${jobData.status}" not found in configuration, using default`);
         const defaultStatus = jobStatuses.find(js => js.is_default) || jobStatuses[0];
-        jobData.status = defaultStatus?.name || 'scheduled';
+        jobData.status = defaultStatus?.name || 'New';
       }
     }
 
@@ -178,7 +178,12 @@ export const useJobs = (clientId?: string, enableCustomFields?: boolean) => {
   };
 
   const addJob = async (jobData: Partial<Job>) => {
+    console.log("🔍 addJob called with:", jobData);
+    console.log("🔑 User ID:", user?.id);
+    console.log("✅ Can create jobs:", canCreateJobs());
+    
     if (!canCreateJobs()) {
+      console.log("❌ Permission denied for job creation");
       import('@/components/ui/sonner').then(({ toast }) => {
         toast.error("You don't have permission to create jobs");
       });
@@ -186,12 +191,17 @@ export const useJobs = (clientId?: string, enableCustomFields?: boolean) => {
     }
 
     try {
+      console.log("🆔 Generating job ID...");
       const jobId = await generateNextId('job');
+      console.log("✅ Generated job ID:", jobId);
+      
       const autoTitle = jobData.title || 
         `${jobData.client?.name || 'Service'} - ${jobData.job_type || jobData.service || 'General Service'}`;
+      console.log("📝 Auto-generated title:", autoTitle);
       
       let clientAddress = '';
       if (jobData.client_id) {
+        console.log("🏠 Fetching client address for:", jobData.client_id);
         const { data: clientData } = await supabase
           .from('clients')
           .select('address, city, state, zip')
@@ -219,18 +229,22 @@ export const useJobs = (clientId?: string, enableCustomFields?: boolean) => {
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
         tags: Array.isArray(jobData.tags) ? jobData.tags : [],
-        tasks: Array.isArray(jobData.tasks) ? jobData.tasks.map(task => String(task)) : []
+        tasks: Array.isArray(jobData.tasks) ? jobData.tasks : []
       });
 
+      console.log("💾 Inserting job into database...");
       const { data, error } = await supabase
         .from('jobs')
         .insert(validatedJobData)
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error("❌ Database insert error:", error);
+        throw error;
+      }
 
-      console.log('Job created successfully:', data);
+      console.log('✅ Job created successfully:', data);
       return data;
     } catch (error) {
       console.error('Error creating job:', error);

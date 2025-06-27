@@ -19,14 +19,15 @@ export const supabase = createClient<Database>(
       storage: window.localStorage,
       storageKey: 'fixlify-auth-token',
       flowType: 'implicit'
-    },
-    global: {
-      headers: {
-        'x-application-name': 'fixlify'
-      }
     }
+    // Removed global headers to fix CORS issue
   }
 );
+
+// Make supabase available globally for debugging
+if (typeof window !== 'undefined') {
+  (window as any).supabase = supabase;
+}
 
 // Export a function to create a new client if needed
 export const createNewClient = () => {

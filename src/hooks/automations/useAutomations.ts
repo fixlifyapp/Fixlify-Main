@@ -1,368 +1,486 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { useOrganization } from '@/contexts/OrganizationContext';
+import { useAuth } from '@/hooks/use-auth';
 import { toast } from 'sonner';
 
-export interface AutomationWorkflow {
-  id: string;
-  organization_id: string;
+interface AutomationRule {
+  id?: string;
   name: string;
   description?: string;
-  status: 'active' | 'paused' | 'draft' | 'archived';
-  category?: string;
-  template_id?: string;
-  visual_config?: any;
-  performance_metrics?: any;
-  last_triggered_at?: string;
-  execution_count: number;
-  success_count: number;
-  created_at: string;
-  updated_at: string;
+  status: 'active' | 'paused' | 'draft';
+  trigger_type: string;
+  trigger_conditions?: any[];
+  action_type: string;
+  action_config: any;
+  conditions?: {
+    operator: 'AND' | 'OR';
+    rules: any[];
+  };
+  delivery_window: {
+    businessHoursOnly: boolean;
+    allowedDays: string[];
+    timeRange?: { start: string; end: string };
+  };
+  multi_channel_config: {
+    primaryChannel: 'sms' | 'email';
+    fallbackEnabled: boolean;
+    fallbackChannel?: 'sms' | 'email';
+    fallbackDelayHours: number;
+  };
+  execution_count?: number;
+  success_count?: number;
+  last_executed_at?: string;
+  created_at?: string;
+  updated_at?: string;
 }
 
-export interface AutomationTemplate {
+interface AutomationMetrics {
+  totalRules: number;
+  activeRules: number;
+  totalExecutions: number;
+  successRate: number;
+  messagesSent: number;
+  responsesReceived: number;
+  revenueGenerated: number;
+  recentExecutions: number;
+}
+
+interface AutomationTemplate {
   id: string;
   name: string;
   description: string;
   category: string;
   template_config: any;
   usage_count: number;
-  success_rate?: number;
-  average_revenue?: number;
-  estimated_time_saved?: string;
-  required_integrations: string[];
-  tags: string[];
   is_featured: boolean;
-}
-
-export interface AutomationHistory {
-  id: string;
-  workflow_id: string;
-  execution_status: 'success' | 'failed' | 'partial';
-  execution_time_ms?: number;
-  error_details?: any;
-  variables_used?: any;
-  actions_executed?: any;
-  created_at: string;
+  average_success_rate?: number;
+  tags: string[];
 }
 
 export const useAutomations = () => {
-  const [workflows, setWorkflows] = useState<AutomationWorkflow[]>([]);
+  const [automations, setAutomations] = useState<AutomationRule[]>([]);
   const [templates, setTemplates] = useState<AutomationTemplate[]>([]);
-  const [history, setHistory] = useState<AutomationHistory[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [metrics, setMetrics] = useState<AutomationMetrics>({
+    totalRules: 0,
+    activeRules: 0,
+    totalExecutions: 0,
+    successRate: 0,
+    messagesSent: 0,
+    responsesReceived: 0,
+    revenueGenerated: 0,
+    recentExecutions: 0
+  });
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const { organization } = useOrganization();
 
-  // Fetch workflows
-  const fetchWorkflows = async () => {
+  const { user } = useAuth();
+
+  // Load all automations
+  const loadAutomations = useCallback(async () => {
+    if (!user?.id) return;
+
+    setLoading(true);
+    setError(null);
+
     try {
-      // First, get the current user
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        setError('User not authenticated');
-        return;
-      }
-
-      // Use organization.id if available, otherwise use user.id
-      const orgId = organization?.id || user.id;
-      
-      console.log('Fetching workflows for org:', orgId);
-      
       const { data, error } = await supabase
         .from('automation_workflows')
         .select('*')
-        .eq('organization_id', orgId)
+        .eq('organization_id', user.id)
         .order('created_at', { ascending: false });
-      
-      if (error) {
-        console.error('Supabase error:', error);
-        throw error;
-      }
-      
-      console.log('Workflows fetched:', data);
-      setWorkflows(data || []);
-    } catch (err) {
-      console.error('Error fetching workflows:', err);
-      setError('Failed to load automations');
-      toast.error('Failed to load automations');
-    }
-  };
 
-  // Fetch templates
-  const fetchTemplates = async () => {
+      if (error) throw error;
+
+      const formattedData = (data || []).map(item => ({
+        id: item.id,
+        name: item.name,
+        description: item.description,
+        status: item.status,
+        trigger_type: item.trigger_type,
+        trigger_conditions: item.trigger_conditions,
+        action_type: item.action_type,
+        action_config: item.action_config,
+        conditions: item.conditions,
+        delivery_window: item.delivery_window,
+        multi_channel_config: item.multi_channel_config,
+        execution_count: item.execution_count,
+        success_count: item.success_count,
+        last_executed_at: item.last_executed_at,
+        created_at: item.created_at,
+        updated_at: item.updated_at
+      }));
+
+      setAutomations(formattedData);
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to load automations';
+      setError(errorMessage);
+      console.error('Error loading automations:', err);
+      toast.error('Failed to load automations');
+    } finally {
+      setLoading(false);
+    }
+  }, [user?.id]);
+
+  // Load automation templates
+  const loadTemplates = useCallback(async () => {
     try {
       const { data, error } = await supabase
         .from('automation_templates')
         .select('*')
         .order('usage_count', { ascending: false });
-      
+
       if (error) throw error;
       setTemplates(data || []);
     } catch (err) {
-      console.error('Error fetching templates:', err);
+      console.error('Error loading templates:', err);
     }
-  };
+  }, []);
 
-  // Fetch history
-  const fetchHistory = async (workflowId?: string) => {
-    if (!organization?.id) return;
-    
+  // Load automation metrics
+  const loadMetrics = useCallback(async () => {
+    if (!user?.id) return;
+
     try {
-      let query = supabase
-        .from('automation_history')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(100);
-      
-      if (workflowId) {
-        query = query.eq('workflow_id', workflowId);
+      const { data, error } = await supabase
+        .rpc('get_automation_analytics', { org_id: user.id });
+
+      if (error) throw error;
+
+      if (data) {
+        setMetrics({
+          totalRules: data.totalrules || 0,
+          activeRules: data.activerules || 0,
+          totalExecutions: data.totalexecutions || 0,
+          successRate: Number(data.successrate) || 0,
+          messagesSent: data.messagessent || 0,
+          responsesReceived: data.responsesreceived || 0,
+          revenueGenerated: Number(data.revenuegenerated) || 0,
+          recentExecutions: data.recentexecutions || 0
+        });
+      }
+    } catch (err) {
+      console.error('Error loading metrics:', err);
+    }
+  }, [user?.id]);
+
+  // Create or update automation
+  const saveAutomation = useCallback(async (automation: AutomationRule) => {
+    if (!user?.id) return;
+
+    try {
+      const automationData = {
+        organization_id: user.id,
+        name: automation.name,
+        description: automation.description,
+        status: automation.status,
+        trigger_type: automation.trigger_type,
+        trigger_conditions: automation.trigger_conditions || [],
+        action_type: automation.action_type,
+        action_config: automation.action_config,
+        conditions: automation.conditions,
+        delivery_window: automation.delivery_window,
+        multi_channel_config: automation.multi_channel_config,
+        ai_enhanced: true // Mark as AI enhanced since we have AI features
+      };
+
+      let result;
+      if (automation.id) {
+        // Update existing
+        result = await supabase
+          .from('automation_workflows')
+          .update(automationData)
+          .eq('id', automation.id)
+          .eq('organization_id', user.id);
       } else {
-        // Get history for all workflows in the organization
-        const workflowIds = workflows.map(w => w.id);
-        if (workflowIds.length > 0) {
-          query = query.in('workflow_id', workflowIds);
-        }
-      }
-      
-      const { data, error } = await query;
-      
-      if (error) throw error;
-      setHistory(data || []);
-    } catch (err) {
-      console.error('Error fetching history:', err);
-    }
-  };
-
-  // Create workflow
-  const createWorkflow = async (workflow: Partial<AutomationWorkflow>) => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        toast.error('User not authenticated');
-        return null;
+        // Create new
+        result = await supabase
+          .from('automation_workflows')
+          .insert(automationData);
       }
 
-      const orgId = organization?.id || user.id;
-      
-      const { data, error } = await supabase
-        .from('automation_workflows')
-        .insert({
-          ...workflow,
-          organization_id: orgId,
-          status: workflow.status || 'draft',
-          execution_count: 0,
-          success_count: 0
-        })
-        .select()
-        .single();
-      
-      if (error) throw error;
-      
-      setWorkflows([data, ...workflows]);
-      toast.success('Automation created successfully');
-      return data;
+      if (result.error) throw result.error;
+
+      toast.success(automation.id ? 'Automation updated successfully' : 'Automation created successfully');
+      await loadAutomations();
+      await loadMetrics();
+
+      return { success: true };
     } catch (err) {
-      console.error('Error creating workflow:', err);
-      toast.error('Failed to create automation');
-      return null;
+      const errorMessage = err instanceof Error ? err.message : 'Failed to save automation';
+      console.error('Error saving automation:', err);
+      toast.error(errorMessage);
+      return { success: false, error: errorMessage };
     }
-  };
+  }, [user?.id, loadAutomations, loadMetrics]);
 
-  // Update workflow
-  const updateWorkflow = async (id: string, updates: Partial<AutomationWorkflow>) => {
-    try {
-      const { data, error } = await supabase
-        .from('automation_workflows')
-        .update(updates)
-        .eq('id', id)
-        .select()
-        .single();
-      
-      if (error) throw error;
-      
-      setWorkflows(workflows.map(w => w.id === id ? data : w));
-      toast.success('Automation updated successfully');
-      return data;
-    } catch (err) {
-      console.error('Error updating workflow:', err);
-      toast.error('Failed to update automation');
-      return null;
-    }
-  };
+  // Delete automation
+  const deleteAutomation = useCallback(async (automationId: string) => {
+    if (!user?.id) return;
 
-  // Toggle workflow status
-  const toggleWorkflowStatus = async (id: string) => {
-    const workflow = workflows.find(w => w.id === id);
-    if (!workflow) return;
-    
-    const newStatus = workflow.status === 'active' ? 'paused' : 'active';
-    return updateWorkflow(id, { status: newStatus });
-  };
-
-  // Delete workflow
-  const deleteWorkflow = async (id: string) => {
     try {
       const { error } = await supabase
         .from('automation_workflows')
         .delete()
-        .eq('id', id);
-      
-      if (error) throw error;
-      
-      setWorkflows(workflows.filter(w => w.id !== id));
-      toast.success('Automation deleted successfully');
-      return true;
-    } catch (err) {
-      console.error('Error deleting workflow:', err);
-      toast.error('Failed to delete automation');
-      return false;
-    }
-  };
+        .eq('id', automationId)
+        .eq('organization_id', user.id);
 
-  // Execute workflow manually
-  const executeWorkflow = async (id: string, variables?: any) => {
-    try {
-      // Call edge function to execute workflow
-      const { data, error } = await supabase.functions.invoke('execute-automation', {
-        body: { workflow_id: id, variables }
-      });
-      
       if (error) throw error;
-      
-      toast.success('Automation executed successfully');
-      // Refresh history
-      fetchHistory(id);
-      return data;
+
+      toast.success('Automation deleted successfully');
+      await loadAutomations();
+      await loadMetrics();
+
+      return { success: true };
     } catch (err) {
-      console.error('Error executing workflow:', err);
-      toast.error('Failed to execute automation');
+      const errorMessage = err instanceof Error ? err.message : 'Failed to delete automation';
+      console.error('Error deleting automation:', err);
+      toast.error(errorMessage);
+      return { success: false, error: errorMessage };
+    }
+  }, [user?.id, loadAutomations, loadMetrics]);
+
+  // Toggle automation status
+  const toggleAutomationStatus = useCallback(async (automationId: string, currentStatus: string) => {
+    if (!user?.id) return;
+
+    try {
+      const newStatus = currentStatus === 'active' ? 'paused' : 'active';
+      
+      const { error } = await supabase
+        .from('automation_workflows')
+        .update({ status: newStatus })
+        .eq('id', automationId)
+        .eq('organization_id', user.id);
+
+      if (error) throw error;
+
+      toast.success(`Automation ${newStatus === 'active' ? 'activated' : 'paused'}`);
+      await loadAutomations();
+
+      return { success: true };
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to update automation status';
+      console.error('Error toggling automation status:', err);
+      toast.error(errorMessage);
+      return { success: false, error: errorMessage };
+    }
+  }, [user?.id, loadAutomations]);
+
+  // Test automation
+  const testAutomation = useCallback(async (automationId: string, testData?: any) => {
+    if (!user?.id) return;
+
+    try {
+      // Get automation details
+      const { data: automation, error } = await supabase
+        .from('automation_workflows')
+        .select('*')
+        .eq('id', automationId)
+        .eq('organization_id', user.id)
+        .single();
+
+      if (error || !automation) {
+        throw new Error('Automation not found');
+      }
+
+      // Call the automation trigger function
+      const response = await fetch(`${supabase.supabaseUrl}/functions/v1/automation-trigger`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${supabase.supabaseKey}`,
+        },
+        body: JSON.stringify({
+          type: 'test_automation',
+          organization_id: user.id,
+          trigger_type: automation.trigger_type,
+          test_data: {
+            client_name: 'Test Customer',
+            client_phone: '+1234567890',
+            client_email: 'test@example.com',
+            job_title: 'Test Job',
+            job_type: 'Test',
+            company_name: 'Your Company',
+            company_phone: '(555) 999-0000',
+            ...testData
+          }
+        }),
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        toast.success('Test automation executed successfully');
+      } else {
+        toast.error(`Test failed: ${result.error || 'Unknown error'}`);
+      }
+
+      return result;
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to test automation';
+      console.error('Error testing automation:', err);
+      toast.error(errorMessage);
+      return { success: false, error: errorMessage };
+    }
+  }, [user?.id]);
+
+  // Trigger automation manually
+  const triggerAutomation = useCallback(async (triggerType: string, contextData: any) => {
+    if (!user?.id) return;
+
+    try {
+      const response = await fetch(`${supabase.supabaseUrl}/functions/v1/automation-trigger`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${supabase.supabaseKey}`,
+        },
+        body: JSON.stringify({
+          type: 'trigger_event',
+          trigger_type: triggerType,
+          event_id: `manual-${Date.now()}`,
+          organization_id: user.id,
+          context_data: contextData
+        }),
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        toast.success(`Triggered ${result.workflows_found} automation(s)`);
+      } else {
+        toast.error(`Trigger failed: ${result.error || 'Unknown error'}`);
+      }
+
+      return result;
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to trigger automation';
+      console.error('Error triggering automation:', err);
+      toast.error(errorMessage);
+      return { success: false, error: errorMessage };
+    }
+  }, [user?.id]);
+
+  // Use template to create automation
+  const useTemplate = useCallback(async (templateId: string) => {
+    try {
+      const { data: template, error } = await supabase
+        .from('automation_templates')
+        .select('*')
+        .eq('id', templateId)
+        .single();
+
+      if (error || !template) {
+        throw new Error('Template not found');
+      }
+
+      // Increment usage count
+      await supabase
+        .from('automation_templates')
+        .update({ usage_count: (template.usage_count || 0) + 1 })
+        .eq('id', templateId);
+
+      return template.template_config;
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to load template';
+      console.error('Error using template:', err);
+      toast.error(errorMessage);
       return null;
     }
-  };
+  }, []);
 
-  // Calculate performance metrics
-  const calculateMetrics = () => {
-    const totalExecutions = workflows.reduce((sum, w) => sum + w.execution_count, 0);
-    const totalSuccesses = workflows.reduce((sum, w) => sum + w.success_count, 0);
-    const successRate = totalExecutions > 0 ? (totalSuccesses / totalExecutions) * 100 : 0;
-    
-    const activeWorkflows = workflows.filter(w => w.status === 'active').length;
-    const recentExecutions = history.filter(h => {
-      const date = new Date(h.created_at);
-      const weekAgo = new Date();
-      weekAgo.setDate(weekAgo.getDate() - 7);
-      return date > weekAgo;
-    }).length;
-    
-    return {
-      totalWorkflows: workflows.length,
-      activeWorkflows,
-      totalExecutions,
-      successRate,
-      recentExecutions
-    };
-  };
+  // Get automation history
+  const getAutomationHistory = useCallback(async (automationId?: string, limit = 50) => {
+    if (!user?.id) return [];
 
-  // Initialize data
-  useEffect(() => {
-    const init = async () => {
-      setLoading(true);
-      setError(null);
-      await Promise.all([
-        fetchWorkflows(),
-        fetchTemplates()
-      ]);
-      setLoading(false);
-    };
-    
-    init();
-  }, []); // Remove organization dependency
+    try {
+      let query = supabase
+        .from('automation_executions')
+        .select(`
+          *,
+          automation_workflows!inner(name)
+        `)
+        .eq('organization_id', user.id)
+        .order('executed_at', { ascending: false })
+        .limit(limit);
 
-  // Fetch history when workflows change
-  useEffect(() => {
-    if (workflows.length > 0) {
-      fetchHistory();
+      if (automationId) {
+        query = query.eq('workflow_id', automationId);
+      }
+
+      const { data, error } = await query;
+
+      if (error) throw error;
+      return data || [];
+    } catch (err) {
+      console.error('Error loading automation history:', err);
+      return [];
     }
-  }, [workflows]);
+  }, [user?.id]);
 
-  // Real-time subscriptions
+  // Get message logs
+  const getMessageLogs = useCallback(async (automationId?: string, limit = 50) => {
+    if (!user?.id) return [];
+
+    try {
+      let query = supabase
+        .from('automation_messages')
+        .select(`
+          *,
+          automation_workflows!inner(name)
+        `)
+        .eq('organization_id', user.id)
+        .order('sent_at', { ascending: false })
+        .limit(limit);
+
+      if (automationId) {
+        query = query.eq('workflow_id', automationId);
+      }
+
+      const { data, error } = await query;
+
+      if (error) throw error;
+      return data || [];
+    } catch (err) {
+      console.error('Error loading message logs:', err);
+      return [];
+    }
+  }, [user?.id]);
+
+  // Load data on mount and when user changes
   useEffect(() => {
-    const setupSubscriptions = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      const orgId = organization?.id || user.id;
-      
-      // Subscribe to workflow changes
-      const workflowSubscription = supabase
-        .channel(`workflows-${orgId}`)
-        .on(
-          'postgres_changes',
-          {
-            event: '*',
-            schema: 'public',
-            table: 'automation_workflows',
-            filter: `organization_id=eq.${orgId}`
-          },
-          (payload) => {
-            if (payload.eventType === 'INSERT') {
-              setWorkflows(prev => [payload.new as AutomationWorkflow, ...prev]);
-            } else if (payload.eventType === 'UPDATE') {
-              setWorkflows(prev => prev.map(w => 
-                w.id === payload.new.id ? payload.new as AutomationWorkflow : w
-              ));
-            } else if (payload.eventType === 'DELETE') {
-              setWorkflows(prev => prev.filter(w => w.id !== payload.old.id));
-            }
-          }
-        )
-        .subscribe();
-      
-      // Subscribe to history changes
-      const historySubscription = supabase
-        .channel(`history-${orgId}`)
-        .on(
-          'postgres_changes',
-          {
-            event: 'INSERT',
-            schema: 'public',
-            table: 'automation_history'
-          },
-          (payload) => {
-            const workflowIds = workflows.map(w => w.id);
-            if (workflowIds.includes(payload.new.workflow_id)) {
-              setHistory(prev => [payload.new as AutomationHistory, ...prev]);
-            }
-          }
-        )
-        .subscribe();
-      
-      return () => {
-        workflowSubscription.unsubscribe();
-        historySubscription.unsubscribe();
-      };
-    };
-
-    setupSubscriptions();
-  }, [workflows]);
+    if (user?.id) {
+      loadAutomations();
+      loadTemplates();
+      loadMetrics();
+    }
+  }, [user?.id, loadAutomations, loadTemplates, loadMetrics]);
 
   return {
-    workflows,
+    // State
+    automations,
     templates,
-    history,
+    metrics,
     loading,
     error,
-    createWorkflow,
-    updateWorkflow,
-    deleteWorkflow,
-    toggleWorkflowStatus,
-    executeWorkflow,
-    metrics: calculateMetrics(),
-    refetch: {
-      workflows: fetchWorkflows,
-      templates: fetchTemplates,
-      history: fetchHistory
-    }
+
+    // Actions
+    loadAutomations,
+    loadTemplates,
+    loadMetrics,
+    saveAutomation,
+    deleteAutomation,
+    toggleAutomationStatus,
+    testAutomation,
+    triggerAutomation,
+    useTemplate,
+    getAutomationHistory,
+    getMessageLogs,
+
+    // Computed values
+    activeAutomations: automations.filter(a => a.status === 'active'),
+    draftAutomations: automations.filter(a => a.status === 'draft'),
+    pausedAutomations: automations.filter(a => a.status === 'paused'),
+    featuredTemplates: templates.filter(t => t.is_featured),
   };
 };

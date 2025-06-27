@@ -26,7 +26,9 @@ export const useScheduleJobSubmit = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    console.log("Form submission started with data:", formData);
+    console.log("🚀 Form submission started with data:", formData);
+    console.log("📋 Available clients:", clients.length);
+    console.log("🔧 Custom fields:", Object.keys(formData.customFields).length);
     
     setIsSubmitting(true);
     
@@ -60,13 +62,14 @@ export const useScheduleJobSubmit = ({
         schedule_start: formData.schedule_start || undefined,
         schedule_end: scheduleEnd || undefined,
         technician_id: formData.technician_id || undefined,
-        status: 'scheduled',
+        status: 'New',
         revenue: 0,
         tags: formData.tags,
         tasks: formData.tasks
       };
 
-      console.log("Submitting job data:", jobData);
+      console.log("📤 Submitting job data:", jobData);
+      console.log("📊 Job data size:", JSON.stringify(jobData).length, "characters");
 
       if (onJobCreated) {
         const createdJob = await onJobCreated(jobData);
@@ -114,7 +117,13 @@ export const useScheduleJobSubmit = ({
         throw new Error("Job creation function not available");
       }
     } catch (error) {
-      console.error("Error creating job:", error);
+      console.error("❌ Error creating job:", error);
+      console.error("❌ Error details:", {
+        name: error instanceof Error ? error.name : 'Unknown',
+        message: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : 'No stack trace'
+      });
+      
       const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
       toast.error(`Failed to create job: ${errorMessage}`);
     } finally {

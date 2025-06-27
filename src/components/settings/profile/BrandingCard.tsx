@@ -1,11 +1,10 @@
-
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Palette, Upload } from "lucide-react";
-import { useState, useRef } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/use-auth";
@@ -18,54 +17,134 @@ interface BrandingCardProps {
 export const BrandingCard = ({ companySettings, updateCompanySettings }: BrandingCardProps) => {
   const { user } = useAuth();
   const [isUploading, setIsUploading] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [currentUser, setCurrentUser] = useState<any>(null);
+
+  // Get the current session on mount
+  useEffect(() => {
+    const getSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      setCurrentUser(session?.user || null);
+    };
+    getSession();
+  }, []);
 
   const handleFieldChange = (field: string, value: string) => {
     updateCompanySettings({ [field]: value });
   };
 
   const handleLogoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    console.log('BrandingCard - handleLogoUpload called');
     const file = event.target.files?.[0];
-    if (!file || !user) return;
-
-    if (!file.type.startsWith('image/')) {
-      toast.error('Please select an image file');
+    console.log('Selected file:', file);
+    
+    if (!file) {
+      console.log('No file selected');
       return;
     }
 
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error('File size must be less than 5MB');
+    // Check for user from both sources
+    const activeUser = user || currentUser;
+    
+    if (!activeUser) {
+      console.log('No user logged in', { user, currentUser });
+      toast.error('Please log in to upload a logo');
+      return;
+    }
+
+    // Check file type - only PNG and JPG allowed
+    const allowedTypes = ['image/png', 'image/jpeg', 'image/jpg'];
+    if (!allowedTypes.includes(file.type)) {
+      toast.error('Invalid file format. Only PNG and JPG files are allowed.');
+      return;
+    }
+
+    // Check file size - max 500KB
+    const maxSize = 500 * 1024; // 500KB in bytes
+    if (file.size > maxSize) {
+      const fileSizeKB = Math.round(file.size / 1024);
+      toast.error(`File size too large (${fileSizeKB}KB). Maximum allowed size is 500KB.`);
       return;
     }
 
     setIsUploading(true);
     try {
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${user.id}/logo.${fileExt}`;
+      // Get fresh session token
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError || !session) {
+        console.error('Session error:', sessionError);
+        toast.error('Authentication error. Please refresh the page and try again.');
+        return;
+      }
 
-      const { data, error } = await supabase.storage
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${session.user.id}/logo.${fileExt}`;
+
+      console.log('Uploading to:', fileName);
+
+      // First, try to remove existing file if any
+      try {
+        const { error: removeError } = await supabase.storage
+          .from('company-logos')
+          .remove([fileName]);
+        
+        if (removeError) {
+          console.log('No existing file to remove or error removing:', removeError);
+        }
+      } catch (e) {
+        console.log('Error removing old file:', e);
+      }
+
+      // Upload the new file
+      const { data: uploadData, error: uploadError } = await supabase.storage
         .from('company-logos')
         .upload(fileName, file, {
-          upsert: true,
-          contentType: file.type
+          contentType: file.type,
+          upsert: true
         });
 
-      if (error) throw error;
+      if (uploadError) {
+        console.error('Upload error:', uploadError);
+        
+        // If error is about file already existing, try to update it
+        if (uploadError.message?.includes('already exists')) {
+          const { data: updateData, error: updateError } = await supabase.storage
+            .from('company-logos')
+            .update(fileName, file, {
+              contentType: file.type,
+              upsert: true
+            });
+            
+          if (updateError) {
+            throw updateError;
+          }
+        } else {
+          throw uploadError;
+        }
+      }
 
-      const { data: publicUrlData } = supabase.storage
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
         .from('company-logos')
         .getPublicUrl(fileName);
 
+      console.log('Public URL:', publicUrl);
+
+      // Add timestamp to URL to force refresh
+      const urlWithTimestamp = `${publicUrl}?t=${new Date().getTime()}`;
+
       updateCompanySettings({
-        company_logo_url: publicUrlData.publicUrl
+        company_logo_url: urlWithTimestamp
       });
 
       toast.success('Logo uploaded successfully');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error uploading logo:', error);
-      toast.error('Failed to upload logo');
+      toast.error(error.message || 'Failed to upload logo');
     } finally {
       setIsUploading(false);
+      // Reset the input value to allow re-uploading the same file
+      event.target.value = '';
     }
   };
 
@@ -86,6 +165,10 @@ export const BrandingCard = ({ companySettings, updateCompanySettings }: Brandin
                     src={companySettings.company_logo_url} 
                     alt="Company Logo" 
                     className="h-full w-full object-cover"
+                    onError={(e) => {
+                      console.error('Error loading logo image');
+                      e.currentTarget.style.display = 'none';
+                    }}
                   />
                 </div>
               ) : (
@@ -93,25 +176,38 @@ export const BrandingCard = ({ companySettings, updateCompanySettings }: Brandin
                   {companySettings.company_name?.[0] || 'F'}
                 </div>
               )}
-              <input
-                type="file"
-                ref={fileInputRef}
-                onChange={handleLogoUpload}
-                accept="image/*"
-                className="hidden"
-              />
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="gap-2"
-                onClick={() => fileInputRef.current?.click()}
-                disabled={isUploading}
-              >
-                <Upload className="h-4 w-4" />
-                {isUploading ? 'Uploading...' : 'Upload Logo'}
-              </Button>
+              
+              {/* File input with label */}
+              <div className="flex flex-col items-center gap-2">
+                <label 
+                  className={`
+                    inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-md 
+                    border border-input bg-background hover:bg-accent hover:text-accent-foreground 
+                    cursor-pointer transition-colors
+                    ${isUploading ? 'opacity-50 cursor-not-allowed' : ''}
+                  `}
+                >
+                  <input
+                    type="file"
+                    accept="image/png,image/jpeg,image/jpg"
+                    onChange={handleLogoUpload}
+                    disabled={isUploading}
+                    className="sr-only"
+                  />
+                  <Upload className="h-4 w-4" />
+                  {isUploading ? 'Uploading...' : 'Upload Logo'}
+                </label>
+                
+                {/* Debug info - remove in production */}
+                {process.env.NODE_ENV === 'development' && (
+                  <div className="text-xs text-gray-500 mt-2">
+                    User ID: {(user || currentUser)?.id || 'Not logged in'}
+                  </div>
+                )}
+              </div>
+              
               <p className="text-xs text-fixlyfy-text-secondary mt-2">
-                Recommended: 512x512px, PNG or SVG, Max 5MB
+                PNG or JPG only, Max 500KB
               </p>
             </div>
           </div>

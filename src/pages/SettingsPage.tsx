@@ -83,35 +83,22 @@ const SettingsPage = () => {
           </div>
         </Link>
         
-        {/* Telnyx Settings Card */}
-        <Link to="/settings/telnyx">
+        {/* Phone Numbers Card */}
+        <Link to="/phone-numbers">
           <div className="h-full hover:shadow-md transition-shadow fixlyfy-card cursor-pointer">
             <div className="flex items-center p-6 space-x-4">
               <div className="bg-fixlyfy/10 p-3 rounded-full">
-                <Zap className="h-6 w-6 text-fixlyfy" />
+                <Phone className="h-6 w-6 text-fixlyfy" />
               </div>
               <div>
-                <h3 className="font-medium">Telnyx Settings</h3>
-                <p className="text-sm text-muted-foreground">Manage phone numbers, AI settings, call analytics, and purchase numbers</p>
+                <h3 className="font-medium">Phone Numbers</h3>
+                <p className="text-sm text-muted-foreground">Purchase, claim, and manage your phone numbers</p>
               </div>
             </div>
           </div>
         </Link>
         
-        {/* AI Settings Card */}
-        <Link to="/ai-settings">
-          <div className="h-full hover:shadow-md transition-shadow fixlyfy-card cursor-pointer">
-            <div className="flex items-center p-6 space-x-4">
-              <div className="bg-fixlyfy/10 p-3 rounded-full">
-                <Brain className="h-6 w-6 text-fixlyfy" />
-              </div>
-              <div>
-                <h3 className="font-medium">AI Settings</h3>
-                <p className="text-sm text-muted-foreground">Configure AI agent and automation settings</p>
-              </div>
-            </div>
-          </div>
-        </Link>
+
       </div>
     </PageLayout>
   );

@@ -1,5 +1,7 @@
 
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700;800;900&display=swap');
+@import './styles/automation-enhancements.css';
+@import './styles/automation-dark-theme-fix.css';
 
 @tailwind base;
 @tailwind components;
@@ -266,4 +268,14 @@
 /* Enhanced loading states */
 .loading-state {
   animation: loading-pulse 2s ease-in-out infinite;
+}
+
+/* Hide scrollbar utility */
+.scrollbar-hide {
+  -ms-overflow-style: none;  /* Internet Explorer 10+ */
+  scrollbar-width: none;  /* Firefox */
+}
+
+.scrollbar-hide::-webkit-scrollbar { 
+  display: none;  /* Safari and Chrome */
 }

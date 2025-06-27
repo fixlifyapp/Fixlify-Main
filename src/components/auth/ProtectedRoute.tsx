@@ -24,6 +24,14 @@ export function ProtectedRoute({ children, requireAdmin = false }: ProtectedRout
   const [isCheckingOnboarding, setIsCheckingOnboarding] = useState(true);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [profileLoading, setProfileLoading] = useState(true);
+  
+  console.log('🛡️ ProtectedRoute:', {
+    path: location.pathname,
+    hasUser: !!user,
+    loading,
+    profileLoading,
+    isCheckingOnboarding
+  });
 
   // Fetch user profile
   useEffect(() => {

@@ -75,8 +75,8 @@ const ConnectCenterPageOptimized = () => {
           toast.error('Failed to open message dialog');
         }
       } else if (activeTab === "calls" && clientPhone) {
-        // Redirect to communications page for calls
-        navigate(`/communications?tab=dialer&phoneNumber=${clientPhone}&clientId=${clientId}&clientName=${clientName}`);
+        // Open dialer with client info
+        toast.info('Phone dialer feature coming soon!');
       } else if (activeTab === "emails" && clientEmail && autoOpen) {
         // Email tab auto-open is handled by EmailManagement component
         console.log('Connect Center: Email auto-open will be handled by EmailManagement component');
@@ -101,7 +101,7 @@ const ConnectCenterPageOptimized = () => {
         });
         break;
       case "calls":
-        navigate('/communications?tab=dialer');
+        toast.info('Phone dialer feature coming soon!');
         break;
       case "emails":
         // Email new conversation is handled by EmailManagement component
@@ -177,14 +177,15 @@ const ConnectCenterPageOptimized = () => {
                   Call Management
                 </h3>
                 <p className="text-gray-600 mb-4">
-                  Access the dialer and call history from the Communications settings.
+                  Phone dialer and call history features are coming soon.
                 </p>
                 <Button 
-                  onClick={() => navigate('/communications?tab=dialer')}
+                  onClick={() => toast.info('Phone dialer feature coming soon!')}
                   className="gap-2"
+                  disabled
                 >
                   <Phone className="h-4 w-4" />
-                  Go to Dialer
+                  Dialer Coming Soon
                 </Button>
               </div>
               <TelnyxCallsView />

@@ -134,7 +134,6 @@ export const SettingsUserCompany = () => {
         <CompanyInfoCard 
           companyInfo={{
             company_name: currentCompanySettings.company_name || '',
-            business_type: currentCompanySettings.business_type || '',
             company_address: currentCompanySettings.company_address || '',
             company_city: currentCompanySettings.company_city || '',
             company_state: currentCompanySettings.company_state || '',

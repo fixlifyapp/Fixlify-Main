@@ -122,16 +122,12 @@ export const useScheduleJobForm = ({ preselectedClientId }: UseScheduleJobFormPr
     
     if (!formData.client_id) {
       errors.push("Please select a client");
-    } else {
-      // Validate that selected client has a phone number
-      const selectedClient = clients.find(c => c.id === formData.client_id);
-      if (!selectedClient?.phone) {
-        errors.push("Selected client must have a phone number for messaging and communication");
-      }
     }
     
-    if (!formData.job_type) {
-      errors.push("Please select a job type");
+    // Auto-select default job type if none selected
+    if (!formData.job_type && jobTypes.length > 0) {
+      const defaultJobType = jobTypes.find(jt => jt.is_default) || jobTypes[0];
+      setFormData(prev => ({ ...prev, job_type: defaultJobType.name }));
     }
 
     // Validate required custom fields
