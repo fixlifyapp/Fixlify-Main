@@ -62,21 +62,18 @@ export const AdvancedAnalytics = ({ timePeriod, dateRange }: AdvancedAnalyticsPr
       type: 'opportunity',
       title: 'Peak Season Approaching',
       description: 'HVAC demand typically increases 40% in summer months. Consider staff adjustments.',
-      priority: 'high',
       impact: 'revenue'
     },
     {
       type: 'warning',
       title: 'Technician Capacity',
       description: 'Current utilization at 78.5%. May need additional resources for growth.',
-      priority: 'medium',
       impact: 'operations'
     },
     {
       type: 'success',
       title: 'Customer Retention Strong',
       description: 'Retention rate improved 5% this quarter. Keep up the excellent service.',
-      priority: 'low',
       impact: 'customer'
     }
   ]);
@@ -242,12 +239,6 @@ export const AdvancedAnalytics = ({ timePeriod, dateRange }: AdvancedAnalyticsPr
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-1">
                     <h4 className="font-medium">{insight.title}</h4>
-                    <Badge variant={
-                      insight.priority === 'high' ? 'destructive' :
-                      insight.priority === 'medium' ? 'default' : 'secondary'
-                    }>
-                      {insight.priority}
-                    </Badge>
                   </div>
                   <p className="text-sm text-gray-600">{insight.description}</p>
                 </div>

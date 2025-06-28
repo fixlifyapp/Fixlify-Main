@@ -17,9 +17,7 @@ const nicheTags = {
     { name: "Repair", category: "Service", color: "text-teal-600 border-teal-300" },
     { name: "Installation", category: "Service", color: "text-indigo-600 border-indigo-300" },
     { name: "Maintenance", category: "Service", color: "text-cyan-600 border-cyan-300" },
-    { name: "Warranty", category: "Service", color: "text-green-600 border-green-300" },
-    { name: "Emergency", category: "Priority", color: "text-red-600 border-red-300" },
-    { name: "Same Day", category: "Priority", color: "text-orange-600 border-orange-300" }
+    { name: "Warranty", category: "Service", color: "text-green-600 border-green-300" }
   ],
   
   garage_door: [
@@ -32,7 +30,6 @@ const nicheTags = {
     { name: "Remote Programming", category: "Service", color: "text-indigo-600 border-indigo-300" },
     { name: "Installation", category: "Service", color: "text-teal-600 border-teal-300" },
     { name: "Maintenance", category: "Service", color: "text-cyan-600 border-cyan-300" },
-    { name: "Emergency", category: "Priority", color: "text-red-600 border-red-300" },
     { name: "Safety Inspection", category: "Service", color: "text-green-600 border-green-300" }
   ],
   
@@ -45,7 +42,6 @@ const nicheTags = {
     { name: "Duct Cleaning", category: "Service", color: "text-orange-600 border-orange-300" },
     { name: "Filter Change", category: "Service", color: "text-indigo-600 border-indigo-300" },
     { name: "Thermostat", category: "Component", color: "text-teal-600 border-teal-300" },
-    { name: "Emergency", category: "Priority", color: "text-red-600 border-red-300" },
     { name: "Energy Audit", category: "Service", color: "text-green-600 border-green-300" },
     { name: "Seasonal", category: "Type", color: "text-cyan-600 border-cyan-300" }
   ],  
@@ -57,7 +53,6 @@ const nicheTags = {
     { name: "Faucet Install", category: "Service", color: "text-yellow-600 border-yellow-300" },
     { name: "Pipe Repair", category: "Service", color: "text-orange-600 border-orange-300" },
     { name: "Sewer Line", category: "Service", color: "text-indigo-600 border-indigo-300" },
-    { name: "Emergency", category: "Priority", color: "text-red-600 border-red-300" },
     { name: "Preventive", category: "Type", color: "text-green-600 border-green-300" },
     { name: "Commercial", category: "Type", color: "text-teal-600 border-teal-300" },
     { name: "Residential", category: "Type", color: "text-cyan-600 border-cyan-300" }
@@ -71,7 +66,6 @@ const nicheTags = {
     { name: "Circuit Repair", category: "Service", color: "text-red-600 border-red-300" },
     { name: "Switch Install", category: "Service", color: "text-orange-600 border-orange-300" },
     { name: "GFCI", category: "Component", color: "text-indigo-600 border-indigo-300" },
-    { name: "Emergency", category: "Priority", color: "text-red-600 border-red-300" },
     { name: "Safety Check", category: "Service", color: "text-green-600 border-green-300" },
     { name: "Smart Home", category: "Type", color: "text-teal-600 border-teal-300" },
     { name: "Commercial", category: "Type", color: "text-cyan-600 border-cyan-300" }
@@ -86,7 +80,6 @@ const nicheTags = {
     { name: "Repair", category: "Service", color: "text-orange-600 border-orange-300" },
     { name: "Maintenance", category: "Service", color: "text-indigo-600 border-indigo-300" },
     { name: "Small Job", category: "Type", color: "text-teal-600 border-teal-300" },
-    { name: "Emergency", category: "Priority", color: "text-red-600 border-red-300" },
     { name: "Indoor", category: "Location", color: "text-cyan-600 border-cyan-300" },
     { name: "Outdoor", category: "Location", color: "text-green-600 border-green-300" }
   ],
@@ -100,8 +93,7 @@ const nicheTags = {
     { name: "Basement", category: "Location", color: "text-indigo-600 border-indigo-300" },
     { name: "Commercial", category: "Type", color: "text-teal-600 border-teal-300" },
     { name: "Residential", category: "Type", color: "text-cyan-600 border-cyan-300" },
-    { name: "Permit", category: "Service", color: "text-red-600 border-red-300" },
-    { name: "Emergency", category: "Priority", color: "text-pink-600 border-pink-300" }
+    { name: "Permit", category: "Service", color: "text-red-600 border-red-300" }
   ],  
   deck_builder: [
     { name: "Wood Deck", category: "Type", color: "text-brown-600 border-brown-300" },
@@ -113,7 +105,6 @@ const nicheTags = {
     { name: "Permit Required", category: "Status", color: "text-orange-600 border-orange-300" },
     { name: "Commercial", category: "Type", color: "text-indigo-600 border-indigo-300" },
     { name: "Residential", category: "Type", color: "text-teal-600 border-teal-300" },
-    { name: "Emergency", category: "Priority", color: "text-red-600 border-red-300" },
     { name: "Warranty", category: "Service", color: "text-purple-600 border-purple-300" }
   ],
   
@@ -126,7 +117,6 @@ const nicheTags = {
     { name: "Storage", category: "Service", color: "text-orange-600 border-orange-300" },
     { name: "Fragile Items", category: "Special", color: "text-red-600 border-red-300" },
     { name: "Heavy Items", category: "Special", color: "text-gray-600 border-gray-300" },
-    { name: "Same Day", category: "Priority", color: "text-green-600 border-green-300" },
     { name: "Weekend", category: "Schedule", color: "text-cyan-600 border-cyan-300" },
     { name: "Insurance", category: "Service", color: "text-pink-600 border-pink-300" }
   ],
@@ -139,7 +129,6 @@ const nicheTags = {
     { name: "Exterior", category: "Type", color: "text-indigo-600 border-indigo-300" },
     { name: "Sump Pump", category: "Service", color: "text-green-600 border-green-300" },
     { name: "French Drain", category: "Service", color: "text-yellow-600 border-yellow-300" },
-    { name: "Emergency", category: "Priority", color: "text-red-600 border-red-300" },
     { name: "Mold Prevention", category: "Service", color: "text-orange-600 border-orange-300" },
     { name: "Commercial", category: "Type", color: "text-cyan-600 border-cyan-300" },
     { name: "Residential", category: "Type", color: "text-pink-600 border-pink-300" },
@@ -154,7 +143,6 @@ const nicheTags = {
     { name: "Clog Removal", category: "Service", color: "text-green-600 border-green-300" },
     { name: "Camera Inspection", category: "Service", color: "text-yellow-600 border-yellow-300" },
     { name: "Hydro Jetting", category: "Service", color: "text-orange-600 border-orange-300" },
-    { name: "Emergency", category: "Priority", color: "text-red-600 border-red-300" },
     { name: "Preventive", category: "Type", color: "text-indigo-600 border-indigo-300" },
     { name: "Commercial", category: "Type", color: "text-cyan-600 border-cyan-300" },
     { name: "Residential", category: "Type", color: "text-pink-600 border-pink-300" }
@@ -198,7 +186,6 @@ const nicheTags = {
     { name: "Metal Roof", category: "Material", color: "text-blue-600 border-blue-300" },
     { name: "Tile Roof", category: "Material", color: "text-orange-600 border-orange-300" },
     { name: "Flat Roof", category: "Type", color: "text-teal-600 border-teal-300" },
-    { name: "Emergency", category: "Priority", color: "text-red-600 border-red-300" },
     { name: "Repair", category: "Service", color: "text-yellow-600 border-yellow-300" },
     { name: "Replacement", category: "Service", color: "text-green-600 border-green-300" },
     { name: "Inspection", category: "Service", color: "text-purple-600 border-purple-300" },

@@ -47,14 +47,14 @@ export const WarrantySelectionDialog = ({
     {
       id: "prod-4",
       name: "1-Year Warranty",
-      description: "1-year extended warranty with priority service. Peace of mind knowing your appliance is fully protected for a full year.",
+      description: "1-year extended warranty with expedited service. Peace of mind knowing your appliance is fully protected for a full year.",
       category: "Warranties",
       price: 89,
       ourPrice: 0,
       cost: 0,
       taxable: false,
       tags: ["warranty", "protection"],
-      benefit: "Full year of coverage with priority service"
+      benefit: "Full year of coverage with expedited service"
     },
     {
       id: "prod-5",

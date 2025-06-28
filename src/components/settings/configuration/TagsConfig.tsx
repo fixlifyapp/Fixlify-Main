@@ -8,7 +8,6 @@ import * as z from "zod";
 
 const TAG_CATEGORIES = [
   "General",
-  "Priority", 
   "Service Type",
   "Equipment",
   "Location",

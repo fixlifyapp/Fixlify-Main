@@ -294,13 +294,13 @@ export const applianceRepairProducts: Omit<Product, 'id' | 'created_at' | 'updat
   },
   {
     name: "3-Year Premium Warranty",
-    description: "3-year premium warranty with priority service",
+    description: "3-year premium warranty with expedited service",
     category: "Warranties",
     price: 349.99,
     cost: 125,
     ourPrice: 125,
     taxable: true,
-    tags: ["warranty", "premium", "3-year", "priority"]
+    tags: ["warranty", "premium", "3-year", "comprehensive"]
   },
   {
     name: "Trip Fee - Within 15 miles",

@@ -131,7 +131,7 @@ export const nicheProducts: NicheProducts = {
     // Warranties
     { name: "Basic Electrical Warranty - 1 Year", description: "1-year warranty on electrical work", category: "Warranty", price: 99.00, cost: 20.00, ourPrice: 30.00, taxable: false, tags: ["warranty", "1-year", "basic"] },
     { name: "Extended Electrical Warranty - 2 Years", description: "2-year comprehensive electrical warranty", category: "Warranty", price: 199.00, cost: 35.00, ourPrice: 50.00, taxable: false, tags: ["warranty", "2-year", "extended"] },
-    { name: "Premium Electrical Warranty - 3 Years", description: "3-year premium warranty with priority service", category: "Warranty", price: 349.00, cost: 60.00, ourPrice: 85.00, taxable: false, tags: ["warranty", "3-year", "premium"] },
+    { name: "Premium Electrical Warranty - 3 Years", description: "3-year premium warranty with rush service", category: "Warranty", price: 349.00, cost: 60.00, ourPrice: 85.00, taxable: false, tags: ["warranty", "3-year", "premium"] },
   ],
 
   "Moving Services": [

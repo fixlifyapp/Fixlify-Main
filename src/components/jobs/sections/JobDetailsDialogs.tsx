@@ -4,7 +4,6 @@ import { JobDetailsEditDialog } from "../dialogs/JobDetailsEditDialog";
 import { JobTypeDialog } from "../dialogs/JobTypeDialog";
 import { TeamSelectionDialog } from "../dialogs/TeamSelectionDialog";
 import { SourceSelectionDialog } from "../dialogs/SourceSelectionDialog";
-import { PrioritySelectionDialog } from "../dialogs/PrioritySelectionDialog";
 import { ScheduleSelectionDialog } from "../dialogs/ScheduleSelectionDialog";
 import { TagsManagementDialog } from "../dialogs/TagsManagementDialog";
 import { TaskManagementDialog } from "../dialogs/TaskManagementDialog";
@@ -16,7 +15,6 @@ interface DialogStates {
   isTypeDialogOpen: boolean;
   isTeamDialogOpen: boolean;
   isSourceDialogOpen: boolean;
-  isPriorityDialogOpen: boolean;
   isScheduleDialogOpen: boolean;
   isTagsDialogOpen: boolean;
   isTasksDialogOpen: boolean;
@@ -29,7 +27,6 @@ interface DialogSetters {
   setIsTypeDialogOpen: (open: boolean) => void;
   setIsTeamDialogOpen: (open: boolean) => void;
   setIsSourceDialogOpen: (open: boolean) => void;
-  setIsPriorityDialogOpen: (open: boolean) => void;
   setIsScheduleDialogOpen: (open: boolean) => void;
   setIsTagsDialogOpen: (open: boolean) => void;
   setIsTasksDialogOpen: (open: boolean) => void;
@@ -46,7 +43,6 @@ interface JobDetailsDialogsProps {
     type: string;
     team: string;
     source: string;
-    priority: string;
     scheduleDate: string;
     scheduleTime: string;
     tags: string[];
@@ -57,7 +53,6 @@ interface JobDetailsDialogsProps {
   onUpdateType: (type: string) => void;
   onUpdateTeam: (team: string) => void;
   onUpdateSource: (source: string) => void;
-  onUpdatePriority: (priority: string) => void;
   onUpdateSchedule: (date: string, timeWindow: string) => void;
   onUpdateTags: (tags: string[]) => void;
   onUpdateTasks: (tasks: Array<{ id: number; name: string; completed: boolean }>) => void;
@@ -75,7 +70,6 @@ export const JobDetailsDialogs = ({
   onUpdateType,
   onUpdateTeam,
   onUpdateSource,
-  onUpdatePriority,
   onUpdateSchedule,
   onUpdateTags,
   onUpdateTasks,
@@ -110,13 +104,6 @@ export const JobDetailsDialogs = ({
         onOpenChange={dialogSetters.setIsSourceDialogOpen}
         initialSource={jobDetails.source}
         onSave={onUpdateSource}
-      />
-      
-      <PrioritySelectionDialog
-        open={dialogStates.isPriorityDialogOpen}
-        onOpenChange={dialogSetters.setIsPriorityDialogOpen}
-        initialPriority={jobDetails.priority}
-        onSave={onUpdatePriority}
       />
       
       <ScheduleSelectionDialog

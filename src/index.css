@@ -2,6 +2,10 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700;800;900&display=swap');
 @import './styles/automation-enhancements.css';
 @import './styles/automation-dark-theme-fix.css';
+@import './styles/workflow-builder.css';
+@import './styles/vertical-workflow-builder.css';
+@import './styles/enhanced-workflow-builder.css';
+@import './styles/simple-workflow-builder.css';
 
 @tailwind base;
 @tailwind components;

@@ -215,7 +215,6 @@ async function buildJobContext(job: any, organizationId: string) {
       job_title: job.title || job.description || 'Service Call',
       job_type: job.job_type || job.type || 'Service',
       job_status: job.status,
-      job_priority: job.priority || 'normal',
       scheduled_date: scheduledDate ? scheduledDate.toLocaleDateString('en-US', { 
         weekday: 'long', 
         year: 'numeric', 

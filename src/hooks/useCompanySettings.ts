@@ -1,150 +1,81 @@
-import { useState, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from './use-auth';
-import { toast } from 'sonner';
-import { DEFAULT_TIMEZONE } from '@/utils/timezones';
-
-interface CompanySettings {
-  company_name?: string;
-  company_email?: string;
-  company_phone?: string;
-  company_address?: string;
-  company_city?: string;
-  company_state?: string;
-  company_zip?: string;
-  company_country?: string;
-  company_website?: string;
-  company_timezone?: string;
-  business_type?: string;
-  tax_id?: string;
-  logo_url?: string;
-  [key: string]: any;
-}
+import { useAuth } from '@/hooks/use-auth';
+import { useOrganization } from '@/hooks/use-organization';
 
 export const useCompanySettings = () => {
-  const [companySettings, setCompanySettings] = useState<CompanySettings | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
   const { user } = useAuth();
+  const { organization } = useOrganization();
 
-  const fetchCompanySettings = async () => {
-    if (!user?.id) {
-      setIsLoading(false);
-      return;
-    }
-
-    try {
-      const { data, error } = await supabase
-        .from('company_settings')
-        .select('*')
-        .eq('user_id', user.id)
+  const { data: companySettings, isLoading } = useQuery({
+    queryKey: ['company-settings', user?.id, organization?.id],
+    queryFn: async () => {
+      // First try to get from profiles table
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('timezone, business_hours')
+        .eq('user_id', user?.id)
         .single();
 
-      if (error && error.code !== 'PGRST116') { // PGRST116 = no rows returned
-        console.error('Error fetching company settings:', error);
-        toast.error('Failed to load company settings');
-      } else if (data) {
-        // Ensure timezone is set
-        if (!data.company_timezone) {
-          data.company_timezone = DEFAULT_TIMEZONE;
-        }
-        // Ensure business_hours is set
-        if (!data.business_hours) {
-          data.business_hours = {
-            monday: { open: "09:00", close: "17:00", enabled: true },
-            tuesday: { open: "09:00", close: "17:00", enabled: true },
-            wednesday: { open: "09:00", close: "17:00", enabled: true },
-            thursday: { open: "09:00", close: "17:00", enabled: true },
-            friday: { open: "09:00", close: "17:00", enabled: true },
-            saturday: { open: "09:00", close: "15:00", enabled: false },
-            sunday: { open: "10:00", close: "14:00", enabled: false }
+      if (!profileError && profile) {
+        return {
+          timezone: profile.timezone || 'America/New_York',
+          businessHours: profile.business_hours || {
+            monday: { start: '09:00', end: '17:00', enabled: true },
+            tuesday: { start: '09:00', end: '17:00', enabled: true },
+            wednesday: { start: '09:00', end: '17:00', enabled: true },
+            thursday: { start: '09:00', end: '17:00', enabled: true },
+            friday: { start: '09:00', end: '17:00', enabled: true },
+            saturday: { start: '09:00', end: '17:00', enabled: false },
+            sunday: { start: '09:00', end: '17:00', enabled: false },
+          }
+        };
+      }
+
+      // Try organization settings
+      if (organization?.id) {
+        const { data: orgSettings, error: orgError } = await supabase
+          .from('organization_settings')
+          .select('timezone, business_hours')
+          .eq('organization_id', organization.id)
+          .single();
+
+        if (!orgError && orgSettings) {
+          return {
+            timezone: orgSettings.timezone || 'America/New_York',
+            businessHours: orgSettings.business_hours || {
+              monday: { start: '09:00', end: '17:00', enabled: true },
+              tuesday: { start: '09:00', end: '17:00', enabled: true },
+              wednesday: { start: '09:00', end: '17:00', enabled: true },
+              thursday: { start: '09:00', end: '17:00', enabled: true },
+              friday: { start: '09:00', end: '17:00', enabled: true },
+              saturday: { start: '09:00', end: '17:00', enabled: false },
+              sunday: { start: '09:00', end: '17:00', enabled: false },
+            }
           };
         }
-        setCompanySettings(data);
-      } else {
-        // No settings found, create minimal default
-        const defaultSettings = {
-          user_id: user.id,
-          company_timezone: DEFAULT_TIMEZONE,
-          business_hours: {
-            monday: { open: "09:00", close: "17:00", enabled: true },
-            tuesday: { open: "09:00", close: "17:00", enabled: true },
-            wednesday: { open: "09:00", close: "17:00", enabled: true },
-            thursday: { open: "09:00", close: "17:00", enabled: true },
-            friday: { open: "09:00", close: "17:00", enabled: true },
-            saturday: { open: "09:00", close: "15:00", enabled: false },
-            sunday: { open: "10:00", close: "14:00", enabled: false }
-          }
-          // All other fields will be null/empty by default
-        };
-        
-        const { data: newData, error: createError } = await supabase
-          .from('company_settings')
-          .insert(defaultSettings)
-          .select()
-          .single();
-        
-        if (createError) {
-          console.error('Error creating default company settings:', createError);
-        } else if (newData) {
-          setCompanySettings(newData);
+      }
+
+      // Default values
+      return {
+        timezone: 'America/New_York',
+        businessHours: {
+          monday: { start: '09:00', end: '17:00', enabled: true },
+          tuesday: { start: '09:00', end: '17:00', enabled: true },
+          wednesday: { start: '09:00', end: '17:00', enabled: true },
+          thursday: { start: '09:00', end: '17:00', enabled: true },
+          friday: { start: '09:00', end: '17:00', enabled: true },
+          saturday: { start: '09:00', end: '17:00', enabled: false },
+          sunday: { start: '09:00', end: '17:00', enabled: false },
         }
-      }
-    } catch (error) {
-      console.error('Error in fetchCompanySettings:', error);
-      toast.error('Failed to load company settings');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const updateCompanySettings = async (updates: Partial<CompanySettings>) => {
-    if (!user?.id) return;
-
-    try {
-      // If timezone is being updated, validate it
-      if (updates.company_timezone && !isValidTimezone(updates.company_timezone)) {
-        toast.error('Invalid timezone selected');
-        return;
-      }
-
-      const { data, error } = await supabase
-        .from('company_settings')
-        .update(updates)
-        .eq('user_id', user.id)
-        .select()
-        .single();
-
-      if (error) {
-        console.error('Error updating company settings:', error);
-        toast.error('Failed to update company settings');
-      } else if (data) {
-        setCompanySettings(data);
-        toast.success('Company settings updated successfully');
-      }
-    } catch (error) {
-      console.error('Error in updateCompanySettings:', error);
-      toast.error('Failed to update company settings');
-    }
-  };
-
-  useEffect(() => {
-    fetchCompanySettings();
-  }, [user?.id]);
+      };
+    },
+    enabled: !!user?.id,
+  });
 
   return {
-    companySettings,
+    timezone: companySettings?.timezone || 'America/New_York',
+    businessHours: companySettings?.businessHours,
     isLoading,
-    updateCompanySettings,
-    refetch: fetchCompanySettings
   };
-};
-
-// Helper function to validate timezone
-const isValidTimezone = (tz: string): boolean => {
-  try {
-    Intl.DateTimeFormat(undefined, { timeZone: tz });
-    return true;
-  } catch (error) {
-    return false;
-  }
 };

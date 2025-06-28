@@ -49,8 +49,6 @@ export const JobDetails = ({ jobId }: JobDetailsProps) => {
       setDialogStates(prev => ({ ...prev, isTeamDialogOpen: open })),
     setIsSourceDialogOpen: (open: boolean) => 
       setDialogStates(prev => ({ ...prev, isSourceDialogOpen: open })),
-    setIsPriorityDialogOpen: (open: boolean) => 
-      setDialogStates(prev => ({ ...prev, isPriorityDialogOpen: open })),
     setIsScheduleDialogOpen: (open: boolean) => 
       setDialogStates(prev => ({ ...prev, isScheduleDialogOpen: open })),
     setIsTagsDialogOpen: (open: boolean) => 
@@ -78,10 +76,6 @@ export const JobDetails = ({ jobId }: JobDetailsProps) => {
 
   const handleUpdateSource = (source: string) => {
     setJobDetails(prev => ({ ...prev, source }));
-  };
-
-  const handleUpdatePriority = (priority: string) => {
-    setJobDetails(prev => ({ ...prev, priority }));
   };
 
   const handleUpdateSchedule = (date: string, timeWindow: string) => {
@@ -206,7 +200,6 @@ export const JobDetails = ({ jobId }: JobDetailsProps) => {
         onUpdateType={handleUpdateType}
         onUpdateTeam={handleUpdateTeam}
         onUpdateSource={handleUpdateSource}
-        onUpdatePriority={handleUpdatePriority}
         onUpdateSchedule={handleUpdateSchedule}
         onUpdateTags={handleUpdateTags}
         onUpdateTasks={handleUpdateTasks}

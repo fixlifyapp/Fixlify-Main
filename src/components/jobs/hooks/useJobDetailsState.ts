@@ -20,7 +20,6 @@ export const useJobDetailsState = () => {
     type: job?.service || "Loading...",
     tags: ["HVAC", "Residential"],
     team: "Robert Smith",
-    priority: "Medium",
     source: "Phone Call"
   });
 
@@ -50,7 +49,6 @@ export const useJobDetailsState = () => {
     isTypeDialogOpen: false,
     isTeamDialogOpen: false,
     isSourceDialogOpen: false,
-    isPriorityDialogOpen: false,
     isScheduleDialogOpen: false,
     isTagsDialogOpen: false,
     isTasksDialogOpen: false,

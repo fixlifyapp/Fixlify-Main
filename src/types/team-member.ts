@@ -76,7 +76,6 @@ export interface AIInsight {
   message: string;
   details: string;
   icon: string;
-  priority: 'low' | 'medium' | 'high';
   action?: {
     label: string;
     url?: string;

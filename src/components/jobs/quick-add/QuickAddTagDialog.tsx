@@ -16,7 +16,6 @@ interface QuickAddTagDialogProps {
 
 const TAG_CATEGORIES = [
   "General",
-  "Priority",
   "Service Type",
   "Equipment",
   "Location",

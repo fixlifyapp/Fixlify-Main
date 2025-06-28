@@ -177,9 +177,9 @@ export const AIInsightsPanel = () => {
             <div className="flex items-start">
               <CheckCircle2 size={16} className="text-fixlyfy mt-0.5 mr-2" />
               <div>
-                <p className="text-sm font-medium">Priority Recommendation</p>
+                <p className="text-sm font-medium">Optimize Route Planning</p>
                 <p className="text-xs text-fixlyfy-text-secondary">
-                  Based on current workload, prioritize the Lakeview Mall ventilation project by assigning both Robert and David to accelerate completion.
+                  Based on current workload, optimize technician routes for maximum efficiency.
                 </p>
               </div>
             </div>

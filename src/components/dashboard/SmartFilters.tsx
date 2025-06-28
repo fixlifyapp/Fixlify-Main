@@ -33,7 +33,6 @@ interface FilterState {
   revenueRange: [number, number];
   customerType: string;
   jobStatus: string[];
-  priority: string;
 }
 
 interface SmartFiltersProps {
@@ -49,8 +48,7 @@ export const SmartFilters = ({ onFiltersChange, timePeriod, onTimePeriodChange }
     technicians: [],
     revenueRange: [0, 10000],
     customerType: 'all',
-    jobStatus: [],
-    priority: 'all'
+    jobStatus: []
   });
 
   const [savedFilters, setSavedFilters] = useState<{ name: string; filters: FilterState }[]>([
@@ -59,16 +57,14 @@ export const SmartFilters = ({ onFiltersChange, timePeriod, onTimePeriodChange }
       technicians: [], 
       revenueRange: [500, 10000], 
       customerType: 'commercial', 
-      jobStatus: ['completed'], 
-      priority: 'high' 
+      jobStatus: ['completed']
     }},
     { name: 'This Week', filters: { 
       services: [], 
       technicians: [], 
       revenueRange: [0, 10000], 
       customerType: 'all', 
-      jobStatus: ['in-progress', 'scheduled'], 
-      priority: 'all' 
+      jobStatus: ['in-progress', 'scheduled']
     }}
   ]);
 
@@ -88,8 +84,7 @@ export const SmartFilters = ({ onFiltersChange, timePeriod, onTimePeriodChange }
       technicians: [],
       revenueRange: [0, 10000] as [number, number],
       customerType: 'all',
-      jobStatus: [],
-      priority: 'all'
+      jobStatus: []
     };
     setActiveFilters(emptyFilters);
     onFiltersChange(emptyFilters);
@@ -107,7 +102,6 @@ export const SmartFilters = ({ onFiltersChange, timePeriod, onTimePeriodChange }
     if (activeFilters.revenueRange[0] > 0 || activeFilters.revenueRange[1] < 10000) count++;
     if (activeFilters.customerType !== 'all') count++;
     if (activeFilters.jobStatus.length > 0) count++;
-    if (activeFilters.priority !== 'all') count++;
     return count;
   };
 
@@ -276,26 +270,6 @@ export const SmartFilters = ({ onFiltersChange, timePeriod, onTimePeriodChange }
                     </div>
                   ))}
                 </div>
-              </div>
-
-              {/* Priority */}
-              <div className="space-y-2">
-                <Label className="text-sm font-medium">Priority</Label>
-                <Select
-                  value={activeFilters.priority}
-                  onValueChange={(value) => updateFilter('priority', value)}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Priorities</SelectItem>
-                    <SelectItem value="low">Low</SelectItem>
-                    <SelectItem value="medium">Medium</SelectItem>
-                    <SelectItem value="high">High</SelectItem>
-                    <SelectItem value="urgent">Urgent</SelectItem>
-                  </SelectContent>
-                </Select>
               </div>
             </div>
           )}

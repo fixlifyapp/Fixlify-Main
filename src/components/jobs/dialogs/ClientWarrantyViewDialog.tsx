@@ -126,7 +126,7 @@ export const ClientWarrantyViewDialog = ({
             <h4 className="text-sm font-medium">Why get a warranty?</h4>
             <ul className="text-sm space-y-1 text-muted-foreground">
               <li>• Protection against unexpected repair costs</li>
-              <li>• Priority service when you need repairs</li>
+              <li>• Expedited service when you need repairs</li>
               <li>• Peace of mind knowing your appliance is covered</li>
               <li>• Often pays for itself with just one repair visit</li>
             </ul>

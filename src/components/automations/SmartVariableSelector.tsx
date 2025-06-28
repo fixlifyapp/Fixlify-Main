@@ -50,7 +50,6 @@ export const SmartVariableSelector = ({
     { key: 'job_title', label: 'Job Title', category: 'job', description: 'Brief job description', example: 'HVAC Repair', icon: Wrench, relevance: 'high', availability: ['job_*'] },
     { key: 'job_type', label: 'Job Type', category: 'job', description: 'Category of work', example: 'Maintenance', icon: Wrench, relevance: 'high', availability: ['job_*'] },
     { key: 'job_status', label: 'Job Status', category: 'job', description: 'Current job status', example: 'Scheduled', icon: Clock, relevance: 'medium', availability: ['job_*'] },
-    { key: 'job_priority', label: 'Job Priority', category: 'job', description: 'Urgency level', example: 'High', icon: TrendingUp, relevance: 'medium', availability: ['job_*'] },
     { key: 'scheduled_date', label: 'Scheduled Date', category: 'job', description: 'Appointment date', example: 'March 15, 2024', icon: Calendar, relevance: 'high', availability: ['appointment_*', 'job_scheduled'] },
     { key: 'scheduled_time', label: 'Scheduled Time', category: 'job', description: 'Appointment time', example: '2:00 PM', icon: Clock, relevance: 'high', availability: ['appointment_*', 'job_scheduled'] },
     { key: 'total_amount', label: 'Total Amount', category: 'job', description: 'Job total cost', example: '$450.00', icon: DollarSign, relevance: 'high', availability: ['estimate_sent', 'invoice_*'] },

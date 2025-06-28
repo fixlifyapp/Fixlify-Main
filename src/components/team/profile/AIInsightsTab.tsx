@@ -18,7 +18,6 @@ const mockInsights: AIInsight[] = [
     message: "You completed 12 jobs this week. Average time per job: 1h 45m.",
     details: "Consider streamlining HVAC diagnostics to reduce by 15%.",
     icon: "🧠",
-    priority: "medium",
     action: {
       label: "View Jobs",
       url: "/jobs?filter=completed"
@@ -32,7 +31,7 @@ const mockInsights: AIInsight[] = [
     message: "Your jobs had a 92% completion rate. Industry average: 96%.",
     details: "Try using our new diagnostic tool for more accurate first-visit fixes.",
     icon: "📈",
-    priority: "high",
+
     action: {
       label: "Try Diagnostic Tool",
       url: "/tools/diagnostic"
@@ -46,7 +45,7 @@ const mockInsights: AIInsight[] = [
     message: "On 6 estimates this month, warranty offers were not included.",
     details: "Clients with warranties convert 30% more.",
     icon: "💡",
-    priority: "high",
+
     action: {
       label: "Enable Warranty Reminders",
       handler: "enableWarrantyReminders"
@@ -60,7 +59,7 @@ const mockInsights: AIInsight[] = [
     message: "Suggesting 'Maintenance Plans' in HVAC increases invoice totals by +$85.",
     details: "Add to your next service?",
     icon: "🔧",
-    priority: "medium",
+
     action: {
       label: "Set Reminder",
       handler: "setMaintenanceReminder"
@@ -74,7 +73,7 @@ const mockInsights: AIInsight[] = [
     message: "Your average review rating is 4.2/5. Most complaints mention time delays.",
     details: "Consider using ETA messaging more actively.",
     icon: "⭐",
-    priority: "medium",
+
     action: {
       label: "Enable Smart ETA",
       handler: "enableSmartETA"
@@ -88,7 +87,7 @@ const mockInsights: AIInsight[] = [
     message: "2 repeat visits flagged for misdiagnosis.",
     details: "Recommend AI checklist before finalizing diagnostics.",
     icon: "🔁",
-    priority: "high",
+
     action: {
       label: "View Checklist",
       url: "/tools/checklist"
@@ -102,7 +101,7 @@ const mockInsights: AIInsight[] = [
     message: "You've done 12 plumbing jobs but are not marked as plumbing-skilled.",
     details: "Consider requesting this skill be added.",
     icon: "🛠️",
-    priority: "low",
+
     action: {
       label: "Request Skill",
       handler: "requestSkill"
@@ -116,7 +115,7 @@ const mockInsights: AIInsight[] = [
     message: "You've had no bookings in Mississauga, though you're listed for that area.",
     details: "You may want to reduce your travel radius.",
     icon: "🎯",
-    priority: "low",
+
     action: {
       label: "Update Service Areas",
       url: "/settings/service-areas"

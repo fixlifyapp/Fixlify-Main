@@ -120,7 +120,7 @@ export const UpsellDialog = ({
                 <h5 className="font-medium mb-1">What's Included:</h5>
                 <ul className="list-disc list-inside space-y-1 text-muted-foreground">
                   <li>Comprehensive coverage for related components</li>
-                  <li>Priority service response</li>
+                  <li>Expedited service response</li>
                   <li>Parts and labor warranty</li>
                   <li>24/7 emergency support hotline</li>
                 </ul>

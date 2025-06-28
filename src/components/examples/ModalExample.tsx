@@ -5,11 +5,10 @@ import { Button } from "@/components/ui/button";
 export function ModalExample() {
   const { openModal } = useModal();
 
-  const handleOpenPriorityModal = () => {
-    openModal("prioritySelection", {
-      initialPriority: "Medium",
-      onSave: (priority: string) => {
-        console.log("Selected priority:", priority);
+  const handleOpenClientModal = () => {
+    openModal("clientSelection", {
+      onSave: (client: string) => {
+        console.log("Selected client:", client);
       }
     });
   };
@@ -28,8 +27,8 @@ export function ModalExample() {
     <div className="space-y-4 p-4">
       <h2 className="text-xl font-semibold">Modal System Examples</h2>
       <div className="space-x-4">
-        <Button onClick={handleOpenPriorityModal}>
-          Change Priority
+        <Button onClick={handleOpenClientModal}>
+          Select Client
         </Button>
         <Button variant="destructive" onClick={handleOpenDeleteConfirmation}>
           Delete Item

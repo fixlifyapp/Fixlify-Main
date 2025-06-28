@@ -115,7 +115,6 @@ export const AutomationBuilder = ({
   const getConditionFields = (triggerType: string) => {
     const baseFields = [
       { value: 'job_type', label: 'Job Type', type: 'select' },
-      { value: 'job_priority', label: 'Job Priority', type: 'select' },
       { value: 'customer_tag', label: 'Customer Tag', type: 'select' },
       { value: 'job_value', label: 'Job Value', type: 'number' },
       { value: 'customer_type', label: 'Customer Type', type: 'select' },

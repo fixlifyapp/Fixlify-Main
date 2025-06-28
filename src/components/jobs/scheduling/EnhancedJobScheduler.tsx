@@ -47,7 +47,6 @@ export const EnhancedJobScheduler = ({
   const [selectedTechnician, setSelectedTechnician] = useState<string>("");
   const [selectedTimeSlot, setSelectedTimeSlot] = useState<string>("");
   const [estimatedDuration, setEstimatedDuration] = useState<string>("2");
-  const [priority, setPriority] = useState<string>("normal");
   const [notes, setNotes] = useState<string>("");
 
   // Mock data - in real app this would come from your backend
@@ -79,7 +78,6 @@ export const EnhancedJobScheduler = ({
       technician: selectedTechnician,
       timeSlot: selectedTimeSlot,
       estimatedDuration: parseInt(estimatedDuration),
-      priority,
       notes
     };
 
@@ -204,21 +202,6 @@ export const EnhancedJobScheduler = ({
               </SelectContent>
             </Select>
           </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="priority">Priority</Label>
-            <Select value={priority} onValueChange={setPriority}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="low">Low</SelectItem>
-                <SelectItem value="normal">Normal</SelectItem>
-                <SelectItem value="high">High</SelectItem>
-                <SelectItem value="urgent">Urgent</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
         </div>
 
         {/* Scheduling Notes */}
@@ -242,7 +225,6 @@ export const EnhancedJobScheduler = ({
               <div>Technician: {technicians.find(t => t.id === selectedTechnician)?.name}</div>
               <div>Time: {getAvailableSlots().find(s => s.id === selectedTimeSlot)?.startTime} - {getAvailableSlots().find(s => s.id === selectedTimeSlot)?.endTime}</div>
               <div>Duration: {estimatedDuration} hour(s)</div>
-              <div>Priority: <span className="capitalize">{priority}</span></div>
             </div>
           </div>
         )}
