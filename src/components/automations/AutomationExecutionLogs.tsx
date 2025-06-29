@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { RefreshCw, CheckCircle, XCircle, Clock, PlayCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/use-auth';
+import { useOrganization } from '@/hooks/use-organization';
 import { formatDistanceToNow } from 'date-fns';
 
 interface ExecutionLog {
@@ -26,12 +27,15 @@ export const AutomationExecutionLogs = () => {
   const [logs, setLogs] = useState<ExecutionLog[]>([]);
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
+  const { organization } = useOrganization();
 
   const fetchLogs = async () => {
-    if (!user?.id) return;
+    if (!user?.id || !organization?.id) return;
 
     setLoading(true);
     try {
+      console.log('Fetching logs for organization:', organization.id);
+      
       const { data, error } = await supabase
         .from('automation_execution_logs')
         .select(`
@@ -40,10 +44,16 @@ export const AutomationExecutionLogs = () => {
             name
           )
         `)
+        .eq('organization_id', organization.id)
         .order('started_at', { ascending: false })
         .limit(50);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching logs:', error);
+        throw error;
+      }
+      
+      console.log('Fetched logs:', data);
       setLogs(data || []);
     } catch (error) {
       console.error('Error fetching logs:', error);
@@ -53,33 +63,36 @@ export const AutomationExecutionLogs = () => {
   };
 
   useEffect(() => {
-    fetchLogs();
+    if (organization?.id) {
+      fetchLogs();
 
-    // Subscribe to new logs
-    const subscription = supabase
-      .channel('automation-logs')
-      .on('postgres_changes', {
-        event: '*',
-        schema: 'public',
-        table: 'automation_execution_logs'
-      }, () => {
-        fetchLogs();
-      })
-      .subscribe();
+      // Subscribe to new logs for this organization
+      const subscription = supabase
+        .channel('automation-logs')
+        .on('postgres_changes', {
+          event: '*',
+          schema: 'public',
+          table: 'automation_execution_logs',
+          filter: `organization_id=eq.${organization.id}`
+        }, () => {
+          fetchLogs();
+        })
+        .subscribe();
 
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, [user?.id]);
+      return () => {
+        subscription.unsubscribe();
+      };
+    }
+  }, [user?.id, organization?.id]);
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'completed':
+      case 'success':
         return <CheckCircle className="w-4 h-4 text-green-500" />;
       case 'failed':
         return <XCircle className="w-4 h-4 text-red-500" />;
-      case 'started':
-        return <Clock className="w-4 h-4 text-blue-500" />;
+      case 'partial':
+        return <Clock className="w-4 h-4 text-yellow-500" />;
       default:
         return <PlayCircle className="w-4 h-4 text-gray-500" />;
     }
@@ -87,9 +100,9 @@ export const AutomationExecutionLogs = () => {
 
   const getStatusBadge = (status: string) => {
     const variants: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
-      completed: 'default',
+      success: 'default',
       failed: 'destructive',
-      started: 'secondary'
+      partial: 'secondary'
     };
 
     return (

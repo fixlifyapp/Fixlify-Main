@@ -20,14 +20,23 @@ export class TelnyxService {
   private baseUrl = 'https://api.telnyx.com/v2';
   private defaultFromNumber: string;
   private connectionId: string;
+  private initialized = false;
 
   constructor() {
+    // Delay initialization
+  }
+
+  private initialize() {
+    if (this.initialized) return;
+    
     this.apiKey = import.meta.env.VITE_TELNYX_API_KEY || '';
     this.defaultFromNumber = import.meta.env.VITE_TELNYX_DEFAULT_FROM_NUMBER || '';
     this.connectionId = import.meta.env.VITE_TELNYX_CONNECTION_ID || '';
+    this.initialized = true;
   }
 
   private getHeaders() {
+    this.initialize();
     return {
       'Authorization': `Bearer ${this.apiKey}`,
       'Content-Type': 'application/json',
@@ -37,6 +46,7 @@ export class TelnyxService {
 
   // SMS Functions
   async sendSMS({ to, message, from, mediaUrls, webhookUrl }: SMSMessage) {
+    this.initialize();
     try {
       const response = await fetch(`${this.baseUrl}/messages`, {
         method: 'POST',
@@ -96,6 +106,7 @@ export class TelnyxService {
 
   // Voice Functions
   async makeCall({ to, from, answeredByMachineDetection, machineDetectionWebhookUrl }: VoiceCall) {
+    this.initialize();
     try {
       const response = await fetch(`${this.baseUrl}/calls`, {
         method: 'POST',

@@ -1,5 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
-import { AutomationExecutionService } from './automation-execution-service';
+import AutomationExecutionService from './automation-execution-service';
 import { toast } from 'sonner';
 
 export class AutomationManualExecution {

@@ -1,6 +1,5 @@
 import { useEffect } from 'react';
 import { useAuth } from '@/hooks/use-auth';
-import { AutomationTriggerService } from '@/services/automation-trigger-service';
 
 export const useAutomationTriggers = () => {
   const { user } = useAuth();
@@ -8,12 +7,31 @@ export const useAutomationTriggers = () => {
   useEffect(() => {
     if (!user?.id) return;
 
-    // Initialize automation triggers
-    AutomationTriggerService.initialize(user.id);
+    // Delay initialization to avoid blocking page load
+    const timer = setTimeout(() => {
+      import('@/services/automation-trigger-service').then(({ AutomationTriggerService }) => {
+        try {
+          AutomationTriggerService.initialize(user.id);
+        } catch (error) {
+          console.error('Failed to initialize automation triggers:', error);
+        }
+      }).catch(error => {
+        console.error('Failed to load automation trigger service:', error);
+      });
+    }, 1000);
 
     // Cleanup on unmount or user change
     return () => {
-      AutomationTriggerService.cleanup();
+      clearTimeout(timer);
+      import('@/services/automation-trigger-service').then(({ AutomationTriggerService }) => {
+        try {
+          AutomationTriggerService.cleanup();
+        } catch (error) {
+          console.error('Failed to cleanup automation triggers:', error);
+        }
+      }).catch(() => {
+        // Ignore cleanup errors
+      });
     };
   }, [user?.id]);
 };

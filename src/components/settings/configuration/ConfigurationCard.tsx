@@ -5,7 +5,7 @@ import { Settings2 } from "lucide-react";
 
 export function ConfigurationCard() {
   return (
-    <Link to="/configuration">
+    <Link to="/settings/configuration">
       <Card className="overflow-hidden hover:shadow-md transition-shadow">
         <CardHeader className="bg-muted/50">
           <div className="flex items-start">

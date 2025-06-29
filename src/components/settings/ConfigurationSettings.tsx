@@ -73,7 +73,7 @@ export const ConfigurationSettings = () => {
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex flex-wrap gap-2">
-            <Link to="/configuration" className="text-fixlyfy hover:underline text-sm">
+            <Link to="/settings/configuration" className="text-fixlyfy hover:underline text-sm">
               Go to Full Configuration →
             </Link>
           </div>

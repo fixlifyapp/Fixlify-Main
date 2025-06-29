@@ -55,7 +55,7 @@ export function AppSidebar() {
   }, {
     label: 'Connect Center',
     icon: MessageSquare,
-    href: '/connect',
+    href: '/messages',
     color: "text-fixlyfy"
   }, {
     label: 'AI Center',
@@ -80,7 +80,7 @@ export function AppSidebar() {
   }, {
     label: 'Phone Numbers',
     icon: Phone,
-    href: '/phone-numbers',
+    href: '/settings/phone-numbers',
     color: "text-fixlyfy"
   }, {
     label: 'Settings',

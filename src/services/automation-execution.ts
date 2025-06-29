@@ -1,13 +1,18 @@
 import { supabase } from '@/integrations/supabase/client';
+import { format } from 'date-fns';
+import { toZonedTime } from 'date-fns-tz';
+import { TelnyxService } from './communications/TelnyxService';
+import { MailgunService } from './communications/MailgunService';
+
+const telnyxService = new TelnyxService();
+const mailgunService = new MailgunService();
 
 interface AutomationContext {
-  job?: any;
   client?: any;
-  invoice?: any;
+  job?: any;
   technician?: any;
   organization?: any;
-  previousStatus?: string;
-  newStatus?: string;
+  trigger?: any;
 }
 
 export class AutomationExecutionService {
@@ -22,7 +27,7 @@ export class AutomationExecutionService {
     return AutomationExecutionService.instance;
   }
 
-  // Main execution method
+  // Main execution method - backward compatibility
   async executeAutomation(workflowId: string, context: AutomationContext) {
     try {
       // Get the automation workflow
@@ -41,317 +46,339 @@ export class AutomationExecutionService {
         return;
       }
 
-      // Check if trigger conditions are met
-      if (!this.checkTriggerConditions(workflow, context)) {
-        console.log('Trigger conditions not met, skipping execution');
-        return;
-      }
-
-      // Check delivery window
-      if (!this.checkDeliveryWindow(workflow.delivery_window)) {
-        console.log('Outside delivery window, scheduling for later');
-        // TODO: Schedule for appropriate time
-        return;
-      }
-
-      // Execute the action
-      await this.executeAction(workflow, context);
-
-      // Update execution metrics
-      await this.updateMetrics(workflowId, true);
+      // Execute using the new executeWorkflow method
+      await this.executeWorkflow(workflow, context, false);
 
     } catch (error) {
       console.error('Error executing automation:', error);
-      await this.updateMetrics(workflowId, false);
       throw error;
     }
   }
-  // Check if trigger conditions are met
-  private checkTriggerConditions(workflow: any, context: AutomationContext): boolean {
-    const conditions = workflow.trigger_conditions || [];
+  // Execute automation workflow
+  async executeWorkflow(
+    workflow: any,
+    context: AutomationContext,
+    testMode = false
+  ) {
+    console.log('Starting workflow execution:', workflow.name);
     
-    for (const condition of conditions) {
-      if (!this.evaluateCondition(condition, context)) {
+    // Log execution
+    if (!testMode) {
+      await this.logExecution(workflow.id, 'started', context);
+    }
+
+    try {
+      // Get user timezone from profile or organization settings
+      const userTimezone = await this.getUserTimezone(context.organization?.id);
+      
+      // Execute each action
+      for (const action of workflow.actions || []) {
+        await this.executeAction(action, context, workflow, userTimezone, testMode);
+      }
+
+      if (!testMode) {
+        await this.logExecution(workflow.id, 'completed', context);
+        await this.updateMetrics(workflow.id, true);
+      }
+    } catch (error) {
+      console.error('Workflow execution failed:', error);
+      if (!testMode) {
+        await this.logExecution(workflow.id, 'failed', context, error);
+        await this.updateMetrics(workflow.id, false);
+      }
+      throw error;
+    }
+  }
+
+  // Get user timezone from profile or use default
+  private async getUserTimezone(organizationId?: string): Promise<string> {
+    if (!organizationId) return 'America/New_York';
+
+    try {
+      // First try to get from the user's profile
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('timezone')
+          .eq('user_id', user.id)
+          .single();
+        
+        if (profile?.timezone) {
+          return profile.timezone;
+        }
+      }
+
+      // Fallback to organization settings if available
+      const { data: orgSettings } = await supabase
+        .from('organization_settings')
+        .select('timezone')
+        .eq('organization_id', organizationId)
+        .single();
+      
+      return orgSettings?.timezone || 'America/New_York';
+    } catch (error) {
+      console.error('Error fetching timezone:', error);
+      return 'America/New_York';
+    }
+  }
+
+  // Execute a single action
+  private async executeAction(
+    action: any,
+    context: AutomationContext,
+    workflow: any,
+    userTimezone: string,
+    testMode = false
+  ) {
+    console.log('Executing action:', action.action_type);
+
+    // Check delivery window
+    if (action.delivery_window?.enabled && !testMode) {
+      const isValidTime = await this.checkDeliveryWindow(action.delivery_window, userTimezone);
+      if (!isValidTime) {
+        console.log('Outside delivery window, queuing action');
+        await this.queueAction(action, context, workflow);
+        return;
+      }
+    }
+
+    // Perform the actual action with timezone context
+    await this.performAction(action.action_type, action.action_config, context, workflow, userTimezone);
+  }
+  // Check if current time is within delivery window
+  private async checkDeliveryWindow(
+    deliveryWindow: any,
+    timezone: string
+  ): Promise<boolean> {
+    const now = new Date();
+    const zonedNow = toZonedTime(now, timezone);
+    
+    // Check business hours
+    if (deliveryWindow.businessHoursOnly) {
+      const currentHour = zonedNow.getHours();
+      const [startHour] = deliveryWindow.businessStart.split(':').map(Number);
+      const [endHour] = deliveryWindow.businessEnd.split(':').map(Number);
+      
+      if (currentHour < startHour || currentHour >= endHour) {
         return false;
       }
     }
     
-    return true;
-  }
-
-  // Evaluate a single condition
-  private evaluateCondition(condition: any, context: AutomationContext): boolean {
-    const { field, operator, value } = condition;
-
-    // Handle status change conditions
-    if (field === 'status_from' && context.previousStatus) {
-      return this.compareValues(context.previousStatus, operator, value);
-    }
-    
-    if (field === 'status_to' && context.newStatus) {
-      return this.compareValues(context.newStatus, operator, value);
-    }
-    
-    if (field === 'status') {
-      return this.compareValues(context.job?.status || context.newStatus, operator, value);
-    }
-
-    // Handle other fields
-    if (field === 'days_overdue' && context.invoice) {
-      const daysOverdue = this.calculateDaysOverdue(context.invoice.due_date);
-      return this.compareValues(daysOverdue, operator, parseInt(value));
-    }
-
-    if (field === 'technician_id') {
-      return operator === 'not_empty' ? !!context.job?.technician_id : !context.job?.technician_id;
-    }
-
-    if (field === 'job_status') {
-      return this.compareValues(context.job?.status, operator, value);
-    }
-
-    return true;
-  }
-  // Compare values based on operator
-  private compareValues(fieldValue: any, operator: string, compareValue: any): boolean {
-    switch (operator) {
-      case 'equals':
-        return fieldValue === compareValue;
-      case 'not_equals':
-        return fieldValue !== compareValue;
-      case 'contains':
-        return String(fieldValue).includes(String(compareValue));
-      case 'greater_than':
-        return fieldValue > compareValue;
-      case 'less_than':
-        return fieldValue < compareValue;
-      case 'not_empty':
-        return !!fieldValue;
-      case 'is_empty':
-        return !fieldValue;
-      default:
-        return true;
-    }
-  }
-
-  // Calculate days overdue
-  private calculateDaysOverdue(dueDate: string): number {
-    const due = new Date(dueDate);
-    const today = new Date();
-    const diffTime = today.getTime() - due.getTime();
-    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-    return Math.max(0, diffDays);
-  }
-
-  // Check delivery window
-  private checkDeliveryWindow(deliveryWindow: any): boolean {
-    if (!deliveryWindow || !deliveryWindow.businessHoursOnly) {
-      return true;
-    }
-
-    const now = new Date();
-    const dayOfWeek = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'][now.getDay()];
-    
-    // Check if today is allowed
-    if (!deliveryWindow.allowedDays?.includes(dayOfWeek)) {
-      return false;
-    }
-
-    // Check time range
-    if (deliveryWindow.timeRange) {
-      const currentTime = now.getHours() * 60 + now.getMinutes();
-      const [startHour, startMin] = deliveryWindow.timeRange.start.split(':').map(Number);
-      const [endHour, endMin] = deliveryWindow.timeRange.end.split(':').map(Number);
-      const startTime = startHour * 60 + startMin;
-      const endTime = endHour * 60 + endMin;
+    // Check quiet hours
+    if (deliveryWindow.quietHours) {
+      const currentHour = zonedNow.getHours();
+      const [quietStart] = deliveryWindow.quietStart.split(':').map(Number);
+      const [quietEnd] = deliveryWindow.quietEnd.split(':').map(Number);
       
-      return currentTime >= startTime && currentTime <= endTime;
-    }
-
-    return true;
-  }
-  // Execute the action
-  private async executeAction(workflow: any, context: AutomationContext) {
-    const { action_type, action_config } = workflow;
-    const delay = action_config.delay || { type: 'immediate' };
-
-    // Calculate delay in milliseconds
-    let delayMs = 0;
-    if (delay.type !== 'immediate') {
-      switch (delay.type) {
-        case 'minutes':
-          delayMs = (delay.value || 1) * 60 * 1000;
-          break;
-        case 'hours':
-          delayMs = (delay.value || 1) * 60 * 60 * 1000;
-          break;
-        case 'days':
-          delayMs = (delay.value || 1) * 24 * 60 * 60 * 1000;
-          break;
+      // Handle overnight quiet hours
+      if (quietStart > quietEnd) {
+        if (currentHour >= quietStart || currentHour < quietEnd) {
+          return false;
+        }
+      } else {
+        if (currentHour >= quietStart && currentHour < quietEnd) {
+          return false;
+        }
       }
     }
+    
+    return true;
+  }
 
-    // Schedule or execute immediately
-    if (delayMs > 0) {
-      setTimeout(() => this.performAction(action_type, action_config, context, workflow), delayMs);
-    } else {
-      await this.performAction(action_type, action_config, context, workflow);
+  // Queue action for later delivery
+  private async queueAction(
+    action: any,
+    context: AutomationContext,
+    workflow: any
+  ) {
+    const { error } = await supabase
+      .from('automation_message_queue')
+      .insert({
+        automation_id: workflow.id,
+        step_id: action.id,
+        message_type: action.action_type,
+        message_data: {
+          action: action,
+          context: context
+        },
+        scheduled_for: this.getNextDeliveryTime(action.delivery_window),
+        status: 'pending'
+      });
+
+    if (error) {
+      console.error('Failed to queue action:', error);
+      throw error;
     }
   }
 
+  // Get next available delivery time
+  private getNextDeliveryTime(deliveryWindow: any): Date {
+    // Implementation would calculate the next valid time based on delivery window settings
+    // For now, return next business hour
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    tomorrow.setHours(9, 0, 0, 0);
+    return tomorrow;
+  }
   // Perform the actual action
-  private async performAction(actionType: string, config: any, context: AutomationContext, workflow: any) {
+  private async performAction(
+    actionType: string,
+    config: any,
+    context: AutomationContext,
+    workflow: any,
+    userTimezone: string
+  ) {
     try {
       switch (actionType) {
         case 'send_sms':
-          await this.sendSMS(config, context, workflow.multi_channel_config);
+          await this.sendSMS(config, context, workflow.multi_channel_config, userTimezone);
           break;
         case 'send_email':
-          await this.sendEmail(config, context, workflow.multi_channel_config);
+          await this.sendEmail(config, context, workflow.multi_channel_config, userTimezone);
           break;
         case 'create_task':
           await this.createTask(config, context);
           break;
-        case 'update_job_status':
-          await this.updateJobStatus(config, context);
+        case 'update_status':
+          await this.updateStatus(config, context);
           break;
-        case 'notify_team':
-          await this.notifyTeam(config, context);
+        case 'add_note':
+          await this.addNote(config, context);
           break;
-        // Add more action types as needed
         default:
-          console.warn(`Unknown action type: ${actionType}`);
+          console.warn('Unknown action type:', actionType);
       }
     } catch (error) {
-      console.error(`Error performing action ${actionType}:`, error);
+      console.error('Action execution failed:', error);
       
       // Handle multi-channel fallback
       if (workflow.multi_channel_config?.fallbackEnabled) {
-        const fallbackDelay = workflow.multi_channel_config.fallbackDelayHours * 60 * 60 * 1000;
-        setTimeout(() => {
-          this.executeFallback(actionType, config, context, workflow.multi_channel_config);
-        }, fallbackDelay);
+        await this.handleFallback(actionType, config, context, workflow.multi_channel_config, userTimezone);
+      } else {
+        throw error;
       }
-      
-      throw error;
     }
   }
+
   // Send SMS
-  private async sendSMS(config: any, context: AutomationContext, multiChannelConfig?: any) {
-    const message = await this.replaceVariables(config.message, context);
-    const recipient = this.getRecipient(config.recipient, context);
+  private async sendSMS(
+    config: any,
+    context: AutomationContext,
+    multiChannelConfig: any,
+    userTimezone: string
+  ) {
+    const recipient = this.getRecipientPhone(config.recipient, context);
+    const message = this.interpolateVariables(config.message, context, userTimezone);
 
-    // Log the message for now - integrate with SMS service
-    console.log('Sending SMS:', { to: recipient, message });
+    console.log('Sending SMS to:', recipient);
+    console.log('Message:', message);
 
-    // TODO: Integrate with SMS service (Twilio, Telnyx, etc.)
-    // const { error } = await smsService.send({
-    //   to: recipient,
-    //   message: message
-    // });
+    if (!recipient) {
+      console.error('No phone number found for recipient');
+      if (multiChannelConfig?.fallbackEnabled && multiChannelConfig?.fallbackChannel === 'email') {
+        // Fallback to email
+        await this.sendEmail(config, context, multiChannelConfig, userTimezone);
+        return;
+      }
+      throw new Error('No phone number found for recipient');
+    }
+
+    await telnyxService.sendSMS({
+      to: recipient,
+      message: message
+    });
   }
 
   // Send Email
-  private async sendEmail(config: any, context: AutomationContext, multiChannelConfig?: any) {
-    const subject = await this.replaceVariables(config.subject || '', context);
-    const body = await this.replaceVariables(config.body || config.message || '', context);
-    const recipient = this.getRecipient(config.recipient, context);
+  private async sendEmail(
+    config: any,
+    context: AutomationContext,
+    multiChannelConfig: any,
+    userTimezone: string
+  ) {
+    const recipient = this.getRecipientEmail(config.recipient, context);
+    const subject = this.interpolateVariables(config.subject, context, userTimezone);
+    const body = this.interpolateVariables(config.body || config.message, context, userTimezone);
 
-    // Log the email for now - integrate with email service
-    console.log('Sending Email:', { to: recipient, subject, body });
+    console.log('Sending email to:', recipient);
 
-    // TODO: Integrate with email service
-    // const { error } = await emailService.send({
-    //   to: recipient,
-    //   subject: subject,
-    //   body: body
-    // });
+    if (!recipient) {
+      console.error('No email address found for recipient');
+      if (multiChannelConfig?.fallbackEnabled && multiChannelConfig?.fallbackChannel === 'sms') {
+        // Fallback to SMS
+        await this.sendSMS({
+          message: `${subject}: ${body}`.substring(0, 160)
+        }, context, multiChannelConfig, userTimezone);
+        return;
+      }
+      throw new Error('No email address found for recipient');
+    }
+
+    await mailgunService.sendEmail({
+      to: recipient,
+      subject: subject,
+      text: body,
+      html: body.replace(/\n/g, '<br>')
+    });
   }
-
-  // Create Task
+  // Create task
   private async createTask(config: any, context: AutomationContext) {
-    const title = await this.replaceVariables(config.title, context);
-    const description = await this.replaceVariables(config.description || '', context);
-    
-    const taskData = {
+    const assignee = this.getAssignee(config.assignee, context);
+    const dueDate = this.calculateDueDate(config.due_date, context);
+    const title = this.interpolateVariables(config.title, context, 'America/New_York');
+    const description = this.interpolateVariables(config.description, context, 'America/New_York');
+
+    await supabase.from('tasks').insert({
       title,
       description,
+      assigned_to: assignee,
+      due_date: dueDate,
       job_id: context.job?.id,
-      assigned_to: this.getAssignee(config.assignTo, context),
-      due_date: this.calculateDueDate(config.dueDate, context),
-      created_by: 'automation',
-      status: 'pending'
-    };
-
-    // TODO: Create task in database
-    console.log('Creating task:', taskData);
+      client_id: context.client?.id,
+      organization_id: context.organization?.id
+    });
   }
-  // Update Job Status
-  private async updateJobStatus(config: any, context: AutomationContext) {
-    if (!context.job?.id) return;
 
-    const newStatus = config.status;
+  // Update status
+  private async updateStatus(config: any, context: AutomationContext) {
+    if (context.job) {
+      await supabase
+        .from('jobs')
+        .update({ status: config.status })
+        .eq('id', context.job.id);
+    }
+  }
+
+  // Add note
+  private async addNote(config: any, context: AutomationContext) {
+    const content = this.interpolateVariables(config.content, context, 'America/New_York');
     
-    const { error } = await supabase
-      .from('jobs')
-      .update({ status: newStatus })
-      .eq('id', context.job.id);
-
-    if (error) {
-      throw new Error(`Failed to update job status: ${error.message}`);
-    }
+    await supabase.from('notes').insert({
+      content,
+      job_id: context.job?.id,
+      client_id: context.client?.id,
+      organization_id: context.organization?.id
+    });
   }
-
-  // Notify Team
-  private async notifyTeam(config: any, context: AutomationContext) {
-    const message = await this.replaceVariables(config.message, context);
-    const recipients = await this.getTeamRecipients(config.recipients, context);
-
-    // Send notification to each team member
-    for (const recipient of recipients) {
-      if (config.notifyMethod === 'sms') {
-        await this.sendSMS({ message, recipient: recipient.phone }, context);
-      } else if (config.notifyMethod === 'email') {
-        await this.sendEmail({ 
-          subject: 'Team Notification', 
-          body: message, 
-          recipient: recipient.email 
-        }, context);
-      }
-    }
-  }
-
-  // Execute fallback channel
-  private async executeFallback(
-    originalAction: string, 
-    config: any, 
-    context: AutomationContext, 
-    multiChannelConfig: any
-  ) {
-    const fallbackChannel = multiChannelConfig.fallbackChannel;
-    
-    if (originalAction === 'send_sms' && fallbackChannel === 'email') {
-      await this.sendEmail({
-        subject: 'Message from ' + (context.organization?.name || 'Your Service Provider'),
-        body: config.message
-      }, context, multiChannelConfig);
-    } else if (originalAction === 'send_email' && fallbackChannel === 'sms') {
-      await this.sendSMS({
-        message: `${config.subject}: ${config.body}`.substring(0, 160)
-      }, context, multiChannelConfig);
-    }
-  }
-  // Helper: Replace variables in text
-  private async replaceVariables(text: string, context: AutomationContext): Promise<string> {
+  // Interpolate variables with timezone-aware date/time
+  private interpolateVariables(
+    text: string,
+    context: AutomationContext,
+    userTimezone: string
+  ): string {
     let processedText = text;
 
     // Client variables
     if (context.client) {
       processedText = processedText
         .replace(/{{client_name}}/g, context.client.name || '')
-        .replace(/{{client_first_name}}/g, context.client.name?.split(' ')[0] || '')
+        .replace(/{{client_first_name}}/g, context.client.first_name || context.client.name?.split(' ')[0] || '')
+        .replace(/{{client_last_name}}/g, context.client.last_name || context.client.name?.split(' ')[1] || '')
         .replace(/{{client_email}}/g, context.client.email || '')
         .replace(/{{client_phone}}/g, context.client.phone || '')
+        .replace(/{{phone}}/g, context.client.phone || '')
+        .replace(/{{email}}/g, context.client.email || '')
         .replace(/{{client_address}}/g, context.client.address || '')
         .replace(/{{client_city}}/g, context.client.city || '')
         .replace(/{{client_state}}/g, context.client.state || '')
@@ -365,8 +392,10 @@ export class AutomationExecutionService {
         .replace(/{{job_description}}/g, context.job.description || '')
         .replace(/{{job_type}}/g, context.job.job_type || '')
         .replace(/{{job_service}}/g, context.job.service || '')
-        .replace(/{{scheduled_date}}/g, this.formatDate(context.job.scheduled_date))
-        .replace(/{{scheduled_time}}/g, this.formatTime(context.job.scheduled_time))
+        .replace(/{{scheduled_date}}/g, this.formatDate(context.job.scheduled_date, userTimezone))
+        .replace(/{{scheduled_time}}/g, this.formatTime(context.job.scheduled_date, userTimezone))
+        .replace(/{{appointment_date}}/g, this.formatDate(context.job.scheduled_date, userTimezone))
+        .replace(/{{appointment_time}}/g, this.formatTime(context.job.scheduled_date, userTimezone))
         .replace(/{{job_status}}/g, context.job.status || '')
         .replace(/{{job_number}}/g, context.job.id || '')
         .replace(/{{job_address}}/g, context.job.address || '');
@@ -391,11 +420,16 @@ export class AutomationExecutionService {
         .replace(/{{review_link}}/g, context.organization.review_link || '');
     }
 
-    // Date/Time variables
+    // Date/Time variables with timezone support
+    const now = new Date();
+    const zonedNow = toZonedTime(now, userTimezone);
+    const tomorrow = new Date(now.getTime() + 86400000);
+    const zonedTomorrow = toZonedTime(tomorrow, userTimezone);
+
     processedText = processedText
-      .replace(/{{current_date}}/g, this.formatDate(new Date()))
-      .replace(/{{current_time}}/g, this.formatTime(new Date()))
-      .replace(/{{tomorrow_date}}/g, this.formatDate(new Date(Date.now() + 86400000)));
+      .replace(/{{current_date}}/g, this.formatDate(zonedNow, userTimezone))
+      .replace(/{{current_time}}/g, this.formatTime(zonedNow, userTimezone))
+      .replace(/{{tomorrow_date}}/g, this.formatDate(zonedTomorrow, userTimezone));
 
     return processedText;
   }
@@ -409,6 +443,34 @@ export class AutomationExecutionService {
         return context.technician?.phone || context.technician?.email || '';
       default:
         return recipientConfig;
+    }
+  }
+
+  // Helper: Get recipient phone
+  private getRecipientPhone(recipientConfig: string, context: AutomationContext): string {
+    switch (recipientConfig) {
+      case 'customer':
+      case 'client':
+        return context.client?.phone || '';
+      case 'technician':
+        return context.technician?.phone || '';
+      default:
+        // Check if it's a phone number
+        return recipientConfig.match(/^\+?[1-9]\d{1,14}$/) ? recipientConfig : '';
+    }
+  }
+
+  // Helper: Get recipient email
+  private getRecipientEmail(recipientConfig: string, context: AutomationContext): string {
+    switch (recipientConfig) {
+      case 'customer':
+      case 'client':
+        return context.client?.email || '';
+      case 'technician':
+        return context.technician?.email || '';
+      default:
+        // Check if it's an email
+        return recipientConfig.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/) ? recipientConfig : '';
     }
   }
 
@@ -439,63 +501,73 @@ export class AutomationExecutionService {
     }
   }
 
-  // Helper: Get team recipients
-  private async getTeamRecipients(recipientConfig: string, context: AutomationContext): Promise<any[]> {
-    switch (recipientConfig) {
-      case 'all_available':
-        // TODO: Get all available team members
-        const { data } = await supabase
-          .from('profiles')
-          .select('id, name, phone, email')
-          .eq('available_for_jobs', true)
-          .eq('status', 'active');
-        return data || [];
-      
-      case 'managers':
-        // TODO: Get managers only
-        const { data: managers } = await supabase
-          .from('profiles')
-          .select('id, name, phone, email')
-          .eq('role', 'admin');
-        return managers || [];
-      
-      default:
-        return [];
+  // Helper: Format date with timezone
+  private formatDate(date: Date | string, timezone: string): string {
+    const d = typeof date === 'string' ? new Date(date) : date;
+    const zonedDate = toZonedTime(d, timezone);
+    
+    return format(zonedDate, 'EEE, MMM d, yyyy', { timeZone: timezone });
+  }
+
+  // Helper: Format time with timezone
+  private formatTime(date: Date | string, timezone: string): string {
+    const d = typeof date === 'string' ? new Date(date) : date;
+    const zonedDate = toZonedTime(d, timezone);
+    
+    return format(zonedDate, 'h:mm a', { timeZone: timezone });
+  }
+
+  // Handle multi-channel fallback
+  private async handleFallback(
+    failedAction: string,
+    config: any,
+    context: AutomationContext,
+    multiChannelConfig: any,
+    userTimezone: string
+  ) {
+    const fallbackChannel = multiChannelConfig.fallbackChannel;
+    
+    if (failedAction === 'send_sms' && fallbackChannel === 'email') {
+      await this.sendEmail({
+        subject: 'Message from ' + (context.organization?.name || 'Your Service Provider'),
+        body: config.message
+      }, context, multiChannelConfig, userTimezone);
+    } else if (failedAction === 'send_email' && fallbackChannel === 'sms') {
+      await this.sendSMS({
+        message: `${config.subject}: ${config.body}`.substring(0, 160)
+      }, context, multiChannelConfig, userTimezone);
     }
   }
-
-  // Helper: Format date
-  private formatDate(date: Date | string): string {
-    const d = new Date(date);
-    return d.toLocaleDateString('en-US', { 
-      weekday: 'short', 
-      year: 'numeric', 
-      month: 'short', 
-      day: 'numeric' 
-    });
-  }
-
-  // Helper: Format time
-  private formatTime(date: Date | string): string {
-    const d = new Date(date);
-    return d.toLocaleTimeString('en-US', { 
-      hour: '2-digit', 
-      minute: '2-digit' 
+  // Log execution
+  private async logExecution(
+    workflowId: string,
+    status: string,
+    context: AutomationContext,
+    error?: any
+  ) {
+    await supabase.from('automation_logs').insert({
+      automation_id: workflowId,
+      status,
+      context,
+      error: error?.message,
+      executed_at: new Date()
     });
   }
 
   // Update execution metrics
   private async updateMetrics(workflowId: string, success: boolean) {
     const { error } = await supabase.rpc('increment_automation_metrics', {
-      workflow_id: workflowId,
-      success: success
+      p_automation_id: workflowId,
+      p_success: success
     });
 
     if (error) {
-      console.error('Error updating metrics:', error);
+      console.error('Failed to update metrics:', error);
     }
   }
 }
 
-// Export singleton instance
+export default AutomationExecutionService;
+
+// Export singleton instance for backward compatibility
 export const automationExecutor = AutomationExecutionService.getInstance();

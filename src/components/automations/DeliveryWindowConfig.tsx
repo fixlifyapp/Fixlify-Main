@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -60,6 +60,27 @@ export const DeliveryWindowConfig: React.FC<DeliveryWindowConfigProps> = ({
   onChange,
   userTimezone = 'America/New_York',
 }) => {
+  const [currentTime, setCurrentTime] = useState('');
+
+  // Update current time every minute
+  useEffect(() => {
+    const updateTime = () => {
+      const now = new Date();
+      const formatter = new Intl.DateTimeFormat('en-US', {
+        timeZone: userTimezone,
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false
+      });
+      setCurrentTime(formatter.format(now));
+    };
+
+    updateTime();
+    const interval = setInterval(updateTime, 60000);
+
+    return () => clearInterval(interval);
+  }, [userTimezone]);
+
   const handleToggle = (enabled: boolean) => {
     onChange({
       ...deliveryWindow,

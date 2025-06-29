@@ -1,6 +1,6 @@
 import { supabase } from '@/integrations/supabase/client';
 import { format, isWithinInterval, setHours, setMinutes, addDays, parse } from 'date-fns';
-import { utcToZonedTime, zonedTimeToUtc } from 'date-fns-tz';
+import { toZonedTime, fromZonedTime } from 'date-fns-tz';
 
 interface DeliveryWindow {
   enabled: boolean;
@@ -21,7 +21,7 @@ export class DeliveryWindowService {
     if (!deliveryWindow.enabled) return true;
 
     const now = new Date();
-    const zonedNow = utcToZonedTime(now, deliveryWindow.timezone || timezone);
+    const zonedNow = toZonedTime(now, deliveryWindow.timezone || timezone);
     
     // Check weekday
     const currentWeekday = zonedNow.getDay();
@@ -51,7 +51,7 @@ export class DeliveryWindowService {
     if (!deliveryWindow.enabled) return new Date();
 
     const now = new Date();
-    let zonedNow = utcToZonedTime(now, deliveryWindow.timezone || timezone);
+    let zonedNow = toZonedTime(now, deliveryWindow.timezone || timezone);
     
     const [startHour, startMinute] = deliveryWindow.startTime.split(':').map(Number);
     const allowedWeekdays = deliveryWindow.weekdays || [1, 2, 3, 4, 5];
@@ -71,12 +71,12 @@ export class DeliveryWindowService {
           const todayStartTime = setMinutes(setHours(checkDate, startHour), startMinute);
           if (checkDate < todayStartTime) {
             // We can send today at start time
-            return zonedTimeToUtc(todayStartTime, deliveryWindow.timezone || timezone);
+            return fromZonedTime(todayStartTime, deliveryWindow.timezone || timezone);
           }
         } else {
           // Future day - send at start time
           const futureStartTime = setMinutes(setHours(checkDate, startHour), startMinute);
-          return zonedTimeToUtc(futureStartTime, deliveryWindow.timezone || timezone);
+          return fromZonedTime(futureStartTime, deliveryWindow.timezone || timezone);
         }
       }
       

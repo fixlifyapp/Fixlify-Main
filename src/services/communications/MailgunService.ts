@@ -27,8 +27,15 @@ export class MailgunService {
   private baseUrl: string;
   private fromEmail: string;
   private fromName: string;
+  private initialized = false;
 
   constructor() {
+    // Delay initialization
+  }
+
+  private initialize() {
+    if (this.initialized) return;
+    
     this.apiKey = import.meta.env.VITE_MAILGUN_API_KEY || '';
     this.domain = import.meta.env.VITE_MAILGUN_DOMAIN || '';
     this.baseUrl = import.meta.env.VITE_MAILGUN_EU ? 
@@ -36,9 +43,11 @@ export class MailgunService {
       'https://api.mailgun.net/v3';
     this.fromEmail = import.meta.env.VITE_MAILGUN_FROM_EMAIL || `no-reply@${this.domain}`;
     this.fromName = import.meta.env.VITE_MAILGUN_FROM_NAME || 'Fixlify';
+    this.initialized = true;
   }
 
   private getAuthHeader(): string {
+    this.initialize();
     return `Basic ${btoa(`api:${this.apiKey}`)}`;
   }
 
@@ -58,6 +67,7 @@ export class MailgunService {
     trackingClicks = true,
     trackingOpens = true
   }: EmailMessage) {
+    this.initialize();
     try {
       const formData = new FormData();
       

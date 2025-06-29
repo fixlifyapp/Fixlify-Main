@@ -1,11 +1,11 @@
 import { supabase } from '@/integrations/supabase/client';
-import { AutomationExecutionService } from './automation-execution-service';
+import AutomationExecutionService from './automation-execution-service';
 
 export class AutomationTriggerService {
   private static subscriptions: any[] = [];
 
   // Initialize all trigger listeners
-  static async initialize(userId: string) {
+  static async initialize(userId: string, organizationId: string) {
     // Clear existing subscriptions
     this.cleanup();
 
@@ -13,8 +13,8 @@ export class AutomationTriggerService {
     const { data: automations } = await supabase
       .from('automation_workflows')
       .select('*')
-      .eq('user_id', userId)
-      .eq('status', 'active');
+      .eq('organization_id', organizationId)
+      .or('status.eq.active,is_active.eq.true,enabled.eq.true');
 
     if (!automations) return;
 

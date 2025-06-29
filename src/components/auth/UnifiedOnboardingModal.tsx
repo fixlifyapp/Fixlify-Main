@@ -103,7 +103,8 @@ export const UnifiedOnboardingModal = ({
         .update({
           business_niche: formData.businessType,
           referral_source: formData.referralSource,
-          has_completed_onboarding: true
+          has_completed_onboarding: true,
+          organization_id: '00000000-0000-0000-0000-000000000001' // Set default organization
         })
         .eq('id', userId);
 

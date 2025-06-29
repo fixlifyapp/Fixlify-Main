@@ -24,7 +24,7 @@ const SettingsPage = () => {
       {/* Main Settings Cards Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {/* Profile & Company Card */}
-        <Link to="/profile-company">
+        <Link to="/settings/profile">
           <div className="h-full hover:shadow-md transition-shadow fixlyfy-card cursor-pointer">
             <div className="flex items-center p-6 space-x-4">
               <div className="bg-fixlyfy/10 p-3 rounded-full">
@@ -39,7 +39,7 @@ const SettingsPage = () => {
         </Link>
 
         {/* Products Card */}
-        <Link to="/products">
+        <Link to="/settings/products">
           <div className="h-full hover:shadow-md transition-shadow fixlyfy-card cursor-pointer">
             <div className="flex items-center p-6 space-x-4">
               <div className="bg-fixlyfy/10 p-3 rounded-full">
@@ -54,7 +54,7 @@ const SettingsPage = () => {
         </Link>
 
         {/* Integrations Card */}
-        <Link to="/integrations">
+        <Link to="/settings/integrations">
           <div className="h-full hover:shadow-md transition-shadow fixlyfy-card cursor-pointer">
             <div className="flex items-center p-6 space-x-4">
               <div className="bg-fixlyfy/10 p-3 rounded-full">
@@ -69,7 +69,7 @@ const SettingsPage = () => {
         </Link>
         
         {/* Configuration Card */}
-        <Link to="/configuration">
+        <Link to="/settings/configuration">
           <div className="h-full hover:shadow-md transition-shadow fixlyfy-card cursor-pointer">
             <div className="flex items-center p-6 space-x-4">
               <div className="bg-fixlyfy/10 p-3 rounded-full">
@@ -84,7 +84,7 @@ const SettingsPage = () => {
         </Link>
         
         {/* Phone Numbers Card */}
-        <Link to="/phone-numbers">
+        <Link to="/settings/phone-numbers">
           <div className="h-full hover:shadow-md transition-shadow fixlyfy-card cursor-pointer">
             <div className="flex items-center p-6 space-x-4">
               <div className="bg-fixlyfy/10 p-3 rounded-full">

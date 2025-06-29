@@ -4,6 +4,9 @@ import { useOrganization } from '@/contexts/OrganizationContext';
 import { telnyxService } from '@/services/communications/TelnyxService';
 import { mailgunService } from '@/services/communications/MailgunService';
 import { toast } from 'sonner';
+import { format } from 'date-fns';
+import { toZonedTime } from 'date-fns-tz';
+import { useCompanySettings } from '@/hooks/useCompanySettings';
 
 export interface ExecutionStep {
   id: string;
@@ -31,6 +34,7 @@ export const useAutomationExecution = () => {
   const [executionContext, setExecutionContext] = useState<ExecutionContext | null>(null);
   const [executionHistory, setExecutionHistory] = useState<ExecutionContext[]>([]);
   const { organization } = useOrganization();
+  const { timezone: userTimezone } = useCompanySettings();
 
   // Execute a workflow
   const executeWorkflow = useCallback(async (
@@ -402,7 +406,48 @@ export const useAutomationExecution = () => {
 
   const interpolateVariables = (template: string, variables: Record<string, any>): string => {
     return template.replace(/\{\{([^}]+)\}\}/g, (match, key) => {
-      const keys = key.trim().split('.');
+      const trimmedKey = key.trim();
+      
+      // Handle special date/time variables with timezone
+      if (trimmedKey === 'current_date') {
+        const now = new Date();
+        const zonedDate = toZonedTime(now, userTimezone || 'America/New_York');
+        return format(zonedDate, 'EEE, MMM d, yyyy');
+      }
+      
+      if (trimmedKey === 'current_time') {
+        const now = new Date();
+        const zonedDate = toZonedTime(now, userTimezone || 'America/New_York');
+        return format(zonedDate, 'h:mm a');
+      }
+      
+      if (trimmedKey === 'tomorrow_date') {
+        const tomorrow = new Date(Date.now() + 86400000);
+        const zonedDate = toZonedTime(tomorrow, userTimezone || 'America/New_York');
+        return format(zonedDate, 'EEE, MMM d, yyyy');
+      }
+      
+      // Handle scheduled_date and scheduled_time with timezone
+      if (trimmedKey === 'scheduled_date' || trimmedKey === 'appointment_date') {
+        const scheduledDate = variables.job?.scheduled_date || variables.scheduled_date;
+        if (scheduledDate) {
+          const date = new Date(scheduledDate);
+          const zonedDate = toZonedTime(date, userTimezone || 'America/New_York');
+          return format(zonedDate, 'EEE, MMM d, yyyy');
+        }
+      }
+      
+      if (trimmedKey === 'scheduled_time' || trimmedKey === 'appointment_time') {
+        const scheduledDate = variables.job?.scheduled_date || variables.scheduled_date;
+        if (scheduledDate) {
+          const date = new Date(scheduledDate);
+          const zonedDate = toZonedTime(date, userTimezone || 'America/New_York');
+          return format(zonedDate, 'h:mm a');
+        }
+      }
+      
+      // Handle regular variable interpolation
+      const keys = trimmedKey.split('.');
       let value = variables;
       
       for (const k of keys) {

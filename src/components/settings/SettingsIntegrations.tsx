@@ -77,7 +77,7 @@ export const SettingsIntegrations = () => {
               </p>
             </div>
             <Button asChild>
-              <a href="/phone-numbers" className="flex items-center gap-2">
+              <a href="/settings/phone-numbers" className="flex items-center gap-2">
                 <Settings className="h-4 w-4" />
                 Manage Phone Numbers
                 <ExternalLink className="h-3 w-3" />
@@ -100,7 +100,7 @@ export const SettingsIntegrations = () => {
                     Purchase or add your Telnyx phone numbers to enable AI dispatcher
                   </p>
                   <Button asChild>
-                    <a href="/phone-numbers">
+                    <a href="/settings/phone-numbers">
                       Go to Phone Numbers
                     </a>
                   </Button>
@@ -132,7 +132,7 @@ export const SettingsIntegrations = () => {
                       </div>
                       
                       <Button variant="outline" size="sm" asChild>
-                        <a href="/phone-numbers">
+                        <a href="/settings/phone-numbers">
                           <Settings className="h-4 w-4 mr-2" />
                           Configure
                         </a>

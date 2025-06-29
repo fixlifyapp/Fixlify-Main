@@ -6,6 +6,7 @@
 @import './styles/vertical-workflow-builder.css';
 @import './styles/enhanced-workflow-builder.css';
 @import './styles/simple-workflow-builder.css';
+@import './styles/ai-automation-builder.css';
 
 @tailwind base;
 @tailwind components;
@@ -26,6 +27,7 @@
     
     --primary: 270 71% 57%;
     --primary-foreground: 210 40% 98%;
+    --primary-rgb: 155, 106, 229;
     
     --secondary: 210 40% 96.1%;
     --secondary-foreground: 222 47% 11.2%;

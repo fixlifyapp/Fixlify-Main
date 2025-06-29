@@ -13,6 +13,7 @@ import ClientDetailPage from "@/pages/ClientDetailPage";
 import SchedulePage from "@/pages/SchedulePage";
 import FinancePage from "@/pages/FinancePage";
 import ConnectCenterPageOptimized from "@/pages/ConnectCenterPageOptimized";
+import { DebugErrorBoundary } from "@/components/DebugErrorBoundary";
 
 import AiCenterPage from "@/pages/AiCenterPage";
 import AutomationsPage from "@/pages/AutomationsPage";
@@ -30,11 +31,18 @@ import { AppProviders } from "@/components/ui/AppProviders";
 import TestDebug from "@/pages/TestDebug";
 import MessagingDebugPage from "@/pages/MessagingDebugPage";
 import JobCreationTestPage from "@/pages/JobCreationTestPage";
+import ComponentTest from "@/pages/ComponentTest";
+import TestAutomationPage from "@/pages/TestAutomationPage";
 import { useAutomationTriggers } from "@/hooks/use-automation-triggers";
 
 const queryClient = new QueryClient();
 
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+
+// Import test for development
+if (import.meta.env.DEV) {
+  import('./tests/test-automation-creation');
+}
 
 // Initialize automation trigger service in the App component
 
@@ -79,6 +87,7 @@ function App() {
               {/* Test route for debugging */}
               <Route path="/test" element={<TestPage />} />
               <Route path="/debug" element={<TestDebug />} />
+              <Route path="/component-test" element={<ComponentTest />} />
               <Route path="/messaging-debug" element={
                 <AuthProvider>
                   <ProtectedRouteWithProviders>
@@ -160,7 +169,9 @@ function App() {
               <Route path="/messages" element={
                 <AuthProvider>
                   <ProtectedRouteWithProviders>
-                    <ConnectCenterPageOptimized />
+                    <DebugErrorBoundary componentName="ConnectCenterPageOptimized">
+                      <ConnectCenterPageOptimized />
+                    </DebugErrorBoundary>
                   </ProtectedRouteWithProviders>
                 </AuthProvider>
               } />
@@ -216,7 +227,9 @@ function App() {
               <Route path="/settings/profile" element={
                 <AuthProvider>
                   <ProtectedRouteWithProviders>
-                    <ProfileCompanyPage />
+                    <DebugErrorBoundary componentName="ProfileCompanyPage">
+                      <ProfileCompanyPage />
+                    </DebugErrorBoundary>
                   </ProtectedRouteWithProviders>
                 </AuthProvider>
               } />
@@ -229,16 +242,8 @@ function App() {
                 </AuthProvider>
               } />
               
-              {/* Direct configuration route for easier access */}
-              <Route path="/configuration" element={
-                <AuthProvider>
-                  <ProtectedRouteWithProviders>
-                    <ConfigurationPage />
-                  </ProtectedRouteWithProviders>
-                </AuthProvider>
-              } />
               
-              <Route path="/products" element={
+              <Route path="/settings/products" element={
                 <AuthProvider>
                   <ProtectedRouteWithProviders>
                     <ProductsPage />
@@ -249,7 +254,9 @@ function App() {
               <Route path="/settings/integrations" element={
                 <AuthProvider>
                   <ProtectedRouteWithProviders>
-                    <IntegrationsPage />
+                    <DebugErrorBoundary componentName="IntegrationsPage">
+                      <IntegrationsPage />
+                    </DebugErrorBoundary>
                   </ProtectedRouteWithProviders>
                 </AuthProvider>
               } />
@@ -266,6 +273,14 @@ function App() {
                 <AuthProvider>
                   <ProtectedRouteWithProviders>
                     <JobCreationTestPage />
+                  </ProtectedRouteWithProviders>
+                </AuthProvider>
+              } />
+              
+              <Route path="/test-automation" element={
+                <AuthProvider>
+                  <ProtectedRouteWithProviders>
+                    <TestAutomationPage />
                   </ProtectedRouteWithProviders>
                 </AuthProvider>
               } />
