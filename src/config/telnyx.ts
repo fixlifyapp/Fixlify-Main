@@ -1,10 +1,13 @@
 // Telnyx Configuration
 export const TELNYX_CONFIG = {
-  // Default connection ID - should be set in environment variables
-  DEFAULT_CONNECTION_ID: import.meta.env.VITE_TELNYX_CONNECTION_ID || '2709042883142354871',
+  // Connection ID from environment
+  CONNECTION_ID: import.meta.env.VITE_TELNYX_CONNECTION_ID || '2709100729850660858',
   
-  // Default from number
-  DEFAULT_FROM_NUMBER: import.meta.env.VITE_TELNYX_DEFAULT_FROM_NUMBER || '+14375249932',
+  // API Key
+  API_KEY: import.meta.env.VITE_TELNYX_API_KEY || '',
+  
+  // Public Key for webhook validation
+  PUBLIC_KEY: import.meta.env.VITE_TELNYX_PUBLIC_KEY || '',
   
   // Webhook URLs
   WEBHOOK_BASE_URL: import.meta.env.VITE_SUPABASE_URL || 'https://mqppvcrlvsgrsqelglod.supabase.co',
@@ -25,4 +28,24 @@ export const TELNYX_CONFIG = {
 
 export const getTelnyxWebhookUrl = (endpoint: string) => {
   return `${TELNYX_CONFIG.WEBHOOK_BASE_URL}/functions/v1/${endpoint}`;
-}; 
+};
+
+// Helper to get user's phone number
+export const getUserPhoneNumber = async (userId: string) => {
+  const { supabase } = await import('@/integrations/supabase/client');
+  
+  const { data, error } = await supabase
+    .from('telnyx_phone_numbers')
+    .select('phone_number')
+    .eq('user_id', userId)
+    .eq('status', 'active')
+    .order('purchased_at', { ascending: false })
+    .limit(1)
+    .single();
+    
+  if (error || !data) {
+    throw new Error('No active phone number found for user. Please purchase a phone number first.');
+  }
+  
+  return data.phone_number;
+};

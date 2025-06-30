@@ -141,6 +141,47 @@ export const triggerPaymentReceived = async (invoice: any, organizationId: strin
   });
 };
 
+// Task-related automation triggers
+export const triggerTaskCreated = async (task: any, organizationId: string) => {
+  return triggerAutomations({
+    triggerType: 'task_created',
+    eventId: task.id,
+    organizationId,
+    contextData: await buildTaskContext(task, organizationId)
+  });
+};
+
+export const triggerTaskCompleted = async (task: any, organizationId: string) => {
+  return triggerAutomations({
+    triggerType: 'task_completed',
+    eventId: task.id,
+    organizationId,
+    contextData: await buildTaskContext(task, organizationId)
+  });
+};
+
+export const triggerTaskOverdue = async (task: any, organizationId: string) => {
+  return triggerAutomations({
+    triggerType: 'task_overdue',
+    eventId: task.id,
+    organizationId,
+    contextData: await buildTaskContext(task, organizationId)
+  });
+};
+
+export const triggerTaskStatusChanged = async (task: any, organizationId: string, oldStatus: string, newStatus: string) => {
+  const contextData = await buildTaskContext(task, organizationId);
+  contextData.old_status = oldStatus;
+  contextData.new_status = newStatus;
+  
+  return triggerAutomations({
+    triggerType: 'task_status_changed',
+    eventId: task.id,
+    organizationId,
+    contextData
+  });
+};
+
 export const triggerMissedCall = async (callData: any, organizationId: string) => {
   return triggerAutomations({
     triggerType: 'missed_call',
@@ -339,6 +380,88 @@ async function buildInvoiceContext(invoice: any, organizationId: string) {
       invoice_id: invoice.id,
       total_amount: invoice.total_amount ? `$${invoice.total_amount.toFixed(2)}` : '$0.00',
       client_name: 'Valued Customer',
+      ...await buildOrganizationContext(organizationId)
+    };
+  }
+}
+
+async function buildTaskContext(task: any, organizationId: string) {
+  try {
+    // Get client information if task has client
+    let client = null;
+    if (task.client_id) {
+      const { data } = await supabase
+        .from('clients')
+        .select('*')
+        .eq('id', task.client_id)
+        .single();
+      client = data;
+    }
+
+    // Get job information if task has job
+    let job = null;
+    if (task.job_id) {
+      const { data } = await supabase
+        .from('jobs')
+        .select('*')
+        .eq('id', task.job_id)
+        .single();
+      job = data;
+    }
+
+    // Get assigned technician information
+    let technician = null;
+    if (task.assigned_to) {
+      const { data } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', task.assigned_to)
+        .single();
+      technician = data;
+    }
+
+    const orgContext = await buildOrganizationContext(organizationId);
+    const dueDate = task.due_date ? new Date(task.due_date) : null;
+
+    return {
+      // Task information
+      task_id: task.id,
+      task_description: task.description || '',
+      task_status: task.status || 'pending',
+      task_priority: task.priority || 'medium',
+      task_notes: task.notes || '',
+      due_date: dueDate ? dueDate.toLocaleDateString() : '',
+      due_time: dueDate ? dueDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '',
+
+      // Client information
+      client_id: client?.id || '',
+      client_name: client?.name || 'No Client',
+      client_first_name: client?.name ? client.name.split(' ')[0] : 'Customer',
+      client_phone: client?.phone || '',
+      client_email: client?.email || '',
+      client_address: client?.address || '',
+
+      // Job information
+      job_id: job?.id || '',
+      job_title: job?.title || '',
+      job_type: job?.job_type || '',
+      job_status: job?.status || '',
+
+      // Technician information
+      technician_id: technician?.id || '',
+      technician_name: technician?.name || 'Unassigned',
+      technician_phone: technician?.phone || '',
+      technician_email: technician?.email || '',
+
+      // Organization context
+      ...orgContext
+    };
+  } catch (error) {
+    console.error('Error building task context:', error);
+    return {
+      task_id: task.id,
+      task_description: task.description || '',
+      task_status: task.status || 'pending',
       ...await buildOrganizationContext(organizationId)
     };
   }

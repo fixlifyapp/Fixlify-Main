@@ -46,8 +46,8 @@ interface JobDetailsDialogsProps {
     scheduleDate: string;
     scheduleTime: string;
     tags: string[];
+    client_id?: string;
   };
-  tasks: Array<{ id: number; name: string; completed: boolean }>;
   appliances: Array<{ id: number; type: "dryer" | "dishwasher" | "fridge" | "washer"; model?: string }>;
   onUpdateDescription: (description: string) => void;
   onUpdateType: (type: string) => void;
@@ -55,7 +55,6 @@ interface JobDetailsDialogsProps {
   onUpdateSource: (source: string) => void;
   onUpdateSchedule: (date: string, timeWindow: string) => void;
   onUpdateTags: (tags: string[]) => void;
-  onUpdateTasks: (tasks: Array<{ id: number; name: string; completed: boolean }>) => void;
   onUpdateAppliances: (appliances: Array<{ id: number; type: "dryer" | "dishwasher" | "fridge" | "washer"; model?: string }>) => void;
 }
 
@@ -64,7 +63,6 @@ export const JobDetailsDialogs = ({
   dialogStates,
   dialogSetters,
   jobDetails,
-  tasks,
   appliances,
   onUpdateDescription,
   onUpdateType,
@@ -72,7 +70,6 @@ export const JobDetailsDialogs = ({
   onUpdateSource,
   onUpdateSchedule,
   onUpdateTags,
-  onUpdateTasks,
   onUpdateAppliances
 }: JobDetailsDialogsProps) => {
   return (
@@ -124,8 +121,8 @@ export const JobDetailsDialogs = ({
       <TaskManagementDialog
         open={dialogStates.isTasksDialogOpen}
         onOpenChange={dialogSetters.setIsTasksDialogOpen}
-        initialTasks={tasks}
-        onSave={onUpdateTasks}
+        jobId={jobId}
+        clientId={jobDetails.client_id}
       />
       
       <AttachmentUploadDialog

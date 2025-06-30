@@ -20,6 +20,7 @@ import AutomationsPage from "@/pages/AutomationsPage";
 import { AdvancedWorkflowAutomation } from "@/components/automations/AdvancedWorkflowAutomation";
 import AnalyticsPage from "@/pages/AnalyticsPage";
 import TeamManagementPage from "@/pages/TeamManagementPage";
+import TasksPage from "@/pages/TasksPage";
 import SettingsPage from "@/pages/SettingsPage";
 import ProfileCompanyPage from "@/pages/ProfileCompanyPage";
 import ConfigurationPage from "@/pages/ConfigurationPage";
@@ -212,6 +213,14 @@ function App() {
                 <AuthProvider>
                   <ProtectedRouteWithProviders>
                     <TeamManagementPage />
+                  </ProtectedRouteWithProviders>
+                </AuthProvider>
+              } />
+            
+            <Route path="/tasks" element={
+                <AuthProvider>
+                  <ProtectedRouteWithProviders>
+                    <TasksPage />
                   </ProtectedRouteWithProviders>
                 </AuthProvider>
               } />

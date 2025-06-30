@@ -1,9 +1,11 @@
 import { supabase } from '@/integrations/supabase/client';
+import { TELNYX_CONFIG } from '@/config/telnyx';
 
 interface SMSMessage {
   to: string;
   message: string;
   from?: string;
+  userId?: string;
   mediaUrls?: string[];
   webhookUrl?: string;
 }
@@ -11,6 +13,7 @@ interface SMSMessage {
 interface VoiceCall {
   to: string;
   from?: string;
+  userId?: string;
   answeredByMachineDetection?: boolean;
   machineDetectionWebhookUrl?: string;
 }
@@ -18,7 +21,6 @@ interface VoiceCall {
 export class TelnyxService {
   private apiKey: string;
   private baseUrl = 'https://api.telnyx.com/v2';
-  private defaultFromNumber: string;
   private connectionId: string;
   private initialized = false;
 
@@ -29,9 +31,8 @@ export class TelnyxService {
   private initialize() {
     if (this.initialized) return;
     
-    this.apiKey = import.meta.env.VITE_TELNYX_API_KEY || '';
-    this.defaultFromNumber = import.meta.env.VITE_TELNYX_DEFAULT_FROM_NUMBER || '';
-    this.connectionId = import.meta.env.VITE_TELNYX_CONNECTION_ID || '';
+    this.apiKey = TELNYX_CONFIG.API_KEY;
+    this.connectionId = TELNYX_CONFIG.CONNECTION_ID;
     this.initialized = true;
   }
 
@@ -44,19 +45,44 @@ export class TelnyxService {
     };
   }
 
+  // Get user's phone number
+  private async getUserPhoneNumber(userId?: string): Promise<string> {
+    if (!userId) {
+      throw new Error('User ID is required to send messages');
+    }
+
+    const { data, error } = await supabase
+      .from('telnyx_phone_numbers')
+      .select('phone_number')
+      .eq('user_id', userId)
+      .eq('status', 'active')
+      .order('purchased_at', { ascending: false })
+      .limit(1)
+      .single();
+
+    if (error || !data) {
+      throw new Error('No active phone number found. Please purchase a phone number first.');
+    }
+
+    return data.phone_number;
+  }
+
   // SMS Functions
-  async sendSMS({ to, message, from, mediaUrls, webhookUrl }: SMSMessage) {
+  async sendSMS({ to, message, from, userId, mediaUrls, webhookUrl }: SMSMessage) {
     this.initialize();
     try {
+      // Get the from number - either provided or user's number
+      const fromNumber = from || await this.getUserPhoneNumber(userId);
+
       const response = await fetch(`${this.baseUrl}/messages`, {
         method: 'POST',
         headers: this.getHeaders(),
         body: JSON.stringify({
-          from: from || this.defaultFromNumber,
+          from: fromNumber,
           to: this.formatPhoneNumber(to),
           text: message,
           media_urls: mediaUrls,
-          webhook_url: webhookUrl || `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/telnyx-status-webhook`,
+          webhook_url: webhookUrl || `${TELNYX_CONFIG.WEBHOOK_BASE_URL}/functions/v1/telnyx-status-webhook`,
           use_profile_webhooks: false,
           type: 'SMS'
         })
@@ -74,10 +100,11 @@ export class TelnyxService {
         type: 'sms',
         direction: 'outbound',
         to,
-        from: from || this.defaultFromNumber,
+        from: fromNumber,
         content: message,
         status: 'sent',
-        externalId: data.data.id
+        externalId: data.data.id,
+        userId
       });
 
       return data.data;
@@ -86,13 +113,13 @@ export class TelnyxService {
       throw error;
     }
   }
-
-  async sendBulkSMS(recipients: Array<{ to: string; message: string; variables?: Record<string, string> }>) {
+  async sendBulkSMS(recipients: Array<{ to: string; message: string; variables?: Record<string, string> }>, userId?: string) {
     const results = await Promise.allSettled(
       recipients.map(recipient => 
         this.sendSMS({
           to: recipient.to,
-          message: this.interpolateVariables(recipient.message, recipient.variables || {})
+          message: this.interpolateVariables(recipient.message, recipient.variables || {}),
+          userId
         })
       )
     );
@@ -105,18 +132,21 @@ export class TelnyxService {
   }
 
   // Voice Functions
-  async makeCall({ to, from, answeredByMachineDetection, machineDetectionWebhookUrl }: VoiceCall) {
+  async makeCall({ to, from, userId, answeredByMachineDetection, machineDetectionWebhookUrl }: VoiceCall) {
     this.initialize();
     try {
+      // Get the from number - either provided or user's number
+      const fromNumber = from || await this.getUserPhoneNumber(userId);
+
       const response = await fetch(`${this.baseUrl}/calls`, {
         method: 'POST',
         headers: this.getHeaders(),
         body: JSON.stringify({
           connection_id: this.connectionId,
           to: this.formatPhoneNumber(to),
-          from: from || this.defaultFromNumber,
+          from: fromNumber,
           answering_machine_detection: answeredByMachineDetection ? 'detect' : 'disabled',
-          webhook_url: `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/telnyx-voice-webhook`,
+          webhook_url: `${TELNYX_CONFIG.WEBHOOK_BASE_URL}/functions/v1/telnyx-voice-webhook`,
           webhook_url_method: 'POST'
         })
       });
@@ -132,15 +162,134 @@ export class TelnyxService {
         type: 'voice',
         direction: 'outbound',
         to,
-        from: from || this.defaultFromNumber,
+        from: fromNumber,
         status: 'initiated',
-        externalId: data.data.call_control_id
+        externalId: data.data.call_control_id,
+        userId
       });
 
       return data.data;
     } catch (error) {
       console.error('Error making call:', error);
       throw error;
+    }
+  }
+
+  // Phone Number Management
+  async searchAvailableNumbers(params: {
+    areaCode?: string;
+    locality?: string;
+    country?: string;
+    numberType?: 'local' | 'toll-free' | 'mobile';
+  }) {
+    this.initialize();
+    try {
+      const queryParams = new URLSearchParams({
+        'filter[country_iso]': params.country || 'US',
+        'filter[number_type]': params.numberType || 'local',
+        'filter[features]': 'sms,voice',
+        'filter[limit]': '20'
+      });
+
+      if (params.areaCode) {
+        queryParams.append('filter[area_code]', params.areaCode);
+      }
+      if (params.locality) {
+        queryParams.append('filter[locality]', params.locality);
+      }
+
+      const response = await fetch(`${this.baseUrl}/available_phone_numbers?${queryParams}`, {
+        method: 'GET',
+        headers: this.getHeaders()
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.errors?.[0]?.detail || 'Failed to search numbers');
+      }
+
+      const data = await response.json();
+      return data.data;
+    } catch (error) {
+      console.error('Error searching numbers:', error);
+      throw error;
+    }
+  }
+
+  async purchasePhoneNumber(phoneNumber: string, userId: string) {
+    this.initialize();
+    try {
+      // First, create a number order
+      const response = await fetch(`${this.baseUrl}/number_orders`, {
+        method: 'POST',
+        headers: this.getHeaders(),
+        body: JSON.stringify({
+          phone_numbers: [{ phone_number: phoneNumber }],
+          connection_id: this.connectionId
+        })
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.errors?.[0]?.detail || 'Failed to purchase number');
+      }
+
+      const data = await response.json();
+      const orderId = data.data.id;
+
+      // Store in database
+      const { error: dbError } = await supabase
+        .from('telnyx_phone_numbers')
+        .insert({
+          user_id: userId,
+          phone_number: phoneNumber,
+          order_id: orderId,
+          status: 'active',
+          connection_id: this.connectionId,
+          country_code: 'US',
+          area_code: phoneNumber.substring(2, 5),
+          webhook_url: `${TELNYX_CONFIG.WEBHOOK_BASE_URL}/functions/v1/telnyx-webhook-router`,
+          purchased_at: new Date().toISOString(),
+          configured_at: new Date().toISOString()
+        });
+
+      if (dbError) {
+        console.error('Error storing phone number:', dbError);
+        throw dbError;
+      }
+
+      // Configure webhooks for the number
+      await this.configurePhoneNumber(phoneNumber);
+
+      return data.data;
+    } catch (error) {
+      console.error('Error purchasing number:', error);
+      throw error;
+    }
+  }
+  async configurePhoneNumber(phoneNumber: string) {
+    try {
+      // Configure messaging for the number
+      await fetch(`${this.baseUrl}/phone_numbers/${phoneNumber}/messaging`, {
+        method: 'PATCH',
+        headers: this.getHeaders(),
+        body: JSON.stringify({
+          messaging_profile_id: null, // Use default
+          webhook_url: `${TELNYX_CONFIG.WEBHOOK_BASE_URL}/functions/v1/sms-receiver`
+        })
+      });
+
+      // Configure voice for the number
+      await fetch(`${this.baseUrl}/phone_numbers/${phoneNumber}/voice`, {
+        method: 'PATCH',
+        headers: this.getHeaders(),
+        body: JSON.stringify({
+          connection_id: this.connectionId
+        })
+      });
+    } catch (error) {
+      console.error('Error configuring phone number:', error);
+      // Don't throw - number is still purchased
     }
   }
 
@@ -173,15 +322,17 @@ export class TelnyxService {
     content?: string;
     status: string;
     externalId?: string;
+    userId?: string;
   }) {
     const { data: profile } = await supabase.auth.getUser();
     
     await supabase.from('communication_logs').insert({
-      organization_id: profile?.user?.user_metadata?.organization_id,
+      user_id: data.userId || profile?.user?.id,
       type: data.type,
       direction: data.direction,
-      to_number: data.to,
-      from_number: data.from,
+      to_address: data.to,
+      from_address: data.from,
+      recipient: data.to,
       content: data.content,
       status: data.status,
       external_id: data.externalId,
@@ -212,7 +363,7 @@ export class TelnyxService {
       .from('communication_logs')
       .update({ 
         status, 
-        error_details: error,
+        error_message: error?.toString(),
         updated_at: new Date().toISOString()
       })
       .eq('external_id', externalId);

@@ -287,16 +287,69 @@ export const useAutomationExecution = () => {
 
   // Execute Task action
   const executeTaskAction = async (config: any, context: ExecutionContext, testMode: boolean) => {
-    const title = interpolateVariables(config.title, context.variables);
     const description = interpolateVariables(config.description || '', context.variables);
+    
+    // Calculate due date
+    let dueDate: string | undefined;
+    const dueDateConfig = config.dueDate || config.due_date || config.dueIn;
+    
+    if (dueDateConfig) {
+      if (config.dueIn && config.dueUnit) {
+        // Handle the UI format: dueIn + dueUnit
+        const amount = parseInt(config.dueIn);
+        const date = new Date();
+        
+        switch (config.dueUnit) {
+          case 'hours':
+            date.setHours(date.getHours() + amount);
+            break;
+          case 'days':
+            date.setDate(date.getDate() + amount);
+            break;
+          case 'weeks':
+            date.setDate(date.getDate() + (amount * 7));
+            break;
+        }
+        
+        dueDate = date.toISOString();
+      } else if (typeof dueDateConfig === 'string' && dueDateConfig.startsWith('+')) {
+        // Handle "+1 day" format from templates
+        const matches = dueDateConfig.match(/\+(\d+)\s*(day|days|hour|hours|week|weeks)/);
+        if (matches) {
+          const amount = parseInt(matches[1]);
+          const unit = matches[2];
+          const date = new Date();
+          
+          switch (unit) {
+            case 'hour':
+            case 'hours':
+              date.setHours(date.getHours() + amount);
+              break;
+            case 'day':
+            case 'days':
+              date.setDate(date.getDate() + amount);
+              break;
+            case 'week':
+            case 'weeks':
+              date.setDate(date.getDate() + (amount * 7));
+              break;
+          }
+          
+          dueDate = date.toISOString();
+        }
+      } else {
+        // Direct date string
+        dueDate = dueDateConfig;
+      }
+    }
 
     if (testMode) {
       return {
         preview: {
-          title,
           description,
           assignee: config.assignee,
-          due_date: config.due_date
+          due_date: dueDate,
+          priority: config.priority || 'medium'
         }
       };
     }
@@ -306,12 +359,13 @@ export const useAutomationExecution = () => {
       .from('tasks')
       .insert({
         organization_id: organization?.id,
-        title,
         description,
         assigned_to: config.assignee,
-        due_date: config.due_date,
+        due_date: dueDate,
         priority: config.priority || 'medium',
-        created_by_automation: context.workflowId
+        created_by_automation: context.workflowId,
+        job_id: context.variables?.job_id,
+        client_id: context.variables?.client_id
       })
       .select()
       .single();

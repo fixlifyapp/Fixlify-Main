@@ -189,7 +189,7 @@ export const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
         name: 'Create Follow-up Task',
         config: {
           assignee: 'account_manager',
-          title: 'Call {{client_name}} - Overdue Invoice',
+          description: 'Call {{client_name}} regarding overdue invoice {{invoice_number}} (${{amount}})',
           priority: 'high',
           dueDate: '+1 day'
         }

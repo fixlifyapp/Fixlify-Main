@@ -33,6 +33,12 @@ export class AutomationTriggerService {
         case 'payment_received':
           this.listenForPayments(automation, userId);
           break;
+        case 'task_created':
+        case 'task_completed':
+        case 'task_status_changed':
+        case 'task_overdue':
+          this.listenForTasks(automation, userId);
+          break;
         // Add more trigger types as needed
       }
     }
@@ -133,6 +139,113 @@ export class AutomationTriggerService {
       .subscribe();
 
     this.subscriptions.push(subscription);
+  }
+
+  // Listen for task events
+  private static listenForTasks(automation: any, userId: string) {
+    const triggerType = automation.trigger_type;
+    const conditions = automation.trigger_conditions as any;
+    
+    if (triggerType === 'task_created') {
+      const subscription = supabase
+        .channel(`task-created-${automation.id}`)
+        .on('postgres_changes', {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'tasks'
+        }, async (payload) => {
+          // Filter by organization if needed
+          if (payload.new.organization_id !== automation.organization_id) return;
+          
+          await AutomationExecutionService.executeWorkflow({
+            workflowId: automation.id,
+            triggeredBy: 'task_created',
+            entityId: payload.new.id,
+            entityType: 'task',
+            context: {
+              userId,
+              clientId: payload.new.client_id,
+              jobId: payload.new.job_id,
+              taskId: payload.new.id
+            }
+          });
+        })
+        .subscribe();
+      
+      this.subscriptions.push(subscription);
+    } else if (triggerType === 'task_completed') {
+      const subscription = supabase
+        .channel(`task-completed-${automation.id}`)
+        .on('postgres_changes', {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'tasks'
+        }, async (payload) => {
+          // Filter by organization if needed
+          if (payload.new.organization_id !== automation.organization_id) return;
+          
+          // Check if task was just completed
+          if (payload.old.status !== 'completed' && payload.new.status === 'completed') {
+            await AutomationExecutionService.executeWorkflow({
+              workflowId: automation.id,
+              triggeredBy: 'task_completed',
+              entityId: payload.new.id,
+              entityType: 'task',
+              context: {
+                userId,
+                clientId: payload.new.client_id,
+                jobId: payload.new.job_id,
+                taskId: payload.new.id,
+                completedBy: payload.new.completed_by
+              }
+            });
+          }
+        })
+        .subscribe();
+      
+      this.subscriptions.push(subscription);
+    } else if (triggerType === 'task_status_changed') {
+      const subscription = supabase
+        .channel(`task-status-${automation.id}`)
+        .on('postgres_changes', {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'tasks'
+        }, async (payload) => {
+          // Filter by organization if needed
+          if (payload.new.organization_id !== automation.organization_id) return;
+          
+          const oldStatus = payload.old.status;
+          const newStatus = payload.new.status;
+          
+          // Check if status actually changed
+          if (oldStatus === newStatus) return;
+          
+          // Check if status change matches trigger conditions
+          if (conditions?.from_status && oldStatus !== conditions.from_status) return;
+          if (conditions?.to_status && newStatus !== conditions.to_status) return;
+          
+          await AutomationExecutionService.executeWorkflow({
+            workflowId: automation.id,
+            triggeredBy: 'task_status_changed',
+            entityId: payload.new.id,
+            entityType: 'task',
+            context: {
+              userId,
+              clientId: payload.new.client_id,
+              jobId: payload.new.job_id,
+              taskId: payload.new.id,
+              oldStatus,
+              newStatus
+            }
+          });
+        })
+        .subscribe();
+      
+      this.subscriptions.push(subscription);
+    }
+    // Note: task_overdue would typically be handled by a scheduled job/cron
+    // rather than a real-time subscription
   }
 
   // Cleanup subscriptions

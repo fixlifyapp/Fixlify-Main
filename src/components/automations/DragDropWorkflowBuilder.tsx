@@ -251,7 +251,7 @@ const ACTION_TYPES = [
     icon: CheckSquare,
     color: 'bg-orange-50 dark:bg-orange-950/30 text-orange-600',
     category: 'tasks',
-    fields: ['title', 'description', 'assignee', 'due_date', 'priority']
+    fields: ['description', 'assignee', 'due_date', 'priority']
   },
   { 
     id: 'update_job',

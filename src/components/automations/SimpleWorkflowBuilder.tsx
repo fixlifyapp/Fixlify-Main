@@ -19,7 +19,7 @@ import {
   User, FileText, Clock, Star, Tag, UserPlus, MessageSquare,
   Mail, Phone, Bell, Timer, Target, Zap, X, Play, Pause,
   History, Variable, GripVertical, ArrowDown, Code, Webhook,
-  Wand2, RefreshCw, Edit3, ChevronUp
+  Wand2, RefreshCw, Edit3, ChevronUp, UserCheck
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -100,14 +100,16 @@ const TRIGGERS: WorkflowTrigger[] = [
   // Tasks
   { type: 'task_created', name: 'Task Created', icon: Plus, color: 'orange', category: 'Tasks', description: 'When a task is created' },
   { type: 'task_completed', name: 'Task Completed', icon: CheckCircle, color: 'orange', category: 'Tasks', description: 'When a task is marked done' },
+  { type: 'task_overdue', name: 'Task Overdue', icon: AlertCircle, color: 'orange', category: 'Tasks', description: 'When a task passes its due date' },
+  { type: 'task_assigned', name: 'Task Assigned', icon: UserCheck, color: 'orange', category: 'Tasks', description: 'When a task is assigned to someone' },
 ];
 
-// Action options
 const ACTION_TYPES = [
   { type: 'send_sms', name: 'Send SMS', icon: MessageSquare, description: 'Send a text message' },
   { type: 'send_email', name: 'Send Email', icon: Mail, description: 'Send an email' },
   { type: 'send_notification', name: 'Send Notification', icon: Bell, description: 'Send in-app notification' },
   { type: 'create_task', name: 'Create Task', icon: Plus, description: 'Create a follow-up task' },
+  { type: 'update_task_status', name: 'Update Task Status', icon: CheckCircle, description: 'Update task status' },
   { type: 'update_status', name: 'Update Status', icon: Target, description: 'Change job or invoice status' },
   { type: 'add_tag', name: 'Add Tag', icon: Tag, description: 'Add a tag to customer or job' },
   { type: 'webhook', name: 'Call Webhook', icon: Webhook, description: 'Send data to external service' },
@@ -579,23 +581,17 @@ const SortableStep: React.FC<{
                       {step.type === 'create_task' && (
                         <div className="space-y-3 pl-11">
                           <div>
-                            <Label className="text-sm">Task Title</Label>
-                            <Input
-                              value={step.config.title || ''}
-                              onChange={(e) => onUpdate({ config: { ...step.config, title: e.target.value } })}
-                              placeholder="Follow up with {{client_name}}"
-                              className="mt-1"
-                            />
-                          </div>
-                          <div>
-                            <Label className="text-sm">Description</Label>
+                            <Label className="text-sm">Task Description</Label>
                             <Textarea
                               value={step.config.description || ''}
                               onChange={(e) => onUpdate({ config: { ...step.config, description: e.target.value } })}
                               placeholder="Check on service satisfaction..."
                               className="mt-1 text-sm"
-                              rows={2}
+                              rows={3}
                             />
+                            <p className="text-xs text-muted-foreground mt-1">
+                              Use variables like {'{{client_name}}'} or {'{{job_id}}'}
+                            </p>
                           </div>
                           <div>
                             <Label className="text-sm">Due In</Label>
@@ -622,6 +618,60 @@ const SortableStep: React.FC<{
                                 </SelectContent>
                               </Select>
                             </div>
+                          </div>
+                          <div>
+                            <Label className="text-sm">Priority</Label>
+                            <Select
+                              value={step.config.priority || 'medium'}
+                              onValueChange={(value) => onUpdate({ config: { ...step.config, priority: value } })}
+                            >
+                              <SelectTrigger className="mt-1">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="low">Low</SelectItem>
+                                <SelectItem value="medium">Medium</SelectItem>
+                                <SelectItem value="high">High</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </div>
+                      )}
+
+                      {step.type === 'update_task_status' && (
+                        <div className="space-y-3 pl-11">
+                          <div>
+                            <Label className="text-sm">Task Status</Label>
+                            <Select
+                              value={step.config.taskStatus || 'completed'}
+                              onValueChange={(value) => onUpdate({ config: { ...step.config, taskStatus: value } })}
+                            >
+                              <SelectTrigger className="mt-1">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="completed">Mark as Completed</SelectItem>
+                                <SelectItem value="in_progress">Mark as In Progress</SelectItem>
+                                <SelectItem value="cancelled">Mark as Cancelled</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div>
+                            <Label className="text-sm">Task Selection</Label>
+                            <Select
+                              value={step.config.taskSelection || 'all'}
+                              onValueChange={(value) => onUpdate({ config: { ...step.config, taskSelection: value } })}
+                            >
+                              <SelectTrigger className="mt-1">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="all">All tasks for the job</SelectItem>
+                                <SelectItem value="overdue">Only overdue tasks</SelectItem>
+                                <SelectItem value="priority_high">Only high priority tasks</SelectItem>
+                                <SelectItem value="assigned_to_trigger">Tasks assigned to trigger user</SelectItem>
+                              </SelectContent>
+                            </Select>
                           </div>
                         </div>
                       )}

@@ -29,8 +29,6 @@ export const JobDetails = ({ jobId }: JobDetailsProps) => {
     setAdditionalJobTypes,
     additionalSources,
     setAdditionalSources,
-    tasks,
-    setTasks,
     attachments,
     setAttachments,
     dialogStates,
@@ -88,10 +86,6 @@ export const JobDetails = ({ jobId }: JobDetailsProps) => {
 
   const handleUpdateTags = (tags: string[]) => {
     setJobDetails(prev => ({ ...prev, tags }));
-  };
-
-  const handleUpdateTasks = (updatedTasks: typeof tasks) => {
-    setTasks(updatedTasks);
   };
 
   const handleUpdateAttachments = (updatedAttachments: typeof attachments) => {
@@ -175,7 +169,7 @@ export const JobDetails = ({ jobId }: JobDetailsProps) => {
       
       {/* Tasks Section */}
       <TasksSection
-        tasks={tasks}
+        jobId={jobId}
         onTasksEdit={() => dialogSetters.setIsTasksDialogOpen(true)}
       />
       
@@ -193,8 +187,10 @@ export const JobDetails = ({ jobId }: JobDetailsProps) => {
         jobId={jobId}
         dialogStates={dialogStates}
         dialogSetters={dialogSetters}
-        jobDetails={jobDetails}
-        tasks={tasks}
+        jobDetails={{
+          ...jobDetails,
+          client_id: jobDetails.clientId
+        }}
         appliances={appliances}
         onUpdateDescription={handleUpdateDescription}
         onUpdateType={handleUpdateType}
@@ -202,7 +198,6 @@ export const JobDetails = ({ jobId }: JobDetailsProps) => {
         onUpdateSource={handleUpdateSource}
         onUpdateSchedule={handleUpdateSchedule}
         onUpdateTags={handleUpdateTags}
-        onUpdateTasks={handleUpdateTasks}
         onUpdateAppliances={handleUpdateAppliances}
       />
     </div>

@@ -32,12 +32,6 @@ export const useJobDetailsState = () => {
   const [additionalJobTypes, setAdditionalJobTypes] = useState<string[]>([]);
   const [additionalSources, setAdditionalSources] = useState<string[]>([]);
 
-  const [tasks, setTasks] = useState([
-    { id: 1, name: "Initial diagnosis of HVAC unit", completed: true },
-    { id: 2, name: "Check refrigerant levels", completed: false },
-    { id: 3, name: "Clean condenser coils", completed: false }
-  ]);
-
   const [attachments, setAttachments] = useState([
     { id: 1, name: "HVAC-specs.pdf", size: "210 KB" },
     { id: 2, name: "Previous-service.pdf", size: "185 KB" }
@@ -114,8 +108,6 @@ export const useJobDetailsState = () => {
     setAdditionalJobTypes,
     additionalSources,
     setAdditionalSources,
-    tasks,
-    setTasks,
     attachments,
     setAttachments,
     dialogStates,

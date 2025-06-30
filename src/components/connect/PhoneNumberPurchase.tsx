@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -6,528 +5,380 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Phone, Search, Plus, MapPin, Hash, Globe } from "lucide-react";
+import { Phone, Search, Plus, MapPin, Hash, Globe, Loader2, CheckCircle, DollarSign } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { formatPhoneForDisplay } from "@/utils/phoneUtils";
+import { useAuth } from "@/hooks/use-auth";
+import { TelnyxSyncButton } from "./TelnyxSyncButton";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface AvailableNumber {
   phone_number: string;
-  region_information: any;
+  locality?: string;
+  region?: string;
+  rate_center?: string;
   features: string[];
-  cost_information: any;
-  source: 'telnyx';
-}
-
-interface ClaimableNumber {
-  phone_number: string;
-  status: string;
-  user_id: string | null;
-  source: 'claimable';
+  cost?: {
+    monthly_rental_rate: string;
+    upfront_cost: string;
+  };
 }
 
 export function PhoneNumberPurchase() {
-  const [searchType, setSearchType] = useState<'city' | 'area-code' | 'local' | 'toll-free'>('city');
+  const { user } = useAuth();
+  const [searchType, setSearchType] = useState<'area-code' | 'locality'>('area-code');
   const [searchValue, setSearchValue] = useState('');
-  const [country, setCountry] = useState('CA');
+  const [country, setCountry] = useState('US');
   const [availableNumbers, setAvailableNumbers] = useState<AvailableNumber[]>([]);
-  const [claimableNumber, setClaimableNumber] = useState<ClaimableNumber | null>(null);
   const [isSearching, setIsSearching] = useState(false);
   const queryClient = useQueryClient();
 
-  // Check for claimable number (+14375249932) on component mount
-  useEffect(() => {
-    checkClaimableNumber();
-  }, []);
-
-  const checkClaimableNumber = async () => {
-    try {
-      // Check for available Telnyx numbers that can be claimed
+  // Check for claimable numbers (from your Telnyx account)
+  const { data: claimableNumbers = [], refetch: refetchClaimable } = useQuery({
+    queryKey: ['claimable-phone-numbers'],
+    queryFn: async () => {
       const { data, error } = await supabase
         .from('telnyx_phone_numbers')
-        .select('phone_number, status, user_id')
-        .in('phone_number', ['+14375290279', '+14375249932'])
-        .eq('status', 'available')
+        .select('*')
         .is('user_id', null)
-        .limit(1)
-        .single();
+        .or('status.eq.available,status.eq.active')
+        .order('phone_number');
 
-      if (error && error.code !== 'PGRST116') {
-        console.error('Error checking claimable numbers:', error);
-        return;
-      }
+      if (error) throw error;
+      return data || [];
+    }
+  });
+
+  // Get user's existing phone numbers
+  const { data: userNumbers = [] } = useQuery({
+    queryKey: ['user-phone-numbers', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return [];
       
-      if (data) {
-        setClaimableNumber({
-          phone_number: data.phone_number,
-          status: 'available_to_claim',
-          user_id: null,
-          source: 'claimable'
-        });
+      const { data, error } = await supabase
+        .from('telnyx_phone_numbers')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('status', 'active')
+        .order('purchased_at', { ascending: false });
+
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!user?.id
+  });
+
+  // Search for new numbers from Telnyx
+  const searchNumbers = async () => {
+    if (!searchValue && searchType !== 'locality') {
+      toast.error('Please enter a search value');
+      return;
+    }
+
+    setIsSearching(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('telnyx-phone-manager', {
+        body: {
+          action: 'search_available_numbers',
+          area_code: searchType === 'area-code' ? searchValue : undefined,
+          locality: searchType === 'locality' ? searchValue : undefined,
+          country
+        }
+      });
+
+      if (error) throw error;
+
+      if (data.success) {
+        setAvailableNumbers(data.numbers);
+        if (data.numbers.length === 0) {
+          toast.info('No numbers found. Try a different search.');
+        }
+      } else {
+        toast.error(data.error || 'Failed to search numbers');
       }
     } catch (error) {
-      console.error('Error checking claimable number:', error);
+      console.error('Search error:', error);
+      toast.error('Failed to search for numbers');
+    } finally {
+      setIsSearching(false);
     }
   };
 
   // Claim existing number mutation
   const claimNumberMutation = useMutation({
     mutationFn: async (phoneNumber: string) => {
-      console.log('Claiming number:', phoneNumber);
-      
-      // Get current user
-      const { data: { user }, error: userError } = await supabase.auth.getUser();
-      if (userError || !user) {
+      if (!user?.id) {
         throw new Error('You must be logged in to claim a phone number');
       }
-      
-      // Update the phone number to assign it to the current user
-      const { data, error } = await supabase
-        .from('telnyx_phone_numbers')
-        .update({
-          user_id: user.id,
-          status: 'active',
-          purchased_at: new Date().toISOString()
-        })
-        .eq('phone_number', phoneNumber)
-        .eq('status', 'available')
-        .is('user_id', null)
-        .select()
-        .single();
 
-      if (error) {
-        console.error('Claim error:', error);
-        throw new Error('Failed to claim phone number: ' + error.message);
-      }
-      
-      if (!data) {
-        throw new Error('Phone number is no longer available to claim');
-      }
-      
-      console.log('Claim response:', data);
+      const { data, error } = await supabase.rpc('claim_phone_number', {
+        p_phone_number: phoneNumber,
+        p_user_id: user.id
+      });
+
+      if (error) throw error;
       return data;
     },
     onSuccess: (data) => {
-      console.log('Successfully claimed:', data);
-      toast.success(`🎉 Number ${data.phone_number} claimed successfully and set as default!`);
-      
-      // Clear the claimable number from state
-      setClaimableNumber(null);
-      
-      // Refresh all related queries
-      queryClient.invalidateQueries({ queryKey: ['telnyx-owned-numbers'] });
-      queryClient.invalidateQueries({ queryKey: ['user-telnyx-numbers'] });
-      queryClient.invalidateQueries({ queryKey: ['phone-numbers-management'] });
-      queryClient.invalidateQueries({ queryKey: ['telnyx-phone-management'] });
+      toast.success(`Successfully claimed ${formatPhoneForDisplay(data.phone_number)}`);
+      queryClient.invalidateQueries({ queryKey: ['claimable-phone-numbers'] });
+      queryClient.invalidateQueries({ queryKey: ['user-phone-numbers'] });
     },
     onError: (error) => {
       console.error('Claim error:', error);
-      toast.error(`Failed to claim number: ${error.message}`);
+      toast.error('Failed to claim phone number');
     }
   });
 
-  // Search for available numbers
-  const searchNumbers = async () => {
-    if (!searchValue.trim() && searchType !== 'toll-free' && searchType !== 'local') {
-      toast.error('Please enter a search term');
-      return;
-    }
-
-    setIsSearching(true);
-    try {
-      console.log('Searching for numbers:', { searchType, searchValue, country });
-      
-      let searchParams: any = {
-        action: 'search',
-        country_code: country
-      };
-
-      // Configure search based on type
-      switch (searchType) {
-        case 'area-code':
-          searchParams.area_code = searchValue;
-          break;
-        case 'city':
-          searchParams.locality = searchValue;
-          searchParams.administrative_area = searchValue;
-          break;
-        case 'local':
-          searchParams.number_type = 'local';
-          if (searchValue) {
-            searchParams.area_code = searchValue;
-          }
-          break;
-        case 'toll-free':
-          searchParams.number_type = 'toll_free';
-          break;
-      }
-
-      const { data, error } = await supabase.functions.invoke('telnyx-phone-numbers', {
-        body: searchParams
-      });
-
-      if (error) {
-        console.error('Search error:', error);
-        throw error;
-      }
-      
-      console.log('Search results:', data);
-      setAvailableNumbers(data.available_numbers || []);
-      
-      if (data.available_numbers?.length > 0) {
-        toast.success(`Found ${data.available_numbers.length} available numbers`);
-      } else {
-        toast.info('No numbers found for your search criteria. Try different parameters.');
-      }
-    } catch (error) {
-      console.error('Search error:', error);
-      toast.error(`Failed to search for numbers: ${error.message}`);
-    } finally {
-      setIsSearching(false);
-    }
-  };
-
-  // Purchase number mutation
+  // Purchase new number mutation
   const purchaseNumberMutation = useMutation({
     mutationFn: async (phoneNumber: string) => {
-      console.log('Purchasing number:', phoneNumber);
-      const { data, error } = await supabase.functions.invoke('telnyx-phone-numbers', {
+      if (!user?.id) {
+        throw new Error('You must be logged in to purchase a phone number');
+      }
+
+      const { data, error } = await supabase.functions.invoke('telnyx-phone-manager', {
         body: {
-          action: 'purchase',
+          action: 'purchase_number',
           phone_number: phoneNumber,
-          country_code: country
+          user_id: user.id
         }
       });
 
-      if (error) {
-        console.error('Purchase error:', error);
-        throw error;
+      if (error) throw error;
+      
+      if (!data.success) {
+        throw new Error(data.error || 'Failed to purchase number');
       }
-      console.log('Purchase response:', data);
+
       return data;
     },
     onSuccess: (data) => {
-      console.log('Successfully purchased:', data);
-      toast.success(`📞 Number ${data.phone_number} purchased successfully for $0!`);
-      
-      // Refresh all related queries
-      queryClient.invalidateQueries({ queryKey: ['telnyx-owned-numbers'] });
-      queryClient.invalidateQueries({ queryKey: ['user-telnyx-numbers'] });
-      queryClient.invalidateQueries({ queryKey: ['phone-numbers-management'] });
-      queryClient.invalidateQueries({ queryKey: ['telnyx-phone-management'] });
-      
-      // Remove the purchased number from available list
-      setAvailableNumbers(prev => prev.filter(num => num.phone_number !== data.phone_number));
+      toast.success('Successfully purchased phone number!');
+      queryClient.invalidateQueries({ queryKey: ['user-phone-numbers'] });
+      setAvailableNumbers([]);
+      setSearchValue('');
     },
-    onError: (error) => {
+    onError: (error: any) => {
       console.error('Purchase error:', error);
-      toast.error(`Failed to purchase number: ${error.message}`);
+      toast.error(error.message || 'Failed to purchase phone number');
     }
   });
-
-  const getCostDisplay = (number: AvailableNumber) => {
-    return {
-      setup: 0.00, // Free for now until payment integration
-      monthly: 0.00 // Free for now until payment integration
-    };
-  };
-
-  const getSearchPlaceholder = () => {
-    switch (searchType) {
-      case 'area-code':
-        return country === 'CA' ? 'e.g., 416, 604, 514' : 'e.g., 212, 310, 415';
-      case 'city':
-        return country === 'CA' ? 'e.g., Toronto, Vancouver, Montreal' : 'e.g., New York, Los Angeles, San Francisco';
-      case 'local':
-        return 'Optional: Enter area code for local numbers';
-      case 'toll-free':
-        return country === 'CA' ? 'Search toll-free numbers (800, 888, 877, etc.)' : 'Search toll-free numbers (800, 888, 877, etc.)';
-      default:
-        return 'Enter search term';
-    }
-  };
-
-  const canadianCities = [
-    'Toronto', 'Vancouver', 'Montreal', 'Calgary', 'Ottawa', 'Edmonton',
-    'Mississauga', 'Winnipeg', 'Quebec City', 'Hamilton', 'Brampton',
-    'Surrey', 'Laval', 'Halifax', 'London', 'Markham', 'Vaughan',
-    'Gatineau', 'Longueuil', 'Burnaby', 'Saskatoon', 'Kitchener',
-    'Windsor', 'Regina', 'Richmond', 'Richmond Hill', 'Oakville',
-    'Burlington', 'Sherbrooke', 'Oshawa', 'Saguenay', 'Lévis',
-    'Barrie', 'Abbotsford', 'St. Catharines', 'Trois-Rivières',
-    'Cambridge', 'Coquitlam', 'Kingston', 'Whitby', 'Guelph',
-    'Kelowna', 'Thunder Bay', 'Sudbury', 'Waterloo', 'Brantford'
-  ];
-
-  const usCities = [
-    'New York', 'Los Angeles', 'Chicago', 'Houston', 'Phoenix', 'Philadelphia',
-    'San Antonio', 'San Diego', 'Dallas', 'San Jose', 'Austin', 'Jacksonville',
-    'Fort Worth', 'Columbus', 'Charlotte', 'San Francisco', 'Indianapolis',
-    'Seattle', 'Denver', 'Washington DC', 'Boston', 'Nashville', 'Baltimore',
-    'Oklahoma City', 'Louisville', 'Portland', 'Las Vegas', 'Milwaukee',
-    'Albuquerque', 'Tucson', 'Fresno', 'Mesa', 'Kansas City', 'Atlanta',
-    'Long Beach', 'Colorado Springs', 'Raleigh', 'Miami', 'Virginia Beach',
-    'Omaha', 'Oakland', 'Minneapolis', 'Tulsa', 'Arlington', 'Tampa',
-    'New Orleans', 'Wichita', 'Cleveland', 'Bakersfield'
-  ];
-
-  const cities = country === 'CA' ? canadianCities : usCities;
-
   return (
-    <div className="space-y-6">
-      {/* Claim Your Telnyx Number Section - Only show if claimable */}
-      {claimableNumber && (
-        <Card className="border-green-200 bg-green-50">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-green-800">
-              <Phone className="h-5 w-5" />
-              Claim Your Telnyx Number - Special Offer!
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="bg-white p-4 rounded-lg border border-green-200">
-              <div className="flex items-center justify-between">
-                <div className="flex-1">
-                  <div className="flex items-center gap-3 mb-2">
-                    <span className="font-bold text-xl text-green-800">
-                      {formatPhoneForDisplay(claimableNumber.phone_number)}
-                    </span>
-                    <Badge className="bg-green-100 text-green-800">
-                      🎁 FREE - Your Telnyx Number
-                    </Badge>
-                  </div>
-                  <div className="text-sm text-green-700">
-                    <div>This is your existing Telnyx number, ready to claim!</div>
-                    <div className="flex items-center gap-4 mt-1">
-                      <span className="font-medium">Setup: FREE</span>
-                      <span className="font-medium">Monthly: FREE</span>
-                      <div className="flex gap-1">
-                        <Badge variant="outline" className="text-xs border-green-300">Voice</Badge>
-                        <Badge variant="outline" className="text-xs border-green-300">SMS</Badge>
-                        <Badge variant="outline" className="text-xs border-green-300">AI Ready</Badge>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                <Button
-                  onClick={() => claimNumberMutation.mutate(claimableNumber.phone_number)}
-                  disabled={claimNumberMutation.isPending}
-                  className="gap-2 bg-green-600 hover:bg-green-700"
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Phone className="h-5 w-5" />
+            Phone Number Management
+          </div>
+          <TelnyxSyncButton />
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        {/* User's Current Numbers */}
+        {userNumbers.length > 0 && (
+          <div className="space-y-3">
+            <h3 className="text-sm font-medium">Your Phone Numbers</h3>
+            <div className="grid gap-2">
+              {userNumbers.map((number) => (
+                <div
+                  key={number.id}
+                  className="flex items-center justify-between p-3 border rounded-lg bg-secondary/10"
                 >
-                  <Phone className="h-4 w-4" />
-                  {claimNumberMutation.isPending ? 'Claiming...' : 'Claim FREE'}
-                </Button>
-              </div>
-            </div>
-            <div className="text-sm text-green-700">
-              <strong>🎉 Special Offer:</strong> This number is already under your Telnyx account. 
-              Claim it now for FREE and it will be set as your default number with full AI dispatcher capabilities!
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Search & Purchase Section */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Search className="h-5 w-5" />
-            Search & Purchase Phone Numbers
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {/* Search Controls */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-              <Label htmlFor="country">Country</Label>
-              <Select value={country} onValueChange={setCountry}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="CA">🇨🇦 Canada</SelectItem>
-                  <SelectItem value="US">🇺🇸 United States</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div>
-              <Label htmlFor="search-type">Search Type</Label>
-              <Select value={searchType} onValueChange={(value: 'city' | 'area-code' | 'local' | 'toll-free') => setSearchType(value)}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="city">
-                    <div className="flex items-center gap-2">
-                      <MapPin className="h-4 w-4" />
-                      City/Region
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="area-code">
-                    <div className="flex items-center gap-2">
-                      <Hash className="h-4 w-4" />
-                      Area Code
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="local">
-                    <div className="flex items-center gap-2">
-                      <Phone className="h-4 w-4" />
-                      Local Numbers
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="toll-free">
-                    <div className="flex items-center gap-2">
-                      <Globe className="h-4 w-4" />
-                      Toll-Free
-                    </div>
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div>
-              <Label htmlFor="search-value">
-                {searchType === 'area-code' ? 'Area Code' : 
-                 searchType === 'city' ? 'City/Region' : 
-                 searchType === 'local' ? 'Area Code (Optional)' : 
-                 'Search Toll-Free'}
-              </Label>
-              {searchType === 'city' ? (
-                <Select value={searchValue} onValueChange={setSearchValue}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a city..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {cities.map((city) => (
-                      <SelectItem key={city} value={city}>
-                        {city}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              ) : (
-                <Input
-                  id="search-value"
-                  placeholder={getSearchPlaceholder()}
-                  value={searchValue}
-                  onChange={(e) => {
-                    if (searchType === 'area-code' || searchType === 'local') {
-                      setSearchValue(e.target.value.replace(/\D/g, '').slice(0, 3));
-                    } else {
-                      setSearchValue(e.target.value);
-                    }
-                  }}
-                  maxLength={searchType === 'area-code' || searchType === 'local' ? 3 : undefined}
-                />
-              )}
+                  <div className="flex items-center gap-3">
+                    <Phone className="h-4 w-4 text-muted-foreground" />
+                    <span className="font-mono">{formatPhoneForDisplay(number.phone_number)}</span>
+                    <Badge variant="outline" className="text-xs">
+                      {number.area_code}
+                    </Badge>
+                    {number.ai_dispatcher_enabled && (
+                      <Badge className="text-xs">AI Enabled</Badge>
+                    )}
+                  </div>
+                  <Badge variant="secondary">Active</Badge>
+                </div>
+              ))}
             </div>
           </div>
+        )}
 
-          <Button 
-            onClick={searchNumbers}
-            disabled={isSearching || (!searchValue && searchType !== 'toll-free' && searchType !== 'local')}
-            className="w-full"
-          >
-            {isSearching ? 'Searching...' : 'Search Available Numbers'}
-          </Button>
+        <Tabs defaultValue="existing" className="space-y-4">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="existing">Your Available Numbers</TabsTrigger>
+            <TabsTrigger value="purchase">Purchase New</TabsTrigger>
+          </TabsList>
 
-          {/* Search Results */}
-          {availableNumbers.length > 0 && (
-            <div className="space-y-3">
-              <h4 className="font-medium">Available Numbers ({availableNumbers.length})</h4>
-              <div className="grid grid-cols-1 gap-3">
-                {availableNumbers.map((number) => {
-                  const cost = getCostDisplay(number);
-                  
-                  return (
+          {/* Existing Numbers Tab */}
+          <TabsContent value="existing" className="space-y-4">
+            {claimableNumbers.length > 0 ? (
+              <div className="space-y-3">
+                <p className="text-sm text-muted-foreground">
+                  These numbers are already in your Telnyx account and ready to use:
+                </p>
+                <div className="grid gap-2">
+                  {claimableNumbers.map((number) => (
                     <div
-                      key={number.phone_number}
-                      className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50"
+                      key={number.id}
+                      className="flex items-center justify-between p-3 border rounded-lg"
                     >
-                      <div className="flex-1">
-                        <div className="flex items-center gap-3 mb-2">
-                          <span className="font-medium text-lg">
-                            {formatPhoneForDisplay(number.phone_number)}
-                          </span>
-                          <Badge className="bg-blue-100 text-blue-800">
-                            📞 Telnyx Number
-                          </Badge>
-                          <Badge className="bg-green-100 text-green-800">
-                            💰 FREE
-                          </Badge>
-                        </div>
-                        <div className="text-sm text-muted-foreground">
-                          <div>
-                            {number.region_information?.[0]?.region_name || (country === 'CA' ? 'Canada' : 'United States')}, {' '}
-                            {number.region_information?.[0]?.rate_center || 'Local Area'}
-                          </div>
-                          <div className="flex items-center gap-4 mt-1">
-                            <span>Setup: FREE</span>
-                            <span>Monthly: FREE</span>
-                            <div className="flex gap-1">
-                              {number.features?.includes('voice') && (
-                                <Badge variant="outline" className="text-xs">Voice</Badge>
-                              )}
-                              {number.features?.includes('sms') && (
-                                <Badge variant="outline" className="text-xs">SMS</Badge>
-                              )}
-                            </div>
-                          </div>
-                        </div>
+                      <div className="flex items-center gap-3">
+                        <Phone className="h-4 w-4 text-muted-foreground" />
+                        <span className="font-mono">{formatPhoneForDisplay(number.phone_number)}</span>
+                        <Badge variant="outline" className="text-xs">
+                          {number.area_code}
+                        </Badge>
                       </div>
                       <Button
-                        onClick={() => purchaseNumberMutation.mutate(number.phone_number)}
-                        disabled={purchaseNumberMutation.isPending}
-                        className="gap-2"
+                        size="sm"
+                        onClick={() => claimNumberMutation.mutate(number.phone_number)}
+                        disabled={claimNumberMutation.isPending}
                       >
-                        <Plus className="h-4 w-4" />
-                        {purchaseNumberMutation.isPending ? 'Purchasing...' : 'Get for FREE'}
+                        {claimNumberMutation.isPending ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <>
+                            <Plus className="h-4 w-4 mr-1" />
+                            Claim
+                          </>
+                        )}
                       </Button>
                     </div>
-                  );
-                })}
+                  ))}
+                </div>
               </div>
-            </div>
-          )}
+            ) : (
+              <div className="text-center py-8 text-muted-foreground">
+                <p>No available numbers in your Telnyx account.</p>
+                <p className="text-sm mt-2">Purchase new numbers or sync from Telnyx.</p>
+              </div>
+            )}
+          </TabsContent>
 
-          {availableNumbers.length === 0 && searchValue && !isSearching && (
-            <div className="text-center py-8 text-muted-foreground">
-              <Phone className="h-12 w-12 mx-auto mb-4 text-gray-400" />
-              <p>No numbers found for your search criteria</p>
-              <p className="text-sm">Try different search parameters or contact support for assistance</p>
-            </div>
-          )}
+          {/* Purchase New Numbers Tab */}
+          <TabsContent value="purchase" className="space-y-4">
+            <div className="grid gap-4 md:grid-cols-3">
+              <div>
+                <Label htmlFor="country">Country</Label>
+                <Select value={country} onValueChange={setCountry}>
+                  <SelectTrigger id="country">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="US">United States</SelectItem>
+                    <SelectItem value="CA">Canada</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
 
-          {/* Search Help */}
-          <div className="bg-blue-50 p-4 rounded-lg">
-            <h5 className="font-medium text-blue-800 mb-2">Search Options</h5>
-            <div className="grid md:grid-cols-2 gap-4 text-sm text-blue-700">
               <div>
-                <strong>City/Region:</strong> Find numbers in specific cities
+                <Label htmlFor="search-type">Search By</Label>
+                <Select value={searchType} onValueChange={(v: any) => setSearchType(v)}>
+                  <SelectTrigger id="search-type">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="area-code">Area Code</SelectItem>
+                    <SelectItem value="locality">City/Locality</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
+
               <div>
-                <strong>Area Code:</strong> Search by 3-digit area code
-              </div>
-              <div>
-                <strong>Local Numbers:</strong> Standard geographic numbers
-              </div>
-              <div>
-                <strong>Toll-Free:</strong> 800, 888, 877, 866, 855, 844, 833 numbers
+                <Label htmlFor="search-value">
+                  {searchType === 'area-code' ? 'Area Code' : 'City Name'}
+                </Label>
+                <div className="flex gap-2">
+                  <Input
+                    id="search-value"
+                    placeholder={searchType === 'area-code' ? '416' : 'Toronto'}
+                    value={searchValue}
+                    onChange={(e) => setSearchValue(e.target.value)}
+                    onKeyPress={(e) => e.key === 'Enter' && searchNumbers()}
+                  />
+                  <Button
+                    onClick={searchNumbers}
+                    disabled={isSearching}
+                    size="icon"
+                  >
+                    {isSearching ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Search className="h-4 w-4" />
+                    )}
+                  </Button>
+                </div>
               </div>
             </div>
-            <div className="mt-3 p-3 bg-white rounded border border-blue-200">
-              <div className="flex items-center gap-2 text-blue-800 font-medium mb-1">
-                <span>🇨🇦 Canada Support</span>
+
+            {/* Search Results */}
+            {availableNumbers.length > 0 && (
+              <div className="space-y-2">
+                <p className="text-sm text-muted-foreground">
+                  Found {availableNumbers.length} available numbers from Telnyx
+                </p>
+                <div className="max-h-96 overflow-y-auto space-y-2">
+                  {availableNumbers.map((number) => (
+                    <div
+                      key={number.phone_number}
+                      className="flex items-center justify-between p-3 border rounded-lg hover:bg-secondary/10 transition-colors"
+                    >
+                      <div className="flex items-center gap-3">
+                        <Phone className="h-4 w-4 text-muted-foreground" />
+                        <span className="font-mono">{formatPhoneForDisplay(number.phone_number)}</span>
+                        {number.locality && (
+                          <Badge variant="outline" className="text-xs">
+                            <MapPin className="h-3 w-3 mr-1" />
+                            {number.locality}
+                          </Badge>
+                        )}
+                        <div className="flex gap-1">
+                          {number.features?.includes('sms') && (
+                            <Badge variant="secondary" className="text-xs">SMS</Badge>
+                          )}
+                          {number.features?.includes('voice') && (
+                            <Badge variant="secondary" className="text-xs">Voice</Badge>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        {number.cost && (
+                          <div className="text-right">
+                            <p className="text-sm font-medium">
+                              ${number.cost.monthly_rental_rate}/mo
+                            </p>
+                            {number.cost.upfront_cost !== "0.00" && (
+                              <p className="text-xs text-muted-foreground">
+                                Setup: ${number.cost.upfront_cost}
+                              </p>
+                            )}
+                          </div>
+                        )}
+                        <Button
+                          size="sm"
+                          onClick={() => purchaseNumberMutation.mutate(number.phone_number)}
+                          disabled={purchaseNumberMutation.isPending}
+                        >
+                          {purchaseNumberMutation.isPending ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <>
+                              <DollarSign className="h-4 w-4 mr-1" />
+                              Purchase
+                            </>
+                          )}
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
-              <p className="text-sm text-blue-700">
-                Now supporting Canadian phone numbers! All numbers are currently FREE while we integrate payment processing.
-              </p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
+            )}
+          </TabsContent>
+        </Tabs>
+      </CardContent>
+    </Card>
   );
 }

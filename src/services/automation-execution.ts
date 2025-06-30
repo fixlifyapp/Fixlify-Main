@@ -10,9 +10,12 @@ const mailgunService = new MailgunService();
 interface AutomationContext {
   client?: any;
   job?: any;
+  task?: any;
   technician?: any;
   organization?: any;
   trigger?: any;
+  user?: any;
+  automationId?: string;
 }
 
 export class AutomationExecutionService {
@@ -240,6 +243,9 @@ export class AutomationExecutionService {
         case 'create_task':
           await this.createTask(config, context);
           break;
+        case 'update_task_status':
+          await this.updateTaskStatus(config, context);
+          break;
         case 'update_status':
           await this.updateStatus(config, context);
           break;
@@ -325,19 +331,84 @@ export class AutomationExecutionService {
   // Create task
   private async createTask(config: any, context: AutomationContext) {
     const assignee = this.getAssignee(config.assignee, context);
-    const dueDate = this.calculateDueDate(config.due_date, context);
-    const title = this.interpolateVariables(config.title, context, 'America/New_York');
+    const dueDate = this.calculateDueDate(config.dueDate || config.due_date, context);
     const description = this.interpolateVariables(config.description, context, 'America/New_York');
+    const priority = config.priority || 'medium';
 
-    await supabase.from('tasks').insert({
-      title,
+    const { error } = await supabase.from('tasks').insert({
       description,
       assigned_to: assignee,
       due_date: dueDate,
+      priority: priority,
       job_id: context.job?.id,
       client_id: context.client?.id,
-      organization_id: context.organization?.id
+      organization_id: context.organization?.id,
+      created_by_automation: context.automationId
     });
+
+    if (error) {
+      console.error('Failed to create task:', error);
+      throw error;
+    }
+  }
+
+  // Update task status
+  private async updateTaskStatus(config: any, context: AutomationContext) {
+    const status = config.taskStatus || 'completed';
+    const selection = config.taskSelection || 'all';
+    
+    let query = supabase
+      .from('tasks')
+      .update({ 
+        status: status,
+        ...(status === 'completed' ? {
+          completed_at: new Date().toISOString(),
+          completed_by: context.user?.id
+        } : {})
+      })
+      .eq('organization_id', context.organization?.id);
+
+    // Apply task selection filters
+    switch (selection) {
+      case 'all':
+        if (context.job?.id) {
+          query = query.eq('job_id', context.job.id);
+        } else if (context.task?.job_id) {
+          query = query.eq('job_id', context.task.job_id);
+        }
+        break;
+      
+      case 'overdue':
+        query = query.lt('due_date', new Date().toISOString())
+          .in('status', ['pending', 'in_progress']);
+        if (context.job?.id) {
+          query = query.eq('job_id', context.job.id);
+        }
+        break;
+      
+      case 'priority_high':
+        query = query.eq('priority', 'high');
+        if (context.job?.id) {
+          query = query.eq('job_id', context.job.id);
+        }
+        break;
+      
+      case 'assigned_to_trigger':
+        if (context.user?.id) {
+          query = query.eq('assigned_to', context.user.id);
+        }
+        if (context.job?.id) {
+          query = query.eq('job_id', context.job.id);
+        }
+        break;
+    }
+
+    const { error } = await query;
+
+    if (error) {
+      console.error('Failed to update task status:', error);
+      throw error;
+    }
   }
 
   // Update status
@@ -488,16 +559,59 @@ export class AutomationExecutionService {
   }
 
   // Helper: Calculate due date
-  private calculateDueDate(dueDateConfig: string, context: AutomationContext): Date {
+  private calculateDueDate(dueDateConfig: string, context: AutomationContext): string | undefined {
+    if (!dueDateConfig) return undefined;
+    
+    // Handle relative date formats like "+1 day", "+3 days", etc.
+    if (dueDateConfig.startsWith('+')) {
+      const matches = dueDateConfig.match(/\+(\d+)\s*(day|days|hour|hours|week|weeks)/);
+      if (matches) {
+        const amount = parseInt(matches[1]);
+        const unit = matches[2];
+        const date = new Date();
+        
+        switch (unit) {
+          case 'hour':
+          case 'hours':
+            date.setHours(date.getHours() + amount);
+            break;
+          case 'day':
+          case 'days':
+            date.setDate(date.getDate() + amount);
+            break;
+          case 'week':
+          case 'weeks':
+            date.setDate(date.getDate() + (amount * 7));
+            break;
+        }
+        
+        return date.toISOString();
+      }
+    }
+    
+    // Handle predefined options
     switch (dueDateConfig) {
       case 'scheduled_date':
-        return new Date(context.job?.scheduled_date || Date.now());
+        return context.job?.scheduled_date || undefined;
       case 'tomorrow':
-        return new Date(Date.now() + 86400000);
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        return tomorrow.toISOString();
       case 'next_week':
-        return new Date(Date.now() + 7 * 86400000);
+        const nextWeek = new Date();
+        nextWeek.setDate(nextWeek.getDate() + 7);
+        return nextWeek.toISOString();
       default:
-        return new Date();
+        // If it's already a date string, return it
+        try {
+          const date = new Date(dueDateConfig);
+          if (!isNaN(date.getTime())) {
+            return date.toISOString();
+          }
+        } catch (e) {
+          console.error('Invalid date format:', dueDateConfig);
+        }
+        return undefined;
     }
   }
 
