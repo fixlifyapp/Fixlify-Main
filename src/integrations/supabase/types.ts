@@ -9,6 +9,149 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      advanced_workflow_executions: {
+        Row: {
+          completed_at: string | null
+          context_data: Json | null
+          created_at: string | null
+          current_step: number | null
+          error: string | null
+          error_step: number | null
+          execution_log: Json | null
+          id: string
+          organization_id: string
+          started_at: string | null
+          status: string
+          trigger_data: Json | null
+          updated_at: string | null
+          workflow_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          context_data?: Json | null
+          created_at?: string | null
+          current_step?: number | null
+          error?: string | null
+          error_step?: number | null
+          execution_log?: Json | null
+          id?: string
+          organization_id: string
+          started_at?: string | null
+          status?: string
+          trigger_data?: Json | null
+          updated_at?: string | null
+          workflow_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          context_data?: Json | null
+          created_at?: string | null
+          current_step?: number | null
+          error?: string | null
+          error_step?: number | null
+          execution_log?: Json | null
+          id?: string
+          organization_id?: string
+          started_at?: string | null
+          status?: string
+          trigger_data?: Json | null
+          updated_at?: string | null
+          workflow_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "advanced_workflow_executions_workflow_id_fkey"
+            columns: ["workflow_id"]
+            isOneToOne: false
+            referencedRelation: "advanced_workflows"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      advanced_workflow_templates: {
+        Row: {
+          category: string | null
+          created_at: string | null
+          created_by: string | null
+          description: string | null
+          id: string
+          is_public: boolean | null
+          name: string
+          organization_id: string | null
+          updated_at: string | null
+          usage_count: number | null
+          workflow_config: Json
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_public?: boolean | null
+          name: string
+          organization_id?: string | null
+          updated_at?: string | null
+          usage_count?: number | null
+          workflow_config: Json
+        }
+        Update: {
+          category?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_public?: boolean | null
+          name?: string
+          organization_id?: string | null
+          updated_at?: string | null
+          usage_count?: number | null
+          workflow_config?: Json
+        }
+        Relationships: []
+      }
+      advanced_workflows: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          description: string | null
+          enabled: boolean | null
+          id: string
+          name: string
+          organization_id: string
+          settings: Json
+          steps: Json
+          trigger_config: Json
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          enabled?: boolean | null
+          id?: string
+          name: string
+          organization_id: string
+          settings?: Json
+          steps?: Json
+          trigger_config?: Json
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          enabled?: boolean | null
+          id?: string
+          name?: string
+          organization_id?: string
+          settings?: Json
+          steps?: Json
+          trigger_config?: Json
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       ai_agent_configs: {
         Row: {
           agent_name: string | null
@@ -362,6 +505,8 @@ export type Database = {
       }
       automation_communication_logs: {
         Row: {
+          automation_id: string | null
+          communication_type: string | null
           content: string | null
           cost: number | null
           created_at: string | null
@@ -374,6 +519,8 @@ export type Database = {
           id: string
           metadata: Json | null
           provider: string | null
+          provider_response: Json | null
+          recipient: string | null
           response_received: boolean | null
           response_received_at: string | null
           status: string | null
@@ -383,8 +530,11 @@ export type Database = {
           type: string | null
           updated_at: string | null
           user_id: string
+          workflow_id: string | null
         }
         Insert: {
+          automation_id?: string | null
+          communication_type?: string | null
           content?: string | null
           cost?: number | null
           created_at?: string | null
@@ -397,6 +547,8 @@ export type Database = {
           id?: string
           metadata?: Json | null
           provider?: string | null
+          provider_response?: Json | null
+          recipient?: string | null
           response_received?: boolean | null
           response_received_at?: string | null
           status?: string | null
@@ -406,8 +558,11 @@ export type Database = {
           type?: string | null
           updated_at?: string | null
           user_id: string
+          workflow_id?: string | null
         }
         Update: {
+          automation_id?: string | null
+          communication_type?: string | null
           content?: string | null
           cost?: number | null
           created_at?: string | null
@@ -420,6 +575,8 @@ export type Database = {
           id?: string
           metadata?: Json | null
           provider?: string | null
+          provider_response?: Json | null
+          recipient?: string | null
           response_received?: boolean | null
           response_received_at?: string | null
           status?: string | null
@@ -429,11 +586,26 @@ export type Database = {
           type?: string | null
           updated_at?: string | null
           user_id?: string
+          workflow_id?: string | null
         }
         Relationships: [
           {
+            foreignKeyName: "automation_communication_logs_automation_id_fkey"
+            columns: ["automation_id"]
+            isOneToOne: false
+            referencedRelation: "automation_workflows"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "automation_communication_logs_created_by_automation_fkey"
             columns: ["created_by_automation"]
+            isOneToOne: false
+            referencedRelation: "automation_workflows"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "automation_communication_logs_workflow_id_fkey"
+            columns: ["workflow_id"]
             isOneToOne: false
             referencedRelation: "automation_workflows"
             referencedColumns: ["id"]
@@ -484,39 +656,54 @@ export type Database = {
           automation_id: string | null
           completed_at: string | null
           created_at: string | null
+          details: Json | null
           error_message: string | null
           id: string
+          location_used: string | null
           organization_id: string | null
           started_at: string | null
           status: string
           trigger_data: Json | null
+          trigger_matched_conditions: Json | null
           trigger_type: string
+          weather_conditions: Json | null
+          workflow_id: string | null
         }
         Insert: {
           actions_executed?: Json | null
           automation_id?: string | null
           completed_at?: string | null
           created_at?: string | null
+          details?: Json | null
           error_message?: string | null
           id?: string
+          location_used?: string | null
           organization_id?: string | null
           started_at?: string | null
           status: string
           trigger_data?: Json | null
+          trigger_matched_conditions?: Json | null
           trigger_type: string
+          weather_conditions?: Json | null
+          workflow_id?: string | null
         }
         Update: {
           actions_executed?: Json | null
           automation_id?: string | null
           completed_at?: string | null
           created_at?: string | null
+          details?: Json | null
           error_message?: string | null
           id?: string
+          location_used?: string | null
           organization_id?: string | null
           started_at?: string | null
           status?: string
           trigger_data?: Json | null
+          trigger_matched_conditions?: Json | null
           trigger_type?: string
+          weather_conditions?: Json | null
+          workflow_id?: string | null
         }
         Relationships: [
           {
@@ -531,6 +718,13 @@ export type Database = {
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "automation_execution_logs_workflow_id_fkey"
+            columns: ["workflow_id"]
+            isOneToOne: false
+            referencedRelation: "automation_workflows"
             referencedColumns: ["id"]
           },
         ]
@@ -579,41 +773,217 @@ export type Database = {
           },
         ]
       }
+      automation_message_queue: {
+        Row: {
+          content: Json
+          created_at: string | null
+          delivery_window: Json | null
+          error_message: string | null
+          id: string
+          message_type: string
+          metadata: Json | null
+          organization_id: string | null
+          recipient: string
+          retry_count: number | null
+          scheduled_at: string
+          sent_at: string | null
+          status: string
+          step_id: string
+          updated_at: string | null
+          user_id: string | null
+          workflow_id: string | null
+        }
+        Insert: {
+          content: Json
+          created_at?: string | null
+          delivery_window?: Json | null
+          error_message?: string | null
+          id?: string
+          message_type: string
+          metadata?: Json | null
+          organization_id?: string | null
+          recipient: string
+          retry_count?: number | null
+          scheduled_at: string
+          sent_at?: string | null
+          status?: string
+          step_id: string
+          updated_at?: string | null
+          user_id?: string | null
+          workflow_id?: string | null
+        }
+        Update: {
+          content?: Json
+          created_at?: string | null
+          delivery_window?: Json | null
+          error_message?: string | null
+          id?: string
+          message_type?: string
+          metadata?: Json | null
+          organization_id?: string | null
+          recipient?: string
+          retry_count?: number | null
+          scheduled_at?: string
+          sent_at?: string | null
+          status?: string
+          step_id?: string
+          updated_at?: string | null
+          user_id?: string | null
+          workflow_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "automation_message_queue_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "automation_message_queue_workflow_id_fkey"
+            columns: ["workflow_id"]
+            isOneToOne: false
+            referencedRelation: "automation_workflows"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       automation_message_templates: {
         Row: {
+          category: string | null
           content: string
           created_at: string
+          description: string | null
           id: string
           is_default: boolean | null
+          last_used_at: string | null
+          marketing_formula: string | null
           name: string
+          preview_text: string | null
           subject: string | null
+          tone: string | null
           type: string
           updated_at: string
+          use_count: number | null
           variables: Json | null
         }
         Insert: {
+          category?: string | null
           content: string
           created_at?: string
+          description?: string | null
           id?: string
           is_default?: boolean | null
+          last_used_at?: string | null
+          marketing_formula?: string | null
           name: string
+          preview_text?: string | null
           subject?: string | null
+          tone?: string | null
           type: string
           updated_at?: string
+          use_count?: number | null
           variables?: Json | null
         }
         Update: {
+          category?: string | null
           content?: string
           created_at?: string
+          description?: string | null
           id?: string
           is_default?: boolean | null
+          last_used_at?: string | null
+          marketing_formula?: string | null
           name?: string
+          preview_text?: string | null
           subject?: string | null
+          tone?: string | null
           type?: string
           updated_at?: string
+          use_count?: number | null
           variables?: Json | null
         }
         Relationships: []
+      }
+      automation_messages: {
+        Row: {
+          client_id: string | null
+          cost: number | null
+          created_at: string | null
+          error_message: string | null
+          fallback_channel: string | null
+          fallback_sent_at: string | null
+          fallback_status: string | null
+          id: string
+          job_id: string | null
+          message_content: string
+          message_type: string
+          metadata: Json | null
+          organization_id: string
+          primary_status: string | null
+          recipient: string
+          replied_at: string | null
+          reply_content: string | null
+          sender: string
+          sent_at: string | null
+          subject: string | null
+          workflow_id: string | null
+        }
+        Insert: {
+          client_id?: string | null
+          cost?: number | null
+          created_at?: string | null
+          error_message?: string | null
+          fallback_channel?: string | null
+          fallback_sent_at?: string | null
+          fallback_status?: string | null
+          id?: string
+          job_id?: string | null
+          message_content: string
+          message_type: string
+          metadata?: Json | null
+          organization_id: string
+          primary_status?: string | null
+          recipient: string
+          replied_at?: string | null
+          reply_content?: string | null
+          sender: string
+          sent_at?: string | null
+          subject?: string | null
+          workflow_id?: string | null
+        }
+        Update: {
+          client_id?: string | null
+          cost?: number | null
+          created_at?: string | null
+          error_message?: string | null
+          fallback_channel?: string | null
+          fallback_sent_at?: string | null
+          fallback_status?: string | null
+          id?: string
+          job_id?: string | null
+          message_content?: string
+          message_type?: string
+          metadata?: Json | null
+          organization_id?: string
+          primary_status?: string | null
+          recipient?: string
+          replied_at?: string | null
+          reply_content?: string | null
+          sender?: string
+          sent_at?: string | null
+          subject?: string | null
+          workflow_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "automation_messages_workflow_id_fkey"
+            columns: ["workflow_id"]
+            isOneToOne: false
+            referencedRelation: "automation_workflows"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       automation_performance: {
         Row: {
@@ -861,61 +1231,112 @@ export type Database = {
       }
       automation_workflows: {
         Row: {
+          action_config: Json | null
+          action_type: string | null
           category: string | null
           created_at: string | null
           created_by: string | null
+          delivery_window: Json | null
           description: string | null
+          edges: Json | null
+          enabled: boolean | null
           execution_count: number | null
           id: string
+          is_active: boolean | null
+          last_executed_at: string | null
           last_triggered_at: string | null
+          multi_channel_config: Json | null
           name: string
+          nodes: Json | null
           organization_id: string
           performance_metrics: Json | null
+          settings: Json | null
           status: string | null
+          steps: Json | null
           success_count: number | null
           template_config: Json | null
           template_id: string | null
+          trigger_conditions: Json | null
+          trigger_config: Json | null
+          trigger_type: string | null
+          triggers: Json | null
           updated_at: string | null
           user_id: string
           visual_config: Json | null
+          workflow_config: Json | null
+          workflow_type: string | null
         }
         Insert: {
+          action_config?: Json | null
+          action_type?: string | null
           category?: string | null
           created_at?: string | null
           created_by?: string | null
+          delivery_window?: Json | null
           description?: string | null
+          edges?: Json | null
+          enabled?: boolean | null
           execution_count?: number | null
           id?: string
+          is_active?: boolean | null
+          last_executed_at?: string | null
           last_triggered_at?: string | null
+          multi_channel_config?: Json | null
           name: string
+          nodes?: Json | null
           organization_id: string
           performance_metrics?: Json | null
+          settings?: Json | null
           status?: string | null
+          steps?: Json | null
           success_count?: number | null
           template_config?: Json | null
           template_id?: string | null
+          trigger_conditions?: Json | null
+          trigger_config?: Json | null
+          trigger_type?: string | null
+          triggers?: Json | null
           updated_at?: string | null
           user_id: string
           visual_config?: Json | null
+          workflow_config?: Json | null
+          workflow_type?: string | null
         }
         Update: {
+          action_config?: Json | null
+          action_type?: string | null
           category?: string | null
           created_at?: string | null
           created_by?: string | null
+          delivery_window?: Json | null
           description?: string | null
+          edges?: Json | null
+          enabled?: boolean | null
           execution_count?: number | null
           id?: string
+          is_active?: boolean | null
+          last_executed_at?: string | null
           last_triggered_at?: string | null
+          multi_channel_config?: Json | null
           name?: string
+          nodes?: Json | null
           organization_id?: string
           performance_metrics?: Json | null
+          settings?: Json | null
           status?: string | null
+          steps?: Json | null
           success_count?: number | null
           template_config?: Json | null
           template_id?: string | null
+          trigger_conditions?: Json | null
+          trigger_config?: Json | null
+          trigger_type?: string | null
+          triggers?: Json | null
           updated_at?: string | null
           user_id?: string
           visual_config?: Json | null
+          workflow_config?: Json | null
+          workflow_type?: string | null
         }
         Relationships: [
           {
@@ -923,6 +1344,13 @@ export type Database = {
             columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "automation_workflows_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
         ]
@@ -1434,6 +1862,7 @@ export type Database = {
           company_phone: string | null
           company_state: string | null
           company_tagline: string | null
+          company_timezone: string | null
           company_website: string | null
           company_zip: string | null
           created_at: string
@@ -1445,6 +1874,7 @@ export type Database = {
           email_from_name: string | null
           id: string
           mailgun_api_key: string | null
+          mailgun_config: Json | null
           mailgun_domain: string | null
           mailgun_settings: Json | null
           phone_number_limit: number | null
@@ -1471,6 +1901,7 @@ export type Database = {
           company_phone?: string | null
           company_state?: string | null
           company_tagline?: string | null
+          company_timezone?: string | null
           company_website?: string | null
           company_zip?: string | null
           created_at?: string
@@ -1482,6 +1913,7 @@ export type Database = {
           email_from_name?: string | null
           id?: string
           mailgun_api_key?: string | null
+          mailgun_config?: Json | null
           mailgun_domain?: string | null
           mailgun_settings?: Json | null
           phone_number_limit?: number | null
@@ -1508,6 +1940,7 @@ export type Database = {
           company_phone?: string | null
           company_state?: string | null
           company_tagline?: string | null
+          company_timezone?: string | null
           company_website?: string | null
           company_zip?: string | null
           created_at?: string
@@ -1519,6 +1952,7 @@ export type Database = {
           email_from_name?: string | null
           id?: string
           mailgun_api_key?: string | null
+          mailgun_config?: Json | null
           mailgun_domain?: string | null
           mailgun_settings?: Json | null
           phone_number_limit?: number | null
@@ -1730,8 +2164,11 @@ export type Database = {
           id: string
           job_id: string | null
           last_message_at: string | null
+          message_id: string | null
+          metadata: Json | null
           status: string | null
           subject: string
+          template_id: string | null
           thread_id: string | null
           updated_at: string | null
         }
@@ -1742,8 +2179,11 @@ export type Database = {
           id?: string
           job_id?: string | null
           last_message_at?: string | null
+          message_id?: string | null
+          metadata?: Json | null
           status?: string | null
           subject: string
+          template_id?: string | null
           thread_id?: string | null
           updated_at?: string | null
         }
@@ -1754,8 +2194,11 @@ export type Database = {
           id?: string
           job_id?: string | null
           last_message_at?: string | null
+          message_id?: string | null
+          metadata?: Json | null
           status?: string | null
           subject?: string
+          template_id?: string | null
           thread_id?: string | null
           updated_at?: string | null
         }
@@ -1786,6 +2229,13 @@ export type Database = {
             columns: ["job_id"]
             isOneToOne: false
             referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_conversations_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "automation_message_templates"
             referencedColumns: ["id"]
           },
         ]
@@ -1964,6 +2414,7 @@ export type Database = {
           estimate_number: string | null
           external_id: string | null
           id: string
+          portal_link_included: boolean | null
           provider_message_id: string | null
           recipient: string
           sent_at: string | null
@@ -1982,6 +2433,7 @@ export type Database = {
           estimate_number?: string | null
           external_id?: string | null
           id?: string
+          portal_link_included?: boolean | null
           provider_message_id?: string | null
           recipient: string
           sent_at?: string | null
@@ -2000,6 +2452,7 @@ export type Database = {
           estimate_number?: string | null
           external_id?: string | null
           id?: string
+          portal_link_included?: boolean | null
           provider_message_id?: string | null
           recipient?: string
           sent_at?: string | null
@@ -2156,6 +2609,7 @@ export type Database = {
           id: string
           invoice_id: string
           invoice_number: string | null
+          portal_link_included: boolean | null
           provider_message_id: string | null
           recipient: string
           sent_at: string | null
@@ -2174,6 +2628,7 @@ export type Database = {
           id?: string
           invoice_id: string
           invoice_number?: string | null
+          portal_link_included?: boolean | null
           provider_message_id?: string | null
           recipient: string
           sent_at?: string | null
@@ -2192,6 +2647,7 @@ export type Database = {
           id?: string
           invoice_id?: string
           invoice_number?: string | null
+          portal_link_included?: boolean | null
           provider_message_id?: string | null
           recipient?: string
           sent_at?: string | null
@@ -2204,6 +2660,7 @@ export type Database = {
       invoices: {
         Row: {
           amount_paid: number | null
+          automation_triggered_at: string | null
           balance: number | null
           balance_due: number | null
           client_id: string | null
@@ -2237,6 +2694,7 @@ export type Database = {
         }
         Insert: {
           amount_paid?: number | null
+          automation_triggered_at?: string | null
           balance?: number | null
           balance_due?: number | null
           client_id?: string | null
@@ -2270,6 +2728,7 @@ export type Database = {
         }
         Update: {
           amount_paid?: number | null
+          automation_triggered_at?: string | null
           balance?: number | null
           balance_due?: number | null
           client_id?: string | null
@@ -2623,6 +3082,7 @@ export type Database = {
       jobs: {
         Row: {
           address: string | null
+          automation_triggered_at: string | null
           client_id: string | null
           created_at: string | null
           created_by: string | null
@@ -2648,6 +3108,7 @@ export type Database = {
         }
         Insert: {
           address?: string | null
+          automation_triggered_at?: string | null
           client_id?: string | null
           created_at?: string | null
           created_by?: string | null
@@ -2673,6 +3134,7 @@ export type Database = {
         }
         Update: {
           address?: string | null
+          automation_triggered_at?: string | null
           client_id?: string | null
           created_at?: string | null
           created_by?: string | null
@@ -2880,6 +3342,90 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      notifications: {
+        Row: {
+          created_at: string | null
+          entity_id: string | null
+          entity_type: string | null
+          id: string
+          message: string
+          read_at: string | null
+          title: string
+          type: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          entity_id?: string | null
+          entity_type?: string | null
+          id?: string
+          message: string
+          read_at?: string | null
+          title: string
+          type?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          entity_id?: string | null
+          entity_type?: string | null
+          id?: string
+          message?: string
+          read_at?: string | null
+          title?: string
+          type?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      organization_settings: {
+        Row: {
+          brand_color: string | null
+          business_hours: Json | null
+          company_address: string | null
+          company_email: string | null
+          company_logo: string | null
+          company_name: string | null
+          company_phone: string | null
+          created_at: string | null
+          id: string
+          organization_id: string
+          timezone: string | null
+          updated_at: string | null
+          website: string | null
+        }
+        Insert: {
+          brand_color?: string | null
+          business_hours?: Json | null
+          company_address?: string | null
+          company_email?: string | null
+          company_logo?: string | null
+          company_name?: string | null
+          company_phone?: string | null
+          created_at?: string | null
+          id?: string
+          organization_id: string
+          timezone?: string | null
+          updated_at?: string | null
+          website?: string | null
+        }
+        Update: {
+          brand_color?: string | null
+          business_hours?: Json | null
+          company_address?: string | null
+          company_email?: string | null
+          company_logo?: string | null
+          company_name?: string | null
+          company_phone?: string | null
+          created_at?: string | null
+          id?: string
+          organization_id?: string
+          timezone?: string | null
+          updated_at?: string | null
+          website?: string | null
+        }
+        Relationships: []
       }
       organizations: {
         Row: {
@@ -3675,8 +4221,15 @@ export type Database = {
         Row: {
           available_for_jobs: boolean | null
           avatar_url: string | null
+          brand_color: string | null
+          business_hours: Json | null
           business_niche: string | null
           call_masking_enabled: boolean | null
+          company_address: string | null
+          company_email: string | null
+          company_logo: string | null
+          company_name: string | null
+          company_phone: string | null
           created_at: string | null
           custom_role_id: string | null
           email: string | null
@@ -3692,16 +4245,25 @@ export type Database = {
           role: string | null
           schedule_color: string | null
           status: string | null
+          timezone: string | null
           two_factor_enabled: boolean | null
           updated_at: string | null
           user_id: string | null
           uses_two_factor: boolean | null
+          website: string | null
         }
         Insert: {
           available_for_jobs?: boolean | null
           avatar_url?: string | null
+          brand_color?: string | null
+          business_hours?: Json | null
           business_niche?: string | null
           call_masking_enabled?: boolean | null
+          company_address?: string | null
+          company_email?: string | null
+          company_logo?: string | null
+          company_name?: string | null
+          company_phone?: string | null
           created_at?: string | null
           custom_role_id?: string | null
           email?: string | null
@@ -3717,16 +4279,25 @@ export type Database = {
           role?: string | null
           schedule_color?: string | null
           status?: string | null
+          timezone?: string | null
           two_factor_enabled?: boolean | null
           updated_at?: string | null
           user_id?: string | null
           uses_two_factor?: boolean | null
+          website?: string | null
         }
         Update: {
           available_for_jobs?: boolean | null
           avatar_url?: string | null
+          brand_color?: string | null
+          business_hours?: Json | null
           business_niche?: string | null
           call_masking_enabled?: boolean | null
+          company_address?: string | null
+          company_email?: string | null
+          company_logo?: string | null
+          company_name?: string | null
+          company_phone?: string | null
           created_at?: string | null
           custom_role_id?: string | null
           email?: string | null
@@ -3742,10 +4313,12 @@ export type Database = {
           role?: string | null
           schedule_color?: string | null
           status?: string | null
+          timezone?: string | null
           two_factor_enabled?: boolean | null
           updated_at?: string | null
           user_id?: string | null
           uses_two_factor?: boolean | null
+          website?: string | null
         }
         Relationships: [
           {
@@ -3753,6 +4326,13 @@ export type Database = {
             columns: ["custom_role_id"]
             isOneToOne: false
             referencedRelation: "custom_roles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "profiles_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
         ]
@@ -3933,6 +4513,53 @@ export type Database = {
         }
         Relationships: []
       }
+      service_types: {
+        Row: {
+          color: string | null
+          created_at: string | null
+          description: string | null
+          icon: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          organization_id: string | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string | null
+          description?: string | null
+          icon?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          organization_id?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          color?: string | null
+          created_at?: string | null
+          description?: string | null
+          icon?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          organization_id?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "service_types_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tags: {
         Row: {
           category: string
@@ -3962,6 +4589,99 @@ export type Database = {
           user_id?: string | null
         }
         Relationships: []
+      }
+      tasks: {
+        Row: {
+          assigned_to: string | null
+          client_id: string | null
+          completed_at: string | null
+          completed_by: string | null
+          created_at: string | null
+          created_by: string | null
+          created_by_automation: string | null
+          description: string
+          due_date: string | null
+          id: string
+          job_id: string | null
+          notes: string | null
+          organization_id: string | null
+          priority: string | null
+          status: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          assigned_to?: string | null
+          client_id?: string | null
+          completed_at?: string | null
+          completed_by?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          created_by_automation?: string | null
+          description: string
+          due_date?: string | null
+          id?: string
+          job_id?: string | null
+          notes?: string | null
+          organization_id?: string | null
+          priority?: string | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          assigned_to?: string | null
+          client_id?: string | null
+          completed_at?: string | null
+          completed_by?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          created_by_automation?: string | null
+          description?: string
+          due_date?: string | null
+          id?: string
+          job_id?: string | null
+          notes?: string | null
+          organization_id?: string | null
+          priority?: string | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tasks_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_created_by_automation_fkey"
+            columns: ["created_by_automation"]
+            isOneToOne: false
+            referencedRelation: "automation_workflows"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "fact_jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       team_invitations: {
         Row: {
@@ -4201,16 +4921,21 @@ export type Database = {
           connection_id: string | null
           country_code: string | null
           created_at: string | null
+          features: Json | null
           id: string
           last_call_routed_to: string | null
           locality: string | null
+          messaging_profile_id: string | null
           monthly_cost: number | null
           order_id: string | null
           phone_number: string
           purchased_at: string | null
+          rate_center: string | null
           region: string | null
           setup_cost: number | null
           status: string | null
+          telnyx_phone_number_id: string | null
+          updated_at: string | null
           user_id: string | null
           webhook_url: string | null
         }
@@ -4223,16 +4948,21 @@ export type Database = {
           connection_id?: string | null
           country_code?: string | null
           created_at?: string | null
+          features?: Json | null
           id?: string
           last_call_routed_to?: string | null
           locality?: string | null
+          messaging_profile_id?: string | null
           monthly_cost?: number | null
           order_id?: string | null
           phone_number: string
           purchased_at?: string | null
+          rate_center?: string | null
           region?: string | null
           setup_cost?: number | null
           status?: string | null
+          telnyx_phone_number_id?: string | null
+          updated_at?: string | null
           user_id?: string | null
           webhook_url?: string | null
         }
@@ -4245,16 +4975,21 @@ export type Database = {
           connection_id?: string | null
           country_code?: string | null
           created_at?: string | null
+          features?: Json | null
           id?: string
           last_call_routed_to?: string | null
           locality?: string | null
+          messaging_profile_id?: string | null
           monthly_cost?: number | null
           order_id?: string | null
           phone_number?: string
           purchased_at?: string | null
+          rate_center?: string | null
           region?: string | null
           setup_cost?: number | null
           status?: string | null
+          telnyx_phone_number_id?: string | null
+          updated_at?: string | null
           user_id?: string | null
           webhook_url?: string | null
         }
@@ -4546,6 +5281,36 @@ export type Database = {
           },
         ]
       }
+      weather_cache: {
+        Row: {
+          created_at: string | null
+          expires_at: string
+          id: string
+          latitude: number | null
+          location: string
+          longitude: number | null
+          weather_data: Json
+        }
+        Insert: {
+          created_at?: string | null
+          expires_at: string
+          id?: string
+          latitude?: number | null
+          location: string
+          longitude?: number | null
+          weather_data: Json
+        }
+        Update: {
+          created_at?: string | null
+          expires_at?: string
+          id?: string
+          latitude?: number | null
+          location?: string
+          longitude?: number | null
+          weather_data?: Json
+        }
+        Relationships: []
+      }
       webhook_events: {
         Row: {
           attempts: number | null
@@ -4584,6 +5349,176 @@ export type Database = {
           webhook_url?: string | null
         }
         Relationships: []
+      }
+      workflow_executions: {
+        Row: {
+          completed_at: string | null
+          current_step_id: string | null
+          error_message: string | null
+          execution_data: Json | null
+          id: string
+          organization_id: string
+          started_at: string | null
+          status: string
+          workflow_id: string | null
+        }
+        Insert: {
+          completed_at?: string | null
+          current_step_id?: string | null
+          error_message?: string | null
+          execution_data?: Json | null
+          id?: string
+          organization_id: string
+          started_at?: string | null
+          status?: string
+          workflow_id?: string | null
+        }
+        Update: {
+          completed_at?: string | null
+          current_step_id?: string | null
+          error_message?: string | null
+          execution_data?: Json | null
+          id?: string
+          organization_id?: string
+          started_at?: string | null
+          status?: string
+          workflow_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workflow_executions_workflow_id_fkey"
+            columns: ["workflow_id"]
+            isOneToOne: false
+            referencedRelation: "advanced_workflows"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workflow_schedules: {
+        Row: {
+          cron_expression: string | null
+          enabled: boolean | null
+          id: string
+          last_run_at: string | null
+          next_run_at: string | null
+          organization_id: string
+          timezone: string | null
+          workflow_id: string | null
+        }
+        Insert: {
+          cron_expression?: string | null
+          enabled?: boolean | null
+          id?: string
+          last_run_at?: string | null
+          next_run_at?: string | null
+          organization_id: string
+          timezone?: string | null
+          workflow_id?: string | null
+        }
+        Update: {
+          cron_expression?: string | null
+          enabled?: boolean | null
+          id?: string
+          last_run_at?: string | null
+          next_run_at?: string | null
+          organization_id?: string
+          timezone?: string | null
+          workflow_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workflow_schedules_workflow_id_fkey"
+            columns: ["workflow_id"]
+            isOneToOne: false
+            referencedRelation: "advanced_workflows"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workflow_step_executions: {
+        Row: {
+          completed_at: string | null
+          error_message: string | null
+          execution_id: string | null
+          id: string
+          input_data: Json | null
+          organization_id: string
+          output_data: Json | null
+          started_at: string | null
+          status: string
+          step_id: string
+          step_type: string
+        }
+        Insert: {
+          completed_at?: string | null
+          error_message?: string | null
+          execution_id?: string | null
+          id?: string
+          input_data?: Json | null
+          organization_id: string
+          output_data?: Json | null
+          started_at?: string | null
+          status?: string
+          step_id: string
+          step_type: string
+        }
+        Update: {
+          completed_at?: string | null
+          error_message?: string | null
+          execution_id?: string | null
+          id?: string
+          input_data?: Json | null
+          organization_id?: string
+          output_data?: Json | null
+          started_at?: string | null
+          status?: string
+          step_id?: string
+          step_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workflow_step_executions_execution_id_fkey"
+            columns: ["execution_id"]
+            isOneToOne: false
+            referencedRelation: "workflow_executions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workflow_triggers: {
+        Row: {
+          conditions: Json
+          enabled: boolean | null
+          id: string
+          organization_id: string
+          trigger_type: string
+          workflow_id: string | null
+        }
+        Insert: {
+          conditions?: Json
+          enabled?: boolean | null
+          id?: string
+          organization_id: string
+          trigger_type: string
+          workflow_id?: string | null
+        }
+        Update: {
+          conditions?: Json
+          enabled?: boolean | null
+          id?: string
+          organization_id?: string
+          trigger_type?: string
+          workflow_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workflow_triggers_workflow_id_fkey"
+            columns: ["workflow_id"]
+            isOneToOne: false
+            referencedRelation: "advanced_workflows"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
@@ -4629,6 +5564,20 @@ export type Database = {
       }
     }
     Functions: {
+      check_communication_health: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          service: string
+          health_status: string
+          last_success: string
+          total_24h: number
+          success_rate: number
+        }[]
+      }
+      check_overdue_tasks: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
       check_products_access: {
         Args: { p_user_id: string }
         Returns: Json
@@ -4641,6 +5590,10 @@ export type Database = {
           p_window_minutes?: number
         }
         Returns: boolean
+      }
+      check_time_based_automations: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
       }
       check_user_data: {
         Args: { user_email: string }
@@ -4656,6 +5609,36 @@ export type Database = {
       check_user_products_status: {
         Args: Record<PropertyKey, never>
         Returns: Json
+      }
+      claim_phone_number: {
+        Args: { p_phone_number: string; p_user_id: string }
+        Returns: {
+          ai_dispatcher_config: Json | null
+          ai_dispatcher_enabled: boolean | null
+          area_code: string | null
+          call_routing_stats: Json | null
+          configured_at: string | null
+          connection_id: string | null
+          country_code: string | null
+          created_at: string | null
+          features: Json | null
+          id: string
+          last_call_routed_to: string | null
+          locality: string | null
+          messaging_profile_id: string | null
+          monthly_cost: number | null
+          order_id: string | null
+          phone_number: string
+          purchased_at: string | null
+          rate_center: string | null
+          region: string | null
+          setup_cost: number | null
+          status: string | null
+          telnyx_phone_number_id: string | null
+          updated_at: string | null
+          user_id: string | null
+          webhook_url: string | null
+        }
       }
       cleanup_all_user_data: {
         Args: { p_keep_system_users?: boolean; p_dry_run?: boolean }
@@ -4719,7 +5702,7 @@ export type Database = {
         }[]
       }
       execute_automation: {
-        Args: { p_automation_id: string; p_trigger_data: Json }
+        Args: { p_automation_id: string; p_trigger_data?: Json }
         Returns: string
       }
       generate_approval_token: {
@@ -4746,6 +5729,19 @@ export type Database = {
           p_domain_restriction?: string
         }
         Returns: string
+      }
+      get_automation_analytics: {
+        Args: { org_id: string }
+        Returns: {
+          totalrules: number
+          activerules: number
+          totalexecutions: number
+          successrate: number
+          messagessent: number
+          responsesreceived: number
+          revenuegenerated: number
+          recentexecutions: number
+        }[]
       }
       get_current_user_info: {
         Args: Record<PropertyKey, never>
@@ -4806,6 +5802,10 @@ export type Database = {
           zip_code: string
         }[]
       }
+      get_task_context: {
+        Args: { task_id: string }
+        Returns: Json
+      }
       get_team_member_commission: {
         Args: { p_team_member_id: string }
         Returns: {
@@ -4829,6 +5829,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: string
       }
+      get_user_phone_number: {
+        Args: { p_user_id: string }
+        Returns: string
+      }
       get_user_role: {
         Args: { user_uuid: string }
         Returns: string
@@ -4836,6 +5840,10 @@ export type Database = {
       handle_job_portal_request: {
         Args: { p_job_number: string }
         Returns: Json
+      }
+      increment_automation_metrics: {
+        Args: { workflow_id: string; success: boolean }
+        Returns: undefined
       }
       increment_workflow_metrics: {
         Args: {
@@ -4892,6 +5900,10 @@ export type Database = {
         }
         Returns: undefined
       }
+      migrate_job_tasks: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
       populate_niche_products: {
         Args: { p_niche: string }
         Returns: number
@@ -4903,6 +5915,10 @@ export type Database = {
       populate_products_for_user_by_email: {
         Args: { p_email: string; p_niche?: string }
         Returns: Json
+      }
+      process_pending_automations: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
       }
       reload_products_for_current_niche: {
         Args: Record<PropertyKey, never>
@@ -4937,6 +5953,10 @@ export type Database = {
       }
       test_products_visibility: {
         Args: Record<PropertyKey, never>
+        Returns: Json
+      }
+      trigger_automation_manually: {
+        Args: { automation_id: string; test_data?: Json }
         Returns: Json
       }
       update_team_member_commission: {
