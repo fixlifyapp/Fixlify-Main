@@ -1,7 +1,9 @@
+
 import React from 'react';
 import { TelnyxPhoneSync } from '@/components/phone/TelnyxPhoneSync';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ManualPhoneNumberAdd } from '@/components/phone/ManualPhoneNumberAdd';
+import { PhoneNumberFixer } from '@/components/phone/PhoneNumberFixer';
 
 export default function PhoneManagementPage() {
   return (
@@ -15,6 +17,7 @@ export default function PhoneManagementPage() {
         <TabsList>
           <TabsTrigger value="sync">Auto Sync</TabsTrigger>
           <TabsTrigger value="manual">Manual Add</TabsTrigger>
+          <TabsTrigger value="fix">Fix Assignments</TabsTrigger>
         </TabsList>
         
         <TabsContent value="sync" className="space-y-4">
@@ -23,6 +26,10 @@ export default function PhoneManagementPage() {
         
         <TabsContent value="manual" className="space-y-4">
           <ManualPhoneNumberAdd />
+        </TabsContent>
+        
+        <TabsContent value="fix" className="space-y-4">
+          <PhoneNumberFixer />
         </TabsContent>
       </Tabs>
     </div>
