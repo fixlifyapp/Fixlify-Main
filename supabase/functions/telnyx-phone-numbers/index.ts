@@ -3,16 +3,23 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.24.0'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-auth',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS'
 }
 
 serve(async (req) => {
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders })
+    return new Response(null, { 
+      status: 200,
+      headers: corsHeaders 
+    })
   }
 
   try {
     console.log('📞 Telnyx phone numbers request received');
+    console.log('Request method:', req.method);
+    console.log('Request headers:', Object.fromEntries(req.headers.entries()));
     
     const supabaseAdmin = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
@@ -39,11 +46,12 @@ serve(async (req) => {
     
     const { action } = requestBody;
 
-    switch (action) {
-      case 'list_available_from_telnyx': {
+    switch (action) {      case 'list_available_from_telnyx': {
         console.log('📋 Listing YOUR numbers from Telnyx account...');
         
         const telnyxApiKey = Deno.env.get('TELNYX_API_KEY');
+        
+        console.log('🔑 API Key status:', telnyxApiKey ? `Found (${telnyxApiKey.substring(0, 3)}...)` : 'Not found');
         
         if (!telnyxApiKey || telnyxApiKey === 'test') {
           console.log('⚠️ No Telnyx API key, returning database numbers');
@@ -72,7 +80,6 @@ serve(async (req) => {
             }
           )
         }
-
         try {
           // Get YOUR owned numbers from Telnyx
           console.log('🔍 Fetching YOUR numbers from Telnyx API...');
@@ -102,8 +109,7 @@ serve(async (req) => {
 
           const claimedMap = new Map((claimedNumbers || []).map(n => [n.phone_number, n.user_id]));
 
-          // Format the response to show which numbers are available to claim
-          const availableNumbers = telnyxNumbers
+          // Format the response to show which numbers are available to claim          const availableNumbers = telnyxNumbers
             .filter(telnyxNum => {
               // Only show if not claimed by someone else
               const userId = claimedMap.get(telnyxNum.phone_number);
@@ -129,8 +135,7 @@ serve(async (req) => {
           for (const telnyxNum of telnyxNumbers) {
             await supabaseAdmin
               .from('telnyx_phone_numbers')
-              .upsert({
-                phone_number: telnyxNum.phone_number,
+              .upsert({                phone_number: telnyxNum.phone_number,
                 status: claimedMap.has(telnyxNum.phone_number) ? 'active' : 'available',
                 country_code: telnyxNum.country_code || 'US',
                 area_code: telnyxNum.phone_number.substring(2, 5),
@@ -157,8 +162,7 @@ serve(async (req) => {
               headers: { ...corsHeaders, 'Content-Type': 'application/json' },
               status: 200,
             }
-          )
-        } catch (error) {
+          )        } catch (error) {
           console.error('❌ Error fetching from Telnyx:', error);
           // Fallback to database
           const { data: availableNumbers, error: dbError } = await supabaseAdmin
@@ -187,7 +191,6 @@ serve(async (req) => {
           )
         }
       }
-
       case 'manual_sync_user_numbers': {
         console.log('🔄 Manual sync of Telnyx numbers...');
         
@@ -220,7 +223,6 @@ serve(async (req) => {
           if (!response.ok) {
             throw new Error('Failed to fetch from Telnyx API');
           }
-
           const result = await response.json();
           const telnyxNumbers = result.data || [];
 
@@ -250,8 +252,7 @@ serve(async (req) => {
             JSON.stringify({ 
               success: true, 
               message: `Synced ${syncedCount} numbers from Telnyx`,
-              synced_count: syncedCount
-            }),
+              synced_count: syncedCount            }),
             {
               headers: { ...corsHeaders, 'Content-Type': 'application/json' },
               status: 200,
@@ -281,8 +282,7 @@ serve(async (req) => {
         
         if (!telnyxApiKey) {
           return new Response(
-            JSON.stringify({ 
-              success: false, 
+            JSON.stringify({               success: false, 
               error: 'Telnyx API key not configured',
               data: null
             }),
@@ -345,8 +345,7 @@ serve(async (req) => {
 
       case 'search': {
         console.log('🔍 Searching for NEW numbers to purchase from Telnyx...');
-        
-        const telnyxApiKey = Deno.env.get('TELNYX_API_KEY');
+                const telnyxApiKey = Deno.env.get('TELNYX_API_KEY');
         const { 
           area_code, 
           locality,
@@ -377,7 +376,6 @@ serve(async (req) => {
             'filter[phone_number_type]': number_type,
             'page[size]': '20'
           });
-
           if (area_code) {
             searchParams.append('filter[area_code]', area_code);
           }
@@ -406,8 +404,7 @@ serve(async (req) => {
           console.log(`✅ Found ${searchResults.length} numbers available for purchase`);
 
           // Format results for display
-          const formattedNumbers = searchResults.map(number => ({
-            phone_number: number.phone_number,
+          const formattedNumbers = searchResults.map(number => ({            phone_number: number.phone_number,
             region_information: {
               city: number.region_information?.city,
               region: number.region_information?.region,
@@ -438,8 +435,7 @@ serve(async (req) => {
               headers: { ...corsHeaders, 'Content-Type': 'application/json' },
               status: 200,
             }
-          )
-        } catch (error) {
+          )        } catch (error) {
           console.error('❌ Search error:', error);
           return new Response(
             JSON.stringify({ 
@@ -469,8 +465,7 @@ serve(async (req) => {
           const { data: claimedNumber, error } = await supabaseAdmin
             .from('telnyx_phone_numbers')
             .update({
-              user_id: user.id,
-              status: 'active',
+              user_id: user.id,              status: 'active',
               purchased_at: new Date().toISOString()
             })
             .eq('phone_number', phone_number)
@@ -500,7 +495,6 @@ serve(async (req) => {
             }
           )
         }
-
         // If it's from marketplace, purchase from Telnyx
         if (source === 'telnyx_marketplace') {
           const telnyxApiKey = Deno.env.get('TELNYX_API_KEY');
@@ -531,7 +525,6 @@ serve(async (req) => {
               },
               body: JSON.stringify(purchaseBody)
             });
-
             if (!response.ok) {
               const errorData = await response.json();
               console.error('❌ Telnyx purchase error:', errorData);
@@ -561,8 +554,7 @@ serve(async (req) => {
             }
 
             return new Response(
-              JSON.stringify({ 
-                success: true, 
+              JSON.stringify({                 success: true, 
                 message: 'Phone number purchased successfully from Telnyx',
                 phone_number: phone_number,
                 id: savedNumber?.id,
@@ -592,8 +584,7 @@ serve(async (req) => {
       JSON.stringify({ 
         success: false, 
         error: error.message || 'An error occurred'
-      }),
-      {
+      }),      {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 500,
       }

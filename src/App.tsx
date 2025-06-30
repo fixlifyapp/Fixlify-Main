@@ -27,6 +27,7 @@ import ConfigurationPage from "@/pages/ConfigurationPage";
 import ProductsPage from "@/pages/ProductsPage";
 import IntegrationsPage from "@/pages/IntegrationsPage";
 import PhoneNumbersPage from "./pages/PhoneNumbersPage";
+import PhoneManagementPage from "./pages/PhoneManagementPage";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { AppProviders } from "@/components/ui/AppProviders";
 import TestDebug from "@/pages/TestDebug";
@@ -274,6 +275,14 @@ function App() {
                 <AuthProvider>
                   <ProtectedRouteWithProviders>
                     <PhoneNumbersPage />
+                  </ProtectedRouteWithProviders>
+                </AuthProvider>
+              } />
+              
+              <Route path="/phone-management" element={
+                <AuthProvider>
+                  <ProtectedRouteWithProviders>
+                    <PhoneManagementPage />
                   </ProtectedRouteWithProviders>
                 </AuthProvider>
               } />
