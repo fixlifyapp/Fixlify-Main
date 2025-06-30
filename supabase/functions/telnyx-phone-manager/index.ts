@@ -1,3 +1,4 @@
+
 import { serve } from 'https://deno.land/std@0.190.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.24.0'
 
@@ -28,16 +29,25 @@ serve(async (req) => {
       }
     )
 
-    // Get the authorization header
-    const authHeader = req.headers.get('Authorization')
-    console.log('Auth header present:', !!authHeader)
-
     const requestBody = await req.json()
     const { action } = requestBody;
 
-    // Use environment variables with fallback for testing
-    const telnyxApiKey = Deno.env.get('TELNYX_API_KEY') || 'KEY01973792571E803B1EF8E470CD832D49';
-    const connectionId = Deno.env.get('TELNYX_CONNECTION_ID') || '2709100729850660858';
+    // Use environment variables
+    const telnyxApiKey = Deno.env.get('TELNYX_API_KEY');
+    const connectionId = Deno.env.get('TELNYX_CONNECTION_ID');
+
+    if (!telnyxApiKey) {
+      return new Response(
+        JSON.stringify({ 
+          success: false,
+          error: 'TELNYX_API_KEY not configured in Supabase secrets'
+        }),
+        { 
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
+    }
 
     console.log(`Processing action: ${action}`)
 
@@ -55,8 +65,6 @@ serve(async (req) => {
               'Content-Type': 'application/json'
             }
           });
-
-          console.log('Telnyx API response status:', response.status);
 
           if (!response.ok) {
             const errorText = await response.text();
@@ -80,7 +88,6 @@ serve(async (req) => {
           }
           
           const existingPhoneNumbers = new Set(existingNumbers?.map(n => n.phone_number) || []);
-          console.log(`Found ${existingPhoneNumbers.size} existing numbers in database`);
 
           // Import new numbers
           const numbersToImport = telnyxNumbers.filter(n => 
@@ -93,14 +100,16 @@ serve(async (req) => {
             const recordsToInsert = numbersToImport.map(number => ({
               phone_number: number.phone_number,
               telnyx_phone_number_id: number.id,
-              status: 'active',
+              status: 'available',
               connection_id: number.connection_id || connectionId,
               area_code: number.phone_number.substring(2, 5),
               country_code: 'US',
               features: ['sms', 'voice', 'mms'],
               purchased_at: number.created_at || new Date().toISOString(),
               webhook_url: number.messaging?.webhook_url,
-              messaging_profile_id: number.messaging?.messaging_profile_id
+              messaging_profile_id: number.messaging?.messaging_profile_id,
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString()
             }));
 
             const { error: insertError } = await supabaseAdmin
@@ -122,7 +131,7 @@ serve(async (req) => {
                 phone_number: n.phone_number,
                 status: n.status
               })),
-              message: `Synced ${numbersToImport.length} new numbers from Telnyx`
+              message: `Successfully synced ${numbersToImport.length} new numbers from Telnyx`
             }),
             { 
               status: 200,
@@ -207,17 +216,19 @@ serve(async (req) => {
         const orderData = await orderResponse.json();
         
         // Configure the number for SMS and Voice
-        await fetch(`https://api.telnyx.com/v2/phone_numbers/${phone_number}`, {
-          method: 'PATCH',
-          headers: {
-            'Authorization': `Bearer ${telnyxApiKey}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            connection_id: connectionId,
-            webhook_url: `${Deno.env.get('SUPABASE_URL')}/functions/v1/telnyx-webhook-router`
-          })
-        });
+        if (connectionId) {
+          await fetch(`https://api.telnyx.com/v2/phone_numbers/${phone_number}`, {
+            method: 'PATCH',
+            headers: {
+              'Authorization': `Bearer ${telnyxApiKey}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              connection_id: connectionId,
+              webhook_url: `${Deno.env.get('SUPABASE_URL')}/functions/v1/telnyx-webhook-router`
+            })
+          });
+        }
 
         // Store in database and assign to user
         const { error: dbError } = await supabaseAdmin
@@ -226,13 +237,15 @@ serve(async (req) => {
             phone_number: phone_number,
             user_id: user_id,
             status: 'active',
-            order_id: orderData.data.id,
+            telnyx_phone_number_id: orderData.data.phone_numbers?.[0]?.id,
             area_code: phone_number.substring(2, 5),
             country_code: 'US',
             connection_id: connectionId,
             features: ['sms', 'voice', 'mms'],
             purchased_at: new Date().toISOString(),
-            configured_at: new Date().toISOString()
+            configured_at: new Date().toISOString(),
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
           });
 
         if (dbError) {
