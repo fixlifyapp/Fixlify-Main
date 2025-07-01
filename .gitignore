@@ -22,3 +22,23 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Temporary debug files
+debug-*.js
+fix-*.js
+full-diagnostics.js
+test-*.js
+commit-message.txt
+PROBLEMS_FIXED.md
+FIX_SEND_ESTIMATE_INSTRUCTIONS.md
+
+# Backup files
+*.backup.*
+src/App.backup.tsx
+
+# Temporary edge functions (obsolete versions)
+supabase/functions/send-estimate-fixed/
+supabase/functions/send-estimate-sms-fixed/
+
+# Environment files
+supabase/.env.production
