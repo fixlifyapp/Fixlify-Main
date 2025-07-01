@@ -340,6 +340,51 @@ See `email_sms_test_instructions.md` for detailed testing procedures.
   - `/src/services/automation-execution-service.ts`
   - `/src/pages/TestAutomationPage.tsx`
 
+### 8. Improved Email Templates (2025-07-01)
+- **Issue**: Email templates had poor design that didn't render properly in email clients
+- **Solution**:
+  - Created clean, professional email templates that work in all email clients
+  - Used table-based layout for compatibility with Outlook and older email clients
+  - Added proper MSO conditionals for Microsoft Office rendering
+  - Simplified design with clear CTA buttons and responsive layout
+  - Updated both estimate and invoice email templates
+- **Key Features**:
+  - Professional header with company branding
+  - Clear amount display with estimate/invoice number
+  - Prominent call-to-action button
+  - Mobile-responsive design
+  - Consistent color scheme (purple for estimates, green for invoices)
+  - Company footer with contact information
+- **Edge Functions Updated**:
+  - `mailgun-email` - Generic email sending with template support
+  - `send-estimate` - Professional estimate emails
+  - `send-invoice` - Professional invoice emails
+
+### 9. Fixed Client Portal Blank Page Issue (2025-07-01)
+- **Issue**: Email links pointing to hub.fixlify.app/invoice/{id} showed blank page
+- **Root Cause**: The hub.fixlify.app is a separate portal application that wasn't properly deployed or configured
+- **Solution**:
+  - Created local portal pages in the main application:
+    - `/invoice/:invoiceId` - Direct invoice viewing page
+    - `/estimate/:estimateId` - Direct estimate viewing page
+    - `/portal/:accessToken` - Full client portal with token access
+  - Updated email and SMS edge functions to use local URLs instead of hub.fixlify.app
+  - Created professional, mobile-responsive portal pages with:
+    - Invoice/Estimate details display
+    - Client information
+    - Line items breakdown
+    - Action buttons (Pay Invoice, Accept Estimate, Download PDF)
+    - Responsive design for all devices
+- **Files Created**:
+  - `/src/pages/InvoicePortal.tsx` - Invoice viewing page
+  - `/src/pages/EstimatePortal.tsx` - Estimate viewing page
+- **Edge Functions Updated**:
+  - `send-invoice` - Now uses local invoice URL
+  - `send-estimate` - Now uses local estimate URL
+  - `send-invoice-sms` - Updated portal links
+  - `send-estimate-sms` - Updated portal links
+- **Note**: Once hub.fixlify.app is properly deployed, update the URLs back to use the dedicated portal domain
+
 ### Development Server
 - Running on port 8082/8083 (ports 8080 and 8081 were in use)
 - Access at: http://localhost:8083/
@@ -475,3 +520,30 @@ location.reload();
 - `/console_scripts/fix_jobs_timeout.js`
 
 See `FIX_JOBS_TIMEOUT.md` for complete documentation.
+
+## 🎯 Simplified Client Jobs Tab Fix (2025-07-01)
+
+### Problem
+Jobs weren't loading in Client Details > Jobs tab, and attempted optimizations caused more errors.
+
+### Simple Solution
+Use the existing JobsList component from Jobs page instead of creating new optimizations.
+
+### Changes
+1. **Reverted all optimizations**
+   - Removed query timeouts and circuit breakers
+   - Restored original query structure
+   - Removed all debug code
+
+2. **Updated ClientJobs Component**
+   - Now uses standard JobsList component
+   - Same UI as main Jobs page
+   - All features work: bulk actions, filtering, etc.
+
+### Result
+- Jobs now load properly in client tabs
+- No database changes needed
+- Clean, maintainable code
+- Consistent UI across the app
+
+See `SIMPLE_FIX_CLIENT_JOBS.md` for details.

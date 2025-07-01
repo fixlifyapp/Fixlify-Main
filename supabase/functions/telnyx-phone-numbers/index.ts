@@ -109,7 +109,8 @@ serve(async (req) => {
 
           const claimedMap = new Map((claimedNumbers || []).map(n => [n.phone_number, n.user_id]));
 
-          // Format the response to show which numbers are available to claim          const availableNumbers = telnyxNumbers
+          // Format the response to show which numbers are available to claim
+          const availableNumbers = telnyxNumbers
             .filter(telnyxNum => {
               // Only show if not claimed by someone else
               const userId = claimedMap.get(telnyxNum.phone_number);

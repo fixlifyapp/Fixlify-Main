@@ -226,7 +226,8 @@ serve(async (req) => {
 
     console.log('✅ Portal access token generated');
 
-    const portalLink = `https://hub.fixlify.app/portal/${portalToken}`;
+    // Use local estimate page for now until hub.fixlify.app is properly deployed  
+    const portalLink = `http://localhost:8080/estimate/${estimate.id}`;
 
     // Create email HTML
     const emailHtml = createEstimateEmailTemplate({

@@ -205,7 +205,8 @@ serve(async (req) => {
 
     console.log('✅ Portal access token generated');
 
-    const portalLink = `https://hub.fixlify.app/portal/${portalToken}`;
+    // Use local estimate page for now until hub.fixlify.app is properly deployed
+    const portalLink = `http://localhost:8085/estimate/${estimate.id}`;
 
     // Create SMS message with portal link
     const estimateTotal = estimate.total || 0;
@@ -214,7 +215,7 @@ serve(async (req) => {
     if (message) {
       smsMessage = message;
       // Add portal link to custom message if not already included
-      if (!message.includes('hub.fixlify.app/portal/')) {
+      if (!message.includes('localhost:8085/estimate/')) {
         smsMessage = `${message}\n\nView your estimate: ${portalLink}`;
       }
     } else {

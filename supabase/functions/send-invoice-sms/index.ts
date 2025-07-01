@@ -176,7 +176,8 @@ serve(async (req) => {
 
     console.log('✅ Portal access token generated:', portalToken);
 
-    const portalLink = `https://hub.fixlify.app/portal/${portalToken}`;
+    // Use local invoice page for now until hub.fixlify.app is properly deployed
+    const portalLink = `http://localhost:8085/invoice/${invoice.id}`;
     console.log('🔗 Portal link:', portalLink);
 
     // Get company settings for branding

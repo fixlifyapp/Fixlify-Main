@@ -76,8 +76,8 @@ export const useEstimateActions = (
 
       console.log('Line items:', lineItems);
 
-      // Call send-estimate function with complete data
-      const { data: sendData, error: sendError } = await supabase.functions.invoke('send-estimate', {
+      // Call send-estimate-fixed function with complete data (temporary fix)
+      const { data: sendData, error: sendError } = await supabase.functions.invoke('send-estimate-fixed', {
         body: {
           estimateId: estimateId,
           recipientEmail: jobData?.clients?.email,
