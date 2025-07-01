@@ -39,8 +39,6 @@ import AdminRolesPage from "@/pages/AdminRolesPage";
 import TeamMemberProfilePage from "@/pages/TeamMemberProfilePage";
 import AcceptInvitationPage from "@/pages/AcceptInvitationPage";
 import ClientPortal from "@/pages/ClientPortal";
-import InvoicePortal from "@/pages/InvoicePortal";
-import EstimatePortal from "@/pages/EstimatePortal";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -91,16 +89,6 @@ function App() {
             {/* Client Portal */}
             <Route path="/portal/:accessToken" element={
               <ClientPortal />
-            } />
-            
-            {/* Invoice Portal - Direct Access */}
-            <Route path="/invoice/:invoiceId" element={
-              <InvoicePortal />
-            } />
-            
-            {/* Estimate Portal - Direct Access */}
-            <Route path="/estimate/:estimateId" element={
-              <EstimatePortal />
             } />
             
             {/* Root redirect */}

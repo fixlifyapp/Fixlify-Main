@@ -105,9 +105,11 @@ serve(async (req) => {
         p_domain_restriction: 'hub.fixlify.app'
       });
 
-    const portalLink = portalToken 
-      ? `https://hub.fixlify.app/portal/${portalToken}`
-      : `https://hub.fixlify.app/estimate/${estimate.id}`;
+    if (!portalToken) {
+      throw new Error('Failed to generate portal access token');
+    }
+    
+    const portalLink = `https://hub.fixlify.app/portal/${portalToken}`;
 
     // Create email HTML
     const emailHtml = createProfessionalEstimateTemplate({

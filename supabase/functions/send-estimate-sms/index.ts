@@ -205,9 +205,12 @@ serve(async (req) => {
 
     console.log('✅ Portal access token generated');
 
-    // Use the full client portal URL
-    const baseUrl = Deno.env.get('FRONTEND_URL') || 'http://localhost:8080';
-    const portalLink = `${baseUrl}/portal/${portalToken}`;
+    // Use hub.fixlify.app for production portal
+    if (!portalToken) {
+      throw new Error('Failed to generate portal access token');
+    }
+    
+    const portalLink = `https://hub.fixlify.app/portal/${portalToken}`;
 
     // Create SMS message with portal link
     const estimateTotal = estimate.total || 0;

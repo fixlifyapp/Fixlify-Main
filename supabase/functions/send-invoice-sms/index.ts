@@ -132,9 +132,11 @@ serve(async (req) => {
     }
 
     // Use hub.fixlify.app for production portal
-    const portalLink = portalToken 
-      ? `https://hub.fixlify.app/portal/${portalToken}`
-      : `https://hub.fixlify.app/invoice/${invoice.id}`;
+    if (!portalToken) {
+      throw new Error('Failed to generate portal access token');
+    }
+    
+    const portalLink = `https://hub.fixlify.app/portal/${portalToken}`;
 
     // Create SMS message
     const invoiceTotal = invoice.total || 0;
