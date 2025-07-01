@@ -8,7 +8,7 @@ const corsHeaders = {
   'Access-Control-Max-Age': '86400',
 }
 
-// Clean, professional email template that works in all email clients
+// Professional invoice email template
 const createProfessionalInvoiceTemplate = (data: any) => {
   const {
     companyName,
@@ -20,7 +20,8 @@ const createProfessionalInvoiceTemplate = (data: any) => {
     invoiceNumber,
     total,
     portalLink,
-    dueDate
+    dueDate,
+    isPaid
   } = data;
 
   return `
@@ -62,18 +63,21 @@ const createProfessionalInvoiceTemplate = (data: any) => {
               ${companyLogo ? `
                 <img src="${companyLogo}" alt="${companyName}" style="max-height: 60px; margin-bottom: 20px; display: block; margin-left: auto; margin-right: auto;">
               ` : ''}
-              <h1 style="color: #ffffff; font-size: 28px; font-weight: 600; margin: 0 0 10px 0;">Invoice</h1>
-              <p style="color: #D1FAE5; font-size: 16px; margin: 0;">Payment Due</p>
+              <h1 style="color: #ffffff; font-size: 28px; font-weight: 600; margin: 0 0 10px 0;">${isPaid ? 'Invoice Paid' : 'Invoice Due'}</h1>
+              <p style="color: #D1FAE5; font-size: 16px; margin: 0;">Professional Service Invoice</p>
             </td>
           </tr>
           
           <!-- Content -->
           <tr>
             <td class="content" style="padding: 40px 30px;">
-              <p style="font-size: 18px; color: #1F2937; margin: 0 0 20px 0;">Hi ${clientName || 'Valued Customer'},</p>
+              <p style="font-size: 18px; color: #1F2937; margin: 0 0 20px 0;">Hi ${clientName || 'Valued Customer'} 👋</p>
               
               <p style="color: #4B5563; line-height: 1.6; margin: 0 0 30px 0;">
-                Thank you for your business with ${companyName}. Your invoice is ready for review and payment.
+                ${isPaid 
+                  ? `Thank you for your payment! This invoice has been paid in full.`
+                  : `Thank you for your business with ${companyName}. Your invoice is ready for review and payment.`
+                }
               </p>
               
               <!-- Invoice Box -->
@@ -83,12 +87,17 @@ const createProfessionalInvoiceTemplate = (data: any) => {
                     <p style="color: #6B7280; font-size: 14px; margin: 0 0 10px 0; text-transform: uppercase; letter-spacing: 1px;">
                       INVOICE #${invoiceNumber}
                     </p>
-                    <p class="amount" style="color: #059669; font-size: 36px; font-weight: 700; margin: 0 0 10px 0;">
+                    <p class="amount" style="color: ${isPaid ? '#059669' : '#DC2626'}; font-size: 36px; font-weight: 700; margin: 0 0 10px 0;">
                       $${total.toFixed(2)}
                     </p>
-                    ${dueDate ? `
-                      <p style="color: #DC2626; font-size: 14px; margin: 0; font-weight: 600;">
-                        Due: ${dueDate}
+                    ${!isPaid && dueDate ? `
+                      <p style="color: #6B7280; font-size: 14px; margin: 0;">
+                        Due by: ${dueDate}
+                      </p>
+                    ` : ''}
+                    ${isPaid ? `
+                      <p style="color: #059669; font-size: 16px; margin: 10px 0 0 0; font-weight: 600;">
+                        ✓ Paid in Full
                       </p>
                     ` : ''}
                   </td>
@@ -99,39 +108,45 @@ const createProfessionalInvoiceTemplate = (data: any) => {
               <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
                 <tr>
                   <td align="center" style="padding: 0 0 20px 0;">
-                    <a href="${portalLink}" class="button" style="display: inline-block; background-color: #059669; color: #ffffff; text-decoration: none; padding: 16px 32px; border-radius: 8px; font-weight: 600; font-size: 18px;">
-                      View & Pay Invoice
+                    <a href="${portalLink}" class="button" style="display: inline-block; background-color: ${isPaid ? '#059669' : '#DC2626'}; color: #ffffff; text-decoration: none; padding: 16px 32px; border-radius: 8px; font-weight: 600; font-size: 18px;">
+                      View Client Portal
                     </a>
                   </td>
                 </tr>
               </table>
               
               <p style="text-align: center; color: #6B7280; font-size: 14px; margin: 0 0 30px 0;">
-                Click above to review details and make a secure payment online
+                Access your client portal to view all invoices, make payments, and download receipts
               </p>
               
-              <!-- Payment Options -->
+              <!-- What's Next -->
               <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color: #F9FAFB; border-radius: 8px;">
                 <tr>
                   <td style="padding: 25px;">
-                    <h3 style="color: #1F2937; font-size: 18px; font-weight: 600; margin: 0 0 15px 0;">Payment Options</h3>
-                    <table role="presentation" width="100%" cellspacing="0" cellpadding="0;">
+                    <h3 style="color: #1F2937; font-size: 18px; font-weight: 600; margin: 0 0 15px 0;">What's Available in Your Portal?</h3>
+                    <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
                       <tr>
                         <td style="padding: 8px 0;">
                           <span style="color: #10B981; font-weight: bold; margin-right: 10px;">✓</span>
-                          <span style="color: #4B5563;">Pay securely online with credit/debit card</span>
+                          <span style="color: #4B5563;">View all your invoices and estimates</span>
                         </td>
                       </tr>
                       <tr>
                         <td style="padding: 8px 0;">
                           <span style="color: #10B981; font-weight: bold; margin-right: 10px;">✓</span>
-                          <span style="color: #4B5563;">ACH bank transfer available</span>
+                          <span style="color: #4B5563;">Make secure online payments</span>
                         </td>
                       </tr>
                       <tr>
                         <td style="padding: 8px 0;">
                           <span style="color: #10B981; font-weight: bold; margin-right: 10px;">✓</span>
-                          <span style="color: #4B5563;">Download PDF for your records</span>
+                          <span style="color: #4B5563;">View payment history and receipts</span>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 8px 0;">
+                          <span style="color: #10B981; font-weight: bold; margin-right: 10px;">✓</span>
+                          <span style="color: #4B5563;">Download documents for your records</span>
                         </td>
                       </tr>
                     </table>
@@ -253,14 +268,17 @@ serve(async (req) => {
         p_permissions: {
           view_estimates: true,
           view_invoices: true,
-          make_payments: true
+          make_payments: true,
+          view_jobs: true
         },
-        p_hours_valid: 72,
-        p_domain_restriction: 'hub.fixlify.app'
+        p_hours_valid: 72
       });
 
-    // Use local invoice page for now until hub.fixlify.app is properly deployed
-    const portalLink = `http://localhost:8080/invoice/${invoice.id}`;
+    // Use the portal token for the full client portal experience
+    const baseUrl = Deno.env.get('FRONTEND_URL') || 'http://localhost:8080';
+    const portalLink = portalToken 
+      ? `${baseUrl}/portal/${portalToken}`
+      : `${baseUrl}/portal/temporary-${client.id}`;
 
     // Create email HTML
     const emailHtml = createProfessionalInvoiceTemplate({
@@ -273,7 +291,8 @@ serve(async (req) => {
       invoiceNumber: invoice.invoice_number,
       total: invoice.total || 0,
       portalLink,
-      dueDate: invoice.due_date ? new Date(invoice.due_date).toLocaleDateString() : null
+      dueDate: invoice.due_date ? new Date(invoice.due_date).toLocaleDateString() : null,
+      isPaid: invoice.status === 'paid'
     });
 
     // Send via Mailgun
@@ -282,7 +301,7 @@ serve(async (req) => {
     formData.append('to', recipientEmail);
     formData.append('subject', `Invoice #${invoice.invoice_number} from ${companyName}`);
     formData.append('html', emailHtml);
-    formData.append('text', `Your invoice #${invoice.invoice_number} is ready. Total: $${(invoice.total || 0).toFixed(2)}. View at: ${portalLink}`);
+    formData.append('text', `Your invoice #${invoice.invoice_number} is ready. Total: $${(invoice.total || 0).toFixed(2)}. View your client portal at: ${portalLink}`);
 
     const mailgunResponse = await fetch('https://api.mailgun.net/v3/fixlify.app/messages', {
       method: 'POST',
@@ -311,16 +330,18 @@ serve(async (req) => {
         communication_type: 'email',
         recipient: recipientEmail,
         subject: `Invoice #${invoice.invoice_number} from ${companyName}`,
-        content: customMessage || 'Invoice email sent',
+        content: customMessage || 'Invoice email sent with portal access',
         status: 'sent',
-        provider_message_id: result.id
+        provider_message_id: result.id,
+        portal_link_included: true
       });
 
     return new Response(
       JSON.stringify({ 
         success: true, 
         message: 'Email sent successfully',
-        messageId: result.id
+        messageId: result.id,
+        portalLink
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
     );

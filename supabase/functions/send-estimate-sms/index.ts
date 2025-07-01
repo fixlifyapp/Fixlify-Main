@@ -1,6 +1,6 @@
 import { serve } from 'https://deno.land/std@0.190.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.24.0'
-import { corsHeaders } from '../_shared/cors.ts'
+import { corsHeaders } from './cors.ts'
 
 // Helper function to format phone numbers
 function formatPhoneNumber(phone: string): string {
@@ -183,10 +183,10 @@ serve(async (req) => {
         p_permissions: {
           view_estimates: true,
           view_invoices: true,
-          make_payments: false
+          make_payments: true,
+          view_jobs: true
         },
-        p_hours_valid: 72,
-        p_domain_restriction: 'hub.fixlify.app'
+        p_hours_valid: 72
       });
 
     if (portalError || !portalToken) {
@@ -205,8 +205,9 @@ serve(async (req) => {
 
     console.log('✅ Portal access token generated');
 
-    // Use local estimate page for now until hub.fixlify.app is properly deployed
-    const portalLink = `http://localhost:8085/estimate/${estimate.id}`;
+    // Use the full client portal URL
+    const baseUrl = Deno.env.get('FRONTEND_URL') || 'http://localhost:8080';
+    const portalLink = `${baseUrl}/portal/${portalToken}`;
 
     // Create SMS message with portal link
     const estimateTotal = estimate.total || 0;
@@ -215,11 +216,11 @@ serve(async (req) => {
     if (message) {
       smsMessage = message;
       // Add portal link to custom message if not already included
-      if (!message.includes('localhost:8085/estimate/')) {
-        smsMessage = `${message}\n\nView your estimate: ${portalLink}`;
+      if (!message.includes('/portal/')) {
+        smsMessage = `${message}\n\nAccess your client portal: ${portalLink}`;
       }
     } else {
-      smsMessage = `Hi ${client.name || 'valued customer'}! Your estimate ${estimate.estimate_number} is ready. Total: $${estimateTotal.toFixed(2)}. View your estimate: ${portalLink}`;
+      smsMessage = `Hi ${client.name || 'valued customer'}! Your estimate ${estimate.estimate_number} for $${estimateTotal.toFixed(2)} is ready. Access your client portal to view all documents: ${portalLink}`;
     }
 
     console.log('📱 SMS message prepared, length:', smsMessage.length);
