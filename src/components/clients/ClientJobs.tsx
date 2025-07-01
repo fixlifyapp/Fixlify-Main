@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useEffect } from "react";
 import { useJobsOptimized } from "@/hooks/useJobsOptimized";
 import { Button } from "@/components/ui/button";
 import { Loader2, Plus, Trash2 } from "lucide-react";
@@ -9,6 +9,8 @@ import { DeleteJobsDialog } from "../jobs/dialogs/DeleteJobsDialog";
 import { BulkActionsBar } from "../jobs/BulkActionsBar";
 import { JobsListOptimized } from "../jobs/JobsListOptimized";
 import { useJobs } from "@/hooks/useJobs";
+import { debugJobsLoading } from "@/utils/jobsDebug";
+import { useOrganizationContext } from "@/hooks/use-organization-context";
 
 interface ClientJobsProps {
   clientId?: string;
@@ -19,6 +21,11 @@ export const ClientJobs = ({ clientId }: ClientJobsProps) => {
   const [selectedJobs, setSelectedJobs] = useState<string[]>([]);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   
+  console.log('🎯 ClientJobs component - clientId:', clientId);
+  
+  // Ensure organization context is set
+  const { organizationId } = useOrganizationContext();
+  
   // Use optimized hook with request deduplication
   const {
     jobs: optimizedJobs,
@@ -26,7 +33,9 @@ export const ClientJobs = ({ clientId }: ClientJobsProps) => {
     refreshJobs: refreshOptimized,
     canCreate,
     canEdit,
-    canDelete
+    canDelete,
+    hasError,
+    clearError
   } = useJobsOptimized({
     clientId,
     page: 1,
@@ -38,6 +47,15 @@ export const ClientJobs = ({ clientId }: ClientJobsProps) => {
   const { addJob, updateJob, deleteJob } = useJobs();
   
   const navigate = useNavigate();
+
+  // Auto-debug if no jobs loaded after initial load
+  useEffect(() => {
+    if (!isOptimizedLoading && optimizedJobs.length === 0 && clientId) {
+      console.log('⚠️ No jobs found for client, running debug...');
+      console.log('📍 Organization context:', { organizationId });
+      debugJobsLoading(clientId);
+    }
+  }, [isOptimizedLoading, optimizedJobs.length, clientId, organizationId]);
 
   // Memoize handlers to prevent unnecessary re-renders
   const handleJobCreated = useCallback(async (jobData: any) => {
@@ -184,6 +202,29 @@ export const ClientJobs = ({ clientId }: ClientJobsProps) => {
       <div className="flex justify-center items-center py-12">
         <Loader2 size={32} className="animate-spin mr-2" />
         <span>Loading jobs...</span>
+      </div>
+    );
+  }
+
+  if (hasError) {
+    return (
+      <div className="text-center py-8 bg-red-50 rounded-lg border border-red-200">
+        <p className="text-red-600 mb-4">Failed to load jobs. Please try again.</p>
+        <div className="space-x-2">
+          <Button 
+            variant="outline" 
+            onClick={clearError}
+          >
+            Retry
+          </Button>
+          <Button 
+            variant="ghost" 
+            size="sm"
+            onClick={() => debugJobsLoading(clientId)}
+          >
+            Debug
+          </Button>
+        </div>
       </div>
     );
   }

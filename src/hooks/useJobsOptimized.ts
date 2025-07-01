@@ -59,6 +59,9 @@ export const useJobsOptimized = (options: UseJobsOptimizedOptions = {}) => {
       return;
     }
 
+    // Log the clientId for debugging
+    console.log('🔍 Fetching jobs with:', { clientId, userId: user?.id, page, pageSize });
+
     if (hasError) {
       setIsLoading(false);
       return;
@@ -109,27 +112,47 @@ export const useJobsOptimized = (options: UseJobsOptimizedOptions = {}) => {
               address,
               tags,
               created_at,
-              client:clients!inner(id, name, email, phone)
+              client:clients(id, name, email, phone)
             `, { count: 'exact' });
           
+          // Apply client filter if provided
           if (clientId) {
+            console.log('📍 Applying client filter:', clientId);
             query = query.eq('client_id', clientId);
+          } else {
+            // Only apply organization filter if not filtering by client
+            const orgId = localStorage.getItem('organizationId');
+            if (orgId) {
+              console.log('🏢 Applying organization filter:', orgId);
+              query = query.eq('organization_id', orgId);
+            }
           }
           
+          // Apply permission-based filters
           const jobViewScope = getJobViewScope();
+          console.log('🔐 Job view scope:', jobViewScope);
+          
           if (jobViewScope === "assigned" && user?.id) {
             query = query.eq('technician_id', user.id);
           } else if (jobViewScope === "none") {
+            console.log('❌ No job view permissions');
             return { jobs: [], totalCount: 0 };
           }
           
+          // Apply pagination
           query = query
             .order('created_at', { ascending: false })
             .range((page - 1) * pageSize, page * pageSize - 1);
           
+          console.log('🔄 Executing jobs query...');
           const { data, error, count } = await query;
           
-          if (error) throw error;
+          if (error) {
+            console.error('❌ Jobs query error:', error);
+            throw error;
+          }
+          
+          console.log(`✅ Jobs query result: ${data?.length || 0} jobs found, total count: ${count}`);
           
           const processedJobs = (data || []).map(job => ({
             ...job,

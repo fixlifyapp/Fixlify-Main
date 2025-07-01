@@ -385,3 +385,50 @@ await organizationContext.initialize(userId);
 - Better performance with proper indexes
 
 See `ORGANIZATION_CONTEXT_SOLUTION.md` for detailed documentation.
+
+
+## 🔧 Jobs Not Loading in Client Tab Fix (2025-07-01)
+
+### Problem Identified
+Jobs were not loading when viewing the Jobs tab in client details, showing an endless loading spinner.
+
+### Root Causes
+1. Missing organization_id on some job records
+2. Overly restrictive RLS policies
+3. Inner join requirement on clients table
+4. Permission scope limitations
+
+### Solution Components
+1. **Updated useJobsOptimized Hook**
+   - Enhanced debugging with detailed console logs
+   - Changed from inner to left join for clients
+   - Better error handling and recovery
+
+2. **Enhanced ClientJobs Component** 
+   - Added error states with retry functionality
+   - Auto-debug when no jobs found
+   - Debug button for manual troubleshooting
+
+3. **Debug Utility** (`/src/utils/jobsDebug.ts`)
+   - Comprehensive debugging tool
+   - Checks auth, permissions, and data access
+   - Available in browser console
+
+4. **Database Migration** (`/migrations/fix_jobs_client_loading.sql`)
+   - Updates jobs to have organization_id
+   - Recreates RLS policies with better access rules
+   - Adds debug_job_access() function
+
+### Key Files Modified
+- `/src/hooks/useJobsOptimized.ts`
+- `/src/components/clients/ClientJobs.tsx`
+- `/src/utils/jobsDebug.ts`
+- `/migrations/fix_jobs_client_loading.sql`
+
+### Usage
+```javascript
+// Debug in browser console
+debugJobsLoading('client-id-here')
+```
+
+See `FIX_JOBS_CLIENT_TAB.md` for complete documentation.
