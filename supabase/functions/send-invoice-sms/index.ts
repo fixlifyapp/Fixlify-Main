@@ -131,9 +131,10 @@ serve(async (req) => {
       );
     }
 
-    // Use the full client portal URL
-    const baseUrl = Deno.env.get('FRONTEND_URL') || 'http://localhost:8080';
-    const portalLink = `${baseUrl}/portal/${portalToken}`;
+    // Use hub.fixlify.app for production portal
+    const portalLink = portalToken 
+      ? `https://hub.fixlify.app/portal/${portalToken}`
+      : `https://hub.fixlify.app/invoice/${invoice.id}`;
 
     // Create SMS message
     const invoiceTotal = invoice.total || 0;
