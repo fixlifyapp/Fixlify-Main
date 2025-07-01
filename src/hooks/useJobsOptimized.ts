@@ -6,6 +6,7 @@ import { Job } from "@/hooks/useJobs";
 import { localStorageCache } from "@/utils/cacheConfig";
 import { withRetry, handleJobsError } from "@/utils/errorHandling";
 import { RefreshThrottler } from "@/utils/refreshThrottler";
+import { jobsCircuitBreaker } from "@/utils/errorHandling";
 
 interface UseJobsOptimizedOptions {
   page?: number;
@@ -97,6 +98,34 @@ export const useJobsOptimized = (options: UseJobsOptimizedOptions = {}) => {
       
       try {
         return await withRetry(async () => {
+          // For client-specific queries, try the optimized function first
+          if (clientId) {
+            try {
+              console.log('🚀 Using optimized client jobs function...');
+              const { data, error, count } = await supabase
+                .rpc('get_client_jobs', {
+                  p_client_id: clientId,
+                  p_limit: pageSize,
+                  p_offset: (page - 1) * pageSize
+                });
+              
+              if (!error && data) {
+                console.log(`✅ Optimized query successful: ${data.length} jobs`);
+                const result: JobsResult = {
+                  jobs: data,
+                  totalCount: count || data.length
+                };
+                
+                if (useCache) {
+                  localStorageCache.set(cacheKey, result, 20);
+                }
+                
+                return result;
+              }
+            } catch (funcError) {
+              console.warn('⚠️ Optimized function failed, falling back to regular query:', funcError);
+            }
+          }
           let query = supabase
             .from('jobs')
             .select(`
@@ -110,9 +139,7 @@ export const useJobsOptimized = (options: UseJobsOptimizedOptions = {}) => {
               schedule_start,
               revenue,
               address,
-              tags,
-              created_at,
-              client:clients(id, name, email, phone)
+              created_at
             `, { count: 'exact' });
           
           // Apply client filter if provided
@@ -139,10 +166,11 @@ export const useJobsOptimized = (options: UseJobsOptimizedOptions = {}) => {
             return { jobs: [], totalCount: 0 };
           }
           
-          // Apply pagination
+          // Apply pagination and timeout
           query = query
             .order('created_at', { ascending: false })
-            .range((page - 1) * pageSize, page * pageSize - 1);
+            .range((page - 1) * pageSize, page * pageSize - 1)
+            .timeout(10000); // Add 10 second timeout
           
           console.log('🔄 Executing jobs query...');
           const { data, error, count } = await query;
@@ -156,8 +184,8 @@ export const useJobsOptimized = (options: UseJobsOptimizedOptions = {}) => {
           
           const processedJobs = (data || []).map(job => ({
             ...job,
-            tags: Array.isArray(job.tags) ? job.tags : [],
-            title: job.title || `${job.client?.name || 'Service'} - ${job.job_type || job.service || 'General Service'}`
+            tags: [], // Empty tags since we're not fetching them
+            title: job.title || `Job ${job.id.slice(0, 8)}` // Simplified title
           }));
           
           const result: JobsResult = {
@@ -265,6 +293,9 @@ export const useJobsOptimized = (options: UseJobsOptimizedOptions = {}) => {
   const hasPreviousPage = useMemo(() => page > 1, [page]);
 
   const refreshJobs = useCallback(() => {
+    // Reset circuit breaker on manual refresh
+    jobsCircuitBreaker.reset();
+    
     RefreshThrottler.throttledRefresh(() => {
       setHasError(false);
       localStorageCache.remove(cacheKey);

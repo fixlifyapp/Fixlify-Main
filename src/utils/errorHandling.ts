@@ -59,6 +59,14 @@ class CircuitBreaker {
 // Global circuit breaker for job operations
 export const jobsCircuitBreaker = new CircuitBreaker();
 
+// Global function to reset circuit breaker (for debugging)
+if (typeof window !== 'undefined') {
+  (window as any).resetJobsCircuitBreaker = () => {
+    jobsCircuitBreaker.reset();
+    console.log('✅ Jobs circuit breaker reset');
+  };
+}
+
 export const withRetry = async <T>(
   operation: () => Promise<T>,
   options: Partial<RetryOptions> = {}
