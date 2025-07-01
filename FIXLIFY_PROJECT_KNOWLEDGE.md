@@ -590,3 +590,147 @@ Refactored both EstimatePortal and InvoicePortal to use separate queries:
 - Better error handling and logging
 - More reliable data fetching
 - Same user experience maintained
+
+## 🔧 Fixed Client Portal "Access Denied" Error (2025-07-02)
+
+### Problem
+When clicking on portal links with access tokens, the client portal showed "Access Denied" error with console showing "Portal data loading failed" and 500 error.
+
+### Root Cause
+The ClientPortal component was trying to invoke a `portal-data` edge function that didn't exist in the Supabase edge functions.
+
+### Solution
+Created the missing `portal-data` edge function that:
+1. Validates the access token from client_portal_access table
+2. Fetches client data based on the token
+3. Retrieves all related jobs, estimates, and invoices
+4. Calculates totals and statistics
+5. Returns formatted portal data with proper permissions
+
+### Key Components
+- **Edge Function**: `portal-data` - Handles portal data retrieval
+- **Database Function**: `generate_portal_access` - Creates secure access tokens
+- **Table**: `client_portal_access` - Stores portal access tokens with permissions
+
+### Files Created/Modified
+- Created edge function: `portal-data`
+- No frontend changes needed - the component was already correct
+
+### Result
+- Client portal now loads successfully with valid access tokens
+- Secure token-based access to client data
+- Proper permission handling
+- Full portal functionality restored
+
+
+## 🎯 Client Portal Enhancements (2025-07-02)
+
+### Changes Made
+
+1. **Dynamic Email Generation**
+   - Created `/src/utils/email.ts` utility for email formatting
+   - Updated `ClientPortalFooter` to use dynamic email generation
+   - Email format: `companyname@fixlify.app` (spaces/special chars converted to underscores)
+   - Falls back to `support@fixlify.app` if no company name
+
+2. **Edge Functions Created**
+   - `portal-data` - Validates tokens and returns client portal data
+   - `document-viewer` - Handles document viewing (placeholder for PDF viewer)
+   - `download-document` - Handles document downloads (placeholder for PDF generation)
+
+3. **Portal Button Functionality**
+   - **View Button**: Opens document in new tab at `/{documentType}/{id}`
+   - **Download Button**: Shows "coming soon" message and opens document for printing
+   - **Pay Now Button**: Shows "coming soon" message and opens invoice view
+   - All buttons have loading states and proper error handling
+
+4. **Email Generation Rules**
+   - Company name is converted to lowercase
+   - Spaces, hyphens, ampersands, etc. are replaced with underscores
+   - Non-alphanumeric characters are removed
+   - Multiple underscores are collapsed to single
+   - Limited to 30 characters
+   - Example: "Fixlify Services Inc." → `fixlifyservices@fixlify.app`
+
+### Files Modified
+- `/src/components/portal/ClientPortalFooter.tsx` - Uses dynamic email
+- `/src/components/portal/DocumentList.tsx` - Updated button handlers
+- `/src/utils/email.ts` - Created email utility functions
+- Edge functions: `portal-data`, `document-viewer`, `download-document`
+
+### Future Enhancements Needed
+1. **PDF Generation**: Integrate with a PDF service (Puppeteer, jsPDF, etc.)
+2. **Payment Integration**: Connect with Stripe or similar payment processor
+3. **Document Storage**: Store generated PDFs in Supabase Storage
+4. **Email Templates**: Create better email templates for notifications
+
+
+## 🎨 Client Portal 3D Gradient Redesign (2025-07-02)
+
+### Overview
+Transformed the client portal into a stunning 3D gradient experience with modern glassmorphism effects, animated backgrounds, and premium visual design.
+
+### Design Features
+
+1. **Background & Theme**
+   - Dark gradient background: `from-slate-900 via-purple-900 to-slate-900`
+   - Animated blob effects with purple, pink, and blue gradients
+   - Glass morphism effects with backdrop blur throughout
+
+2. **3D Effects & Animations**
+   - Floating animated blobs in background
+   - 3D card hover effects with transform and shadow
+   - Gradient animations on borders and text
+   - Smooth hover transitions with scale and lift effects
+   - Loading state with concentric animated rings
+
+3. **Color Scheme**
+   - Primary: Purple to Pink gradients
+   - Accent colors: Blue, Green, Orange for different sections
+   - Glass effects: White/10 with backdrop blur
+   - Text: White primary, purple-200/300 for secondary
+
+4. **Component Updates**
+   - **Stats Cards**: 3D gradient backgrounds with hover effects
+   - **Navigation**: Glass sidebar with gradient active states
+   - **Document Cards**: Glass backgrounds with gradient icons
+   - **Buttons**: Gradient backgrounds with shadow effects
+   - **Footer**: 3D contact cards with gradient backgrounds
+
+5. **Interactive Elements**
+   - Hover animations on all interactive elements
+   - Loading spinners integrated into buttons
+   - Collapsible document cards with smooth transitions
+   - Mobile-responsive glass sheet menu
+
+6. **Premium Features Section**
+   - Added premium features showcase in sidebar
+   - Security badges with gradient effects
+   - "Made with love" animation in footer
+
+### Files Modified
+- `/src/pages/ClientPortal.tsx` - Complete redesign with 3D gradients
+- `/src/components/portal/DocumentList.tsx` - Glass cards with gradients
+- `/src/components/portal/ClientPortalFooter.tsx` - 3D contact cards
+- `/src/styles/portal-3d.css` - Custom animations and effects
+- `/src/index.css` - Import portal 3D styles
+
+### CSS Animations Added
+- `blob` - Floating background elements
+- `gradient-shift` - Animated gradient backgrounds
+- `shimmer` - Loading state effects
+- `float` - Floating icon animation
+- `pulse-glow` - Glowing badge effects
+- Custom scrollbar with gradient thumb
+
+### Accessibility Maintained
+- Proper contrast ratios on glass elements
+- Focus states on interactive elements
+- Screen reader friendly markup
+- Responsive design for all devices
+
+### Performance Considerations
+- CSS animations use GPU acceleration
+- Backdrop filters with Safari fallbacks
+- Efficient hover state transitions
+- Optimized for smooth scrolling

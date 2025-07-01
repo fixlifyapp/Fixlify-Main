@@ -15,7 +15,10 @@ import {
   ChevronUp,
   Calendar,
   FileDown,
-  ExternalLink
+  ExternalLink,
+  Sparkles,
+  TrendingUp,
+  Receipt
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -78,26 +81,11 @@ export const DocumentList = ({
     try {
       console.log(`📄 Viewing ${documentType}:`, document);
       
-      const { data, error } = await supabase.functions.invoke('document-viewer', {
-        body: {
-          documentType,
-          documentId: document.id,
-          documentNumber: documentType === 'estimate' ? document.estimate_number : document.invoice_number
-        }
-      });
-
-      if (error) {
-        console.error(`Error viewing ${documentType}:`, error);
-        toast.error(`Failed to view ${documentType}`);
-        return;
-      }
-
-      if (data?.viewUrl) {
-        window.open(data.viewUrl, '_blank');
-        toast.success(`${documentType.charAt(0).toUpperCase() + documentType.slice(1)} opened`);
-      } else {
-        toast.success(`${documentType.charAt(0).toUpperCase() + documentType.slice(1)} viewed`);
-      }
+      // Navigate directly to the document view page
+      const viewUrl = `/${documentType}/${document.id}`;
+      window.open(viewUrl, '_blank');
+      
+      toast.success(`Opening ${documentType}...`);
     } catch (error) {
       console.error(`Error viewing ${documentType}:`, error);
       toast.error(`Failed to view ${documentType}`);
@@ -113,31 +101,14 @@ export const DocumentList = ({
     try {
       console.log(`📥 Downloading ${documentType}:`, document);
       
-      const { data, error } = await supabase.functions.invoke('download-document', {
-        body: {
-          documentType,
-          documentId: document.id,
-          documentNumber: documentType === 'estimate' ? document.estimate_number : document.invoice_number
-        }
-      });
-
-      if (error) {
-        console.error(`Error downloading ${documentType}:`, error);
-        toast.error(`Failed to download ${documentType}`);
-        return;
-      }
-
-      if (data?.downloadUrl) {
-        const link = document.createElement('a');
-        link.href = data.downloadUrl;
-        link.download = `${documentType}-${documentType === 'estimate' ? document.estimate_number : document.invoice_number}.pdf`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        toast.success(`${documentType.charAt(0).toUpperCase() + documentType.slice(1)} downloaded`);
-      } else {
-        toast.error(`Download URL not available`);
-      }
+      // For now, show a message that download is coming soon
+      // In production, this would generate a PDF and download it
+      toast.info("PDF download feature coming soon! For now, you can view and print the document.");
+      
+      // Open the document in a new tab for printing
+      const viewUrl = `/${documentType}/${document.id}`;
+      window.open(viewUrl, '_blank');
+      
     } catch (error) {
       console.error(`Error downloading ${documentType}:`, error);
       toast.error(`Failed to download ${documentType}`);
@@ -147,31 +118,56 @@ export const DocumentList = ({
   };
 
   const handlePayment = async (document: any) => {
-    toast.info("Payment processing coming soon!");
-    // TODO: Implement payment flow
+    const actionKey = `pay-${document.id}`;
+    setLoadingActions(prev => ({ ...prev, [actionKey]: true }));
+    
+    try {
+      console.log(`💳 Processing payment for invoice:`, document);
+      
+      // Show payment options
+      toast.info("Payment processing integration coming soon! Contact us to make a payment.");
+      
+      // Open invoice view for now
+      const viewUrl = `/invoice/${document.id}`;
+      window.open(viewUrl, '_blank');
+      
+    } catch (error) {
+      console.error(`Error processing payment:`, error);
+      toast.error(`Failed to process payment`);
+    } finally {
+      setLoadingActions(prev => ({ ...prev, [actionKey]: false }));
+    }
   };
 
-  const Icon = documentType === 'estimate' ? FileText : DollarSign;
+  const Icon = documentType === 'estimate' ? FileText : Receipt;
   const sortedDocuments = documents?.sort((a, b) => 
     new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
   ) || [];
 
   return (
-    <Card className="border-0 shadow-sm">
-      <CardHeader>
-        <CardTitle className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Icon className="h-5 w-5 text-gray-600" />
-            <span>{title}</span>
-            <Badge variant="secondary" className="ml-2">
+    <Card className="border-0 bg-transparent shadow-none">
+      <CardHeader className="pb-4">
+        <CardTitle className="flex items-center justify-between text-white">
+          <div className="flex items-center gap-3">
+            <div className={cn(
+              "h-10 w-10 rounded-xl flex items-center justify-center shadow-lg",
+              documentType === 'estimate' 
+                ? "bg-gradient-to-br from-blue-500 to-purple-500" 
+                : "bg-gradient-to-br from-green-500 to-emerald-500"
+            )}>
+              <Icon className="h-6 w-6 text-white" />
+            </div>
+            <span className="text-xl">{title}</span>
+            <Badge className="ml-2 bg-white/20 text-white border-0 backdrop-blur-sm">
               {documents?.length || 0}
             </Badge>
           </div>
+          <Sparkles className="h-5 w-5 text-purple-400" />
         </CardTitle>
       </CardHeader>
       <CardContent>
         {sortedDocuments.length > 0 ? (
-          <div className="space-y-3">
+          <div className="space-y-4">
             {sortedDocuments.map((doc: any) => {
               const total = parseFloat(doc.total?.toString() || '0');
               const isExpanded = expandedItems.includes(doc.id);
@@ -184,26 +180,26 @@ export const DocumentList = ({
                 <div
                   key={doc.id}
                   className={cn(
-                    "border rounded-lg transition-all duration-200",
-                    isExpanded ? "shadow-md" : "hover:shadow-sm"
+                    "bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl transition-all duration-300",
+                    isExpanded ? "shadow-2xl bg-white/10" : "hover:bg-white/10 hover:shadow-xl",
+                    "group"
                   )}
                 >
                   <Collapsible open={isExpanded} onOpenChange={() => toggleExpanded(doc.id)}>
                     <CollapsibleTrigger className="w-full">
-                      <div className="p-4 cursor-pointer">
-                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                          <div className="flex items-start sm:items-center gap-3 text-left">
+                      <div className="p-5 cursor-pointer">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                          <div className="flex items-start sm:items-center gap-4 text-left">
                             <div className={cn(
-                              "h-10 w-10 rounded-lg flex items-center justify-center flex-shrink-0",
-                              documentType === 'estimate' ? "bg-blue-100" : "bg-green-100"
+                              "h-12 w-12 rounded-xl flex items-center justify-center flex-shrink-0 shadow-lg transition-all duration-300 group-hover:scale-110",
+                              documentType === 'estimate' 
+                                ? "bg-gradient-to-br from-blue-500 to-purple-500" 
+                                : "bg-gradient-to-br from-green-500 to-emerald-500"
                             )}>
-                              <Icon className={cn(
-                                "h-5 w-5",
-                                documentType === 'estimate' ? "text-blue-600" : "text-green-600"
-                              )} />
+                              <Icon className="h-6 w-6 text-white" />
                             </div>
                             <div className="min-w-0 flex-1">
-                              <h4 className="font-semibold text-gray-900 flex items-center gap-2">
+                              <h4 className="font-semibold text-white flex items-center gap-2 text-lg">
                                 {documentType.charAt(0).toUpperCase() + documentType.slice(1)} #{documentNumber}
                                 {isOverdue && (
                                   <Badge variant="destructive" className="text-xs">
@@ -211,34 +207,34 @@ export const DocumentList = ({
                                   </Badge>
                                 )}
                               </h4>
-                              <div className="flex flex-wrap items-center gap-2 text-sm text-gray-600 mt-1">
+                              <div className="flex flex-wrap items-center gap-2 text-sm text-purple-200 mt-1">
                                 <span className="flex items-center gap-1">
                                   <Calendar className="h-3 w-3" />
                                   {formatDate(doc.created_at)}
                                 </span>
                                 {documentType === 'invoice' && doc.due_date && !isPaid && (
-                                  <span className="flex items-center gap-1 text-orange-600">
+                                  <span className="flex items-center gap-1 text-orange-400">
                                     • Due {formatDate(doc.due_date)}
                                   </span>
                                 )}
                               </div>
                             </div>
                           </div>
-                          <div className="flex items-center justify-between sm:justify-end gap-3 sm:gap-4">
+                          <div className="flex items-center justify-between sm:justify-end gap-4">
                             <div className="text-right">
-                              <p className="text-lg font-bold text-gray-900">
+                              <p className="text-xl font-bold text-white">
                                 {formatCurrency(total)}
                               </p>
-                              <Badge className={cn("text-xs", getStatusColor(doc.status || doc.payment_status))}>
+                              <Badge className={cn("text-xs backdrop-blur-sm", getStatusColor(doc.status || doc.payment_status))}>
                                 {getStatusIcon(doc.status || doc.payment_status)}
                                 <span className="ml-1">{doc.status || doc.payment_status || 'Draft'}</span>
                               </Badge>
                             </div>
                             <div className="flex items-center">
                               {isExpanded ? (
-                                <ChevronUp className="h-5 w-5 text-gray-400" />
+                                <ChevronUp className="h-5 w-5 text-purple-400" />
                               ) : (
-                                <ChevronDown className="h-5 w-5 text-gray-400" />
+                                <ChevronDown className="h-5 w-5 text-purple-400" />
                               )}
                             </div>
                           </div>
@@ -247,10 +243,10 @@ export const DocumentList = ({
                     </CollapsibleTrigger>
                     
                     <CollapsibleContent>
-                      <div className="px-4 pb-4 space-y-4 border-t">
+                      <div className="px-5 pb-5 space-y-4 border-t border-white/10">
                         {doc.description && (
-                          <div className="pt-3">
-                            <p className="text-sm text-gray-600 leading-relaxed">
+                          <div className="pt-4">
+                            <p className="text-sm text-purple-200 leading-relaxed">
                               {doc.description}
                             </p>
                           </div>
@@ -258,19 +254,22 @@ export const DocumentList = ({
                         
                         {/* Line Items Preview */}
                         {doc.line_items && doc.line_items.length > 0 && (
-                          <div className="space-y-2">
-                            <h5 className="text-sm font-medium text-gray-700">Items</h5>
-                            <div className="space-y-1">
+                          <div className="bg-white/5 rounded-lg p-4 space-y-2">
+                            <h5 className="text-sm font-medium text-white flex items-center gap-2">
+                              <TrendingUp className="h-4 w-4 text-purple-400" />
+                              Items
+                            </h5>
+                            <div className="space-y-2">
                               {doc.line_items.slice(0, 3).map((item: any, index: number) => (
                                 <div key={index} className="flex justify-between text-sm">
-                                  <span className="text-gray-600">{item.description || item.name}</span>
-                                  <span className="text-gray-900 font-medium">
+                                  <span className="text-purple-200">{item.description || item.name}</span>
+                                  <span className="text-white font-medium">
                                     {formatCurrency(item.total || item.amount || 0)}
                                   </span>
                                 </div>
                               ))}
                               {doc.line_items.length > 3 && (
-                                <p className="text-sm text-gray-500">
+                                <p className="text-sm text-purple-300">
                                   ... and {doc.line_items.length - 3} more items
                                 </p>
                               )}
@@ -279,13 +278,13 @@ export const DocumentList = ({
                         )}
                         
                         {/* Action Buttons */}
-                        <div className="flex flex-wrap gap-2 pt-2">
+                        <div className="flex flex-wrap gap-3 pt-2">
                           <Button
                             size="sm"
                             variant="outline"
                             onClick={() => handleView(doc)}
                             disabled={loadingActions[`view-${doc.id}`]}
-                            className="flex-1 sm:flex-none"
+                            className="flex-1 sm:flex-none bg-white/10 border-white/20 text-white hover:bg-white/20 backdrop-blur-sm"
                           >
                             {loadingActions[`view-${doc.id}`] ? (
                               <Clock className="h-4 w-4 mr-1 animate-spin" />
@@ -300,7 +299,7 @@ export const DocumentList = ({
                             variant="outline"
                             onClick={() => handleDownload(doc)}
                             disabled={loadingActions[`download-${doc.id}`]}
-                            className="flex-1 sm:flex-none"
+                            className="flex-1 sm:flex-none bg-white/10 border-white/20 text-white hover:bg-white/20 backdrop-blur-sm"
                           >
                             {loadingActions[`download-${doc.id}`] ? (
                               <Clock className="h-4 w-4 mr-1 animate-spin" />
@@ -313,10 +312,15 @@ export const DocumentList = ({
                           {documentType === 'invoice' && permissions.make_payments && !isPaid && (
                             <Button
                               size="sm"
-                              className="flex-1 sm:flex-none bg-green-600 hover:bg-green-700 text-white"
+                              className="flex-1 sm:flex-none bg-gradient-to-r from-green-500 to-emerald-500 text-white hover:from-green-600 hover:to-emerald-600 shadow-lg shadow-green-500/30"
                               onClick={() => handlePayment(doc)}
+                              disabled={loadingActions[`pay-${doc.id}`]}
                             >
-                              <CreditCard className="h-4 w-4 mr-1" />
+                              {loadingActions[`pay-${doc.id}`] ? (
+                                <Clock className="h-4 w-4 mr-1 animate-spin" />
+                              ) : (
+                                <CreditCard className="h-4 w-4 mr-1" />
+                              )}
                               Pay Now
                             </Button>
                           )}
@@ -329,12 +333,12 @@ export const DocumentList = ({
             })}
           </div>
         ) : (
-          <div className="text-center py-12">
-            <div className="h-16 w-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Icon className="h-8 w-8 text-gray-400" />
+          <div className="text-center py-16">
+            <div className="h-20 w-20 bg-gradient-to-br from-purple-500/20 to-pink-500/20 rounded-2xl flex items-center justify-center mx-auto mb-6 backdrop-blur-sm">
+              <Icon className="h-10 w-10 text-purple-400" />
             </div>
-            <p className="text-gray-500 font-medium">No {title.toLowerCase()} yet</p>
-            <p className="text-sm text-gray-400 mt-1">
+            <p className="text-purple-200 font-medium text-lg">No {title.toLowerCase()} yet</p>
+            <p className="text-sm text-purple-300 mt-2">
               {documentType === 'estimate' 
                 ? "Your estimates will appear here when created"
                 : "Your invoices will appear here when created"}
