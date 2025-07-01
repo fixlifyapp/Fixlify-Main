@@ -432,3 +432,46 @@ debugJobsLoading('client-id-here')
 ```
 
 See `FIX_JOBS_CLIENT_TAB.md` for complete documentation.
+
+## 🚨 Jobs Loading Timeout Fix (2025-07-01)
+
+### Critical Issue Fixed
+Jobs tab showing endless loading with timeout errors and circuit breaker activation.
+
+### Root Causes
+1. Heavy query with client joins and tags
+2. Missing database indexes
+3. Circuit breaker triggered by repeated timeouts
+4. No query timeout protection
+
+### Solution Components
+1. **Query Optimization**
+   - Removed heavy joins and array fields
+   - Added 10-second timeout protection
+   - Created optimized RPC function for client jobs
+
+2. **Database Optimizations**
+   - Added composite indexes
+   - Created optimized view
+   - Added timeout-protected function
+
+3. **Circuit Breaker Management**
+   - Added reset functionality
+   - Global reset function available
+   - Auto-reset on manual refresh
+
+### Emergency Fix
+```javascript
+// Run in console if jobs won't load
+localStorage.clear();
+window.resetJobsCircuitBreaker();
+location.reload();
+```
+
+### Files Modified
+- `/src/hooks/useJobsOptimized.ts`
+- `/src/utils/errorHandling.ts`
+- `/migrations/fix_jobs_timeout.sql`
+- `/console_scripts/fix_jobs_timeout.js`
+
+See `FIX_JOBS_TIMEOUT.md` for complete documentation.

@@ -21,7 +21,6 @@ import { useClientData } from "./client-form/hooks/useClientData";
 import { useInvoiceCreation } from "./client-form/hooks/useInvoiceCreation";
 import { useClientStats } from "@/hooks/useClientStats";
 import { ClientJobs } from "./ClientJobs";
-import { JobsErrorBoundary } from "./JobsErrorBoundary";
 
 interface ClientFormProps {
   clientId?: string;
@@ -149,9 +148,7 @@ export const ClientForm = ({ clientId, onCreateJob }: ClientFormProps) => {
           
           {/* Jobs Tab */}
           <TabsContent value="jobs" className="space-y-4 sm:space-y-6">
-            <JobsErrorBoundary>
-              <ClientJobs clientId={clientId} />
-            </JobsErrorBoundary>
+            <ClientJobs clientId={clientId} />
           </TabsContent>
           
           {/* Payments Tab */}

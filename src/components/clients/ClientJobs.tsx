@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo, useEffect } from "react";
+import { useState, useCallback } from "react";
 import { useJobsOptimized } from "@/hooks/useJobsOptimized";
 import { Button } from "@/components/ui/button";
 import { Loader2, Plus, Trash2 } from "lucide-react";
@@ -7,10 +7,8 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { DeleteJobsDialog } from "../jobs/dialogs/DeleteJobsDialog";
 import { BulkActionsBar } from "../jobs/BulkActionsBar";
-import { JobsListOptimized } from "../jobs/JobsListOptimized";
+import { JobsList } from "../jobs/JobsList";
 import { useJobs } from "@/hooks/useJobs";
-import { debugJobsLoading } from "@/utils/jobsDebug";
-import { useOrganizationContext } from "@/hooks/use-organization-context";
 
 interface ClientJobsProps {
   clientId?: string;
@@ -21,11 +19,6 @@ export const ClientJobs = ({ clientId }: ClientJobsProps) => {
   const [selectedJobs, setSelectedJobs] = useState<string[]>([]);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   
-  console.log('🎯 ClientJobs component - clientId:', clientId);
-  
-  // Ensure organization context is set
-  const { organizationId } = useOrganizationContext();
-  
   // Use optimized hook with request deduplication
   const {
     jobs: optimizedJobs,
@@ -33,9 +26,7 @@ export const ClientJobs = ({ clientId }: ClientJobsProps) => {
     refreshJobs: refreshOptimized,
     canCreate,
     canEdit,
-    canDelete,
-    hasError,
-    clearError
+    canDelete
   } = useJobsOptimized({
     clientId,
     page: 1,
@@ -47,15 +38,6 @@ export const ClientJobs = ({ clientId }: ClientJobsProps) => {
   const { addJob, updateJob, deleteJob } = useJobs();
   
   const navigate = useNavigate();
-
-  // Auto-debug if no jobs loaded after initial load
-  useEffect(() => {
-    if (!isOptimizedLoading && optimizedJobs.length === 0 && clientId) {
-      console.log('⚠️ No jobs found for client, running debug...');
-      console.log('📍 Organization context:', { organizationId });
-      debugJobsLoading(clientId);
-    }
-  }, [isOptimizedLoading, optimizedJobs.length, clientId, organizationId]);
 
   // Memoize handlers to prevent unnecessary re-renders
   const handleJobCreated = useCallback(async (jobData: any) => {
@@ -206,29 +188,6 @@ export const ClientJobs = ({ clientId }: ClientJobsProps) => {
     );
   }
 
-  if (hasError) {
-    return (
-      <div className="text-center py-8 bg-red-50 rounded-lg border border-red-200">
-        <p className="text-red-600 mb-4">Failed to load jobs. Please try again.</p>
-        <div className="space-x-2">
-          <Button 
-            variant="outline" 
-            onClick={clearError}
-          >
-            Retry
-          </Button>
-          <Button 
-            variant="ghost" 
-            size="sm"
-            onClick={() => debugJobsLoading(clientId)}
-          >
-            Debug
-          </Button>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
@@ -276,28 +235,14 @@ export const ClientJobs = ({ clientId }: ClientJobsProps) => {
         />
       )}
 
-      {optimizedJobs.length === 0 ? (
-        <div className="text-center py-8 bg-muted/40 rounded-lg border border-border">
-          <p className="text-muted-foreground">No jobs found for this client.</p>
-          <Button 
-            variant="outline" 
-            className="mt-4"
-            onClick={() => setIsCreateJobModalOpen(true)}
-          >
-            <Plus size={16} className="mr-2" />
-            Create First Job
-          </Button>
-        </div>
-      ) : (
-        <JobsListOptimized
-          jobs={optimizedJobs}
-          isGridView={true}
-          selectedJobs={selectedJobs}
-          onSelectJob={handleSelectJob}
-          onSelectAllJobs={handleSelectAllJobs}
-          onRefresh={refreshOptimized}
-        />
-      )}
+      <JobsList
+        jobs={optimizedJobs}
+        isGridView={false}
+        selectedJobs={selectedJobs}
+        onSelectJob={handleSelectJob}
+        onSelectAllJobs={handleSelectAllJobs}
+        onRefresh={refreshOptimized}
+      />
 
       <ScheduleJobModal 
         open={isCreateJobModalOpen} 
