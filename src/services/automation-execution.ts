@@ -463,10 +463,10 @@ export class AutomationExecutionService {
         .replace(/{{job_description}}/g, context.job.description || '')
         .replace(/{{job_type}}/g, context.job.job_type || '')
         .replace(/{{job_service}}/g, context.job.service || '')
-        .replace(/{{scheduled_date}}/g, this.formatDate(context.job.scheduled_date, userTimezone))
-        .replace(/{{scheduled_time}}/g, this.formatTime(context.job.scheduled_date, userTimezone))
-        .replace(/{{appointment_date}}/g, this.formatDate(context.job.scheduled_date, userTimezone))
-        .replace(/{{appointment_time}}/g, this.formatTime(context.job.scheduled_date, userTimezone))
+        .replace(/{{scheduled_date}}/g, this.formatDate(context.job.date, userTimezone))
+        .replace(/{{scheduled_time}}/g, this.formatTime(context.job.date, userTimezone))
+        .replace(/{{appointment_date}}/g, this.formatDate(context.job.date, userTimezone))
+        .replace(/{{appointment_time}}/g, this.formatTime(context.job.date, userTimezone))
         .replace(/{{job_status}}/g, context.job.status || '')
         .replace(/{{job_number}}/g, context.job.id || '')
         .replace(/{{job_address}}/g, context.job.address || '');
@@ -592,7 +592,7 @@ export class AutomationExecutionService {
     // Handle predefined options
     switch (dueDateConfig) {
       case 'scheduled_date':
-        return context.job?.scheduled_date || undefined;
+        return context.job?.date || undefined;
       case 'tomorrow':
         const tomorrow = new Date();
         tomorrow.setDate(tomorrow.getDate() + 1);

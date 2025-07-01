@@ -11,8 +11,8 @@ class CircuitBreaker {
   private state: 'CLOSED' | 'OPEN' | 'HALF_OPEN' = 'CLOSED';
   
   constructor(
-    private failureThreshold = 5,
-    private recoveryTimeout = 30000 // 30 seconds
+    private failureThreshold = 10, // Increased from 5 to 10
+    private recoveryTimeout = 15000 // Reduced from 30s to 15s
   ) {}
 
   async execute<T>(operation: () => Promise<T>): Promise<T> {
@@ -47,10 +47,17 @@ class CircuitBreaker {
       this.state = 'OPEN';
     }
   }
+  
+  // Add reset method for debugging
+  reset() {
+    this.failures = 0;
+    this.lastFailureTime = 0;
+    this.state = 'CLOSED';
+  }
 }
 
 // Global circuit breaker for job operations
-const jobsCircuitBreaker = new CircuitBreaker();
+export const jobsCircuitBreaker = new CircuitBreaker();
 
 export const withRetry = async <T>(
   operation: () => Promise<T>,

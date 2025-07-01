@@ -18,7 +18,7 @@ export class EmailService {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('User not authenticated');
 
-      const { data: result, error } = await supabase.functions.invoke('mailgun-email', {
+      const { data: result, error } = await supabase.functions.invoke('send-email', {
         body: {
           to: data.to,
           subject: data.subject,

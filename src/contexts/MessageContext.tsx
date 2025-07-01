@@ -154,23 +154,13 @@ export const MessageProvider = ({ children }: { children: ReactNode }) => {
 
       console.log('✅ Formatted conversations:', formattedConversations.length, 'total');
       setConversations(formattedConversations);
-
-      // Update active conversation if it exists
-      if (activeConversation) {
-        const updatedActiveConversation = formattedConversations.find(
-          conv => conv.id === activeConversation.id
-        );
-        if (updatedActiveConversation) {
-          setActiveConversation(updatedActiveConversation);
-        }
-      }
     } catch (error) {
       console.error('💥 Error in fetchConversations:', error);
       setConversations([]);
     } finally {
       setIsLoading(false);
     }
-  }, [activeConversation?.id]);
+  }, []); // Removed activeConversation?.id dependency
 
   const refreshConversations = async () => {
     console.log('🔄 Refreshing conversations...');
@@ -232,6 +222,17 @@ export const MessageProvider = ({ children }: { children: ReactNode }) => {
     console.log('🔄 Initial fetch of conversations...');
     fetchConversations();
 
+    // Create a debounced refresh function
+    let refreshTimeout: NodeJS.Timeout | null = null;
+    const debouncedRefresh = () => {
+      if (refreshTimeout) {
+        clearTimeout(refreshTimeout);
+      }
+      refreshTimeout = setTimeout(() => {
+        fetchConversations();
+      }, 500); // Increased delay to prevent too frequent updates
+    };
+
     // Subscribe to conversation changes
     const conversationChannel = supabase
       .channel('conversations-changes-context')
@@ -244,8 +245,7 @@ export const MessageProvider = ({ children }: { children: ReactNode }) => {
         },
         (payload) => {
           console.log('🔔 Conversation change detected in MessageContext:', payload);
-          // Use a debounced refresh to avoid too many updates
-          setTimeout(() => fetchConversations(), 300);
+          debouncedRefresh();
         }
       )
       .subscribe((status) => {
@@ -264,8 +264,7 @@ export const MessageProvider = ({ children }: { children: ReactNode }) => {
         },
         (payload) => {
           console.log('🔔 Message change detected in MessageContext:', payload);
-          // Use a debounced refresh to avoid too many updates
-          setTimeout(() => fetchConversations(), 300);
+          debouncedRefresh();
         }
       )
       .subscribe((status) => {
@@ -274,6 +273,9 @@ export const MessageProvider = ({ children }: { children: ReactNode }) => {
 
     return () => {
       console.log('🔌 Cleaning up realtime subscriptions...');
+      if (refreshTimeout) {
+        clearTimeout(refreshTimeout);
+      }
       supabase.removeChannel(conversationChannel);
       supabase.removeChannel(messageChannel);
     };
@@ -281,15 +283,23 @@ export const MessageProvider = ({ children }: { children: ReactNode }) => {
 
   // Also listen to global realtime provider
   useEffect(() => {
-    const unsubscribe = refreshMessages && (() => {
+    if (refreshMessages) {
       console.log('🔔 Global realtime message update detected');
       fetchConversations();
-    });
-
-    return () => {
-      if (unsubscribe) unsubscribe();
-    };
+    }
   }, [refreshMessages, fetchConversations]);
+
+  // Update active conversation when conversations list changes
+  useEffect(() => {
+    if (activeConversation && conversations.length > 0) {
+      const updatedActiveConversation = conversations.find(
+        conv => conv.id === activeConversation.id
+      );
+      if (updatedActiveConversation) {
+        setActiveConversation(updatedActiveConversation);
+      }
+    }
+  }, [conversations]); // Only depend on conversations, not activeConversation
 
   return (
     <MessageContext.Provider value={{

@@ -248,7 +248,7 @@ async function buildJobContext(job: any, organizationId: string) {
     // Get organization information
     const orgContext = await buildOrganizationContext(organizationId);
 
-    const scheduledDate = job.scheduled_date ? new Date(job.scheduled_date) : null;
+    const scheduledDate = job.date ? new Date(job.date) : null;
 
     return {
       // Job information

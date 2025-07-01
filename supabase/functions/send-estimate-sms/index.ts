@@ -1,13 +1,38 @@
 import { serve } from 'https://deno.land/std@0.190.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.24.0'
+import { corsHeaders } from '../_shared/cors.ts'
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+// Helper function to format phone numbers
+function formatPhoneNumber(phone: string): string {
+  // Remove all non-numeric characters
+  let cleaned = phone.replace(/\D/g, '');
+  
+  // Remove leading 0 if present
+  if (cleaned.startsWith('0')) {
+    cleaned = cleaned.substring(1);
+  }
+  
+  // Handle different number formats
+  if (cleaned.length === 10) {
+    // North American number without country code - add +1
+    return `+1${cleaned}`;
+  } else if (cleaned.length === 11 && cleaned.startsWith('1')) {
+    // North American number with 1 prefix - add +
+    return `+${cleaned}`;
+  } else if (cleaned.length > 10 && !cleaned.startsWith('1')) {
+    // International number - just add +
+    return `+${cleaned}`;
+  } else if (cleaned.startsWith('+')) {
+    // Already has + prefix
+    return cleaned;
+  } else {
+    // Default: assume it needs + prefix
+    return `+${cleaned}`;
+  }
 }
 
 serve(async (req) => {
-  // Handle CORS preflight requests
+  // THIS MUST BE FIRST - Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
   }
@@ -92,9 +117,14 @@ serve(async (req) => {
 
     console.log('🔍 Processing SMS for estimate:', estimateId, 'to phone:', recipientPhone);
 
-    // Validate phone number format
-    const cleanedPhone = recipientPhone.replace(/\D/g, '');
-    if (cleanedPhone.length < 10) {
+    // Format the phone number
+    const formattedPhone = formatPhoneNumber(recipientPhone);
+    console.log('📱 Original phone:', recipientPhone);
+    console.log('📱 Formatted phone:', formattedPhone);
+
+    // Validate the formatted phone number
+    const phoneDigits = formattedPhone.replace(/\D/g, '');
+    if (phoneDigits.length < 10) {
       console.error('❌ Invalid phone number format:', recipientPhone);
       return new Response(
         JSON.stringify({ 
@@ -193,11 +223,11 @@ serve(async (req) => {
 
     console.log('📱 SMS message prepared, length:', smsMessage.length);
 
-    // Use telnyx-sms function for sending
+    // Use telnyx-sms function for sending with formatted phone
     console.log('🔄 Calling telnyx-sms function...');
     const { data: smsData, error: smsError } = await supabaseAdmin.functions.invoke('telnyx-sms', {
       body: {
-        recipientPhone: recipientPhone,
+        recipientPhone: formattedPhone, // Use the formatted phone number
         message: smsMessage,
         client_id: client.id,
         job_id: estimate.job_id,
@@ -242,7 +272,7 @@ serve(async (req) => {
         .insert({
           estimate_id: estimateId,
           communication_type: 'sms',
-          recipient: recipientPhone,
+          recipient: formattedPhone,
           content: smsMessage,
           status: 'sent',
           provider_message_id: smsData?.messageId,
@@ -265,7 +295,8 @@ serve(async (req) => {
         message: 'SMS sent successfully',
         messageId: smsData?.messageId,
         portalLink: portalLink,
-        smsContent: smsMessage
+        smsContent: smsMessage,
+        formattedPhone: formattedPhone
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },

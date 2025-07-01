@@ -1,17 +1,23 @@
 import { useEffect } from 'react';
 import { useAuth } from '@/hooks/use-auth';
+import { useProfile } from '@/hooks/use-profiles';
 
 export const useAutomationTriggers = () => {
   const { user } = useAuth();
+  const { profile } = useProfile();
 
   useEffect(() => {
-    if (!user?.id) return;
+    // TEMPORARILY DISABLED: Still investigating resource exhaustion issues
+    console.warn('Automation triggers temporarily disabled');
+    return;
+    
+    if (!user?.id || !profile?.organization_id) return;
 
     // Delay initialization to avoid blocking page load
     const timer = setTimeout(() => {
       import('@/services/automation-trigger-service').then(({ AutomationTriggerService }) => {
         try {
-          AutomationTriggerService.initialize(user.id);
+          AutomationTriggerService.initialize(user.id, profile.organization_id);
         } catch (error) {
           console.error('Failed to initialize automation triggers:', error);
         }
@@ -33,5 +39,5 @@ export const useAutomationTriggers = () => {
         // Ignore cleanup errors
       });
     };
-  }, [user?.id]);
+  }, [user?.id, profile?.organization_id]);
 };

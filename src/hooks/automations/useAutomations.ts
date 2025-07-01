@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/use-auth';
 import { useUserProfile } from '@/hooks/use-user-profile';
 import { toast } from 'sonner';
+import { organizationContext } from '@/services/organizationContext';
 
 interface AutomationRule {
   id?: string;
@@ -79,17 +80,27 @@ export const useAutomations = () => {
 
   // Load all automations
   const loadAutomations = useCallback(async () => {
-    if (!user?.id || !profile?.organization_id) return;
+    if (!user?.id) return;
 
     setLoading(true);
     setError(null);
 
     try {
-      const { data, error } = await supabase
+      // Initialize organization context if needed
+      if (!organizationContext.getOrganizationId() && !organizationContext.getUserId()) {
+        await organizationContext.initialize(user.id);
+      }
+
+      // Build query with organization context
+      let query = supabase
         .from('automation_workflows')
         .select('*')
-        .eq('organization_id', profile.organization_id)
         .order('created_at', { ascending: false });
+
+      // Apply organization/user filter
+      query = organizationContext.applyToQuery(query);
+
+      const { data, error } = await query;
 
       if (error) throw error;
 
@@ -121,7 +132,7 @@ export const useAutomations = () => {
     } finally {
       setLoading(false);
     }
-  }, [user?.id, profile?.organization_id]);
+  }, [user?.id]);
 
   // Load automation templates
   const loadTemplates = useCallback(async () => {
@@ -140,11 +151,14 @@ export const useAutomations = () => {
 
   // Load automation metrics
   const loadMetrics = useCallback(async () => {
-    if (!user?.id || !profile?.organization_id) return;
+    if (!user?.id) return;
+
+    // Get organization context
+    const orgId = organizationContext.getOrganizationId() || user.id;
 
     try {
       const { data, error } = await supabase
-        .rpc('get_automation_analytics', { org_id: profile.organization_id });
+        .rpc('get_automation_analytics', { org_id: orgId });
 
       if (error) throw error;
 
@@ -167,11 +181,19 @@ export const useAutomations = () => {
 
   // Create or update automation
   const saveAutomation = useCallback(async (automation: AutomationRule) => {
-    if (!user?.id || !profile?.organization_id) return;
+    if (!user?.id) return;
+
+    // Get organization context
+    const orgId = organizationContext.getOrganizationId();
+    const userId = organizationContext.getUserId();
+
+    if (!orgId && !userId) {
+      toast.error('Unable to save automation: no organization context');
+      return;
+    }
 
     try {
-      const automationData = {
-        organization_id: profile.organization_id,
+      const automationData: any = {
         name: automation.name,
         description: automation.description,
         status: automation.status,
@@ -184,6 +206,10 @@ export const useAutomations = () => {
         multi_channel_config: automation.multi_channel_config,
         ai_enhanced: true // Mark as AI enhanced since we have AI features
       };
+
+      // Add both organization_id and user_id for backward compatibility
+      if (orgId) automationData.organization_id = orgId;
+      if (userId) automationData.user_id = userId;
 
       let result;
       if (automation.id) {

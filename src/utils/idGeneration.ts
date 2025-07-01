@@ -25,7 +25,20 @@ export const generateNextId = async (entityType: 'job' | 'estimate' | 'invoice' 
       throw new Error('User not authenticated');
     }
 
-    // First, check if we have a counter for this entity type and user
+    // For estimates and invoices, use the atomic database function
+    if (entityType === 'estimate' || entityType === 'invoice') {
+      const { data, error } = await supabase
+        .rpc('get_next_document_number', { p_entity_type: entityType });
+      
+      if (error) {
+        console.error(`Error generating ${entityType} number:`, error);
+        throw error;
+      }
+      
+      return data;
+    }
+
+    // For jobs and clients, continue using per-user counters
     const { data: counter, error: fetchError } = await supabase
       .from('id_counters')
       .select('*')
@@ -59,13 +72,6 @@ export const generateNextId = async (entityType: 'job' | 'estimate' | 'invoice' 
         .eq('user_id', user.id);
     } else {
       throw new Error('Unexpected error fetching counter');
-    }
-
-    // Return formatted number based on entity type
-    if (entityType === 'estimate') {
-      return nextNumber.toString(); // Just the number (e.g., "101", "102")
-    } else if (entityType === 'invoice') {
-      return `INV-${nextNumber}`; // Invoice with prefix (e.g., "INV-1001")
     }
 
     return `${PREFIXES[entityType]}-${nextNumber}`;

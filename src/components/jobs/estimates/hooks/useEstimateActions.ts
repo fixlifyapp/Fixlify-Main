@@ -80,10 +80,8 @@ export const useEstimateActions = (
       const { data: sendData, error: sendError } = await supabase.functions.invoke('send-estimate', {
         body: {
           estimateId: estimateId,
-          sendMethod: 'email', // Default to email for quick send
           recipientEmail: jobData?.clients?.email,
-          subject: `Estimate ${estimateData.estimate_number}`,
-          message: `Please find your estimate ${estimateData.estimate_number}. Total: $${estimateData.total.toFixed(2)}.`
+          customMessage: `Please find your estimate ${estimateData.estimate_number}. Total: $${estimateData.total.toFixed(2)}.`
         }
       });
 

@@ -36,6 +36,10 @@ export const ClientsCreateModal = ({ open, onOpenChange, onSuccess }: ClientsCre
   
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Prevent multiple submissions
+    if (isSubmitting) return;
+    
     setIsSubmitting(true);
     
     try {

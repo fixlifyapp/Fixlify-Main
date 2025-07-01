@@ -182,13 +182,37 @@ export class AutomationTriggerService {
   // Trigger automations for a specific event
   private async triggerAutomations(triggerType: string, context: any) {
     try {
-      // Get active automations for this trigger
-      const { data: automations, error } = await supabase
+      // Get organization context from the job or use the service context
+      const organizationId = context.job?.organization_id || 
+                           context.organization?.id || 
+                           context.organizationId;
+      
+      const userId = context.job?.user_id || 
+                    context.user?.id || 
+                    context.userId;
+
+      if (!organizationId && !userId) {
+        console.warn('No organization or user context available for automation trigger');
+        return;
+      }
+
+      // Build query for automations
+      let query = supabase
         .from('automation_workflows')
         .select('*')
         .eq('trigger_type', triggerType)
-        .eq('status', 'active')
-        .eq('user_id', context.job?.user_id || context.organization?.user_id);
+        .or('status.eq.active,is_active.eq.true,enabled.eq.true');
+
+      // Apply organization/user filter
+      if (organizationId && userId) {
+        query = query.or(`organization_id.eq.${organizationId},user_id.eq.${userId}`);
+      } else if (organizationId) {
+        query = query.eq('organization_id', organizationId);
+      } else if (userId) {
+        query = query.eq('user_id', userId);
+      }
+
+      const { data: automations, error } = await query;
 
       if (error || !automations) return;
 
@@ -234,8 +258,8 @@ export class AutomationTriggerService {
     const { data: jobs } = await supabase
       .from('jobs')
       .select('*')
-      .gte('scheduled_date', tomorrow.toISOString())
-      .lt('scheduled_date', dayAfter.toISOString())
+      .gte('date', tomorrow.toISOString())
+      .lt('date', dayAfter.toISOString())
       .eq('status', 'scheduled');
 
     if (jobs) {

@@ -1,5 +1,6 @@
 import { supabase } from '@/integrations/supabase/client';
 import AutomationExecutionService from './automation-execution-service';
+import { AutomationExecutionTracker } from './automation/execution-tracker';
 
 export class AutomationTriggerService {
   private static subscriptions: any[] = [];
@@ -8,6 +9,12 @@ export class AutomationTriggerService {
   static async initialize(userId: string, organizationId: string) {
     // Clear existing subscriptions
     this.cleanup();
+
+    // Check if organizationId is valid
+    if (!organizationId || organizationId === 'undefined') {
+      console.warn('Invalid organization ID, skipping automation setup');
+      return;
+    }
 
     // Get all active automations
     const { data: automations } = await supabase
@@ -63,6 +70,21 @@ export class AutomationTriggerService {
         if (conditions.from_status && oldStatus !== conditions.from_status) return;
         if (conditions.to_status && newStatus !== conditions.to_status) return;
 
+        // Skip if job was created by automation to prevent loops
+        if (AutomationExecutionTracker.isCreatedByAutomation(payload.new)) {
+          console.log(`Skipping automation ${automation.id} for job ${payload.new.id} - created by automation`);
+          return;
+        }
+        
+        // Check if we can execute this automation for this entity
+        if (!AutomationExecutionTracker.canExecute(automation.id, payload.new.id, 'job')) {
+          console.log(`Skipping automation ${automation.id} for job ${payload.new.id} - max executions reached`);
+          return;
+        }
+        
+        // Track this execution
+        AutomationExecutionTracker.trackExecution(automation.id, payload.new.id, 'job');
+
         // Execute workflow
         await AutomationExecutionService.executeWorkflow({
           workflowId: automation.id,
@@ -94,6 +116,21 @@ export class AutomationTriggerService {
         table: entityType === 'job' ? 'jobs' : 'clients',
         filter: `user_id=eq.${userId}`
       }, async (payload) => {
+        // Skip if entity was created by automation to prevent loops
+        if (AutomationExecutionTracker.isCreatedByAutomation(payload.new)) {
+          console.log(`Skipping automation ${automation.id} for ${entityType} ${payload.new.id} - created by automation`);
+          return;
+        }
+        
+        // Check if we can execute this automation for this entity
+        if (!AutomationExecutionTracker.canExecute(automation.id, payload.new.id, entityType)) {
+          console.log(`Skipping automation ${automation.id} for ${entityType} ${payload.new.id} - max executions reached`);
+          return;
+        }
+        
+        // Track this execution
+        AutomationExecutionTracker.trackExecution(automation.id, payload.new.id, entityType);
+        
         // Execute workflow
         await AutomationExecutionService.executeWorkflow({
           workflowId: automation.id,
@@ -254,5 +291,10 @@ export class AutomationTriggerService {
       supabase.removeChannel(sub);
     });
     this.subscriptions = [];
+    
+    // Also reset the execution tracker
+    import('./automation/execution-tracker').then(({ AutomationExecutionTracker }) => {
+      AutomationExecutionTracker.reset();
+    });
   }
 }

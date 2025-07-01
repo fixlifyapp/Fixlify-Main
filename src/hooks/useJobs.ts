@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { useUnifiedRealtime } from "@/hooks/useUnifiedRealtime";
@@ -48,6 +48,7 @@ export const useJobs = (clientId?: string, enableCustomFields?: boolean) => {
   const [hasError, setHasError] = useState(false);
   const { user, isAuthenticated } = useAuth();
   const { getJobViewScope, canCreateJobs, canEditJobs, canDeleteJobs } = usePermissions();
+  const isCreatingJobRef = useRef(false);
   
   // Get configuration data for validation and consistency
   const { items: jobTypes } = useJobTypes();
@@ -182,11 +183,20 @@ export const useJobs = (clientId?: string, enableCustomFields?: boolean) => {
     console.log("🔑 User ID:", user?.id);
     console.log("✅ Can create jobs:", canCreateJobs());
     
+    // Prevent concurrent job creation
+    if (isCreatingJobRef.current) {
+      console.warn("⚠️ Job creation already in progress, ignoring duplicate call");
+      return null;
+    }
+    
+    isCreatingJobRef.current = true;
+    
     if (!canCreateJobs()) {
       console.log("❌ Permission denied for job creation");
       import('@/components/ui/sonner').then(({ toast }) => {
         toast.error("You don't have permission to create jobs");
       });
+      isCreatingJobRef.current = false;
       return null;
     }
 
@@ -245,9 +255,11 @@ export const useJobs = (clientId?: string, enableCustomFields?: boolean) => {
       }
 
       console.log('✅ Job created successfully:', data);
+      isCreatingJobRef.current = false;
       return data;
     } catch (error) {
       console.error('Error creating job:', error);
+      isCreatingJobRef.current = false;
       throw error;
     }
   };

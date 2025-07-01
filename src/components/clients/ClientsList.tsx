@@ -51,12 +51,17 @@ const ClientCard = ({ client, onRefresh }: { client: ClientWithStats; onRefresh?
   const [isDeleting, setIsDeleting] = useState(false);
 
   const handleClientClick = () => {
-    navigate(`/clients/${client.id}`);
+    // Ensure client ID is properly encoded for URL
+    const encodedId = encodeURIComponent(client.id);
+    console.log('Navigating to client:', client.id, 'Encoded:', encodedId);
+    navigate(`/clients/${encodedId}`);
   };
 
   const handleEditClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    navigate(`/clients/${client.id}`);
+    // Ensure client ID is properly encoded for URL
+    const encodedId = encodeURIComponent(client.id);
+    navigate(`/clients/${encodedId}`);
   };
 
   const handleDeleteClick = (e: React.MouseEvent) => {
@@ -200,12 +205,17 @@ const ClientRow = ({ client, onRefresh }: { client: ClientWithStats; onRefresh?:
   const [isDeleting, setIsDeleting] = useState(false);
 
   const handleClientClick = () => {
-    navigate(`/clients/${client.id}`);
+    // Ensure client ID is properly encoded for URL
+    const encodedId = encodeURIComponent(client.id);
+    console.log('Navigating to client:', client.id, 'Encoded:', encodedId);
+    navigate(`/clients/${encodedId}`);
   };
 
   const handleEditClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    navigate(`/clients/${client.id}`);
+    // Ensure client ID is properly encoded for URL
+    const encodedId = encodeURIComponent(client.id);
+    navigate(`/clients/${encodedId}`);
   };
 
   const handleDeleteClick = (e: React.MouseEvent) => {

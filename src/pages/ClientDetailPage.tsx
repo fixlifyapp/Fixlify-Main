@@ -9,12 +9,15 @@ import { useJobs } from "@/hooks/useJobs";
 import { toast } from "sonner";
 
 const ClientDetailPage = () => {
-  const { id: clientId } = useParams<{ id: string }>();
+  const { clientId } = useParams<{ clientId: string }>();
   const navigate = useNavigate();
   const [isCreateJobModalOpen, setIsCreateJobModalOpen] = useState(false);
   const { addJob, refreshJobs } = useJobs();
   
-  console.log("🔍 ClientDetailPage - params:", { clientId });
+  // Decode the client ID in case it was URL encoded
+  const decodedClientId = clientId ? decodeURIComponent(clientId) : null;
+  
+  console.log("🔍 ClientDetailPage - params:", { clientId, decodedClientId });
   
   const handleJobCreated = async (jobData: any) => {
     try {
@@ -34,7 +37,7 @@ const ClientDetailPage = () => {
     navigate(`/jobs/${job.id}`);
   };
 
-  if (!clientId) {
+  if (!decodedClientId) {
     console.error("❌ ClientDetailPage - No client ID provided");
     return (
       <PageLayout>
@@ -55,7 +58,7 @@ const ClientDetailPage = () => {
     );
   }
 
-  console.log("✅ ClientDetailPage - Valid client ID, rendering client details for:", clientId);
+  console.log("✅ ClientDetailPage - Valid client ID, rendering client details for:", decodedClientId);
 
   return (
     <PageLayout>
@@ -77,13 +80,13 @@ const ClientDetailPage = () => {
       </div>
       
       <div className="space-y-6 sm:space-y-8">
-        <ClientForm clientId={clientId} onCreateJob={() => setIsCreateJobModalOpen(true)} />
+        <ClientForm clientId={decodedClientId} onCreateJob={() => setIsCreateJobModalOpen(true)} />
       </div>
       
       <ScheduleJobModal 
         open={isCreateJobModalOpen} 
         onOpenChange={setIsCreateJobModalOpen}
-        preselectedClientId={clientId}
+        preselectedClientId={decodedClientId}
         onJobCreated={handleJobCreated}
         onSuccess={handleJobSuccess}
       />

@@ -310,8 +310,8 @@ export class AutomationExecutionService {
       throw new Error('Client email not found');
     }
 
-    // Send email via Mailgun edge function with enhanced parameters
-    const { data, error } = await supabase.functions.invoke('mailgun-email', {
+    // Send email via edge function with enhanced parameters
+    const { data, error } = await supabase.functions.invoke('send-email', {
       body: {
         to: client.email,
         subject: subject,

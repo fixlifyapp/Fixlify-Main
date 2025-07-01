@@ -57,7 +57,7 @@ export function ProtectedRoute({ children, requireAdmin = false }: ProtectedRout
               .insert({
                 id: user.id,
                 email: user.email,
-                role: 'admin',
+                role: 'admin', // Default to admin for new users
                 has_completed_onboarding: false
               })
               .select()

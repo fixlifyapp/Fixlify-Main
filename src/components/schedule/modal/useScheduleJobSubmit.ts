@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { toast } from "sonner";
 import { FormData } from "./useScheduleJobForm";
 
@@ -22,9 +22,18 @@ export const useScheduleJobSubmit = ({
   resetForm,
 }: UseScheduleJobSubmitProps) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const isCreatingRef = useRef(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Prevent double submission
+    if (isCreatingRef.current || isSubmitting) {
+      console.log("⚠️ Job creation already in progress, ignoring duplicate submission");
+      return;
+    }
+    
+    isCreatingRef.current = true;
     
     console.log("🚀 Form submission started with data:", formData);
     console.log("📋 Available clients:", clients.length);
@@ -128,6 +137,7 @@ export const useScheduleJobSubmit = ({
       toast.error(`Failed to create job: ${errorMessage}`);
     } finally {
       setIsSubmitting(false);
+      isCreatingRef.current = false;
     }
   };
 

@@ -4,6 +4,10 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "@/components/ui/sonner";
 import { AuthProvider } from "@/hooks/use-auth";
+import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
+import { AppProviders } from "@/components/ui/AppProviders";
+
+// Pages
 import AuthPage from "@/pages/AuthPage";
 import Dashboard from "@/pages/Dashboard";
 import JobsPageOptimized from "@/pages/JobsPageOptimized";
@@ -13,11 +17,8 @@ import ClientDetailPage from "@/pages/ClientDetailPage";
 import SchedulePage from "@/pages/SchedulePage";
 import FinancePage from "@/pages/FinancePage";
 import ConnectCenterPageOptimized from "@/pages/ConnectCenterPageOptimized";
-import { DebugErrorBoundary } from "@/components/DebugErrorBoundary";
-
 import AiCenterPage from "@/pages/AiCenterPage";
 import AutomationsPage from "@/pages/AutomationsPage";
-import { AdvancedWorkflowAutomation } from "@/components/automations/AdvancedWorkflowAutomation";
 import AnalyticsPage from "@/pages/AnalyticsPage";
 import TeamManagementPage from "@/pages/TeamManagementPage";
 import TasksPage from "@/pages/TasksPage";
@@ -26,287 +27,366 @@ import ProfileCompanyPage from "@/pages/ProfileCompanyPage";
 import ConfigurationPage from "@/pages/ConfigurationPage";
 import ProductsPage from "@/pages/ProductsPage";
 import IntegrationsPage from "@/pages/IntegrationsPage";
-import PhoneNumbersPage from "./pages/PhoneNumbersPage";
-import PhoneManagementPage from "./pages/PhoneManagementPage";
-import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
-import { AppProviders } from "@/components/ui/AppProviders";
-import TestDebug from "@/pages/TestDebug";
-import MessagingDebugPage from "@/pages/MessagingDebugPage";
-import JobCreationTestPage from "@/pages/JobCreationTestPage";
-import ComponentTest from "@/pages/ComponentTest";
-import TestAutomationPage from "@/pages/TestAutomationPage";
-import { useAutomationTriggers } from "@/hooks/use-automation-triggers";
+import PhoneNumbersPage from "@/pages/PhoneNumbersPage";
+import PhoneManagementPage from "@/pages/PhoneManagementPage";
+import EstimatesPage from "@/pages/EstimatesPage";
+import InvoicesPage from "@/pages/InvoicesPage";
+import ReportsPage from "@/pages/ReportsPage";
+import DocumentsPage from "@/pages/DocumentsPage";
+import InventoryPage from "@/pages/InventoryPage";
+import MessagesPage from "@/pages/MessagesPage";
+import AdminRolesPage from "@/pages/AdminRolesPage";
+import TeamMemberProfilePage from "@/pages/TeamMemberProfilePage";
+import AcceptInvitationPage from "@/pages/AcceptInvitationPage";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 1,
+      refetchOnWindowFocus: false,
+      refetchOnReconnect: false,
+      staleTime: 5 * 60 * 1000,
+      cacheTime: 10 * 60 * 1000,
+    },
+  },
+});
 
-import { ErrorBoundary } from "@/components/ErrorBoundary";
-
-// Import test for development
-if (import.meta.env.DEV) {
-  import('./tests/test-automation-creation');
-}
-
-// Initialize automation trigger service in the App component
-
-// Test route for debugging
-const TestPage = () => (
-  <div style={{ padding: '20px', background: 'lightgreen', minHeight: '100vh' }}>
-    <h1>🧪 Test Route Working</h1>
-    <p>This page confirms routing is functional</p>
-    <a href="/dashboard" style={{ color: 'blue' }}>Go to Dashboard</a>
-  </div>
-);
-
-// Simple wrapper for protected routes
+// Wrapper for protected routes with providers
 const ProtectedRouteWithProviders = ({ children }: { children: React.ReactNode }) => {
   return (
     <ProtectedRoute>
       <AppProviders>
-        <AuthenticatedApp>
-          {children}
-        </AuthenticatedApp>
+        {children}
       </AppProviders>
     </ProtectedRoute>
   );
-};
-
-// Setup automation triggers when authenticated
-const AuthenticatedApp = ({ children }: { children: React.ReactNode }) => {
-  useAutomationTriggers();
-  return <>{children}</>;
 };
 
 function App() {
   console.log('🚀 Fixlify App loaded');
   
   return (
-    <ErrorBoundary>
-      <QueryClientProvider client={queryClient}>
-        <TooltipProvider>
-          <Toaster />
-          <BrowserRouter>
-            <Routes>
-              {/* Test route for debugging */}
-              <Route path="/test" element={<TestPage />} />
-              <Route path="/debug" element={<TestDebug />} />
-              <Route path="/component-test" element={<ComponentTest />} />
-              <Route path="/messaging-debug" element={
-                <AuthProvider>
-                  <ProtectedRouteWithProviders>
-                    <MessagingDebugPage />
-                  </ProtectedRouteWithProviders>
-                </AuthProvider>
-              } />
-              
-              {/* Authentication */}
-              <Route path="/auth" element={
-                <AuthProvider>
-                  <AuthPage />
-                </AuthProvider>
-              } />
-              
-              {/* Main app routes */}
-              <Route path="/" element={
-                <AuthProvider>
-                  <Navigate to="/dashboard" replace />
-                </AuthProvider>
-              } />
-              
-              <Route path="/dashboard" element={
-                <AuthProvider>
-                  <ProtectedRouteWithProviders>
-                    <Dashboard />
-                  </ProtectedRouteWithProviders>
-                </AuthProvider>
-              } />
-              
-              <Route path="/jobs" element={
-                <AuthProvider>
-                  <ProtectedRouteWithProviders>
-                    <JobsPageOptimized />
-                  </ProtectedRouteWithProviders>
-                </AuthProvider>
-              } />
-              
-              <Route path="/jobs/:jobId" element={
-                <AuthProvider>
-                  <ProtectedRouteWithProviders>
-                    <JobDetailsPage />
-                  </ProtectedRouteWithProviders>
-                </AuthProvider>
-              } />
-              
-              <Route path="/clients" element={
-                <AuthProvider>
-                  <ProtectedRouteWithProviders>
-                    <ClientsPage />
-                  </ProtectedRouteWithProviders>
-                </AuthProvider>
-              } />
-              
-              <Route path="/clients/:clientId" element={
-                <AuthProvider>
-                  <ProtectedRouteWithProviders>
-                    <ClientDetailPage />
-                  </ProtectedRouteWithProviders>
-                </AuthProvider>
-              } />
-              
-              <Route path="/schedule" element={
-                <AuthProvider>
-                  <ProtectedRouteWithProviders>
-                    <SchedulePage />
-                  </ProtectedRouteWithProviders>
-                </AuthProvider>
-              } />
-              
-              <Route path="/finance" element={
-                <AuthProvider>
-                  <ProtectedRouteWithProviders>
-                    <FinancePage />
-                  </ProtectedRouteWithProviders>
-                </AuthProvider>
-              } />
-              
-              <Route path="/messages" element={
-                <AuthProvider>
-                  <ProtectedRouteWithProviders>
-                    <DebugErrorBoundary componentName="ConnectCenterPageOptimized">
-                      <ConnectCenterPageOptimized />
-                    </DebugErrorBoundary>
-                  </ProtectedRouteWithProviders>
-                </AuthProvider>
-              } />
-              
-              <Route path="/ai-center" element={
-                <AuthProvider>
-                  <ProtectedRouteWithProviders>
-                    <AiCenterPage />
-                  </ProtectedRouteWithProviders>
-                </AuthProvider>
-              } />
-              
-              <Route path="/automations" element={
-                <AuthProvider>
-                  <ProtectedRouteWithProviders>
-                    <AutomationsPage />
-                  </ProtectedRouteWithProviders>
-                </AuthProvider>
-              } />
-              
-              <Route path="/advanced-workflow" element={
-                <AuthProvider>
-                  <ProtectedRouteWithProviders>
-                    <AdvancedWorkflowAutomation />
-                  </ProtectedRouteWithProviders>
-                </AuthProvider>
-              } />
-              
-              <Route path="/analytics" element={
-                <AuthProvider>
-                  <ProtectedRouteWithProviders>
-                    <AnalyticsPage />
-                  </ProtectedRouteWithProviders>
-                </AuthProvider>
-              } />
-              
-              <Route path="/team" element={
-                <AuthProvider>
-                  <ProtectedRouteWithProviders>
-                    <TeamManagementPage />
-                  </ProtectedRouteWithProviders>
-                </AuthProvider>
-              } />
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <Toaster />
+        <BrowserRouter>
+          <Routes>
+            {/* Authentication */}
+            <Route path="/auth" element={
+              <AuthProvider>
+                <AuthPage />
+              </AuthProvider>
+            } />
             
+            {/* Accept Invitation */}
+            <Route path="/accept-invitation/:token" element={
+              <AuthProvider>
+                <AcceptInvitationPage />
+              </AuthProvider>
+            } />
+            
+            {/* Root redirect */}
+            <Route path="/" element={
+              <AuthProvider>
+                <Navigate to="/dashboard" replace />
+              </AuthProvider>
+            } />
+            
+            {/* Dashboard */}
+            <Route path="/dashboard" element={
+              <AuthProvider>
+                <ProtectedRouteWithProviders>
+                  <Dashboard />
+                </ProtectedRouteWithProviders>
+              </AuthProvider>
+            } />
+            
+            {/* Jobs */}
+            <Route path="/jobs" element={
+              <AuthProvider>
+                <ProtectedRouteWithProviders>
+                  <JobsPageOptimized />
+                </ProtectedRouteWithProviders>
+              </AuthProvider>
+            } />
+            
+            <Route path="/jobs/:jobId" element={
+              <AuthProvider>
+                <ProtectedRouteWithProviders>
+                  <JobDetailsPage />
+                </ProtectedRouteWithProviders>
+              </AuthProvider>
+            } />
+            
+            {/* Clients */}
+            <Route path="/clients" element={
+              <AuthProvider>
+                <ProtectedRouteWithProviders>
+                  <ClientsPage />
+                </ProtectedRouteWithProviders>
+              </AuthProvider>
+            } />
+            
+            <Route path="/clients/:clientId" element={
+              <AuthProvider>
+                <ProtectedRouteWithProviders>
+                  <ClientDetailPage />
+                </ProtectedRouteWithProviders>
+              </AuthProvider>
+            } />
+            
+            {/* Schedule */}
+            <Route path="/schedule" element={
+              <AuthProvider>
+                <ProtectedRouteWithProviders>
+                  <SchedulePage />
+                </ProtectedRouteWithProviders>
+              </AuthProvider>
+            } />
+            
+            {/* Finance */}
+            <Route path="/finance" element={
+              <AuthProvider>
+                <ProtectedRouteWithProviders>
+                  <FinancePage />
+                </ProtectedRouteWithProviders>
+              </AuthProvider>
+            } />
+            
+            <Route path="/estimates" element={
+              <AuthProvider>
+                <ProtectedRouteWithProviders>
+                  <EstimatesPage />
+                </ProtectedRouteWithProviders>
+              </AuthProvider>
+            } />
+            
+            <Route path="/invoices" element={
+              <AuthProvider>
+                <ProtectedRouteWithProviders>
+                  <InvoicesPage />
+                </ProtectedRouteWithProviders>
+              </AuthProvider>
+            } />
+            
+            {/* Communication */}
+            <Route path="/communications" element={
+              <AuthProvider>
+                <ProtectedRouteWithProviders>
+                  <ConnectCenterPageOptimized />
+                </ProtectedRouteWithProviders>
+              </AuthProvider>
+            } />
+            
+            <Route path="/messages" element={
+              <AuthProvider>
+                <ProtectedRouteWithProviders>
+                  <MessagesPage />
+                </ProtectedRouteWithProviders>
+              </AuthProvider>
+            } />
+            
+            {/* AI Center */}
+            <Route path="/ai-center" element={
+              <AuthProvider>
+                <ProtectedRouteWithProviders>
+                  <AiCenterPage />
+                </ProtectedRouteWithProviders>
+              </AuthProvider>
+            } />
+            
+            {/* Automations */}
+            <Route path="/automations" element={
+              <AuthProvider>
+                <ProtectedRouteWithProviders>
+                  <AutomationsPage />
+                </ProtectedRouteWithProviders>
+              </AuthProvider>
+            } />
+            
+            {/* Analytics */}
+            <Route path="/analytics" element={
+              <AuthProvider>
+                <ProtectedRouteWithProviders>
+                  <AnalyticsPage />
+                </ProtectedRouteWithProviders>
+              </AuthProvider>
+            } />
+            
+            <Route path="/reports" element={
+              <AuthProvider>
+                <ProtectedRouteWithProviders>
+                  <ReportsPage />
+                </ProtectedRouteWithProviders>
+              </AuthProvider>
+            } />
+            
+            {/* Team */}
+            <Route path="/team" element={
+              <AuthProvider>
+                <ProtectedRouteWithProviders>
+                  <TeamManagementPage />
+                </ProtectedRouteWithProviders>
+              </AuthProvider>
+            } />
+            
+            <Route path="/team/:memberId" element={
+              <AuthProvider>
+                <ProtectedRouteWithProviders>
+                  <TeamMemberProfilePage />
+                </ProtectedRouteWithProviders>
+              </AuthProvider>
+            } />
+            
+            {/* Tasks */}
             <Route path="/tasks" element={
-                <AuthProvider>
-                  <ProtectedRouteWithProviders>
-                    <TasksPage />
-                  </ProtectedRouteWithProviders>
-                </AuthProvider>
-              } />
-              
-              <Route path="/settings" element={
-                <AuthProvider>
-                  <ProtectedRouteWithProviders>
-                    <SettingsPage />
-                  </ProtectedRouteWithProviders>
-                </AuthProvider>
-              } />
-              
-              <Route path="/settings/profile" element={
-                <AuthProvider>
-                  <ProtectedRouteWithProviders>
-                    <DebugErrorBoundary componentName="ProfileCompanyPage">
-                      <ProfileCompanyPage />
-                    </DebugErrorBoundary>
-                  </ProtectedRouteWithProviders>
-                </AuthProvider>
-              } />
-              
-              <Route path="/settings/configuration" element={
-                <AuthProvider>
-                  <ProtectedRouteWithProviders>
-                    <ConfigurationPage />
-                  </ProtectedRouteWithProviders>
-                </AuthProvider>
-              } />
-              
-              
-              <Route path="/settings/products" element={
-                <AuthProvider>
-                  <ProtectedRouteWithProviders>
-                    <ProductsPage />
-                  </ProtectedRouteWithProviders>
-                </AuthProvider>
-              } />
-              
-              <Route path="/settings/integrations" element={
-                <AuthProvider>
-                  <ProtectedRouteWithProviders>
-                    <DebugErrorBoundary componentName="IntegrationsPage">
-                      <IntegrationsPage />
-                    </DebugErrorBoundary>
-                  </ProtectedRouteWithProviders>
-                </AuthProvider>
-              } />
-              
-              <Route path="/settings/phone-numbers" element={
-                <AuthProvider>
-                  <ProtectedRouteWithProviders>
-                    <PhoneNumbersPage />
-                  </ProtectedRouteWithProviders>
-                </AuthProvider>
-              } />
-              
-              <Route path="/phone-management" element={
-                <AuthProvider>
-                  <ProtectedRouteWithProviders>
-                    <PhoneManagementPage />
-                  </ProtectedRouteWithProviders>
-                </AuthProvider>
-              } />
-              
-              <Route path="/job-creation-test" element={
-                <AuthProvider>
-                  <ProtectedRouteWithProviders>
-                    <JobCreationTestPage />
-                  </ProtectedRouteWithProviders>
-                </AuthProvider>
-              } />
-              
-              <Route path="/test-automation" element={
-                <AuthProvider>
-                  <ProtectedRouteWithProviders>
-                    <TestAutomationPage />
-                  </ProtectedRouteWithProviders>
-                </AuthProvider>
-              } />
-            </Routes>
-          </BrowserRouter>
-        </TooltipProvider>
-      </QueryClientProvider>
-    </ErrorBoundary>
+              <AuthProvider>
+                <ProtectedRouteWithProviders>
+                  <TasksPage />
+                </ProtectedRouteWithProviders>
+              </AuthProvider>
+            } />
+            
+            {/* Settings Routes */}
+            <Route path="/settings" element={
+              <AuthProvider>
+                <ProtectedRouteWithProviders>
+                  <SettingsPage />
+                </ProtectedRouteWithProviders>
+              </AuthProvider>
+            } />
+            
+            <Route path="/settings/profile" element={
+              <AuthProvider>
+                <ProtectedRouteWithProviders>
+                  <ProfileCompanyPage />
+                </ProtectedRouteWithProviders>
+              </AuthProvider>
+            } />
+            
+            <Route path="/profile-company" element={
+              <AuthProvider>
+                <ProtectedRouteWithProviders>
+                  <ProfileCompanyPage />
+                </ProtectedRouteWithProviders>
+              </AuthProvider>
+            } />
+            
+            <Route path="/settings/configuration" element={
+              <AuthProvider>
+                <ProtectedRouteWithProviders>
+                  <ConfigurationPage />
+                </ProtectedRouteWithProviders>
+              </AuthProvider>
+            } />
+            
+            <Route path="/configuration" element={
+              <AuthProvider>
+                <ProtectedRouteWithProviders>
+                  <ConfigurationPage />
+                </ProtectedRouteWithProviders>
+              </AuthProvider>
+            } />
+            
+            <Route path="/settings/products" element={
+              <AuthProvider>
+                <ProtectedRouteWithProviders>
+                  <ProductsPage />
+                </ProtectedRouteWithProviders>
+              </AuthProvider>
+            } />
+            
+            <Route path="/products" element={
+              <AuthProvider>
+                <ProtectedRouteWithProviders>
+                  <ProductsPage />
+                </ProtectedRouteWithProviders>
+              </AuthProvider>
+            } />
+            
+            <Route path="/settings/integrations" element={
+              <AuthProvider>
+                <ProtectedRouteWithProviders>
+                  <IntegrationsPage />
+                </ProtectedRouteWithProviders>
+              </AuthProvider>
+            } />
+            
+            <Route path="/integrations" element={
+              <AuthProvider>
+                <ProtectedRouteWithProviders>
+                  <IntegrationsPage />
+                </ProtectedRouteWithProviders>
+              </AuthProvider>
+            } />
+            
+            <Route path="/settings/phone-numbers" element={
+              <AuthProvider>
+                <ProtectedRouteWithProviders>
+                  <PhoneNumbersPage />
+                </ProtectedRouteWithProviders>
+              </AuthProvider>
+            } />
+            
+            <Route path="/phone-numbers" element={
+              <AuthProvider>
+                <ProtectedRouteWithProviders>
+                  <PhoneNumbersPage />
+                </ProtectedRouteWithProviders>
+              </AuthProvider>
+            } />
+            
+            <Route path="/phone-management" element={
+              <AuthProvider>
+                <ProtectedRouteWithProviders>
+                  <PhoneManagementPage />
+                </ProtectedRouteWithProviders>
+              </AuthProvider>
+            } />
+            
+            <Route path="/settings/admin-roles" element={
+              <AuthProvider>
+                <ProtectedRouteWithProviders>
+                  <AdminRolesPage />
+                </ProtectedRouteWithProviders>
+              </AuthProvider>
+            } />
+            
+            <Route path="/admin-roles" element={
+              <AuthProvider>
+                <ProtectedRouteWithProviders>
+                  <AdminRolesPage />
+                </ProtectedRouteWithProviders>
+              </AuthProvider>
+            } />
+            
+            <Route path="/documents" element={
+              <AuthProvider>
+                <ProtectedRouteWithProviders>
+                  <DocumentsPage />
+                </ProtectedRouteWithProviders>
+              </AuthProvider>
+            } />
+            
+            <Route path="/inventory" element={
+              <AuthProvider>
+                <ProtectedRouteWithProviders>
+                  <InventoryPage />
+                </ProtectedRouteWithProviders>
+              </AuthProvider>
+            } />
+            
+            {/* 404 */}
+            <Route path="*" element={
+              <div style={{ padding: '20px' }}>
+                <h1>404 - Page not found</h1>
+                <a href="/dashboard">Go to Dashboard</a>
+              </div>
+            } />
+          </Routes>
+        </BrowserRouter>
+      </TooltipProvider>
+    </QueryClientProvider>
   );
 }
 

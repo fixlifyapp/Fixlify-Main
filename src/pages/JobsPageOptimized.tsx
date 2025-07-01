@@ -53,7 +53,7 @@ const JobsPageOptimized = () => {
   } = useJobsConsolidated({
     page: currentPage,
     pageSize: 50,
-    enableRealtime: true,
+    enableRealtime: false,  // Temporarily disabled to prevent resource exhaustion
     filters
   });
 

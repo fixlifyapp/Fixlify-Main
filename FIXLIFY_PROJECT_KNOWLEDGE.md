@@ -237,3 +237,151 @@ VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFz
 ---
 
 This knowledge base should be used in conjunction with the actual codebase. Always verify current implementations as the project evolves.
+
+
+## 📧 Email & SMS Configuration (Updated 2025-06-30)
+
+### Edge Functions Deployed
+- **telnyx-sms**: Core SMS sending functionality via Telnyx API
+- **mailgun-email**: Core email sending functionality via Mailgun API  
+- **send-estimate**: Send estimate emails with portal links
+- **send-estimate-sms**: Send estimate SMS with portal links
+- **send-invoice**: Send invoice emails with portal links
+- **send-invoice-sms**: Send invoice SMS with portal links
+
+### Required Environment Variables
+- `TELNYX_API_KEY`: Your Telnyx API key for SMS
+- `MAILGUN_API_KEY`: Your Mailgun API key for emails
+- `TELNYX_CONNECTION_ID`: Optional Telnyx connection ID
+
+### Phone Number Configuration
+- Phone numbers stored in `telnyx_phone_numbers` table
+- Must have `status = 'active'` and `user_id` assigned
+- System automatically selects user's phone number for sending
+
+### Communication Logging
+- Emails logged in `estimate_communications` and `invoice_communications` tables
+- SMS messages logged with portal link tracking
+- All communications include client info and timestamps
+
+### Portal Link Generation
+- Uses `generate_portal_access` RPC function
+- Creates secure, time-limited access tokens (72 hours default)
+- Links format: `https://hub.fixlify.app/portal/{token}`
+
+### Testing
+See `email_sms_test_instructions.md` for detailed testing procedures.
+
+
+## 🐛 Recent Fixes (2025-07-01)
+
+### 1. Fixed "scheduled_date" column error
+- **Issue**: Jobs table queries were looking for non-existent `scheduled_date` column
+- **Solution**: Updated all references from `scheduled_date` to `date` (the actual column name) in:
+  - `/src/utils/automationTriggers.ts`
+  - `/src/services/automation-execution.ts`
+  - `/src/services/automation-execution-backup.ts`
+  - `/src/hooks/automations/useAutomationExecution.ts`
+
+### 2. Fixed duplicate client creation issue
+- **Issue**: Client form was submitting multiple times when clicked
+- **Solution**: Added submission guard in `ClientsCreateModal.tsx` to prevent multiple submissions
+
+### 3. Fixed "organization_id=undefined" error
+- **Issue**: Automation workflows were being queried with undefined organization_id
+- **Solution**: 
+  - Updated `useAutomationTriggers` hook to use profile's organization_id
+  - Added validation in `automation-trigger-service.ts` to check for valid organization_id
+  - Fixed initialization to pass both userId and organizationId
+
+### 4. Fixed "ERR_INSUFFICIENT_RESOURCES" during job creation
+- **Issue**: Automation triggers were causing infinite loops when creating jobs
+- **Solution**: Implemented comprehensive safeguards:
+  - Created `AutomationExecutionTracker` to limit executions per entity
+  - Added detection for entities created by automation
+  - Implemented configurable limits and debug mode
+  - Enhanced trigger service with proper checks
+  - See `AUTOMATION_SAFEGUARDS.md` for detailed documentation
+
+### 5. Fixed estimate/invoice numbering system
+- **Issue**: Duplicate key violations when creating estimates due to per-user counters conflicting with global unique constraints
+- **Solution**: 
+  - Migrated to global counters for estimates and invoices (user_id = NULL in id_counters table)
+  - Created atomic `get_next_document_number` database function to prevent race conditions
+  - Updated `generateNextId` to use the atomic function for estimates/invoices
+  - Added proper error handling for duplicate key violations with user-friendly messages
+  - Added database indexes for better performance
+  - Ensured proper RLS policies for id_counters table
+
+### 6. Fixed "Maximum update depth exceeded" error
+- **Issue**: Infinite render loop when loading any job page caused by circular dependencies in MessageContext
+- **Solution**:
+  - Removed `activeConversation?.id` from `fetchConversations` useCallback dependencies
+  - Added separate useEffect to handle active conversation updates
+  - Fixed debouncing for realtime subscriptions (increased delay to 500ms)
+  - Fixed syntax error in GlobalRealtimeProvider (missing arrow function for refreshMessages)
+  - Simplified global realtime listener useEffect in MessageContext
+- **Key Changes**:
+  - MessageContext: Removed circular dependency between fetchConversations and activeConversation
+  - GlobalRealtimeProvider: Fixed missing colon in refreshMessages function definition
+  - Improved debouncing to prevent rapid state updates from realtime subscriptions
+
+### 7. Fixed SMS/Email sending edge function errors
+- **Issue**: System was trying to invoke non-existent edge functions causing send failures
+- **Solution**:
+  - Updated all references from `send-estimate-fixed` to `send-estimate` in useEstimateActions.ts
+  - Changed all `mailgun-email` references to `send-email` in frontend code
+  - Deployed `mailgun-email` edge function for backward compatibility
+  - Updated `telnyx-sms` edge function with better phone number handling
+  - Updated `automation-executor` to use correct edge function names
+- **Key Files Updated**:
+  - `/src/components/jobs/estimates/hooks/useEstimateActions.ts`
+  - `/src/services/email-service.ts`
+  - `/src/services/automation-execution-service.ts`
+  - `/src/pages/TestAutomationPage.tsx`
+
+### Development Server
+- Running on port 8082/8083 (ports 8080 and 8081 were in use)
+- Access at: http://localhost:8083/
+
+
+## 🏢 Organization Context Management (2025-06-30)
+
+### Problem Solved
+Fixed inconsistent usage of `user_id` vs `organization_id` across the application, especially in automation workflows.
+
+### Solution Components
+1. **OrganizationContext Service** (`/src/services/organizationContext.ts`)
+   - Centralized management of organization context
+   - Automatic fallback for backward compatibility
+   - Helper methods for Supabase queries
+
+2. **useOrganizationContext Hook** (`/src/hooks/use-organization-context.ts`)
+   - React hook for components
+   - Auto-initialization on user login
+   - Reactive to profile changes
+
+3. **Database Migration**
+   - Updated existing records to have both IDs
+   - Added performance indexes
+   - Maintains backward compatibility
+
+### Usage
+```typescript
+// In components
+const { applyToQuery } = useOrganizationContext();
+let query = supabase.from('table').select('*');
+query = applyToQuery(query); // Adds proper filters
+
+// In services
+import { organizationContext } from '@/services/organizationContext';
+await organizationContext.initialize(userId);
+```
+
+### Key Benefits
+- Consistent data access patterns
+- Backward compatibility with existing data
+- Easy migration path to organization-based architecture
+- Better performance with proper indexes
+
+See `ORGANIZATION_CONTEXT_SOLUTION.md` for detailed documentation.

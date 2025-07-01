@@ -483,7 +483,7 @@ export const useAutomationExecution = () => {
       
       // Handle scheduled_date and scheduled_time with timezone
       if (trimmedKey === 'scheduled_date' || trimmedKey === 'appointment_date') {
-        const scheduledDate = variables.job?.scheduled_date || variables.scheduled_date;
+        const scheduledDate = variables.job?.date || variables.scheduled_date;
         if (scheduledDate) {
           const date = new Date(scheduledDate);
           const zonedDate = toZonedTime(date, userTimezone || 'America/New_York');
@@ -492,7 +492,7 @@ export const useAutomationExecution = () => {
       }
       
       if (trimmedKey === 'scheduled_time' || trimmedKey === 'appointment_time') {
-        const scheduledDate = variables.job?.scheduled_date || variables.scheduled_date;
+        const scheduledDate = variables.job?.date || variables.scheduled_date;
         if (scheduledDate) {
           const date = new Date(scheduledDate);
           const zonedDate = toZonedTime(date, userTimezone || 'America/New_York');

@@ -140,7 +140,7 @@ const TestAutomationPage = () => {
 
     setLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke('mailgun-email', {
+      const { data, error } = await supabase.functions.invoke('send-email', {
         body: {
           to: recipientEmail,
           subject: emailSubject,

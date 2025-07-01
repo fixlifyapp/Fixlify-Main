@@ -75,11 +75,22 @@ export const useDocumentOperations = ({
       const tableName = documentType === 'estimate' ? 'estimates' : 'invoices';
       console.log('📋 Using table:', tableName);
       
-      // Generate document number if not exists
-      const documentNumber = formData.documentNumber || 
-        `${documentType === 'estimate' ? 'EST' : 'INV'}-${Date.now()}`;
+      // Generate document number if not exists or if it's a new document
+      let documentNumber = formData.documentNumber;
       
-      console.log('📄 Document number:', documentNumber);
+      if (!formData.documentId && !documentNumber) {
+        // For new documents, always generate a proper ID using the ID generation system
+        console.log('🔢 Generating new document number...');
+        const { generateNextId } = await import('@/utils/idGeneration');
+        documentNumber = await generateNextId(documentType);
+        console.log('📄 Generated document number:', documentNumber);
+      } else if (!documentNumber) {
+        // Fallback for existing documents without a number
+        documentNumber = `${documentType === 'estimate' ? 'EST' : 'INV'}-${Date.now()}`;
+        console.log('📄 Using fallback document number:', documentNumber);
+      }
+      
+      console.log('📄 Final document number:', documentNumber);
       
       // Validate job ID is string and not empty
       if (!jobId || typeof jobId !== 'string') {
@@ -354,6 +365,13 @@ export const useDocumentOperations = ({
         toast.error(`Invalid job ID format. Please refresh the page and try again.`);
       } else if (error.message.includes('Job ID') && error.message.includes('not found')) {
         toast.error(error.message);
+      } else if (error.message.includes('duplicate key value') || error.code === '23505') {
+        // Handle duplicate estimate/invoice number error
+        toast.error(`This ${documentType} number already exists. Please try again, a new number will be generated.`);
+        // Clear the document number to force regeneration on next attempt
+        if (formData.documentNumber) {
+          formData.documentNumber = '';
+        }
       } else {
         toast.error(`Failed to save ${documentType}: ${error.message}`);
       }

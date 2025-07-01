@@ -2,7 +2,7 @@ import React, { Component, ErrorInfo, ReactNode } from 'react';
 
 interface Props {
   children: ReactNode;
-  componentName: string;
+  componentName?: string;
 }
 
 interface State {
@@ -32,7 +32,7 @@ export class DebugErrorBoundary extends Component<Props, State> {
       return (
         <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
           <h3 className="text-red-800 font-semibold mb-2">
-            Error in {this.props.componentName}
+            Error in {this.props.componentName || 'Component'}
           </h3>
           <p className="text-red-600 mb-2">
             {this.state.error?.message}

@@ -5,6 +5,7 @@ import { usePermissions } from "@/hooks/usePermissions";
 import { Job } from "@/hooks/useJobs";
 import { localStorageCache } from "@/utils/cacheConfig";
 import { withRetry, handleJobsError } from "@/utils/errorHandling";
+import { RefreshThrottler } from "@/utils/refreshThrottler";
 
 interface UseJobsOptimizedOptions {
   page?: number;
@@ -44,6 +45,12 @@ export const useJobsOptimized = (options: UseJobsOptimizedOptions = {}) => {
   );
 
   const fetchJobs = useCallback(async (useCache = true) => {
+    // EMERGENCY: Prevent fetch if already loading
+    if (isLoading) {
+      console.warn('⚠️ Fetch already in progress, skipping...');
+      return;
+    }
+    
     if (!user?.id) {
       console.log('❌ No user ID in useJobsOptimized:', { userId: user?.id });
       setIsLoading(false);
@@ -177,6 +184,10 @@ export const useJobsOptimized = (options: UseJobsOptimizedOptions = {}) => {
 
   // Real-time updates with error handling
   useEffect(() => {
+    // TEMPORARILY DISABLED to prevent resource exhaustion
+    console.log('Real-time updates disabled for jobs');
+    return;
+    
     if (!enableRealtime || hasError || !user?.id) return;
 
     let debounceTimer: NodeJS.Timeout;
@@ -231,10 +242,12 @@ export const useJobsOptimized = (options: UseJobsOptimizedOptions = {}) => {
   const hasPreviousPage = useMemo(() => page > 1, [page]);
 
   const refreshJobs = useCallback(() => {
-    setHasError(false);
-    localStorageCache.remove(cacheKey);
-    requestCache.delete(cacheKey);
-    fetchJobs(false);
+    RefreshThrottler.throttledRefresh(() => {
+      setHasError(false);
+      localStorageCache.remove(cacheKey);
+      requestCache.delete(cacheKey);
+      fetchJobs(false);
+    });
   }, [fetchJobs, cacheKey]);
 
   const clearError = useCallback(() => {
