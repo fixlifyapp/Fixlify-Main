@@ -7,6 +7,20 @@ import { Badge } from "@/components/ui/badge";
 import { Loader2, Download, CreditCard, FileText } from "lucide-react";
 import { format } from "date-fns";
 
+interface Client {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  address: string;
+}
+
+interface Job {
+  id: string;
+  title: string;
+  client_id: string;
+}
+
 interface Invoice {
   id: string;
   invoice_number: string;
@@ -15,22 +29,19 @@ interface Invoice {
   due_date: string;
   created_at: string;
   items: any[];
-  jobs?: {
-    id: string;
-    title: string;
-    clients?: {
-      id: string;
-      name: string;
-      email: string;
-      phone: string;
-      address: string;
-    };
-  };
+  job_id: string;
+  amount_paid: number;
+  balance_due: number;
+}
+
+interface InvoiceWithRelations extends Invoice {
+  job?: Job;
+  client?: Client;
 }
 
 export default function InvoicePortal() {
   const { invoiceId } = useParams();
-  const [invoice, setInvoice] = useState<Invoice | null>(null);
+  const [invoice, setInvoice] = useState<InvoiceWithRelations | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -40,22 +51,59 @@ export default function InvoicePortal() {
 
   const loadInvoice = async () => {
     try {
-      const { data, error: invoiceError } = await supabase
+      // First, fetch the invoice
+      const { data: invoiceData, error: invoiceError } = await supabase
         .from("invoices")
-        .select(`
-          *,
-          jobs(
-            id,
-            title,
-            clients(*)
-          )
-        `)
+        .select("*")
         .eq("id", invoiceId)
-        .single();
+        .maybeSingle();
 
-      if (invoiceError) throw invoiceError;
+      if (invoiceError) {
+        console.error("Error loading invoice:", invoiceError);
+        throw invoiceError;
+      }
+
+      if (!invoiceData) {
+        throw new Error("Invoice not found");
+      }
+
+      // Then fetch the job if we have a job_id
+      let jobData = null;
+      let clientData = null;
+
+      if (invoiceData.job_id) {
+        const { data: job, error: jobError } = await supabase
+          .from("jobs")
+          .select("*")
+          .eq("id", invoiceData.job_id)
+          .maybeSingle();
+
+        if (!jobError && job) {
+          jobData = job;
+
+          // Fetch the client if we have a client_id
+          if (job.client_id) {
+            const { data: client, error: clientError } = await supabase
+              .from("clients")
+              .select("*")
+              .eq("id", job.client_id)
+              .maybeSingle();
+
+            if (!clientError && client) {
+              clientData = client;
+            }
+          }
+        }
+      }
+
+      // Combine the data
+      const combinedData: InvoiceWithRelations = {
+        ...invoiceData,
+        job: jobData,
+        client: clientData
+      };
       
-      setInvoice(data);
+      setInvoice(combinedData);
     } catch (err: any) {
       console.error("Error loading invoice:", err);
       setError(err.message || "Failed to load invoice");
@@ -64,7 +112,7 @@ export default function InvoicePortal() {
     }
   };
 
-  const handlePayment = () => {
+  const handlePayInvoice = () => {
     // TODO: Implement payment processing
     alert("Payment processing coming soon!");
   };
@@ -96,7 +144,8 @@ export default function InvoicePortal() {
     );
   }
 
-  const client = invoice.jobs?.clients;
+  const client = invoice.client;
+  const balanceDue = invoice.balance_due || invoice.total || 0;
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">
@@ -104,12 +153,12 @@ export default function InvoicePortal() {
         {/* Header */}
         <div className="mb-8 text-center">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Invoice</h1>
-          <p className="text-gray-600">Thank you for your business!</p>
+          <p className="text-gray-600">Review and pay your invoice</p>
         </div>
 
         {/* Invoice Card */}
         <Card className="shadow-lg">
-          <CardHeader className="bg-gradient-to-r from-primary to-primary-dark text-white">
+          <CardHeader className="bg-gradient-to-r from-green-600 to-green-700 text-white">
             <div className="flex justify-between items-start">
               <div>
                 <CardTitle className="text-2xl">
@@ -123,10 +172,14 @@ export default function InvoicePortal() {
                 className={
                   invoice.status === "paid" 
                     ? "bg-green-100 text-green-800" 
+                    : invoice.status === "overdue"
+                    ? "bg-red-100 text-red-800"
+                    : invoice.status === "partially_paid"
+                    ? "bg-blue-100 text-blue-800"
                     : "bg-yellow-100 text-yellow-800"
                 }
               >
-                {invoice.status}
+                {invoice.status?.replace("_", " ").toUpperCase()}
               </Badge>
             </div>
           </CardHeader>
@@ -192,11 +245,29 @@ export default function InvoicePortal() {
                     </tr>
                   ))}
                 </tbody>
-                <tfoot className="bg-gray-50">
-                  <tr>
-                    <td className="px-4 py-3 font-semibold">Total</td>
-                    <td className="px-4 py-3 text-right font-semibold text-lg">
+                <tfoot>
+                  <tr className="border-t bg-gray-50">
+                    <td className="px-4 py-3 font-medium">Subtotal</td>
+                    <td className="px-4 py-3 text-right">
                       ${(invoice.total || 0).toFixed(2)}
+                    </td>
+                  </tr>
+                  {invoice.amount_paid > 0 && (
+                    <tr className="bg-gray-50">
+                      <td className="px-4 py-3 font-medium text-green-600">
+                        Amount Paid
+                      </td>
+                      <td className="px-4 py-3 text-right text-green-600">
+                        -${invoice.amount_paid.toFixed(2)}
+                      </td>
+                    </tr>
+                  )}
+                  <tr className="border-t bg-gray-100">
+                    <td className="px-4 py-3 font-semibold text-lg">
+                      Balance Due
+                    </td>
+                    <td className="px-4 py-3 text-right font-semibold text-lg">
+                      ${balanceDue.toFixed(2)}
                     </td>
                   </tr>
                 </tfoot>
@@ -205,9 +276,9 @@ export default function InvoicePortal() {
 
             {/* Actions */}
             <div className="flex gap-4">
-              {invoice.status !== "paid" && (
+              {invoice.status !== "paid" && balanceDue > 0 && (
                 <Button 
-                  onClick={handlePayment}
+                  onClick={handlePayInvoice}
                   className="flex-1"
                   size="lg"
                 >
@@ -225,6 +296,22 @@ export default function InvoicePortal() {
                 Download PDF
               </Button>
             </div>
+
+            {invoice.status === "paid" && (
+              <div className="mt-4 p-4 bg-green-50 rounded-lg text-center">
+                <p className="text-green-800 font-medium">
+                  ✓ This invoice has been paid in full
+                </p>
+              </div>
+            )}
+
+            {invoice.status === "overdue" && (
+              <div className="mt-4 p-4 bg-red-50 rounded-lg text-center">
+                <p className="text-red-800 font-medium">
+                  ⚠️ This invoice is overdue. Please pay as soon as possible.
+                </p>
+              </div>
+            )}
           </CardContent>
         </Card>
 

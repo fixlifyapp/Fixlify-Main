@@ -547,3 +547,46 @@ Use the existing JobsList component from Jobs page instead of creating new optim
 - Consistent UI across the app
 
 See `SIMPLE_FIX_CLIENT_JOBS.md` for details.
+
+## 🔧 Fixed Client Portal "JSON object requested" Error (2025-07-01)
+
+### Problem
+When clicking on estimate/invoice links from emails, the client portal showed error: "JSON object requested, multiple (or no) rows returned"
+
+### Root Cause
+The Supabase query using nested selects with `.single()` was failing:
+```javascript
+// This was causing the error:
+.select(`
+  *,
+  jobs(
+    id,
+    title,
+    clients(*)
+  )
+`)
+.single();
+```
+
+### Solution
+Refactored both EstimatePortal and InvoicePortal to use separate queries:
+1. First fetch the estimate/invoice using `.maybeSingle()`
+2. Then fetch the job data if job_id exists
+3. Finally fetch the client data if client_id exists
+4. Combine all data into a single object
+
+### Key Changes
+- Changed from nested queries to sequential queries
+- Used `.maybeSingle()` instead of `.single()` for safer error handling
+- Added proper error handling for each step
+- Maintained the same UI and functionality
+
+### Files Modified
+- `/src/pages/EstimatePortal.tsx`
+- `/src/pages/InvoicePortal.tsx`
+
+### Result
+- Client portal now loads without errors
+- Better error handling and logging
+- More reliable data fetching
+- Same user experience maintained

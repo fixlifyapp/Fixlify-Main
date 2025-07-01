@@ -7,6 +7,20 @@ import { Badge } from "@/components/ui/badge";
 import { Loader2, Download, CheckCircle, FileText } from "lucide-react";
 import { format } from "date-fns";
 
+interface Client {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  address: string;
+}
+
+interface Job {
+  id: string;
+  title: string;
+  client_id: string;
+}
+
 interface Estimate {
   id: string;
   estimate_number: string;
@@ -15,22 +29,17 @@ interface Estimate {
   valid_until: string;
   created_at: string;
   items: any[];
-  jobs?: {
-    id: string;
-    title: string;
-    clients?: {
-      id: string;
-      name: string;
-      email: string;
-      phone: string;
-      address: string;
-    };
-  };
+  job_id: string;
+}
+
+interface EstimateWithRelations extends Estimate {
+  job?: Job;
+  client?: Client;
 }
 
 export default function EstimatePortal() {
   const { estimateId } = useParams();
-  const [estimate, setEstimate] = useState<Estimate | null>(null);
+  const [estimate, setEstimate] = useState<EstimateWithRelations | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -40,22 +49,59 @@ export default function EstimatePortal() {
 
   const loadEstimate = async () => {
     try {
-      const { data, error: estimateError } = await supabase
+      // First, fetch the estimate
+      const { data: estimateData, error: estimateError } = await supabase
         .from("estimates")
-        .select(`
-          *,
-          jobs(
-            id,
-            title,
-            clients(*)
-          )
-        `)
+        .select("*")
         .eq("id", estimateId)
-        .single();
+        .maybeSingle();
 
-      if (estimateError) throw estimateError;
+      if (estimateError) {
+        console.error("Error loading estimate:", estimateError);
+        throw estimateError;
+      }
+
+      if (!estimateData) {
+        throw new Error("Estimate not found");
+      }
+
+      // Then fetch the job if we have a job_id
+      let jobData = null;
+      let clientData = null;
+
+      if (estimateData.job_id) {
+        const { data: job, error: jobError } = await supabase
+          .from("jobs")
+          .select("*")
+          .eq("id", estimateData.job_id)
+          .maybeSingle();
+
+        if (!jobError && job) {
+          jobData = job;
+
+          // Fetch the client if we have a client_id
+          if (job.client_id) {
+            const { data: client, error: clientError } = await supabase
+              .from("clients")
+              .select("*")
+              .eq("id", job.client_id)
+              .maybeSingle();
+
+            if (!clientError && client) {
+              clientData = client;
+            }
+          }
+        }
+      }
+
+      // Combine the data
+      const combinedData: EstimateWithRelations = {
+        ...estimateData,
+        job: jobData,
+        client: clientData
+      };
       
-      setEstimate(data);
+      setEstimate(combinedData);
     } catch (err: any) {
       console.error("Error loading estimate:", err);
       setError(err.message || "Failed to load estimate");
@@ -108,7 +154,7 @@ export default function EstimatePortal() {
     );
   }
 
-  const client = estimate.jobs?.clients;
+  const client = estimate.client;
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">
