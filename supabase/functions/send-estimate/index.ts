@@ -265,11 +265,10 @@ serve(async (req) => {
         p_hours_valid: 72
       });
 
-    // Use the portal token for the full client portal experience
-    const baseUrl = Deno.env.get('FRONTEND_URL') || 'http://localhost:8080';
+    // Use hub.fixlify.app for production portal
     const portalLink = portalToken 
-      ? `${baseUrl}/portal/${portalToken}`
-      : `${baseUrl}/portal/temporary-${client.id}`;
+      ? `https://hub.fixlify.app/portal/${portalToken}`
+      : `https://hub.fixlify.app/estimate/${estimate.id}`;
 
     // Create email HTML
     const emailHtml = createProfessionalEstimateTemplate({
