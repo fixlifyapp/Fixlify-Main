@@ -23,7 +23,9 @@ import {
   Sparkles,
   Shield,
   Zap,
-  Award
+  Award,
+  Star,
+  Activity
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -222,8 +224,12 @@ const ClientPortal = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-purple-50 flex items-center justify-center p-4">
-        <div className="text-center">
+      <div className="min-h-screen portal-3d-bg flex items-center justify-center p-4 overflow-hidden">
+        <div className="gradient-orb gradient-orb-1"></div>
+        <div className="gradient-orb gradient-orb-2"></div>
+        <div className="gradient-orb gradient-orb-3"></div>
+        
+        <div className="text-center relative z-10">
           <div className="relative">
             {/* 3D spinning loader */}
             <div className="absolute inset-0 flex items-center justify-center">
@@ -232,7 +238,7 @@ const ClientPortal = () => {
             <div className="absolute inset-0 flex items-center justify-center">
               <div className="h-24 w-24 rounded-full bg-gradient-to-r from-purple-500 to-purple-700 animate-ping animation-delay-200 opacity-20"></div>
             </div>
-            <div className="relative bg-white/80 backdrop-blur-xl rounded-3xl p-8 border border-purple-100 shadow-xl">
+            <div className="relative glass-purple rounded-3xl p-8 shadow-xl">
               <Clock className="h-12 w-12 animate-spin mx-auto text-purple-600 relative z-10" />
             </div>
           </div>
@@ -245,8 +251,11 @@ const ClientPortal = () => {
 
   if (error || !portalData) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-purple-50 flex items-center justify-center p-4">
-        <Card className="w-full max-w-md shadow-2xl border-0 bg-white">
+      <div className="min-h-screen portal-3d-bg flex items-center justify-center p-4 overflow-hidden">
+        <div className="gradient-orb gradient-orb-1"></div>
+        <div className="gradient-orb gradient-orb-2"></div>
+        
+        <Card className="w-full max-w-md shadow-2xl border-0 glass-purple card-3d">
           <CardContent className="text-center p-8">
             <div className="h-20 w-20 bg-gradient-to-br from-red-500 to-red-600 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg shadow-red-500/30">
               <AlertCircle className="h-10 w-10 text-white" />
@@ -256,7 +265,7 @@ const ClientPortal = () => {
             <Button 
               variant="outline" 
               onClick={() => window.location.reload()}
-              className="bg-purple-50 border-purple-200 text-purple-700 hover:bg-purple-100"
+              className="bg-purple-50 border-purple-200 text-purple-700 hover:bg-purple-100 hover-lift"
             >
               Try Again
             </Button>
@@ -272,19 +281,23 @@ const ClientPortal = () => {
     .slice(0, 5);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-purple-50">
+    <div className="min-h-screen portal-3d-bg portal-scrollbar overflow-x-hidden">
+      <div className="gradient-orb gradient-orb-1"></div>
+      <div className="gradient-orb gradient-orb-2"></div>
+      <div className="gradient-orb gradient-orb-3"></div>
+      
       {/* Modern Header */}
-      <header className="bg-white shadow-sm border-b sticky top-0 z-40">
+      <header className="glass-purple sticky top-0 z-40 shadow-lg">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center">
               <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
                 <SheetTrigger asChild className="lg:hidden">
-                  <Button variant="ghost" size="icon" className="text-gray-600 hover:bg-purple-50">
+                  <Button variant="ghost" size="icon" className="text-purple-700 hover:bg-purple-100/50">
                     <Menu className="h-6 w-6" />
                   </Button>
                 </SheetTrigger>
-                <SheetContent side="left" className="w-[280px] sm:w-[350px] bg-white">
+                <SheetContent side="left" className="w-[280px] sm:w-[350px] glass-purple">
                   <nav className="mt-8">
                     <div className="space-y-2">
                       {navigationItems.map((item) => (
@@ -297,8 +310,8 @@ const ClientPortal = () => {
                           className={cn(
                             "w-full flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-xl transition-all duration-200",
                             activeTab === item.id
-                              ? "bg-purple-100 text-purple-700 shadow-sm"
-                              : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+                              ? "bg-gradient-to-r from-purple-600 to-purple-700 text-white shadow-lg"
+                              : "text-gray-700 hover:text-purple-700 hover:bg-purple-50"
                           )}
                         >
                           <item.icon className="h-5 w-5" />
@@ -310,7 +323,7 @@ const ClientPortal = () => {
                 </SheetContent>
               </Sheet>
               <div className="ml-4 lg:ml-0">
-                <h1 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                <h1 className="text-xl font-bold gradient-text flex items-center gap-2">
                   <Sparkles className="h-6 w-6 text-purple-600" />
                   Client Portal
                 </h1>
@@ -318,12 +331,12 @@ const ClientPortal = () => {
               </div>
             </div>
             <div className="flex items-center gap-3">
-              <Badge className="bg-purple-100 text-purple-700 border-purple-200">
+              <Badge className="bg-gradient-to-r from-purple-600 to-purple-700 text-white border-0 shadow-md">
                 <Shield className="h-3 w-3 mr-1" />
                 Secure Portal
               </Badge>
               <span className="text-xs text-gray-500">Powered by</span>
-              <span className="text-sm font-bold text-purple-600">Fixlify</span>
+              <span className="text-sm font-bold gradient-text">Fixlify</span>
             </div>
           </div>
         </div>
@@ -331,7 +344,7 @@ const ClientPortal = () => {
 
       <div className="flex relative z-10">
         {/* Desktop Sidebar */}
-        <aside className="hidden lg:block w-64 bg-white shadow-sm min-h-[calc(100vh-4rem)] sticky top-16 border-r">
+        <aside className="hidden lg:block w-64 glass-purple shadow-xl min-h-[calc(100vh-4rem)] sticky top-16">
           <nav className="p-4">
             <div className="space-y-2">
               {navigationItems.map((item) => (
@@ -341,8 +354,8 @@ const ClientPortal = () => {
                   className={cn(
                     "w-full flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-xl transition-all duration-300",
                     activeTab === item.id
-                      ? "bg-purple-100 text-purple-700 shadow-sm"
-                      : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+                      ? "bg-gradient-to-r from-purple-600 to-purple-700 text-white shadow-lg transform scale-105"
+                      : "text-gray-700 hover:text-purple-700 hover:bg-purple-50"
                   )}
                 >
                   <item.icon className="h-5 w-5" />
@@ -355,24 +368,26 @@ const ClientPortal = () => {
             </div>
 
             {/* Premium Features */}
-            <div className="mt-8 p-4 bg-purple-50 rounded-xl border border-purple-100">
-              <div className="flex items-center gap-2 mb-2">
-                <Zap className="h-5 w-5 text-purple-600" />
-                <span className="text-sm font-semibold text-gray-900">Premium Features</span>
-              </div>
-              <p className="text-xs text-gray-600 mb-3">Access all your documents and payment history</p>
-              <div className="space-y-2">
-                <div className="flex items-center gap-2 text-xs text-gray-600">
-                  <CheckCircle className="h-3 w-3 text-green-500" />
-                  <span>24/7 Portal Access</span>
+            <div className="mt-8 p-4 border-gradient rounded-xl">
+              <div className="border-gradient-inner p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <Star className="h-5 w-5 text-purple-600 animate-pulse" />
+                  <span className="text-sm font-semibold text-gray-900">Premium Features</span>
                 </div>
-                <div className="flex items-center gap-2 text-xs text-gray-600">
-                  <CheckCircle className="h-3 w-3 text-green-500" />
-                  <span>Secure Document Storage</span>
-                </div>
-                <div className="flex items-center gap-2 text-xs text-gray-600">
-                  <CheckCircle className="h-3 w-3 text-green-500" />
-                  <span>Online Payments</span>
+                <p className="text-xs text-gray-600 mb-3">Access all your documents and payment history</p>
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-xs text-gray-600">
+                    <CheckCircle className="h-3 w-3 text-green-500" />
+                    <span>24/7 Portal Access</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-xs text-gray-600">
+                    <CheckCircle className="h-3 w-3 text-green-500" />
+                    <span>Secure Document Storage</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-xs text-gray-600">
+                    <CheckCircle className="h-3 w-3 text-green-500" />
+                    <span>Online Payments</span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -382,7 +397,7 @@ const ClientPortal = () => {
         {/* Main Content */}
         <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto w-full">
           {/* Client Info Card */}
-          <Card className="mb-6 shadow-sm border-0 bg-white">
+          <Card className="mb-6 glass-purple card-3d">
             <CardContent className="p-6">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
@@ -393,11 +408,11 @@ const ClientPortal = () => {
                   )}
                 </div>
                 <div className="flex flex-wrap gap-2">
-                  <Badge className="bg-purple-100 text-purple-700 border-purple-200">
+                  <Badge className="bg-gradient-to-r from-purple-600 to-purple-700 text-white border-0 shadow-md">
                     <Award className="h-3 w-3 mr-1" />
                     Valued Client
                   </Badge>
-                  <Badge variant="outline" className="text-gray-600 border-gray-300">
+                  <Badge variant="outline" className="text-purple-600 border-purple-300 bg-purple-50">
                     <Calendar className="h-3 w-3 mr-1" />
                     Member since {new Date().getFullYear()}
                   </Badge>
@@ -409,63 +424,63 @@ const ClientPortal = () => {
           {/* Tab Content */}
           {activeTab === 'dashboard' && (
             <div className="space-y-6">
-              {/* Stats Grid */}
+              {/* Stats Grid with 3D Cards */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                <Card className="border-0 bg-white shadow-sm hover:shadow-md transition-shadow">
+                <Card className="glass-purple card-3d hover-lift">
                   <CardContent className="p-6">
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-sm font-medium text-gray-600">Total Estimates</p>
+                        <p className="text-sm font-medium text-purple-700">Total Estimates</p>
                         <p className="text-3xl font-bold text-gray-900 mt-2">{totals.estimates.count}</p>
                         <p className="text-sm text-purple-600 mt-1">{formatCurrency(totals.estimates.value)}</p>
                       </div>
-                      <div className="h-14 w-14 bg-purple-100 rounded-xl flex items-center justify-center">
-                        <FileText className="h-7 w-7 text-purple-600" />
+                      <div className="h-14 w-14 bg-gradient-to-br from-purple-500 to-purple-700 rounded-xl flex items-center justify-center shadow-lg">
+                        <FileText className="h-7 w-7 text-white" />
                       </div>
                     </div>
                   </CardContent>
                 </Card>
 
-                <Card className="border-0 bg-white shadow-sm hover:shadow-md transition-shadow">
+                <Card className="glass-purple card-3d hover-lift">
                   <CardContent className="p-6">
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-sm font-medium text-gray-600">Total Invoices</p>
+                        <p className="text-sm font-medium text-green-700">Total Invoices</p>
                         <p className="text-3xl font-bold text-gray-900 mt-2">{totals.invoices.count}</p>
                         <p className="text-sm text-green-600 mt-1">{formatCurrency(totals.invoices.value)}</p>
                       </div>
-                      <div className="h-14 w-14 bg-green-100 rounded-xl flex items-center justify-center">
-                        <Receipt className="h-7 w-7 text-green-600" />
+                      <div className="h-14 w-14 bg-gradient-to-br from-green-500 to-green-700 rounded-xl flex items-center justify-center shadow-lg">
+                        <Receipt className="h-7 w-7 text-white" />
                       </div>
                     </div>
                   </CardContent>
                 </Card>
 
-                <Card className="border-0 bg-white shadow-sm hover:shadow-md transition-shadow">
+                <Card className="glass-purple card-3d hover-lift">
                   <CardContent className="p-6">
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-sm font-medium text-gray-600">Paid</p>
+                        <p className="text-sm font-medium text-blue-700">Paid</p>
                         <p className="text-3xl font-bold text-gray-900 mt-2">{totals.paid.count}</p>
-                        <p className="text-sm text-purple-600 mt-1">{formatCurrency(totals.paid.value)}</p>
+                        <p className="text-sm text-blue-600 mt-1">{formatCurrency(totals.paid.value)}</p>
                       </div>
-                      <div className="h-14 w-14 bg-purple-100 rounded-xl flex items-center justify-center">
-                        <DollarSign className="h-7 w-7 text-purple-600" />
+                      <div className="h-14 w-14 bg-gradient-to-br from-blue-500 to-blue-700 rounded-xl flex items-center justify-center shadow-lg">
+                        <DollarSign className="h-7 w-7 text-white" />
                       </div>
                     </div>
                   </CardContent>
                 </Card>
 
-                <Card className="border-0 bg-white shadow-sm hover:shadow-md transition-shadow">
+                <Card className="glass-purple card-3d hover-lift">
                   <CardContent className="p-6">
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-sm font-medium text-gray-600">Pending</p>
+                        <p className="text-sm font-medium text-orange-700">Pending</p>
                         <p className="text-3xl font-bold text-gray-900 mt-2">{totals.pending.count}</p>
                         <p className="text-sm text-orange-600 mt-1">Awaiting payment</p>
                       </div>
-                      <div className="h-14 w-14 bg-orange-100 rounded-xl flex items-center justify-center">
-                        <Clock className="h-7 w-7 text-orange-600" />
+                      <div className="h-14 w-14 bg-gradient-to-br from-orange-500 to-orange-700 rounded-xl flex items-center justify-center shadow-lg">
+                        <Clock className="h-7 w-7 text-white" />
                       </div>
                     </div>
                   </CardContent>
@@ -473,12 +488,12 @@ const ClientPortal = () => {
               </div>
 
               {/* Recent Activity */}
-              <Card className="border-0 bg-white shadow-sm">
+              <Card className="glass-purple card-3d">
                 <CardHeader>
                   <CardTitle className="flex items-center justify-between text-gray-900">
                     <span className="flex items-center gap-2">
-                      <div className="h-8 w-8 bg-purple-100 rounded-lg flex items-center justify-center">
-                        <TrendingUp className="h-5 w-5 text-purple-600" />
+                      <div className="h-8 w-8 bg-gradient-to-br from-purple-500 to-purple-700 rounded-lg flex items-center justify-center shadow-md">
+                        <Activity className="h-5 w-5 text-white" />
                       </div>
                       Recent Activity
                     </span>
@@ -504,18 +519,18 @@ const ClientPortal = () => {
                         return (
                           <div
                             key={item.id}
-                            className="flex items-center justify-between p-4 rounded-xl bg-gray-50 hover:bg-gray-100 transition-all cursor-pointer"
+                            className="flex items-center justify-between p-4 rounded-xl bg-white/50 hover:bg-white/70 transition-all cursor-pointer hover-lift"
                           >
                             <div className="flex items-center gap-4">
                               <div className={cn(
-                                "h-12 w-12 rounded-xl flex items-center justify-center",
+                                "h-12 w-12 rounded-xl flex items-center justify-center shadow-md",
                                 isEstimate 
-                                  ? "bg-purple-100" 
-                                  : "bg-green-100"
+                                  ? "bg-gradient-to-br from-purple-500 to-purple-700" 
+                                  : "bg-gradient-to-br from-green-500 to-green-700"
                               )}>
                                 {isEstimate ? 
-                                  <FileText className="h-6 w-6 text-purple-600" /> : 
-                                  <Receipt className="h-6 w-6 text-green-600" />
+                                  <FileText className="h-6 w-6 text-white" /> : 
+                                  <Receipt className="h-6 w-6 text-white" />
                                 }
                               </div>
                               <div>
@@ -538,8 +553,8 @@ const ClientPortal = () => {
                     </div>
                   ) : (
                     <div className="text-center py-12">
-                      <div className="h-20 w-20 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                        <History className="h-10 w-10 text-gray-400" />
+                      <div className="h-20 w-20 bg-purple-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                        <History className="h-10 w-10 text-purple-400" />
                       </div>
                       <p className="text-gray-500">No recent activity</p>
                     </div>
@@ -550,7 +565,7 @@ const ClientPortal = () => {
           )}
 
           {activeTab === 'estimates' && (
-            <div className="bg-white rounded-2xl shadow-sm">
+            <div className="glass-purple rounded-2xl p-1">
               <DocumentList
                 title="Your Estimates"
                 documents={portalData.estimates}
@@ -564,7 +579,7 @@ const ClientPortal = () => {
           )}
 
           {activeTab === 'invoices' && (
-            <div className="bg-white rounded-2xl shadow-sm">
+            <div className="glass-purple rounded-2xl p-1">
               <DocumentList
                 title="Your Invoices"
                 documents={portalData.invoices}
@@ -578,11 +593,11 @@ const ClientPortal = () => {
           )}
 
           {activeTab === 'history' && (
-            <Card className="border-0 bg-white shadow-sm">
+            <Card className="glass-purple card-3d">
               <CardHeader>
                 <CardTitle className="flex items-center gap-3 text-gray-900">
-                  <div className="h-10 w-10 bg-purple-100 rounded-xl flex items-center justify-center">
-                    <History className="h-6 w-6 text-purple-600" />
+                  <div className="h-10 w-10 bg-gradient-to-br from-purple-500 to-purple-700 rounded-xl flex items-center justify-center shadow-lg">
+                    <History className="h-6 w-6 text-white" />
                   </div>
                   Transaction History
                 </CardTitle>
@@ -599,18 +614,18 @@ const ClientPortal = () => {
                       return (
                         <div
                           key={item.id}
-                          className="flex flex-col sm:flex-row sm:items-center justify-between p-5 rounded-xl bg-gray-50 hover:bg-gray-100 transition-all cursor-pointer gap-4"
+                          className="flex flex-col sm:flex-row sm:items-center justify-between p-5 rounded-xl bg-white/50 hover:bg-white/70 transition-all cursor-pointer gap-4 hover-lift"
                         >
                           <div className="flex items-center gap-4">
                             <div className={cn(
-                              "h-12 w-12 rounded-xl flex items-center justify-center",
+                              "h-12 w-12 rounded-xl flex items-center justify-center shadow-lg",
                               isEstimate 
-                                ? "bg-purple-100" 
-                                : "bg-green-100"
+                                ? "bg-gradient-to-br from-purple-500 to-purple-700" 
+                                : "bg-gradient-to-br from-green-500 to-green-700"
                             )}>
                               {isEstimate ? 
-                                <FileText className="h-6 w-6 text-purple-600" /> : 
-                                <Receipt className="h-6 w-6 text-green-600" />
+                                <FileText className="h-6 w-6 text-white" /> : 
+                                <Receipt className="h-6 w-6 text-white" />
                               }
                             </div>
                             <div>

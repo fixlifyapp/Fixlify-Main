@@ -734,3 +734,236 @@ Transformed the client portal into a stunning 3D gradient experience with modern
 - Backdrop filters with Safari fallbacks
 - Efficient hover state transitions
 - Optimized for smooth scrolling
+# Fixlify AI Automate - Project Knowledge Base
+
+## 🎯 Project Context
+
+**Fixlify AI Automate** is a comprehensive business management and automation platform designed for service-based businesses (HVAC, plumbing, electrical, etc.). It combines traditional business management tools with advanced AI automation capabilities.
+
+### Working Environment
+- **Project Location**: `C:\Users\petru\Downloads\TEST FIX SITE\3\Fixlify-Main-main`
+- **Development Tools**: 
+  - Desktop Commander for local file system operations
+  - Supabase MCP for database operations
+  - Vite development server on port 8080
+
+## 🏗️ Technical Stack
+
+### Frontend
+- **Framework**: React 18.3.1 with TypeScript 5.5.3
+- **Build Tool**: Vite 5.4.1
+- **UI Components**: 
+  - shadcn/ui with Radix UI primitives
+  - Tailwind CSS 3.4.11 with custom animations
+  - Lucide React for icons
+- **State Management**: 
+  - TanStack React Query 5.56.2 for server state
+  - React Hook Form 7.53.0 with Zod validation
+- **Routing**: React Router DOM 6.26.2
+- **Charts**: Recharts 2.12.7
+- **3D Graphics**: Three.js with React Three Fiber
+
+### Backend & Database
+- **BaaS**: Supabase (PostgreSQL)
+- **Supabase URL**: `https://mqppvcrlvsgrsqelglod.supabase.co`
+- **Authentication**: Supabase Auth with JWT
+- **Real-time**: Supabase Realtime subscriptions
+- **Storage Key**: `fixlify-auth-token`
+
+## 📁 Project Structure
+
+```
+fixlify-ai-automate/
+├── src/
+│   ├── components/        # Reusable UI components
+│   ├── pages/            # Route pages
+│   ├── hooks/            # Custom React hooks
+│   ├── types/            # TypeScript type definitions
+│   ├── lib/              # Utility libraries
+│   ├── integrations/     # External service integrations
+│   │   └── supabase/     # Supabase client and types
+│   ├── services/         # Business logic services
+│   ├── contexts/         # React contexts│   └── store/            # Global state management
+├── public/              # Static assets
+└── supabase/           # Database migrations and types
+
+## 🎨 Design System Updates
+
+### Modern 3D Gradient Design (Updated)
+- **Client Portal**: Unified single portal system with modern 3D aesthetics
+- **Color Scheme**: 
+  - Primary: Blue to Purple gradients (#3B82F6 → #8B5CF6)
+  - Backgrounds: Dark with glass morphism effects
+  - Accents: Neon glows and animated gradients
+- **Components**: 
+  - 3D animated cards with hover effects
+  - Glass morphism panels
+  - Gradient borders and shadows
+  - Smooth transitions and animations
+- **Client Portal Features**:
+  - View/Download buttons restored on all documents
+  - Modern 3D design throughout
+  - Responsive for all devices
+  - Animated backgrounds and effects
+
+## 🔐 Authentication & Security
+
+### Multi-tenant Architecture
+- Separate authentication for companies and clients
+- Company auth: `fixlify-auth-token`
+- Client portal: Token-based access via URL parameter
+- RLS policies enforcing data isolation
+
+### Client Portal Access
+- Access via `/portal/:accessToken` route
+- Tokens generated for each client
+- No login required - direct link access
+- Secure document viewing and downloading
+
+## 📊 Database Schema
+
+### Core Tables
+- **profiles**: User profiles linked to auth.users
+- **companies**: Company/tenant information
+- **clients**: Customer records per company
+- **jobs**: Repair/service jobs
+- **invoices**: Financial records
+- **documents**: File storage references
+- **messages**: Communication logs
+- **team_members**: Staff management
+- **products**: Inventory items
+- **appointments**: Scheduling
+
+### Key Relationships
+- All tables have `company_id` for multi-tenancy
+- RLS policies ensure data isolation
+- Cascade deletes for data integrity
+
+## 🚀 Key Features
+
+### Business Management
+- **Job Management**: Create, track, and manage service jobs
+- **Client Management**: CRM with communication history
+- **Scheduling**: Calendar and appointment system
+- **Financial**: Invoicing, estimates, payments
+- **Team Management**: Staff roles and permissions
+- **Inventory**: Product and parts tracking
+
+### AI & Automation
+- **AI Center**: Claude integration for business insights
+- **Automation Workflows**: Custom business process automation
+- **Smart Scheduling**: AI-powered appointment optimization
+- **Document Analysis**: Automated document processing
+- **Communication**: Automated client messaging
+
+### Client Portal
+- **Unified System**: Single portal for all client needs
+- **Document Access**: View and download invoices, estimates, reports
+- **Job Tracking**: Real-time status updates
+- **Communication**: Direct messaging with business
+- **Modern UI**: 3D gradients and animations
+- **Responsive**: Works on all devices
+
+## 🔧 Development Guidelines
+
+### Code Standards
+- TypeScript for type safety
+- Component-based architecture
+- Custom hooks for logic reuse
+- Consistent error handling
+- Performance optimization (React.memo, useMemo, etc.)
+
+### State Management
+- React Query for server state
+- Local state with useState/useReducer
+- Form state with React Hook Form
+- Global state via contexts when needed
+
+### Styling
+- Tailwind CSS utilities
+- CSS modules for component styles
+- Consistent spacing and sizing
+- Mobile-first responsive design
+- Dark theme with gradient accents
+
+### Performance
+- Code splitting with React.lazy
+- Image optimization
+- Debounced search inputs
+- Virtualized long lists
+- Optimistic updates
+
+## 🔄 Recent Updates
+
+### Client Portal Redesign (Latest)
+- Removed duplicate portal systems
+- Unified into single ClientPortal component
+- Added modern 3D gradient design
+- Restored view/download functionality
+- Improved responsive layouts
+- Added glass morphism effects
+- Enhanced animations and transitions
+
+### Previous Updates
+- Supabase integration optimizations
+- Real-time subscriptions setup
+- Multi-tenant architecture implementation
+- AI Center with Claude integration
+- Automation workflow builder
+- Performance optimizations
+
+## 🐛 Known Issues & Solutions
+
+### Common Issues
+1. **Auth Token Conflicts**: Clear localStorage if switching accounts
+2. **Real-time Updates**: Check Supabase subscription status
+3. **File Uploads**: Ensure proper CORS configuration
+4. **Performance**: Monitor React Query cache size
+
+### Debugging Tips
+- Check browser console for errors
+- Verify Supabase connection
+- Review RLS policies for permission issues
+- Check network tab for API failures
+
+## 📝 Deployment Notes
+
+### Environment Variables
+```
+VITE_SUPABASE_URL=https://mqppvcrlvsgrsqelglod.supabase.co
+VITE_SUPABASE_ANON_KEY=[your-anon-key]
+```
+
+### Build Process
+```bash
+npm run build
+npm run preview  # Test production build
+```
+
+### Hosting
+- Vite optimized for static hosting
+- Configure redirects for SPA routing
+- Enable HTTPS for production
+- Set proper CORS headers
+
+## 🔮 Future Enhancements
+
+### Planned Features
+- Mobile app development
+- Advanced AI analytics
+- Voice-activated controls
+- AR/VR job visualization
+- Blockchain integration for contracts
+- IoT device monitoring
+
+### Technical Debt
+- Migrate remaining JS files to TypeScript
+- Implement comprehensive testing
+- Optimize bundle size
+- Add service workers for offline support
+- Enhance accessibility features
+
+---
+
+*Last Updated: Current Session*
+*Maintained by: AI Assistant*

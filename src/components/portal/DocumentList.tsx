@@ -18,7 +18,8 @@ import {
   ExternalLink,
   Sparkles,
   TrendingUp,
-  Receipt
+  Receipt,
+  Loader2
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -50,6 +51,7 @@ export const DocumentList = ({
   permissions
 }: DocumentListProps) => {
   const [expandedItems, setExpandedItems] = useState<string[]>([]);
+  const [loadingActions, setLoadingActions] = useState<{ [key: string]: boolean }>({});
 
   const toggleExpanded = (id: string) => {
     setExpandedItems(prev =>
@@ -72,6 +74,49 @@ export const DocumentList = ({
     }
   };
 
+  const handleView = async (document: any) => {
+    const actionKey = `view-${document.id}`;
+    setLoadingActions(prev => ({ ...prev, [actionKey]: true }));
+    
+    try {
+      console.log(`📄 Viewing ${documentType}:`, document);
+      
+      // Navigate directly to the document view page
+      const viewUrl = `/${documentType}/${document.id}`;
+      window.open(viewUrl, '_blank');
+      
+      toast.success(`Opening ${documentType}...`);
+    } catch (error) {
+      console.error(`Error viewing ${documentType}:`, error);
+      toast.error(`Failed to view ${documentType}`);
+    } finally {
+      setLoadingActions(prev => ({ ...prev, [actionKey]: false }));
+    }
+  };
+
+  const handleDownload = async (document: any) => {
+    const actionKey = `download-${document.id}`;
+    setLoadingActions(prev => ({ ...prev, [actionKey]: true }));
+    
+    try {
+      console.log(`📥 Downloading ${documentType}:`, document);
+      
+      // For now, show a message that download is coming soon
+      // In production, this would generate a PDF and download it
+      toast.info("PDF download feature coming soon! For now, you can view and print the document.");
+      
+      // Open the document in a new tab for printing
+      const viewUrl = `/${documentType}/${document.id}`;
+      window.open(viewUrl, '_blank');
+      
+    } catch (error) {
+      console.error(`Error downloading ${documentType}:`, error);
+      toast.error(`Failed to download ${documentType}`);
+    } finally {
+      setLoadingActions(prev => ({ ...prev, [actionKey]: false }));
+    }
+  };
+
   const Icon = documentType === 'estimate' ? FileText : Receipt;
   const sortedDocuments = documents?.sort((a, b) => 
     new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
@@ -83,21 +128,19 @@ export const DocumentList = ({
         <CardTitle className="flex items-center justify-between text-gray-900">
           <div className="flex items-center gap-3">
             <div className={cn(
-              "h-10 w-10 rounded-xl flex items-center justify-center",
+              "h-10 w-10 rounded-xl flex items-center justify-center shadow-lg",
               documentType === 'estimate' 
-                ? "bg-purple-100" 
-                : "bg-green-100"
+                ? "bg-gradient-to-br from-purple-500 to-purple-700" 
+                : "bg-gradient-to-br from-green-500 to-green-700"
             )}>
-              <Icon className={cn(
-                "h-6 w-6",
-                documentType === 'estimate' ? "text-purple-600" : "text-green-600"
-              )} />
+              <Icon className="h-6 w-6 text-white" />
             </div>
-            <span className="text-xl">{title}</span>
-            <Badge className="ml-2 bg-gray-100 text-gray-700 border-0">
+            <span className="text-xl font-semibold">{title}</span>
+            <Badge className="ml-2 bg-purple-100 text-purple-700 border-0">
               {documents?.length || 0}
             </Badge>
           </div>
+          <Sparkles className="h-5 w-5 text-purple-400" />
         </CardTitle>
       </CardHeader>
       <CardContent>
@@ -115,8 +158,9 @@ export const DocumentList = ({
                 <div
                   key={doc.id}
                   className={cn(
-                    "bg-gray-50 rounded-xl transition-all duration-300",
-                    isExpanded ? "shadow-sm" : "hover:bg-gray-100"
+                    "glass-purple rounded-xl transition-all duration-300",
+                    isExpanded ? "shadow-xl" : "hover:shadow-lg",
+                    "hover-lift"
                   )}
                 >
                   <Collapsible open={isExpanded} onOpenChange={() => toggleExpanded(doc.id)}>
@@ -125,15 +169,12 @@ export const DocumentList = ({
                         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                           <div className="flex items-start sm:items-center gap-4 text-left">
                             <div className={cn(
-                              "h-12 w-12 rounded-xl flex items-center justify-center flex-shrink-0",
+                              "h-12 w-12 rounded-xl flex items-center justify-center flex-shrink-0 shadow-md",
                               documentType === 'estimate' 
-                                ? "bg-purple-100" 
-                                : "bg-green-100"
+                                ? "bg-gradient-to-br from-purple-500 to-purple-700" 
+                                : "bg-gradient-to-br from-green-500 to-green-700"
                             )}>
-                              <Icon className={cn(
-                                "h-6 w-6",
-                                documentType === 'estimate' ? "text-purple-600" : "text-green-600"
-                              )} />
+                              <Icon className="h-6 w-6 text-white" />
                             </div>
                             <div className="min-w-0 flex-1">
                               <h4 className="font-semibold text-gray-900 flex items-center gap-2 text-lg">
@@ -169,9 +210,9 @@ export const DocumentList = ({
                             </div>
                             <div className="flex items-center">
                               {isExpanded ? (
-                                <ChevronUp className="h-5 w-5 text-gray-400" />
+                                <ChevronUp className="h-5 w-5 text-purple-600" />
                               ) : (
-                                <ChevronDown className="h-5 w-5 text-gray-400" />
+                                <ChevronDown className="h-5 w-5 text-purple-600" />
                               )}
                             </div>
                           </div>
@@ -180,7 +221,7 @@ export const DocumentList = ({
                     </CollapsibleTrigger>
                     
                     <CollapsibleContent>
-                      <div className="px-5 pb-5 space-y-4 border-t border-gray-200">
+                      <div className="px-5 pb-5 space-y-4 border-t border-purple-100">
                         {doc.description && (
                           <div className="pt-4">
                             <p className="text-sm text-gray-600 leading-relaxed">
@@ -191,9 +232,9 @@ export const DocumentList = ({
                         
                         {/* Line Items Preview */}
                         {doc.line_items && doc.line_items.length > 0 && (
-                          <div className="bg-white rounded-lg p-4 space-y-2">
+                          <div className="bg-white/50 rounded-lg p-4 space-y-2">
                             <h5 className="text-sm font-medium text-gray-700 flex items-center gap-2">
-                              <TrendingUp className="h-4 w-4 text-gray-500" />
+                              <TrendingUp className="h-4 w-4 text-purple-500" />
                               Items
                             </h5>
                             <div className="space-y-2">
@@ -208,6 +249,38 @@ export const DocumentList = ({
                             </div>
                           </div>
                         )}
+                        
+                        {/* Action Buttons */}
+                        <div className="flex flex-wrap gap-3 pt-2">
+                          <Button
+                            size="sm"
+                            onClick={() => handleView(doc)}
+                            disabled={loadingActions[`view-${doc.id}`]}
+                            className="btn-3d text-white"
+                          >
+                            {loadingActions[`view-${doc.id}`] ? (
+                              <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                            ) : (
+                              <Eye className="h-4 w-4 mr-1" />
+                            )}
+                            View Details
+                          </Button>
+                          
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleDownload(doc)}
+                            disabled={loadingActions[`download-${doc.id}`]}
+                            className="border-purple-300 text-purple-700 hover:bg-purple-50 hover-lift"
+                          >
+                            {loadingActions[`download-${doc.id}`] ? (
+                              <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                            ) : (
+                              <Download className="h-4 w-4 mr-1" />
+                            )}
+                            Download
+                          </Button>
+                        </div>
                       </div>
                     </CollapsibleContent>
                   </Collapsible>
@@ -217,10 +290,10 @@ export const DocumentList = ({
           </div>
         ) : (
           <div className="text-center py-16">
-            <div className="h-20 w-20 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-6">
-              <Icon className="h-10 w-10 text-gray-400" />
+            <div className="h-20 w-20 bg-purple-100 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-md">
+              <Icon className="h-10 w-10 text-purple-400" />
             </div>
-            <p className="text-gray-600 font-medium text-lg">No {title.toLowerCase()} yet</p>
+            <p className="text-gray-700 font-medium text-lg">No {title.toLowerCase()} yet</p>
             <p className="text-sm text-gray-500 mt-2">
               {documentType === 'estimate' 
                 ? "Your estimates will appear here when created"

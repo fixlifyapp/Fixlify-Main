@@ -1,34 +1,130 @@
-/* Portal 3D Gradient Styles */
+/* Portal 3D Styles with Fixlify Brand Colors */
 
-/* Add these animations for the beautiful 3D gradient portal */
-@keyframes blob {
-  0% {
-    transform: translate(0px, 0px) scale(1);
+/* Fixlify Brand Colors */
+:root {
+  --fixlify-purple: #9B6AE5;
+  --fixlify-purple-dark: #7C4FBF;
+  --fixlify-purple-light: #B794F4;
+  --fixlify-purple-50: #FAF5FF;
+  --fixlify-purple-100: #F3E8FF;
+  --fixlify-purple-200: #E9D5FF;
+  --fixlify-purple-300: #D6BCFA;
+  --fixlify-purple-400: #B794F4;
+  --fixlify-purple-500: #9B6AE5;
+  --fixlify-purple-600: #7C4FBF;
+  --fixlify-purple-700: #6B46C1;
+  --fixlify-purple-800: #553C9A;
+  --fixlify-purple-900: #44337A;
+}
+
+/* 3D Background Pattern */
+.portal-3d-bg {
+  position: relative;
+  background: linear-gradient(135deg, #FAF5FF 0%, #F3E8FF 25%, #E9D5FF 50%, #F3E8FF 75%, #FAF5FF 100%);
+  background-size: 400% 400%;
+  animation: gradient-shift 15s ease infinite;
+}
+
+.portal-3d-bg::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: 
+    radial-gradient(circle at 20% 80%, rgba(155, 106, 229, 0.15) 0%, transparent 50%),
+    radial-gradient(circle at 80% 20%, rgba(183, 148, 244, 0.15) 0%, transparent 50%),
+    radial-gradient(circle at 40% 40%, rgba(124, 79, 191, 0.1) 0%, transparent 50%);
+  pointer-events: none;
+}
+
+/* Animated Gradient Orbs */
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0) translateX(0) scale(1);
   }
   33% {
-    transform: translate(30px, -50px) scale(1.1);
+    transform: translateY(-30px) translateX(20px) scale(1.1);
   }
   66% {
-    transform: translate(-20px, 20px) scale(0.9);
-  }
-  100% {
-    transform: translate(0px, 0px) scale(1);
+    transform: translateY(20px) translateX(-20px) scale(0.95);
   }
 }
 
-.animate-blob {
-  animation: blob 7s infinite;
+.gradient-orb {
+  position: absolute;
+  border-radius: 50%;
+  background: radial-gradient(circle at 30% 30%, rgba(155, 106, 229, 0.8), rgba(124, 79, 191, 0.4));
+  filter: blur(40px);
+  animation: float 20s ease-in-out infinite;
 }
 
-.animation-delay-2000 {
-  animation-delay: 2s;
+.gradient-orb-1 {
+  width: 400px;
+  height: 400px;
+  top: -200px;
+  left: -200px;
+  animation-delay: 0s;
 }
 
-.animation-delay-4000 {
-  animation-delay: 4s;
+.gradient-orb-2 {
+  width: 300px;
+  height: 300px;
+  bottom: -150px;
+  right: -150px;
+  animation-delay: 7s;
 }
 
-/* Gradient text animation */
+.gradient-orb-3 {
+  width: 350px;
+  height: 350px;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  animation-delay: 14s;
+}
+
+/* Glass Morphism with Purple Tint */
+.glass-purple {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.9) 0%, rgba(243, 232, 255, 0.9) 100%);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(155, 106, 229, 0.2);
+  box-shadow: 
+    0 8px 32px rgba(155, 106, 229, 0.15),
+    inset 0 1px 0 rgba(255, 255, 255, 0.6);
+}
+
+/* 3D Card Effect */
+.card-3d {
+  position: relative;
+  transform-style: preserve-3d;
+  transition: all 0.6s cubic-bezier(0.23, 1, 0.320, 1);
+}
+
+.card-3d::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, transparent 40%, rgba(155, 106, 229, 0.1) 100%);
+  border-radius: inherit;
+  opacity: 0;
+  transition: opacity 0.6s;
+}
+
+.card-3d:hover {
+  transform: translateY(-8px) rotateX(2deg) rotateY(-2deg);
+  box-shadow: 
+    0 20px 40px rgba(155, 106, 229, 0.3),
+    0 10px 20px rgba(155, 106, 229, 0.2);
+}
+
+.card-3d:hover::before {
+  opacity: 1;
+}
+
+/* Gradient Text Animation */
 @keyframes gradient-shift {
   0% {
     background-position: 0% 50%;
@@ -41,35 +137,97 @@
   }
 }
 
-.animate-gradient {
-  background-size: 200% 200%;
-  animation: gradient-shift 3s ease infinite;
+.gradient-text {
+  background: linear-gradient(135deg, #9B6AE5 0%, #7C4FBF 25%, #9B6AE5 50%, #B794F4 75%, #9B6AE5 100%);
+  background-size: 400% 400%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: gradient-shift 5s ease infinite;
 }
 
-/* Glass morphism enhancements */
-.glass {
-  background: rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+/* Purple Glow Effects */
+.glow-purple-sm {
+  box-shadow: 0 0 20px rgba(155, 106, 229, 0.3);
 }
 
-.glass-dark {
-  background: rgba(0, 0, 0, 0.1);
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+.glow-purple-md {
+  box-shadow: 
+    0 0 30px rgba(155, 106, 229, 0.4),
+    0 0 60px rgba(155, 106, 229, 0.2);
 }
 
-/* 3D Card hover effects */
-.card-3d {
-  transform-style: preserve-3d;
-  transition: transform 0.3s ease;
+.glow-purple-lg {
+  box-shadow: 
+    0 0 40px rgba(155, 106, 229, 0.5),
+    0 0 80px rgba(155, 106, 229, 0.3),
+    0 0 120px rgba(155, 106, 229, 0.1);
 }
 
-.card-3d:hover {
-  transform: rotateY(5deg) rotateX(-5deg) translateZ(10px);
+/* Hover Lift Effect */
+.hover-lift {
+  transition: all 0.3s cubic-bezier(0.23, 1, 0.320, 1);
 }
 
-/* Shimmer effect for loading states */
+.hover-lift:hover {
+  transform: translateY(-4px);
+  box-shadow: 
+    0 10px 30px rgba(155, 106, 229, 0.3),
+    0 5px 15px rgba(155, 106, 229, 0.2);
+}
+
+/* Modern Button Styles */
+.btn-3d {
+  position: relative;
+  background: linear-gradient(135deg, #9B6AE5 0%, #7C4FBF 100%);
+  color: white;
+  overflow: hidden;
+  transition: all 0.3s cubic-bezier(0.23, 1, 0.320, 1);
+  box-shadow: 
+    0 4px 15px rgba(155, 106, 229, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+.btn-3d::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: left 0.5s;
+}
+
+.btn-3d:hover::before {
+  left: 100%;
+}
+
+.btn-3d:hover {
+  transform: translateY(-2px);
+  box-shadow: 
+    0 6px 20px rgba(155, 106, 229, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+/* Animated Border Gradient */
+.border-gradient {
+  position: relative;
+  background: linear-gradient(135deg, #9B6AE5, #7C4FBF, #B794F4, #9B6AE5);
+  background-size: 400% 400%;
+  animation: gradient-shift 4s ease infinite;
+  padding: 2px;
+  border-radius: 16px;
+}
+
+.border-gradient-inner {
+  background: white;
+  border-radius: 14px;
+  position: relative;
+  z-index: 1;
+}
+
+/* Shimmer Loading Effect */
 @keyframes shimmer {
   0% {
     background-position: -1000px 0;
@@ -82,52 +240,37 @@
 .shimmer {
   background: linear-gradient(
     90deg,
-    rgba(255, 255, 255, 0) 0%,
-    rgba(255, 255, 255, 0.2) 50%,
-    rgba(255, 255, 255, 0) 100%
+    rgba(155, 106, 229, 0) 0%,
+    rgba(155, 106, 229, 0.2) 50%,
+    rgba(155, 106, 229, 0) 100%
   );
   background-size: 1000px 100%;
   animation: shimmer 2s infinite;
 }
 
-/* Glow effects for buttons and cards */
-.glow-purple {
-  box-shadow: 0 0 20px rgba(155, 106, 229, 0.5),
-              0 0 40px rgba(155, 106, 229, 0.3),
-              0 0 60px rgba(155, 106, 229, 0.1);
+/* Custom Scrollbar */
+.portal-scrollbar::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
 }
 
-.glow-blue {
-  box-shadow: 0 0 20px rgba(59, 130, 246, 0.5),
-              0 0 40px rgba(59, 130, 246, 0.3),
-              0 0 60px rgba(59, 130, 246, 0.1);
+.portal-scrollbar::-webkit-scrollbar-track {
+  background: rgba(155, 106, 229, 0.1);
+  border-radius: 5px;
 }
 
-.glow-green {
-  box-shadow: 0 0 20px rgba(34, 197, 94, 0.5),
-              0 0 40px rgba(34, 197, 94, 0.3),
-              0 0 60px rgba(34, 197, 94, 0.1);
+.portal-scrollbar::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #9B6AE5 0%, #7C4FBF 100%);
+  border-radius: 5px;
+  box-shadow: inset 0 0 3px rgba(0, 0, 0, 0.1);
 }
 
-/* Floating animation for icons */
-@keyframes float {
-  0% {
-    transform: translateY(0px);
-  }
-  50% {
-    transform: translateY(-10px);
-  }
-  100% {
-    transform: translateY(0px);
-  }
+.portal-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, #7C4FBF 0%, #9B6AE5 100%);
 }
 
-.animate-float {
-  animation: float 3s ease-in-out infinite;
-}
-
-/* Pulse animation for badges */
-@keyframes pulse-glow {
+/* Pulse Animation */
+@keyframes pulse-purple {
   0% {
     box-shadow: 0 0 0 0 rgba(155, 106, 229, 0.7);
   }
@@ -139,133 +282,33 @@
   }
 }
 
-.animate-pulse-glow {
-  animation: pulse-glow 2s infinite;
+.pulse-purple {
+  animation: pulse-purple 2s infinite;
 }
 
-/* Gradient border animation */
-@keyframes gradient-border {
-  0% {
-    background-position: 0% 50%;
+/* Smooth Transitions */
+.transition-smooth {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Backdrop Blur Support */
+@supports (backdrop-filter: blur(20px)) or (-webkit-backdrop-filter: blur(20px)) {
+  .glass-purple {
+    -webkit-backdrop-filter: blur(20px);
+    backdrop-filter: blur(20px);
   }
-  50% {
-    background-position: 100% 50%;
-  }
-  100% {
-    background-position: 0% 50%;
-  }
 }
 
-.gradient-border {
-  position: relative;
-  background: linear-gradient(45deg, #667eea, #764ba2, #f093fb, #f5576c);
-  background-size: 400% 400%;
-  animation: gradient-border 4s ease infinite;
-}
-
-.gradient-border::before {
-  content: "";
-  position: absolute;
-  inset: 1px;
-  background: inherit;
-  border-radius: inherit;
-  z-index: -1;
-}
-
-/* Neon text effect */
-.neon-text {
-  text-shadow: 0 0 10px currentColor,
-               0 0 20px currentColor,
-               0 0 30px currentColor,
-               0 0 40px currentColor;
-}
-
-/* 3D transform for cards */
-.transform-3d {
-  transform: perspective(1000px) rotateX(0deg) rotateY(0deg);
-  transition: transform 0.6s;
-}
-
-.transform-3d:hover {
-  transform: perspective(1000px) rotateX(10deg) rotateY(-10deg);
-}
-
-/* Smooth scroll behavior */
-html {
-  scroll-behavior: smooth;
-}
-
-/* Custom scrollbar for portal */
-.portal-scrollbar::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
-
-.portal-scrollbar::-webkit-scrollbar-track {
-  background: rgba(155, 106, 229, 0.1);
-  border-radius: 4px;
-}
-
-.portal-scrollbar::-webkit-scrollbar-thumb {
-  background: linear-gradient(180deg, #667eea 0%, #764ba2 100%);
-  border-radius: 4px;
-}
-
-.portal-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(180deg, #764ba2 0%, #667eea 100%);
-}
-
-/* Backdrop blur support for Safari */
-@supports (backdrop-filter: blur(10px)) or (-webkit-backdrop-filter: blur(10px)) {
-  .backdrop-blur-xl {
-    -webkit-backdrop-filter: blur(24px);
-    backdrop-filter: blur(24px);
+/* Responsive Adjustments */
+@media (max-width: 768px) {
+  .gradient-orb-1,
+  .gradient-orb-2,
+  .gradient-orb-3 {
+    width: 200px;
+    height: 200px;
   }
   
-  .backdrop-blur-sm {
-    -webkit-backdrop-filter: blur(4px);
-    backdrop-filter: blur(4px);
+  .portal-3d-bg::before {
+    opacity: 0.7;
   }
-}
-
-/* Gradient text animation for headers */
-.gradient-text-animate {
-  background: linear-gradient(90deg, #667eea, #764ba2, #f093fb, #f5576c, #667eea);
-  background-size: 200% auto;
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-  animation: gradient-shift 3s ease infinite;
-}
-
-/* Portal specific styles */
-.client-portal {
-  min-height: 100vh;
-  position: relative;
-  overflow-x: hidden;
-}
-
-.client-portal::before {
-  content: '';
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: 
-    radial-gradient(circle at 20% 50%, rgba(120, 119, 198, 0.3) 0%, transparent 50%),
-    radial-gradient(circle at 80% 80%, rgba(255, 119, 198, 0.3) 0%, transparent 50%),
-    radial-gradient(circle at 40% 20%, rgba(100, 200, 255, 0.3) 0%, transparent 50%);
-  pointer-events: none;
-  z-index: 0;
-}
-
-/* Hover lift effect */
-.hover-lift {
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
-}
-
-.hover-lift:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
 }
