@@ -1066,7 +1066,7 @@ const FixlifyAutomationBuilder: React.FC<AutomationBuilderProps> = ({
             Cancel
           </Button>
           <GradientButton
-            variant="primary"
+            variant="default"
             onClick={handleSave}
           >
             {initialRule ? 'Update Automation' : 'Create Automation'}
