@@ -39,6 +39,8 @@ import TeamMemberProfilePage from "@/pages/TeamMemberProfilePage";
 import AcceptInvitationPage from "@/pages/AcceptInvitationPage";
 import ClientPortal from "@/pages/ClientPortal";
 import TestPortalAccessPage from "@/pages/TestPortalAccessPage";
+import EstimatePortal from "@/pages/EstimatePortal";
+import InvoicePortal from "@/pages/InvoicePortal";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -89,6 +91,16 @@ function App() {
             {/* Client Portal */}
             <Route path="/portal/:accessToken" element={
               <ClientPortal />
+            } />
+            
+            {/* Estimate View */}
+            <Route path="/estimate/:estimateId" element={
+              <EstimatePortal />
+            } />
+            
+            {/* Invoice View */}
+            <Route path="/invoice/:invoiceId" element={
+              <InvoicePortal />
             } />
             
             {/* Test Portal Access */}
