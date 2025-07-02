@@ -281,7 +281,7 @@ const ClientPortal = () => {
     .slice(0, 5);
 
   return (
-    <div className="min-h-screen portal-3d-bg portal-scrollbar overflow-x-hidden">
+    <div className="min-h-screen flex flex-col portal-3d-bg portal-scrollbar overflow-x-hidden">
       <div className="gradient-orb gradient-orb-1"></div>
       <div className="gradient-orb gradient-orb-2"></div>
       <div className="gradient-orb gradient-orb-3"></div>
@@ -325,26 +325,27 @@ const ClientPortal = () => {
               <div className="ml-4 lg:ml-0">
                 <h1 className="text-xl font-bold gradient-text flex items-center gap-2">
                   <Sparkles className="h-6 w-6 text-purple-600" />
-                  Client Portal
+                  <span className="hidden sm:inline">Client Portal</span>
+                  <span className="sm:hidden">Portal</span>
                 </h1>
                 <p className="text-sm text-gray-600 hidden sm:block">Welcome, {portalData.client.name}</p>
               </div>
             </div>
-            <div className="flex items-center gap-3">
-              <Badge className="bg-gradient-to-r from-purple-600 to-purple-700 text-white border-0 shadow-md">
-                <Shield className="h-3 w-3 mr-1" />
-                Secure Portal
+            <div className="flex items-center gap-2 sm:gap-3">
+              <Badge className="bg-gradient-to-r from-purple-600 to-purple-700 text-white border-0 shadow-md px-2 sm:px-3">
+                <Shield className="h-3 w-3 sm:mr-1" />
+                <span className="hidden sm:inline">Secure Portal</span>
               </Badge>
-              <span className="text-xs text-gray-500">Powered by</span>
+              <span className="text-xs text-gray-500 hidden sm:inline">Powered by</span>
               <span className="text-sm font-bold gradient-text">Fixlify</span>
             </div>
           </div>
         </div>
       </header>
 
-      <div className="flex relative z-10">
+      <div className="flex flex-1 relative z-10">
         {/* Desktop Sidebar */}
-        <aside className="hidden lg:block w-64 glass-purple shadow-xl min-h-[calc(100vh-4rem)] sticky top-16">
+        <aside className="hidden lg:block w-64 glass-purple shadow-xl sticky top-16 h-[calc(100vh-4rem)] overflow-y-auto">
           <nav className="p-4">
             <div className="space-y-2">
               {navigationItems.map((item) => (
