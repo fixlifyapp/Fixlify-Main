@@ -173,11 +173,17 @@ export default function InvoicePortal() {
   }
 
   const lineItems = invoice.items || [];
-  const subtotal = lineItems.reduce((sum: number, item: any) => {
+  // Filter out tax items from line items
+  const productItems = lineItems.filter((item: any) => 
+    !item.name?.toLowerCase().includes('tax') && 
+    !item.description?.toLowerCase().includes('tax')
+  );
+  const subtotal = productItems.reduce((sum: number, item: any) => {
     const amount = parseFloat(item.total || item.amount || '0');
     return sum + amount;
   }, 0);
-  const taxAmount = parseFloat(invoice.tax_amount) || 0;
+  const taxRate = parseFloat(invoice.tax_rate) || 0;
+  const taxAmount = parseFloat(invoice.tax_amount) || (subtotal * taxRate / 100);
   const discountAmount = parseFloat(invoice.discount_amount) || 0;
   const total = parseFloat(invoice.total) || subtotal + taxAmount - discountAmount;
   const totalPaid = payments.reduce((sum: number, payment: any) => 
@@ -267,10 +273,10 @@ export default function InvoicePortal() {
           )}
 
           {/* Line Items */}
-          {lineItems.length > 0 && (
+          {productItems.length > 0 && (
             <div className="px-8 py-6 border-t border-gray-100">
               <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4">Items</h3>
-              <DocumentItemsTable items={lineItems} />
+              <DocumentItemsTable items={productItems} />
             </div>
           )}
 
@@ -335,7 +341,7 @@ export default function InvoicePortal() {
                 <DocumentTotals
                   subtotal={subtotal}
                   taxAmount={taxAmount}
-                  taxRate={invoice.tax_rate}
+                  taxRate={taxRate}
                   discountAmount={discountAmount}
                   total={total}
                   paidAmount={totalPaid}

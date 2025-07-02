@@ -238,15 +238,32 @@ export const DocumentList = ({
                               Items
                             </h5>
                             <div className="space-y-2">
-                              {doc.items.map((item: any, index: number) => (
-                                <div key={index} className="flex justify-between text-sm">
-                                  <span className="text-gray-600">{item.description || item.name || `Item ${index + 1}`}</span>
+                              {doc.items
+                                .filter((item: any) => 
+                                  !item.name?.toLowerCase().includes('tax') && 
+                                  !item.description?.toLowerCase().includes('tax')
+                                )
+                                .map((item: any, index: number) => (
+                                  <div key={index} className="flex justify-between text-sm">
+                                    <span className="text-gray-600">{item.description || item.name || `Item ${index + 1}`}</span>
+                                    <span className="text-gray-900 font-medium">
+                                      {formatCurrency(item.total || item.amount || 0)}
+                                    </span>
+                                  </div>
+                                ))}
+                            </div>
+                            {doc.tax_amount && (
+                              <div className="pt-2 border-t border-purple-100">
+                                <div className="flex justify-between text-sm">
+                                  <span className="text-gray-600">
+                                    Tax {doc.tax_rate ? `(${doc.tax_rate}%)` : ''}
+                                  </span>
                                   <span className="text-gray-900 font-medium">
-                                    {formatCurrency(item.total || item.amount || 0)}
+                                    {formatCurrency(doc.tax_amount)}
                                   </span>
                                 </div>
-                              ))}
-                            </div>
+                              </div>
+                            )}
                           </div>
                         )}
                         

@@ -314,10 +314,13 @@ export const DocumentTotals: React.FC<DocumentTotalsProps> = ({
           </div>
         )}
         
-        {(taxAmount || taxRate) && (
+        {(taxAmount !== undefined && taxAmount > 0) && (
           <div className="flex justify-between text-gray-600">
-            <span>Tax {taxRate ? `(${taxRate}%)` : ''}</span>
-            <span>{formatCurrency(taxAmount || 0)}</span>
+            <span>
+              Tax
+              {taxRate !== undefined && taxRate > 0 && ` (${taxRate}%)`}
+            </span>
+            <span>{formatCurrency(taxAmount)}</span>
           </div>
         )}
         
