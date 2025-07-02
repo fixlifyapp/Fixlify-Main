@@ -25,11 +25,11 @@ export const PageLayout = ({ children }: PageLayoutProps) => {
 
   return (
     <SidebarProvider defaultOpen={!isMobile}>
-      <div className="min-h-screen flex w-full">
+      <div className="min-h-screen flex w-full bg-background">
         <AppSidebar />
-        <SidebarInset className="flex-1 flex flex-col overflow-hidden">
+        <SidebarInset className="flex-1 flex flex-col overflow-hidden min-w-0">
           <Header />
-          <main className={`flex-1 overflow-y-auto ${isMobile ? 'p-3' : 'p-6'}`}>
+          <main className={`flex-1 overflow-y-auto bg-background ${isMobile ? 'p-3' : 'p-4 lg:p-6'}`}>
             {children}
           </main>
         </SidebarInset>
