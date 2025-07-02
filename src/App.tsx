@@ -113,10 +113,12 @@ function App() {
               </AuthProvider>
             } />
             
-            {/* Root redirect */}
+            {/* Root redirect - check auth first */}
             <Route path="/" element={
               <AuthProvider>
-                <Navigate to="/dashboard" replace />
+                <ProtectedRouteWithProviders>
+                  <Navigate to="/dashboard" replace />
+                </ProtectedRouteWithProviders>
               </AuthProvider>
             } />
             
