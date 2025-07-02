@@ -10,7 +10,6 @@ import { AppProviders } from "@/components/ui/AppProviders";
 // Pages
 import AuthPage from "@/pages/AuthPage";
 import Dashboard from "@/pages/Dashboard";
-import TestDashboard from "@/pages/TestDashboard";
 import JobsPageOptimized from "@/pages/JobsPageOptimized";
 import JobDetailsPage from "@/pages/JobDetailsPage";
 import ClientsPage from "@/pages/ClientsPage";

@@ -20,7 +20,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 export type { TimePeriod };
 
 const Dashboard = () => {
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [timePeriod, setTimePeriod] = useState<TimePeriod>("month");
   const [dateRange, setDateRange] = useState<{ from: Date | undefined; to: Date | undefined }>({
     from: undefined,
@@ -30,7 +30,10 @@ const Dashboard = () => {
   const isMobile = useIsMobile();
 
   useEffect(() => {
-    // Component mounted
+    // Simulate loading data
+    setTimeout(() => {
+      setIsLoading(false);
+    }, 500);
   }, []);
 
   const handleFilterChange = (period: TimePeriod, range?: { from: Date | undefined; to: Date | undefined }) => {
