@@ -17,10 +17,14 @@ export const supabase = createClient<Database>(
       persistSession: true,
       detectSessionInUrl: true,
       storage: window.localStorage,
-      storageKey: 'fixlify-auth-token',
-      flowType: 'implicit'
+      storageKey: 'supabase.auth.token',
+      flowType: 'pkce'
+    },
+    global: {
+      headers: {
+        'x-application-name': 'fixlify'
+      }
     }
-    // Removed global headers to fix CORS issue
   }
 );
 
