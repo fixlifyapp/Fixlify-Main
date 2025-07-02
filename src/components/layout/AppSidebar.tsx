@@ -55,7 +55,7 @@ export function AppSidebar() {
   }, {
     label: 'Connect Center',
     icon: MessageSquare,
-    href: '/messages',
+    href: '/communications',
     color: "text-fixlyfy"
   }, {
     label: 'AI Center',

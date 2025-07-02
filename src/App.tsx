@@ -34,7 +34,6 @@ import InvoicesPage from "@/pages/InvoicesPage";
 import ReportsPage from "@/pages/ReportsPage";
 import DocumentsPage from "@/pages/DocumentsPage";
 import InventoryPage from "@/pages/InventoryPage";
-import MessagesPage from "@/pages/MessagesPage";
 import AdminRolesPage from "@/pages/AdminRolesPage";
 import TeamMemberProfilePage from "@/pages/TeamMemberProfilePage";
 import AcceptInvitationPage from "@/pages/AcceptInvitationPage";
@@ -184,12 +183,9 @@ function App() {
               </AuthProvider>
             } />
             
+            {/* Messages - Redirect to Connect Center */}
             <Route path="/messages" element={
-              <AuthProvider>
-                <ProtectedRouteWithProviders>
-                  <MessagesPage />
-                </ProtectedRouteWithProviders>
-              </AuthProvider>
+              <Navigate to="/communications?tab=messages" replace />
             } />
             
             {/* AI Center */}
