@@ -8,6 +8,7 @@
 @import './styles/simple-workflow-builder.css';
 @import './styles/ai-automation-builder.css';
 @import './styles/portal-3d.css';
+@import './styles/documents.css';
 
 @tailwind base;
 @tailwind components;

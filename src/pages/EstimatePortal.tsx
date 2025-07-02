@@ -1,13 +1,16 @@
 import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Download, CheckCircle, Clock, FileText, Sparkles } from "lucide-react";
-import { formatCurrency } from "@/lib/utils";
-import { format } from "date-fns";
+import { Loader2, Download, CheckCircle, Printer, Send, Eye } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import {
+  DocumentHeader,
+  DocumentItemsTable,
+  DocumentTotals,
+  DocumentNotes
+} from "@/components/documents/DocumentComponents";
 
 export default function EstimatePortal() {
   const { estimateId } = useParams();
@@ -15,6 +18,7 @@ export default function EstimatePortal() {
   const [estimate, setEstimate] = useState<any>(null);
   const [job, setJob] = useState<any>(null);
   const [client, setClient] = useState<any>(null);
+  const [company, setCompany] = useState<any>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -65,6 +69,27 @@ export default function EstimatePortal() {
           setClient(clientData);
         }
       }
+
+      // Load company settings
+      const { data: companyData } = await supabase
+        .from("company_settings")
+        .select("*")
+        .limit(1)
+        .maybeSingle();
+      
+      if (companyData) {
+        setCompany({
+          name: companyData.company_name,
+          email: companyData.company_email,
+          phone: companyData.company_phone,
+          website: companyData.company_website,
+          address: companyData.company_address,
+          city: companyData.company_city,
+          state: companyData.company_state,
+          zip: companyData.company_zip,
+          logo: companyData.company_logo
+        });
+      }
     } catch (error) {
       console.error("Error loading estimate:", error);
       toast({
@@ -75,6 +100,10 @@ export default function EstimatePortal() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handlePrint = () => {
+    window.print();
   };
 
   const handleDownload = () => {
@@ -94,7 +123,7 @@ export default function EstimatePortal() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-50 to-pink-50">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
           <Loader2 className="h-12 w-12 animate-spin text-purple-600 mx-auto mb-4" />
           <p className="text-gray-600">Loading estimate...</p>
@@ -105,14 +134,16 @@ export default function EstimatePortal() {
 
   if (!estimate) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-50 to-pink-50">
-        <Card className="max-w-md">
-          <CardContent className="text-center p-8">
-            <FileText className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-            <h2 className="text-2xl font-semibold text-gray-900 mb-2">Estimate Not Found</h2>
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="bg-white rounded-2xl shadow-lg p-12 max-w-md">
+            <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-6">
+              <Eye className="h-10 w-10 text-gray-400" />
+            </div>
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">Estimate Not Found</h2>
             <p className="text-gray-600">The estimate you're looking for doesn't exist or has been removed.</p>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </div>
     );
   }
@@ -123,149 +154,19 @@ export default function EstimatePortal() {
     return sum + amount;
   }, 0);
   const taxAmount = parseFloat(estimate.tax_amount) || 0;
-  const total = parseFloat(estimate.total) || subtotal + taxAmount;
+  const discountAmount = parseFloat(estimate.discount_amount) || 0;
+  const total = parseFloat(estimate.total) || subtotal + taxAmount - discountAmount;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 to-pink-50 py-8 px-4">
-      <div className="max-w-4xl mx-auto">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-8">
-          <div className="flex items-center gap-3">
-            <div className="h-12 w-12 bg-gradient-to-br from-purple-500 to-purple-700 rounded-xl flex items-center justify-center shadow-lg">
-              <FileText className="h-6 w-6 text-white" />
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">Estimate #{estimate.estimate_number}</h1>
-              <p className="text-gray-600">Created on {format(new Date(estimate.created_at), "MMMM d, yyyy")}</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-3">
-            <Badge 
-              variant={estimate.status === 'accepted' ? 'default' : estimate.status === 'sent' ? 'secondary' : 'outline'}
-              className="text-sm"
-            >
-              {estimate.status === 'accepted' && <CheckCircle className="h-4 w-4 mr-1" />}
-              {estimate.status === 'sent' && <Clock className="h-4 w-4 mr-1" />}
-              {estimate.status || 'Draft'}
-            </Badge>
-          </div>
-        </div>
-
-        {/* Main Content */}
-        <Card className="shadow-xl border-0">
-          <CardHeader className="bg-gradient-to-r from-purple-600 to-purple-700 text-white">
-            <div className="flex justify-between items-start">
-              <div>
-                <CardTitle className="text-3xl mb-2">Estimate</CardTitle>
-                {job && <p className="text-purple-100">Job: {job.title}</p>}
-              </div>
-              <div className="text-right">
-                <Sparkles className="h-8 w-8 text-purple-300 ml-auto mb-2" />
-                <p className="text-3xl font-bold">{formatCurrency(total)}</p>
-              </div>
-            </div>
-          </CardHeader>
-
-          <CardContent className="p-8">
-            {/* Client Info */}
-            {client && (
-              <div className="mb-8">
-                <h3 className="text-lg font-semibold text-gray-900 mb-3">Bill To:</h3>
-                <div className="text-gray-600">
-                  <p className="font-medium text-gray-900">{client.name}</p>
-                  {client.email && <p>{client.email}</p>}
-                  {client.phone && <p>{client.phone}</p>}
-                  {client.address && (
-                    <p>
-                      {client.address}
-                      {client.city && `, ${client.city}`}
-                      {client.state && `, ${client.state}`}
-                      {client.zip && ` ${client.zip}`}
-                    </p>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {/* Description */}
-            {estimate.description && (
-              <div className="mb-8">
-                <h3 className="text-lg font-semibold text-gray-900 mb-3">Description</h3>
-                <p className="text-gray-600">{estimate.description}</p>
-              </div>
-            )}
-
-            {/* Line Items */}
-            {lineItems.length > 0 && (
-              <div className="mb-8">
-                <h3 className="text-lg font-semibold text-gray-900 mb-3">Items</h3>
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead>
-                      <tr className="border-b border-gray-200">
-                        <th className="text-left py-3 px-4 text-gray-700 font-medium">Description</th>
-                        <th className="text-right py-3 px-4 text-gray-700 font-medium">Quantity</th>
-                        <th className="text-right py-3 px-4 text-gray-700 font-medium">Rate</th>
-                        <th className="text-right py-3 px-4 text-gray-700 font-medium">Amount</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {lineItems.map((item: any, index: number) => {
-                        const quantity = parseFloat(item.quantity || '1');
-                        const rate = parseFloat(item.rate || item.price || item.amount || '0');
-                        const itemTotal = parseFloat(item.total || item.amount || (quantity * rate) || '0');
-                        
-                        return (
-                          <tr key={index} className="border-b border-gray-100">
-                            <td className="py-3 px-4 text-gray-600">
-                              {item.description || item.name || 'Item ' + (index + 1)}
-                            </td>
-                            <td className="py-3 px-4 text-gray-600 text-right">{quantity}</td>
-                            <td className="py-3 px-4 text-gray-600 text-right">
-                              {formatCurrency(rate)}
-                            </td>
-                            <td className="py-3 px-4 text-gray-900 font-medium text-right">
-                              {formatCurrency(itemTotal)}
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            )}
-
-            {/* Totals */}
-            <div className="border-t border-gray-200 pt-4">
-              <div className="space-y-2">
-                <div className="flex justify-between text-gray-600">
-                  <span>Subtotal</span>
-                  <span>{formatCurrency(subtotal)}</span>
-                </div>
-                {taxAmount > 0 && (
-                  <div className="flex justify-between text-gray-600">
-                    <span>Tax</span>
-                    <span>{formatCurrency(taxAmount)}</span>
-                  </div>
-                )}
-                <div className="flex justify-between text-xl font-semibold text-gray-900 pt-2 border-t">
-                  <span>Total</span>
-                  <span>{formatCurrency(total)}</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Notes */}
-            {estimate.notes && (
-              <div className="mt-8 p-4 bg-purple-50 rounded-lg">
-                <h4 className="font-medium text-gray-900 mb-2">Notes</h4>
-                <p className="text-gray-600 text-sm">{estimate.notes}</p>
-              </div>
-            )}
-
-            {/* Actions */}
-            <div className="mt-8 flex flex-wrap gap-3">
+    <div className="min-h-screen bg-gray-50">
+      {/* Action Bar */}
+      <div className="bg-white border-b border-gray-200 sticky top-0 z-10 print:hidden">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center py-4">
+            <h1 className="text-lg font-semibold text-gray-900">
+              Estimate #{estimate.estimate_number}
+            </h1>
+            <div className="flex items-center gap-3">
               {estimate.status !== 'accepted' && (
                 <Button 
                   onClick={handleAccept}
@@ -277,14 +178,118 @@ export default function EstimatePortal() {
               )}
               <Button 
                 variant="outline" 
+                onClick={handlePrint}
+              >
+                <Printer className="h-4 w-4 mr-2" />
+                Print
+              </Button>
+              <Button 
+                variant="outline" 
                 onClick={handleDownload}
               >
                 <Download className="h-4 w-4 mr-2" />
                 Download PDF
               </Button>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
+      </div>
+
+      {/* Document Content */}
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
+          {/* Header with Company and Client Info */}
+          <DocumentHeader
+            type="estimate"
+            documentNumber={estimate.estimate_number}
+            date={estimate.created_at}
+            status={estimate.status}
+            company={company}
+            client={client}
+          />
+
+          {/* Job Information */}
+          {job && (
+            <div className="px-8 py-6 border-t border-gray-100">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider">Job Reference</h3>
+                  <p className="mt-1 text-lg text-gray-900">{job.title}</p>
+                </div>
+                {estimate.valid_until && (
+                  <div className="text-right">
+                    <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider">Valid Until</h3>
+                    <p className="mt-1 text-lg text-gray-900">
+                      {new Date(estimate.valid_until).toLocaleDateString()}
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Description */}
+          {estimate.description && (
+            <div className="px-8 py-6 border-t border-gray-100">
+              <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">Description</h3>
+              <p className="text-gray-700 whitespace-pre-wrap">{estimate.description}</p>
+            </div>
+          )}
+
+          {/* Line Items */}
+          {lineItems.length > 0 && (
+            <div className="px-8 py-6 border-t border-gray-100">
+              <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4">Items</h3>
+              <DocumentItemsTable items={lineItems} />
+            </div>
+          )}
+
+          {/* Totals and Notes */}
+          <div className="px-8 py-6 border-t border-gray-100 bg-gray-50">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              {/* Notes */}
+              <div>
+                {estimate.notes && (
+                  <DocumentNotes
+                    title="Notes"
+                    content={estimate.notes}
+                    type="info"
+                  />
+                )}
+                {estimate.terms && (
+                  <DocumentNotes
+                    title="Terms & Conditions"
+                    content={estimate.terms}
+                    type="warning"
+                  />
+                )}
+              </div>
+
+              {/* Totals */}
+              <div>
+                <DocumentTotals
+                  subtotal={subtotal}
+                  taxAmount={taxAmount}
+                  taxRate={estimate.tax_rate}
+                  discountAmount={discountAmount}
+                  total={total}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Footer */}
+          <div className="px-8 py-6 bg-gradient-to-r from-purple-600 to-purple-700 text-white text-center">
+            <p className="text-sm">
+              Thank you for considering our services. We look forward to working with you!
+            </p>
+            {company?.email && (
+              <p className="text-sm mt-2 opacity-90">
+                Questions? Contact us at {company.email}
+              </p>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );
