@@ -64,6 +64,7 @@ interface PortalData {
   jobs: any[];
   estimates: any[];
   invoices: any[];
+  payments?: any[];
   permissions: {
     view_estimates: boolean;
     view_invoices: boolean;
@@ -84,6 +85,7 @@ interface PortalData {
     };
     pending: {
       count: number;
+      value: number;
     };
   };
 }

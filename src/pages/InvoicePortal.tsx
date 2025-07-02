@@ -15,6 +15,7 @@ export default function InvoicePortal() {
   const [invoice, setInvoice] = useState<any>(null);
   const [job, setJob] = useState<any>(null);
   const [client, setClient] = useState<any>(null);
+  const [payments, setPayments] = useState<any[]>([]);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -64,6 +65,17 @@ export default function InvoicePortal() {
         if (clientData) {
           setClient(clientData);
         }
+      }
+
+      // Load payments for this invoice
+      const { data: paymentsData } = await supabase
+        .from("payments")
+        .select("*")
+        .eq("invoice_id", invoiceId)
+        .order("payment_date", { ascending: false });
+      
+      if (paymentsData) {
+        setPayments(paymentsData);
       }
     } catch (error) {
       console.error("Error loading invoice:", error);
@@ -117,11 +129,18 @@ export default function InvoicePortal() {
     );
   }
 
-  const lineItems = invoice.line_items || [];
-  const subtotal = lineItems.reduce((sum: number, item: any) => sum + (parseFloat(item.amount) || 0), 0);
+  const lineItems = invoice.items || [];
+  const subtotal = lineItems.reduce((sum: number, item: any) => {
+    const amount = parseFloat(item.total || item.amount || '0');
+    return sum + amount;
+  }, 0);
   const taxAmount = parseFloat(invoice.tax_amount) || 0;
   const total = parseFloat(invoice.total) || subtotal + taxAmount;
-  const isPaid = invoice.payment_status === 'paid';
+  const totalPaid = payments.reduce((sum: number, payment: any) => 
+    sum + (parseFloat(payment.amount) || 0), 0
+  );
+  const balance = total - totalPaid;
+  const isPaid = invoice.payment_status === 'paid' || balance <= 0;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 py-8 px-4">
@@ -218,18 +237,26 @@ export default function InvoicePortal() {
                       </tr>
                     </thead>
                     <tbody>
-                      {lineItems.map((item: any, index: number) => (
-                        <tr key={index} className="border-b border-gray-100">
-                          <td className="py-3 px-4 text-gray-600">{item.description}</td>
-                          <td className="py-3 px-4 text-gray-600 text-right">{item.quantity || 1}</td>
-                          <td className="py-3 px-4 text-gray-600 text-right">
-                            {formatCurrency(item.rate || item.amount)}
-                          </td>
-                          <td className="py-3 px-4 text-gray-900 font-medium text-right">
-                            {formatCurrency(item.amount)}
-                          </td>
-                        </tr>
-                      ))}
+                      {lineItems.map((item: any, index: number) => {
+                        const quantity = parseFloat(item.quantity || '1');
+                        const rate = parseFloat(item.rate || item.price || item.amount || '0');
+                        const itemTotal = parseFloat(item.total || item.amount || (quantity * rate) || '0');
+                        
+                        return (
+                          <tr key={index} className="border-b border-gray-100">
+                            <td className="py-3 px-4 text-gray-600">
+                              {item.description || item.name || 'Item ' + (index + 1)}
+                            </td>
+                            <td className="py-3 px-4 text-gray-600 text-right">{quantity}</td>
+                            <td className="py-3 px-4 text-gray-600 text-right">
+                              {formatCurrency(rate)}
+                            </td>
+                            <td className="py-3 px-4 text-gray-900 font-medium text-right">
+                              {formatCurrency(itemTotal)}
+                            </td>
+                          </tr>
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>
@@ -253,6 +280,20 @@ export default function InvoicePortal() {
                   <span>Total</span>
                   <span>{formatCurrency(total)}</span>
                 </div>
+                {totalPaid > 0 && (
+                  <>
+                    <div className="flex justify-between text-gray-600 pt-2">
+                      <span>Total Paid</span>
+                      <span className="text-green-600">-{formatCurrency(totalPaid)}</span>
+                    </div>
+                    <div className="flex justify-between text-xl font-semibold text-gray-900 pt-2 border-t">
+                      <span>Balance Due</span>
+                      <span className={balance > 0 ? "text-red-600" : "text-green-600"}>
+                        {formatCurrency(balance)}
+                      </span>
+                    </div>
+                  </>
+                )}
               </div>
             </div>
 
@@ -263,6 +304,31 @@ export default function InvoicePortal() {
                   <CheckCircle className="h-5 w-5 mr-2" />
                   Paid on {format(new Date(invoice.payment_date), "MMMM d, yyyy")}
                 </p>
+              </div>
+            )}
+
+            {/* Payment History */}
+            {payments.length > 0 && (
+              <div className="mt-8">
+                <h3 className="text-lg font-semibold text-gray-900 mb-3">Payment History</h3>
+                <div className="bg-gray-50 rounded-lg p-4 space-y-3">
+                  {payments.map((payment: any) => (
+                    <div key={payment.id} className="flex justify-between items-center p-3 bg-white rounded-lg shadow-sm">
+                      <div>
+                        <p className="font-medium text-gray-900">
+                          {formatCurrency(payment.amount)}
+                        </p>
+                        <p className="text-sm text-gray-600">
+                          {payment.method && `${payment.method} • `}
+                          {format(new Date(payment.payment_date || payment.created_at), "MMM d, yyyy")}
+                        </p>
+                      </div>
+                      <Badge variant={payment.status === 'completed' ? 'default' : 'secondary'}>
+                        {payment.status || 'Completed'}
+                      </Badge>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
 

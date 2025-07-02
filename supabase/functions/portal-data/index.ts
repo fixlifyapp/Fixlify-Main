@@ -145,6 +145,20 @@ serve(async (req) => {
       }
     }
 
+    // Get payments
+    let payments = []
+    if (permissions.view_invoices !== false) {
+      const { data: paymentsData, error: paymentsError } = await supabaseClient
+        .from('payments')
+        .select('*')
+        .eq('client_id', clientId)
+        .order('payment_date', { ascending: false })
+
+      if (!paymentsError && paymentsData) {
+        payments = paymentsData
+      }
+    }
+
     // Get company settings (use service role for this)
     const supabaseAdmin = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
@@ -182,12 +196,12 @@ serve(async (req) => {
         value: invoices.reduce((sum, inv) => sum + (inv.total || 0), 0)
       },
       paid: {
-        count: invoices.filter(inv => inv.payment_status === 'paid').length,
-        value: invoices.filter(inv => inv.payment_status === 'paid').reduce((sum, inv) => sum + (inv.total || 0), 0)
+        count: payments.length,
+        value: payments.reduce((sum, pmt) => sum + (pmt.amount || 0), 0)
       },
       pending: {
         count: invoices.filter(inv => inv.payment_status !== 'paid').length,
-        value: invoices.filter(inv => inv.payment_status !== 'paid').reduce((sum, inv) => sum + (inv.total || 0), 0)
+        value: invoices.filter(inv => inv.payment_status !== 'paid').reduce((sum, inv) => sum + (inv.total || 0), 0) - payments.reduce((sum, pmt) => sum + (pmt.amount || 0), 0)
       }
     }
 
@@ -214,6 +228,7 @@ serve(async (req) => {
       jobs: jobs || [],
       estimates,
       invoices,
+      payments: payments || [],
       permissions,
       totals
     }

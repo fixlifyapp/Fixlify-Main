@@ -117,8 +117,11 @@ export default function EstimatePortal() {
     );
   }
 
-  const lineItems = estimate.line_items || [];
-  const subtotal = lineItems.reduce((sum: number, item: any) => sum + (parseFloat(item.amount) || 0), 0);
+  const lineItems = estimate.items || [];
+  const subtotal = lineItems.reduce((sum: number, item: any) => {
+    const amount = parseFloat(item.total || item.amount || '0');
+    return sum + amount;
+  }, 0);
   const taxAmount = parseFloat(estimate.tax_amount) || 0;
   const total = parseFloat(estimate.total) || subtotal + taxAmount;
 
@@ -207,18 +210,26 @@ export default function EstimatePortal() {
                       </tr>
                     </thead>
                     <tbody>
-                      {lineItems.map((item: any, index: number) => (
-                        <tr key={index} className="border-b border-gray-100">
-                          <td className="py-3 px-4 text-gray-600">{item.description}</td>
-                          <td className="py-3 px-4 text-gray-600 text-right">{item.quantity || 1}</td>
-                          <td className="py-3 px-4 text-gray-600 text-right">
-                            {formatCurrency(item.rate || item.amount)}
-                          </td>
-                          <td className="py-3 px-4 text-gray-900 font-medium text-right">
-                            {formatCurrency(item.amount)}
-                          </td>
-                        </tr>
-                      ))}
+                      {lineItems.map((item: any, index: number) => {
+                        const quantity = parseFloat(item.quantity || '1');
+                        const rate = parseFloat(item.rate || item.price || item.amount || '0');
+                        const itemTotal = parseFloat(item.total || item.amount || (quantity * rate) || '0');
+                        
+                        return (
+                          <tr key={index} className="border-b border-gray-100">
+                            <td className="py-3 px-4 text-gray-600">
+                              {item.description || item.name || 'Item ' + (index + 1)}
+                            </td>
+                            <td className="py-3 px-4 text-gray-600 text-right">{quantity}</td>
+                            <td className="py-3 px-4 text-gray-600 text-right">
+                              {formatCurrency(rate)}
+                            </td>
+                            <td className="py-3 px-4 text-gray-900 font-medium text-right">
+                              {formatCurrency(itemTotal)}
+                            </td>
+                          </tr>
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>

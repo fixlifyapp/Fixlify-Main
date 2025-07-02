@@ -231,16 +231,16 @@ export const DocumentList = ({
                         )}
                         
                         {/* Line Items Preview */}
-                        {doc.line_items && doc.line_items.length > 0 && (
+                        {doc.items && doc.items.length > 0 && (
                           <div className="bg-white/50 rounded-lg p-4 space-y-2">
                             <h5 className="text-sm font-medium text-gray-700 flex items-center gap-2">
                               <TrendingUp className="h-4 w-4 text-purple-500" />
                               Items
                             </h5>
                             <div className="space-y-2">
-                              {doc.line_items.map((item: any, index: number) => (
+                              {doc.items.map((item: any, index: number) => (
                                 <div key={index} className="flex justify-between text-sm">
-                                  <span className="text-gray-600">{item.description || item.name}</span>
+                                  <span className="text-gray-600">{item.description || item.name || `Item ${index + 1}`}</span>
                                   <span className="text-gray-900 font-medium">
                                     {formatCurrency(item.total || item.amount || 0)}
                                   </span>
