@@ -348,6 +348,14 @@ export const ClientsList = ({ isGridView = false, clients, isLoading, onRefresh 
   const clientsData = clients || hookData.clients;
   const loadingState = isLoading !== undefined ? isLoading : hookData.isLoading;
 
+  console.log("ClientsList Debug:", {
+    isGridView,
+    clientsDataLength: clientsData?.length,
+    loadingState,
+    hasClients: clientsData && clientsData.length > 0,
+    clientsData: clientsData?.slice(0, 2) // First 2 clients for debugging
+  });
+
   if (loadingState) {
     return (
       <ModernCard variant="elevated" className="p-8 text-center">
@@ -359,7 +367,7 @@ export const ClientsList = ({ isGridView = false, clients, isLoading, onRefresh 
     );
   }
 
-  if (clientsData.length === 0) {
+  if (!clientsData || clientsData.length === 0) {
     return (
       <ModernCard variant="elevated" className="p-12 text-center">
         <div className="text-muted-foreground">
