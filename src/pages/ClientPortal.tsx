@@ -36,7 +36,7 @@ import { ClientPortalHeader } from "@/components/portal/ClientPortalHeader";
 import { ClientInfoCard } from "@/components/portal/ClientInfoCard";
 import { DashboardStats } from "@/components/portal/DashboardStats";
 import { DocumentList } from "@/components/portal/DocumentList";
-import { ClientPortalFooter } from "@/components/portal/ClientPortalFooter";
+import ClientPortalFooter from "@/components/portal/ClientPortalFooter";
 import { cn } from "@/lib/utils";
 
 interface PortalData {
