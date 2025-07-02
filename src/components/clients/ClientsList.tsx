@@ -384,18 +384,18 @@ export const ClientsList = ({ isGridView = false, clients, isLoading, onRefresh 
   return (
     <ModernCard variant="elevated">
       <div className="overflow-x-auto">
-        <table className="w-full">
+        <table className="w-full min-w-[1000px]">
           <thead>
             <tr className="border-b">
-              <th className="text-left p-4 font-semibold">Client</th>
-              <th className="text-left p-4 font-semibold">Type</th>
-              <th className="text-left p-4 font-semibold">Status</th>
-              <th className="text-left p-4 font-semibold">Address</th>
-              <th className="text-left p-4 font-semibold">Jobs</th>
-              <th className="text-left p-4 font-semibold">Revenue</th>
-              <th className="text-left p-4 font-semibold">Last Service</th>
-              <th className="text-left p-4 font-semibold">Contact</th>
-              <th className="text-right p-4 w-20">Actions</th>
+              <th className="text-left p-4 font-semibold w-[200px]">Client</th>
+              <th className="text-left p-4 font-semibold w-[100px]">Type</th>
+              <th className="text-left p-4 font-semibold w-[100px]">Status</th>
+              <th className="text-left p-4 font-semibold w-[200px]">Address</th>
+              <th className="text-left p-4 font-semibold w-[80px]">Jobs</th>
+              <th className="text-left p-4 font-semibold w-[120px]">Revenue</th>
+              <th className="text-left p-4 font-semibold w-[120px]">Last Service</th>
+              <th className="text-left p-4 font-semibold w-[100px]">Contact</th>
+              <th className="text-right p-4 w-[80px]">Actions</th>
             </tr>
           </thead>
           <tbody>
