@@ -149,11 +149,17 @@ export default function EstimatePortal() {
   }
 
   const lineItems = estimate.items || [];
-  const subtotal = lineItems.reduce((sum: number, item: any) => {
+  // Filter out tax items from line items
+  const productItems = lineItems.filter((item: any) => 
+    !item.name?.toLowerCase().includes('tax') && 
+    !item.description?.toLowerCase().includes('tax')
+  );
+  const subtotal = productItems.reduce((sum: number, item: any) => {
     const amount = parseFloat(item.total || item.amount || '0');
     return sum + amount;
   }, 0);
-  const taxAmount = parseFloat(estimate.tax_amount) || 0;
+  const taxRate = parseFloat(estimate.tax_rate) || 0;
+  const taxAmount = parseFloat(estimate.tax_amount) || (subtotal * taxRate / 100);
   const discountAmount = parseFloat(estimate.discount_amount) || 0;
   const total = parseFloat(estimate.total) || subtotal + taxAmount - discountAmount;
 
@@ -237,10 +243,10 @@ export default function EstimatePortal() {
           )}
 
           {/* Line Items */}
-          {lineItems.length > 0 && (
+          {productItems.length > 0 && (
             <div className="px-8 py-6 border-t border-gray-100">
               <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4">Items</h3>
-              <DocumentItemsTable items={lineItems} />
+              <DocumentItemsTable items={productItems} />
             </div>
           )}
 
@@ -270,7 +276,7 @@ export default function EstimatePortal() {
                 <DocumentTotals
                   subtotal={subtotal}
                   taxAmount={taxAmount}
-                  taxRate={estimate.tax_rate}
+                  taxRate={taxRate}
                   discountAmount={discountAmount}
                   total={total}
                 />
