@@ -967,3 +967,73 @@ npm run preview  # Test production build
 
 *Last Updated: Current Session*
 *Maintained by: AI Assistant*
+
+## 🔐 Portal Access System Implementation (2025-07-02)
+
+### Overview
+Implemented a comprehensive portal access system that allows every client to access their portal through secure, time-limited tokens. The system works for all clients and user accounts.
+
+### Key Components
+
+1. **Database Tables**
+   - `client_portal_access` - Stores portal access tokens with permissions
+   - `portal_sessions` - Tracks active portal sessions
+
+2. **Edge Functions**
+   - `portal-data` - Validates tokens and returns client data (Updated to use correct table names)
+   - `document-viewer` - Handles document viewing
+   - `download-document` - Handles document downloads
+
+3. **SQL Function**
+   - `generate_portal_access` - Creates secure access tokens with permissions
+
+### How It Works
+1. **Token Generation**: Use `generate_portal_access` function to create tokens for clients
+2. **Portal Access**: Clients access via URL: `https://hub.fixlify.app/portal/{token}` or locally `http://localhost:8080/portal/{token}`
+3. **Session Management**: First access creates a session in `portal_sessions` table
+4. **Permissions**: Fine-grained control over what clients can view/do
+
+### Testing Portal Access
+- Created `/test-portal-access` page to test portal generation for all clients
+- Access at: `http://localhost:8080/test-portal-access`
+- Features:
+  - Generate portal access for all clients
+  - Test portal data loading
+  - View generated URLs
+  - Batch processing support
+
+### Default Permissions
+```json
+{
+  "view_estimates": true,
+  "view_invoices": true,
+  "view_jobs": true,
+  "pay_invoices": true,
+  "approve_estimates": true
+}
+```
+
+### Portal URLs
+- Production: `https://hub.fixlify.app/portal/{token}`
+- Local: `http://localhost:8080/portal/{token}`
+- Tokens valid for 72 hours by default
+
+### Usage Example
+```sql
+-- Generate portal access for a client
+SELECT generate_portal_access(
+    'CLIENT_ID',
+    jsonb_build_object(
+        'view_estimates', true,
+        'view_invoices', true,
+        'view_jobs', true,
+        'pay_invoices', true,
+        'approve_estimates', true
+    ),
+    72  -- hours valid
+);
+```
+
+---
+
+*Portal Access System Added: 2025-07-02*

@@ -38,6 +38,7 @@ import AdminRolesPage from "@/pages/AdminRolesPage";
 import TeamMemberProfilePage from "@/pages/TeamMemberProfilePage";
 import AcceptInvitationPage from "@/pages/AcceptInvitationPage";
 import ClientPortal from "@/pages/ClientPortal";
+import TestPortalAccessPage from "@/pages/TestPortalAccessPage";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -88,6 +89,15 @@ function App() {
             {/* Client Portal */}
             <Route path="/portal/:accessToken" element={
               <ClientPortal />
+            } />
+            
+            {/* Test Portal Access */}
+            <Route path="/test-portal-access" element={
+              <AuthProvider>
+                <ProtectedRouteWithProviders>
+                  <TestPortalAccessPage />
+                </ProtectedRouteWithProviders>
+              </AuthProvider>
             } />
             
             {/* Root redirect */}
