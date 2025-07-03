@@ -68,7 +68,7 @@ export const AIAutomationBuilder: React.FC<AIAutomationBuilderProps> = ({ onAuto
 
     // Job completion follow-ups
     if (lowerPrompt.includes('completion') || lowerPrompt.includes('completed') || lowerPrompt.includes('done')) {
-      trigger = { type: 'job_completed', name: 'Job Completed' };
+      trigger = { type: 'job_completed', name: 'Job Completed', config: {} };
       name = `${timeValue} ${timeUnit} follow-up after completion`;
       description = `Automatically follow up with customers ${timeValue} ${timeUnit}${timeValue > 1 ? 's' : ''} after job completion`;
       
@@ -81,7 +81,7 @@ export const AIAutomationBuilder: React.FC<AIAutomationBuilderProps> = ({ onAuto
     }
     // Invoice/payment reminders
     else if (lowerPrompt.includes('invoice') || lowerPrompt.includes('payment') || lowerPrompt.includes('unpaid')) {
-      trigger = { type: 'invoice_sent', name: 'Invoice Sent' };
+      trigger = { type: 'invoice_sent', name: 'Invoice Sent', config: {} };
       name = `Payment reminder after ${timeValue} ${timeUnit}${timeValue > 1 ? 's' : ''}`;
       description = `Send payment reminder ${timeValue} ${timeUnit}${timeValue > 1 ? 's' : ''} after invoice is sent`;
       
@@ -103,7 +103,7 @@ export const AIAutomationBuilder: React.FC<AIAutomationBuilderProps> = ({ onAuto
     }
     // Review requests
     else if (lowerPrompt.includes('review') || lowerPrompt.includes('feedback') || lowerPrompt.includes('rating')) {
-      trigger = { type: 'job_completed', name: 'Job Completed' };
+      trigger = { type: 'job_completed', name: 'Job Completed', config: {} };
       name = `Review request after ${timeValue} ${timeUnit}${timeValue > 1 ? 's' : ''}`;
       description = `Request customer review ${timeValue} ${timeUnit}${timeValue > 1 ? 's' : ''} after job completion`;
       
@@ -115,7 +115,7 @@ export const AIAutomationBuilder: React.FC<AIAutomationBuilderProps> = ({ onAuto
     }
     // Team notifications
     else if (lowerPrompt.includes('team') || lowerPrompt.includes('notify') || lowerPrompt.includes('alert')) {
-      trigger = { type: 'job_scheduled', name: 'Job Scheduled' };
+      trigger = { type: 'job_scheduled', name: 'Job Scheduled', config: {} };
       name = 'Team notification for high-value jobs';
       description = 'Alert team members when high-value jobs are scheduled';
     }

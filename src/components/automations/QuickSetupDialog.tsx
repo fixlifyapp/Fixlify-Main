@@ -144,7 +144,7 @@ export const QuickSetupDialog: React.FC<QuickSetupDialogProps> = ({
                 <div className="flex items-start gap-2 text-xs text-muted-foreground">
                   <Info className="w-3 h-3 mt-0.5 flex-shrink-0" />
                   <p>
-                    Available variables: {{client_name}}, {{appointment_time}}, {{service_type}}
+                    Available variables: {"{{client_name}}"}, {"{{appointment_time}}"}, {"{{service_type}}"}}
                   </p>
                 </div>
               </div>
@@ -192,8 +192,8 @@ export const QuickSetupDialog: React.FC<QuickSetupDialogProps> = ({
                   <div className="flex items-start gap-2 text-xs text-muted-foreground">
                     <Info className="w-3 h-3 mt-0.5 flex-shrink-0" />
                     <p>
-                      Available variables: {{client_name}}, {{appointment_date}}, {{appointment_time}}, 
-                      {{service_type}}, {{company_name}}, {{company_phone}}
+                       Available variables: {"{{"+"client_name"+"}}"}}, {"{{"+"appointment_date"+"}}"}}, {"{{"+"appointment_time"+"}}"}}, 
+                       {"{{"+"service_type"+"}}"}}, {"{{"+"company_name"+"}}"}}, {"{{"+"company_phone"+"}}"}}
                     </p>
                   </div>
                 </div>

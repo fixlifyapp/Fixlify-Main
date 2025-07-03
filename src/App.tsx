@@ -54,7 +54,7 @@ const queryClient = new QueryClient({
       refetchOnWindowFocus: false,
       refetchOnReconnect: false,
       staleTime: 5 * 60 * 1000,
-      cacheTime: 10 * 60 * 1000,
+      gcTime: 10 * 60 * 1000,
     },
   },
 });
@@ -122,10 +122,12 @@ function App() {
               </AuthProvider>
             } />
             
-            {/* Root redirect */}
+            {/* Root redirect - check auth first */}
             <Route path="/" element={
               <AuthProvider>
-                <Navigate to="/dashboard" replace />
+                <ProtectedRouteWithProviders>
+                  <Navigate to="/dashboard" replace />
+                </ProtectedRouteWithProviders>
               </AuthProvider>
             } />
             
