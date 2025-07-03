@@ -18,7 +18,7 @@ interface Profile {
 }
 
 export function ProtectedRoute({ children, requireAdmin = false }: ProtectedRouteProps) {
-  const { user, loading } = useAuth();
+  const { user, loading, error, isAuthenticated } = useAuth();
   const location = useLocation();
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [isCheckingOnboarding, setIsCheckingOnboarding] = useState(true);
@@ -28,10 +28,21 @@ export function ProtectedRoute({ children, requireAdmin = false }: ProtectedRout
   console.log('🛡️ ProtectedRoute:', {
     path: location.pathname,
     hasUser: !!user,
+    isAuthenticated,
     loading,
+    error,
     profileLoading,
     isCheckingOnboarding
   });
+
+  // Handle auth errors
+  useEffect(() => {
+    if (error && error.includes('refresh_token')) {
+      console.log('🔄 Auth refresh error detected, clearing session...');
+      localStorage.removeItem('fixlify-auth-token');
+      window.location.href = '/auth';
+    }
+  }, [error]);
 
   // Fetch user profile
   useEffect(() => {
@@ -110,7 +121,13 @@ export function ProtectedRoute({ children, requireAdmin = false }: ProtectedRout
     );
   }
 
-  if (!user) {
+  if (!isAuthenticated && !loading) {
+    console.log('🚫 Not authenticated, redirecting to auth...');
+    return <Navigate to="/auth" state={{ from: location }} replace />;
+  }
+
+  if (!user && !loading) {
+    console.log('🚫 No user found, redirecting to auth...');
     return <Navigate to="/auth" state={{ from: location }} replace />;
   }
 

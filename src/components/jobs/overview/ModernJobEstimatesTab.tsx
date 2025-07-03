@@ -216,14 +216,13 @@ export const ModernJobEstimatesTab = ({
         {/* Estimates List */}
         <Card className="border-fixlyfy-border shadow-sm">
           <CardHeader className="px-3 pt-3 pb-3 sm:px-6 sm:pt-6 sm:pb-6">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-center justify-between">
               <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
                 <FileText className="h-4 w-4 sm:h-5 sm:w-5" />
                 Estimates ({estimatesState.length})
               </CardTitle>
               <Button 
                 onClick={handleCreateNew}
-                className={`w-full sm:w-auto ${isMobile ? 'h-11 text-sm' : ''}`}
               >
                 <Plus className="h-4 w-4 mr-2" />
                 Create Estimate
@@ -245,79 +244,76 @@ export const ModernJobEstimatesTab = ({
             ) : (
               <div className="space-y-3 sm:space-y-4">
                 {estimatesState.map((estimate) => (
-                  <div key={estimate.id} className="border rounded-lg p-3 sm:p-4 space-y-3">
-                    <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 mb-2">
-                          <span className="font-medium text-sm sm:text-base break-all">{estimate.estimate_number}</span>
-                          <span className="text-lg sm:text-xl font-semibold text-blue-600 break-all">
-                            {formatCurrency(estimate.total || 0)}
-                          </span>
-                          {getStatusBadge(estimate.status)}
+                  <div key={estimate.id} className="border rounded-lg p-4 hover:shadow-md transition-shadow">
+                    <div className="flex items-center justify-between">
+                      {/* Left side - Estimate info */}
+                      <div className="flex items-center gap-6">
+                        <div>
+                          <div className="flex items-center gap-3">
+                            <h4 className="font-semibold text-gray-900">{estimate.estimate_number}</h4>
+                            {getStatusBadge(estimate.status)}
+                          </div>
+                          <p className="text-sm text-gray-600 mt-1">Created: {format(new Date(estimate.created_at), 'MMM dd, yyyy')}</p>
                         </div>
-                        <div className="text-xs sm:text-sm text-muted-foreground space-y-1">
-                          <p>Created: {format(new Date(estimate.created_at), 'MMM dd, yyyy')}</p>
-                          {estimate.notes && <p className="break-words">Notes: {estimate.notes}</p>}
+                        <div className="text-xl font-bold text-blue-600">
+                          {formatCurrency(estimate.total || 0)}
                         </div>
                       </div>
-                    </div>
-                    
-                    {/* Action Buttons */}
-                    <div className={`flex ${isMobile ? 'flex-col gap-2' : 'flex-wrap gap-2'}`}>
-                      <Button
-                        variant="outline"
-                        size={isMobile ? "default" : "sm"}
-                        className={`${isMobile ? 'w-full h-11 justify-start' : ''}`}
-                        onClick={() => handleViewEstimate(estimate)}
-                      >
-                        <Eye className="h-4 w-4 mr-2" />
-                        View
-                      </Button>
-
-                      <Button
-                        variant="outline"
-                        size={isMobile ? "default" : "sm"}
-                        className={`${isMobile ? 'w-full h-11 justify-start' : ''}`}
-                        onClick={() => handleEditEstimate(estimate)}
-                      >
-                        <Edit className="h-4 w-4 mr-2" />
-                        Edit
-                      </Button>
-
-                      <Button
-                        variant="outline"
-                        size={isMobile ? "default" : "sm"}
-                        className={`${isMobile ? 'w-full h-11 justify-start' : ''}`}
-                        onClick={() => handleSendEstimate(estimate)}
-                        disabled={state.isSending}
-                      >
-                        <Send className="h-4 w-4 mr-2" />
-                        Send
-                      </Button>
                       
-                      {estimate.status !== 'converted' && (
+                      {/* Right side - Action Buttons */}
+                      <div className="flex items-center gap-2">
                         <Button
                           variant="outline"
-                          size={isMobile ? "default" : "sm"}
-                          className={`${isMobile ? 'w-full h-11 justify-start' : ''} text-green-600 hover:text-green-700 border-green-200 hover:border-green-300`}
-                          onClick={() => handleConvertEstimate(estimate)}
-                          disabled={isConverting}
+                          size="sm"
+                          onClick={() => handleViewEstimate(estimate)}
                         >
-                          <DollarSign className="h-4 w-4 mr-2" />
-                          Convert to Invoice
+                          <Eye className="h-4 w-4 mr-2" />
+                          View
                         </Button>
-                      )}
-                      
-                      <Button
-                        variant="outline"
-                        size={isMobile ? "default" : "sm"}
-                        className={`${isMobile ? 'w-full h-11 justify-start' : ''} text-red-600 hover:text-red-700 border-red-200 hover:border-red-300`}
-                        onClick={() => handleDeleteEstimate(estimate)}
-                        disabled={state.isDeleting}
-                      >
-                        <Trash2 className="h-4 w-4 mr-2" />
-                        {state.isDeleting ? 'Deleting...' : 'Delete'}
-                      </Button>
+
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleEditEstimate(estimate)}
+                        >
+                          <Edit className="h-4 w-4 mr-2" />
+                          Edit
+                        </Button>
+
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleSendEstimate(estimate)}
+                          disabled={state.isSending}
+                        >
+                          <Send className="h-4 w-4 mr-2" />
+                          Send
+                        </Button>
+                        
+                        {estimate.status !== 'converted' && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="text-green-600 hover:text-green-700 hover:bg-green-50"
+                            onClick={() => handleConvertEstimate(estimate)}
+                            disabled={isConverting}
+                          >
+                            <DollarSign className="h-4 w-4 mr-2" />
+                            Convert to Invoice
+                          </Button>
+                        )}
+                        
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                          onClick={() => handleDeleteEstimate(estimate)}
+                          disabled={state.isDeleting}
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Delete
+                        </Button>
+                      </div>
                     </div>
                   </div>
                 ))}

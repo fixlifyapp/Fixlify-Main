@@ -130,7 +130,7 @@ export const JobPayments = ({ jobId }: JobPaymentsProps) => {
       {/* Payments List */}
       <Card className="border-fixlyfy-border shadow-sm">
         <CardHeader className="px-3 pt-3 pb-3 sm:px-6 sm:pt-6 sm:pb-6">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center justify-between">
             <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
               <CreditCard className="h-4 w-4 sm:h-5 sm:w-5" />
               Payments ({payments.length})
@@ -138,7 +138,7 @@ export const JobPayments = ({ jobId }: JobPaymentsProps) => {
             <Button 
               onClick={handleAddPayment} 
               disabled={outstandingBalance <= 0}
-              className={`w-full sm:w-auto ${isMobile ? 'h-11' : ''}`}
+              className="bg-fixlyfy hover:bg-fixlyfy-dark"
             >
               <Plus className="h-4 w-4 mr-2" />
               Add Payment
@@ -160,46 +160,47 @@ export const JobPayments = ({ jobId }: JobPaymentsProps) => {
           ) : (
             <div className="space-y-3 sm:space-y-4">
               {payments.map((payment) => (
-                <div key={payment.id} className="border rounded-lg p-3 sm:p-4 space-y-3">
-                  <div className="flex-1">
-                    <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 mb-2">
-                      <span className="font-medium text-sm sm:text-base break-all">{formatCurrency(Math.abs(payment.amount))}</span>
-                      {getPaymentMethodBadge(payment.method)}
-                      {getStatusBadge(payment.amount)}
+                <div key={payment.id} className="border rounded-lg p-4 hover:shadow-md transition-shadow">
+                  <div className="flex items-center justify-between">
+                    {/* Left side - Payment info */}
+                    <div className="flex items-center gap-6">
+                      <div>
+                        <div className="flex items-center gap-3">
+                          <span className="font-semibold text-gray-900">{formatCurrency(Math.abs(payment.amount))}</span>
+                          {getPaymentMethodBadge(payment.method)}
+                          {getStatusBadge(payment.amount)}
+                        </div>
+                        <p className="text-sm text-gray-600 mt-1">Date: {new Date(payment.date).toLocaleDateString()}</p>
+                        <p className="text-sm text-gray-500">Recorded {formatDistanceToNow(new Date(payment.created_at || payment.date), { addSuffix: true })}</p>
+                      </div>
                     </div>
-                    <div className="text-xs sm:text-sm text-muted-foreground space-y-1">
-                      <p>Date: {new Date(payment.date).toLocaleDateString()}</p>
-                      {payment.reference && <p className="break-words">Reference: {payment.reference}</p>}
-                      {payment.notes && <p className="break-words">Notes: {payment.notes}</p>}
-                      <p>Recorded {formatDistanceToNow(new Date(payment.created_at || payment.date), { addSuffix: true })}</p>
-                    </div>
-                  </div>
-                  
-                  {/* Action Buttons */}
-                  <div className={`flex ${isMobile ? 'flex-col gap-2' : 'gap-2'}`}>
-                    {payment.amount > 0 && (
+                    
+                    {/* Right side - Action Buttons */}
+                    <div className="flex items-center gap-2">
+                      {payment.amount > 0 && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="text-orange-600 hover:text-orange-700 hover:bg-orange-50"
+                          onClick={() => handleRefundPayment(payment.id)}
+                          disabled={isProcessing}
+                        >
+                          <RotateCcw className="h-4 w-4 mr-2" />
+                          Refund
+                        </Button>
+                      )}
+                      
                       <Button
                         variant="outline"
-                        size={isMobile ? "default" : "sm"}
-                        className={`${isMobile ? 'w-full h-11 justify-start' : ''} text-orange-600 hover:text-orange-700 border-orange-200 hover:border-orange-300`}
-                        onClick={() => handleRefundPayment(payment.id)}
+                        size="sm"
+                        className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                        onClick={() => handleDeletePayment(payment.id)}
                         disabled={isProcessing}
                       >
-                        <RotateCcw className="h-4 w-4 mr-2" />
-                        Refund
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        Delete
                       </Button>
-                    )}
-                    
-                    <Button
-                      variant="outline"
-                      size={isMobile ? "default" : "sm"}
-                      className={`${isMobile ? 'w-full h-11 justify-start' : ''} text-red-600 hover:text-red-700 border-red-200 hover:border-red-300`}
-                      onClick={() => handleDeletePayment(payment.id)}
-                      disabled={isProcessing}
-                    >
-                      <Trash2 className="h-4 w-4 mr-2" />
-                      Delete
-                    </Button>
+                    </div>
                   </div>
                 </div>
               ))}

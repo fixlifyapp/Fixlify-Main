@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -40,55 +39,85 @@ export const useJobData = (jobId: string) => {
         console.log('=== useJobData Debug ===');
         console.log('Fetching job data for jobId:', jobId);
 
-        // Fetch job data with client information
-        const { data: job, error: jobError } = await supabase
-          .from('jobs')
-          .select(`
-            *,
-            clients!inner(*)
-          `)
-          .eq('id', jobId)
-          .single();
+        // Create an AbortController for cancellation
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
 
-        if (jobError) {
-          console.error('Error fetching job:', jobError);
-          throw jobError;
-        }
+        try {
+          // Fetch job data with client information
+          const { data: job, error: jobError } = await supabase
+            .from('jobs')
+            .select(`
+              *,
+              clients(*)
+            `)
+            .eq('id', jobId)
+            .maybeSingle()
+            .abortSignal(controller.signal);
 
-        console.log('Job data fetched:', job);
-        setJobData(job);
+          clearTimeout(timeoutId);
 
-        // Set job address
-        const address = job?.address || '';
-        setJobAddress(address);
-        console.log('Job address set:', address);
+          if (jobError) {
+            console.error('Error fetching job:', jobError);
+            throw jobError;
+          }
 
-        // Extract client info
-        if (job?.clients) {
-          const client = Array.isArray(job.clients) ? job.clients[0] : job.clients;
-          console.log('Client data extracted:', client);
-          
-          // Format client address
-          const clientAddress = [
-            client.address,
-            client.city,
-            client.state,
-            client.zip
-          ].filter(Boolean).join(', ');
+          if (!job) {
+            console.log('No job found with ID:', jobId);
+            setError('Job not found');
+            return;
+          }
 
-          const clientData = {
-            id: client.id,
-            name: client.name || '',
-            email: client.email || '',
-            phone: client.phone || '',
-            company: client.company || '',
-            fullAddress: clientAddress
-          };
+          console.log('Job data fetched:', job);
+          setJobData(job);
 
-          setClientInfo(clientData);
-          console.log('Client info set:', clientData);
-        } else {
-          console.log('No client data found in job');
+          // Set job address
+          const address = job?.address || '';
+          setJobAddress(address);
+          console.log('Job address set:', address);
+
+          // Extract client info
+          if (job?.clients) {
+            const client = Array.isArray(job.clients) ? job.clients[0] : job.clients;
+            console.log('Client data extracted:', client);
+            
+            // Format client address
+            const clientAddress = [
+              client.address,
+              client.city,
+              client.state,
+              client.zip
+            ].filter(Boolean).join(', ');
+
+            const clientData = {
+              id: client.id,
+              name: client.name || '',
+              email: client.email || '',
+              phone: client.phone || '',
+              company: client.company || '',
+              fullAddress: clientAddress
+            };
+
+            setClientInfo(clientData);
+            console.log('Client info set:', clientData);
+          } else {
+            console.log('No client data found in job');
+            // Set default client info
+            setClientInfo({
+              name: 'Unknown Client',
+              email: '',
+              phone: '',
+              company: '',
+              fullAddress: ''
+            });
+          }
+        } catch (err: any) {
+          if (err.name === 'AbortError') {
+            console.log('Request was aborted due to timeout');
+            setError('Request timeout - please refresh the page');
+          } else {
+            throw err;
+          }
         }
       } catch (err: any) {
         console.error('Error in fetchJobData:', err);

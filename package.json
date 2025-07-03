@@ -9,7 +9,16 @@
     "build": "vite build",
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "context:validate": "node scripts/validate-context.js",
+    "context:update": "node scripts/update-knowledge.js",
+    "context:report": "node scripts/context-report.js",
+    "context:version": "node scripts/context-version.js",
+    "context:search": "node scripts/context-search.js",
+    "context:quality": "node scripts/context-quality.js",
+    "context:optimize": "node scripts/context-optimizer.js",
+    "context:browser": "open context-browser.html",
+    "context:all": "npm run context:validate && npm run context:update && npm run context:quality"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

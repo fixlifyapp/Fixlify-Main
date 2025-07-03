@@ -13,32 +13,34 @@ export const Header = () => {
   const [showSearch, setShowSearch] = useState(false);
 
   return (
-    <header className="border-b bg-white px-4 py-3">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <div className="md:hidden">
-            <SidebarTrigger />
-          </div>
+    <header className="border-b bg-background w-full">
+      <div className="px-4 py-3 w-full">
+        <div className="flex items-center justify-between w-full">
           <div className="flex items-center gap-2">
-            <Button 
-              variant="ghost" 
-              size="sm"
-              onClick={() => setShowSearch(!showSearch)}
-            >
-              <Search className="h-4 w-4" />
-            </Button>
+            <div className="md:hidden">
+              <SidebarTrigger />
+            </div>
+            <div className="flex items-center gap-2">
+              <Button 
+                variant="ghost" 
+                size="sm"
+                onClick={() => setShowSearch(!showSearch)}
+              >
+                <Search className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
-        </div>
-        
-        {showSearch && (
-          <div className="flex-1 max-w-md mx-4">
-            <HeaderSearch />
+          
+          {showSearch && (
+            <div className="flex-1 max-w-md mx-4">
+              <HeaderSearch />
+            </div>
+          )}
+          
+          <div className="flex items-center gap-2">
+            <NotificationsBell />
+            <UserMenu />
           </div>
-        )}
-        
-        <div className="flex items-center gap-2">
-          <NotificationsBell />
-          <UserMenu />
         </div>
       </div>
     </header>

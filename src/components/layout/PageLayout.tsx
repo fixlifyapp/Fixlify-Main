@@ -1,11 +1,7 @@
-
 import { ReactNode } from 'react';
 import { AppSidebar } from './AppSidebar';
 import { Header } from './Header';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { Button } from '@/components/ui/button';
-import { ArrowLeft } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
 import { 
   SidebarProvider,
   SidebarInset
@@ -17,19 +13,14 @@ interface PageLayoutProps {
 
 export const PageLayout = ({ children }: PageLayoutProps) => {
   const isMobile = useIsMobile();
-  const navigate = useNavigate();
-
-  const handleBack = () => {
-    navigate(-1);
-  };
 
   return (
     <SidebarProvider defaultOpen={!isMobile}>
-      <div className="min-h-screen flex w-full">
+      <div className="flex h-screen w-full bg-background">
         <AppSidebar />
-        <SidebarInset className="flex-1 flex flex-col overflow-hidden">
+        <SidebarInset className="flex-1 flex flex-col w-full min-w-0 bg-background">
           <Header />
-          <main className={`flex-1 overflow-y-auto ${isMobile ? 'p-3' : 'p-6'}`}>
+          <main className={`flex-1 w-full overflow-y-auto bg-background ${isMobile ? 'p-3' : 'px-6 py-4'}`}>
             {children}
           </main>
         </SidebarInset>

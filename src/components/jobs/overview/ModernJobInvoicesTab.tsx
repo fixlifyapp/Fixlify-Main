@@ -25,7 +25,6 @@ interface ModernJobInvoicesTabProps {
 export const ModernJobInvoicesTab = ({ jobId }: ModernJobInvoicesTabProps) => {
   const { invoices, isLoading, refreshInvoices } = useInvoices(jobId);
   const { estimates } = useEstimates(jobId);
-  const { clientInfo, loading: jobDataLoading } = useJobData(jobId);
   const { refreshFinancials } = useJobDetails();
   const [showInvoiceBuilder, setShowInvoiceBuilder] = useState(false);
   const [showSendDialog, setShowSendDialog] = useState(false);
@@ -35,6 +34,10 @@ export const ModernJobInvoicesTab = ({ jobId }: ModernJobInvoicesTabProps) => {
   const [selectedEstimate, setSelectedEstimate] = useState<any>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const isMobile = useIsMobile();
+  
+  // Load job data only when needed (when sending)
+  const [loadJobData, setLoadJobData] = useState(false);
+  const { clientInfo, loading: jobDataLoading } = useJobData(loadJobData ? jobId : '');
 
   const handleCreateInvoice = () => {
     setSelectedInvoice(null);
@@ -56,6 +59,7 @@ export const ModernJobInvoicesTab = ({ jobId }: ModernJobInvoicesTabProps) => {
 
   const handleSendInvoice = (invoice: any) => {
     setSelectedInvoice(invoice);
+    setLoadJobData(true);  // Load job data when sending
     setShowSendDialog(true);
   };
 
@@ -247,14 +251,13 @@ export const ModernJobInvoicesTab = ({ jobId }: ModernJobInvoicesTabProps) => {
       {/* Invoices List */}
       <Card className="border-fixlyfy-border shadow-sm">
         <CardHeader className="px-3 pt-3 pb-3 sm:px-6 sm:pt-6 sm:pb-6">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center justify-between">
             <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
               <FileText className="h-4 w-4 sm:h-5 sm:w-5" />
               Invoices ({invoices?.length || 0})
             </CardTitle>
             <Button 
               onClick={handleCreateInvoice}
-              className={`w-full sm:w-auto ${isMobile ? 'h-11 text-sm' : ''}`}
             >
               <Plus className="h-4 w-4 mr-2" />
               Create Invoice
@@ -271,79 +274,81 @@ export const ModernJobInvoicesTab = ({ jobId }: ModernJobInvoicesTabProps) => {
           ) : (
             <div className="space-y-3 sm:space-y-4">
               {invoices.map((invoice) => (
-                <div key={invoice.id} className="border rounded-lg p-3 sm:p-4 space-y-3">
-                  <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 mb-2">
-                        <span className="font-medium text-sm sm:text-base break-all">{invoice.invoice_number}</span>
-                        <span className="text-lg sm:text-xl font-semibold text-blue-600 break-all">
-                          {formatCurrency(invoice.total)}
-                        </span>
-                        {getStatusBadge(invoice.status)}
+                <div key={invoice.id} className="border rounded-lg p-4 hover:shadow-md transition-shadow">
+                  <div className="flex items-center justify-between">
+                    {/* Left side - Invoice info */}
+                    <div className="flex items-center gap-6">
+                      <div>
+                        <div className="flex items-center gap-3">
+                          <h4 className="font-semibold text-gray-900">{invoice.invoice_number}</h4>
+                          {getStatusBadge(invoice.status)}
+                        </div>
+                        <p className="text-sm text-gray-600 mt-1">Created: {format(new Date(invoice.created_at), 'MMM dd, yyyy')}</p>
+                        {invoice.due_date && (
+                          <p className="text-sm text-gray-600">Due: {format(new Date(invoice.due_date), 'MMM dd, yyyy')}</p>
+                        )}
                       </div>
-                      <div className="text-xs sm:text-sm text-muted-foreground space-y-1">
-                        <p>Created: {format(new Date(invoice.created_at), 'MMM dd, yyyy')}</p>
-                        {invoice.due_date && <p>Due: {format(new Date(invoice.due_date), 'MMM dd, yyyy')}</p>}
+                      <div>
+                        <div className="text-xl font-bold text-blue-600">
+                          {formatCurrency(invoice.total)}
+                        </div>
                         {invoice.balance && invoice.balance > 0 && (
-                          <p className="text-red-600">Balance: {formatCurrency(invoice.balance)}</p>
+                          <p className="text-sm text-red-600 font-medium">Balance: {formatCurrency(invoice.balance)}</p>
                         )}
                       </div>
                     </div>
-                  </div>
-                  
-                  {/* Action Buttons */}
-                  <div className={`flex ${isMobile ? 'flex-col gap-2' : 'flex-wrap gap-2'}`}>
-                    <Button
-                      variant="outline"
-                      size={isMobile ? "default" : "sm"}
-                      className={`${isMobile ? 'w-full h-11 justify-start' : ''}`}
-                      onClick={() => handleViewInvoice(invoice)}
-                    >
-                      <Eye className="h-4 w-4 mr-2" />
-                      View
-                    </Button>
                     
-                    <Button
-                      variant="outline"
-                      size={isMobile ? "default" : "sm"}
-                      className={`${isMobile ? 'w-full h-11 justify-start' : ''}`}
-                      onClick={() => handleEditInvoice(invoice)}
-                    >
-                      <Edit className="h-4 w-4 mr-2" />
-                      Edit
-                    </Button>
-                    
-                    <Button
-                      variant="outline"
-                      size={isMobile ? "default" : "sm"}
-                      className={`${isMobile ? 'w-full h-11 justify-start' : ''}`}
-                      onClick={() => handleSendInvoice(invoice)}
-                    >
-                      <Send className="h-4 w-4 mr-2" />
-                      Send
-                    </Button>
-                    
-                    {canAcceptPayment(invoice) && (
+                    {/* Right side - Action Buttons */}
+                    <div className="flex items-center gap-2">
                       <Button
-                        size={isMobile ? "default" : "sm"}
-                        className={`${isMobile ? 'w-full h-11 justify-start' : ''} bg-green-600 hover:bg-green-700`}
-                        onClick={() => handlePayInvoice(invoice)}
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleViewInvoice(invoice)}
                       >
-                        <CreditCard className="h-4 w-4 mr-2" />
-                        Pay
+                        <Eye className="h-4 w-4 mr-2" />
+                        View
                       </Button>
-                    )}
+                      
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleEditInvoice(invoice)}
+                      >
+                        <Edit className="h-4 w-4 mr-2" />
+                        Edit
+                      </Button>
+                      
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleSendInvoice(invoice)}
+                      >
+                        <Send className="h-4 w-4 mr-2" />
+                        Send
+                      </Button>
+                      
+                      {canAcceptPayment(invoice) && (
+                        <Button
+                          size="sm"
+                          className="bg-green-600 hover:bg-green-700 text-white"
+                          onClick={() => handlePayInvoice(invoice)}
+                        >
+                          <CreditCard className="h-4 w-4 mr-2" />
+                          Pay
+                        </Button>
+                      )}
 
-                    <Button
-                      variant="outline"
-                      size={isMobile ? "default" : "sm"}
-                      className={`${isMobile ? 'w-full h-11 justify-start' : ''} text-red-600 hover:text-red-700 border-red-200 hover:border-red-300`}
-                      onClick={() => handleRemoveInvoice(invoice)}
-                      disabled={isDeleting}
-                    >
-                      <Trash2 className="h-4 w-4 mr-2" />
-                      {isDeleting ? "Deleting..." : "Remove"}
-                    </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                        onClick={() => handleRemoveInvoice(invoice)}
+                        disabled={isDeleting}
+                      >
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        Remove
+                      </Button>
+                    </div>
                   </div>
                 </div>
               ))}

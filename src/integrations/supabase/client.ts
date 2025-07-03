@@ -18,9 +18,18 @@ export const supabase = createClient<Database>(
       detectSessionInUrl: true,
       storage: window.localStorage,
       storageKey: 'fixlify-auth-token',
-      flowType: 'implicit'
+      flowType: 'implicit',
+      debug: true // Enable auth debugging
+    },
+    global: {
+      fetch: (url, options = {}) => {
+        // Add error handling for auth issues
+        return fetch(url, options).catch(error => {
+          console.error('Supabase fetch error:', error);
+          throw error;
+        });
+      }
     }
-    // Removed global headers to fix CORS issue
   }
 );
 

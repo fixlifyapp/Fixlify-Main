@@ -1,7 +1,7 @@
 import { Badge } from "@/components/ui/badge";
 import { JobStatusBadge } from "./JobStatusBadge";
 import { ClientContactButtons } from "./ClientContactButtons";
-import { FileText, CreditCard, CheckCircle, Hash, MapPin } from "lucide-react";
+import { FileText, CreditCard, CheckCircle, MapPin } from "lucide-react";
 import { useJobFinancials } from "@/hooks/useJobFinancials";
 import { useState, useEffect } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -120,20 +120,6 @@ export const JobInfoSection = ({
                     className="bg-white/90 text-fixlyfy border-white/30 hover:bg-white shadow-md text-xs h-6" 
                   />
                 </div>
-              </div>
-            </div>
-            
-            {/* Client Name and Job Number */}
-            <div className="space-y-1">
-              <h1 className="text-xl sm:text-2xl font-bold text-gray-900 leading-tight break-words">
-                {job.client}
-              </h1>
-              <div className="flex items-center gap-2 text-fixlyfy">
-                <Hash size={12} className="sm:hidden" />
-                <Hash size={14} className="hidden sm:block" />
-                <span className="text-sm sm:text-base font-semibold break-all">
-                  {job.id}
-                </span>
               </div>
             </div>
           </div>

@@ -6,11 +6,14 @@ import { Toaster } from "@/components/ui/sonner";
 import { AuthProvider } from "@/hooks/use-auth";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { AppProviders } from "@/components/ui/AppProviders";
+import { setupAuthErrorHandler } from "@/utils/auth-fix";
+import authMonitor from "@/utils/auth-monitor.js?raw";
 
 // Pages
 import AuthPage from "@/pages/AuthPage";
 import Dashboard from "@/pages/Dashboard";
 import TestDashboard from "@/pages/TestDashboard";
+import TestPage from "@/pages/TestPage";
 import JobsPageOptimized from "@/pages/JobsPageOptimized";
 import JobDetailsPage from "@/pages/JobDetailsPage";
 import ClientsPage from "@/pages/ClientsPage";
@@ -29,6 +32,7 @@ import ConfigurationPage from "@/pages/ConfigurationPage";
 import ProductsPage from "@/pages/ProductsPage";
 import IntegrationsPage from "@/pages/IntegrationsPage";
 import PhoneNumbersPage from "@/pages/PhoneNumbersPage";
+import PhoneNumbersSettingsPage from "@/pages/settings/PhoneNumbersSettingsPage";
 import PhoneManagementPage from "@/pages/PhoneManagementPage";
 import EstimatesPage from "@/pages/EstimatesPage";
 import InvoicesPage from "@/pages/InvoicesPage";
@@ -68,6 +72,11 @@ const ProtectedRouteWithProviders = ({ children }: { children: React.ReactNode }
 
 function App() {
   console.log('🚀 Fixlify App loaded');
+  
+  // Setup auth error handler
+  React.useEffect(() => {
+    setupAuthErrorHandler();
+  }, []);
   
   return (
     <QueryClientProvider client={queryClient}>
@@ -117,6 +126,15 @@ function App() {
             <Route path="/" element={
               <AuthProvider>
                 <Navigate to="/dashboard" replace />
+              </AuthProvider>
+            } />
+            
+            {/* Test Page */}
+            <Route path="/test" element={
+              <AuthProvider>
+                <ProtectedRouteWithProviders>
+                  <TestPage />
+                </ProtectedRouteWithProviders>
               </AuthProvider>
             } />
             
@@ -348,7 +366,7 @@ function App() {
             <Route path="/settings/phone-numbers" element={
               <AuthProvider>
                 <ProtectedRouteWithProviders>
-                  <PhoneNumbersPage />
+                  <PhoneNumbersSettingsPage />
                 </ProtectedRouteWithProviders>
               </AuthProvider>
             } />

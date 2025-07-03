@@ -1,0 +1,130 @@
+/* Global Layout Fix - Complete overhaul for proper alignment */
+
+/* Reset all margins and paddings */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/* Ensure no margins on html/body */
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  overflow: hidden;
+}
+
+/* Root element should fill viewport */
+#root {
+  height: 100vh;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
+/* Main flex container */
+.flex.h-screen.w-full {
+  margin: 0 !important;
+  padding: 0 !important;
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* Sidebar should not affect layout */
+[data-sidebar="sidebar"],
+aside {
+  flex-shrink: 0;
+  margin: 0;
+  padding: 0;
+}
+
+/* SidebarInset container - this wraps header and main */
+[data-sidebar-inset="true"],
+div[data-sidebar-inset="true"] {
+  margin: 0 !important;
+  padding: 0 !important;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* Header specific fixes */
+header {
+  margin: 0 !important;
+  padding: 0 !important;
+  flex-shrink: 0;
+  min-height: auto !important;
+}
+
+/* Main content area that contains pages */
+[data-sidebar-inset="true"] > main,
+div[data-sidebar-inset="true"] > main,
+main.flex-1 {
+  margin: 0 !important;
+  padding-top: 1.5rem !important;
+  padding-bottom: 1.5rem !important;
+  padding-left: 1.5rem !important;
+  padding-right: 1.5rem !important;
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  min-height: 0; /* Critical for proper flex sizing */
+}
+
+/* Mobile adjustments */
+@media (max-width: 768px) {
+  [data-sidebar-inset="true"] > main,
+  div[data-sidebar-inset="true"] > main,
+  main.flex-1 {
+    padding: 0.75rem !important;
+  }
+}
+
+/* Remove any empty elements that might cause gaps */
+[data-sidebar-inset="true"] > *:empty {
+  display: none !important;
+}
+
+/* First child of main content should have no top margin */
+main > *:first-child,
+main > div > *:first-child {
+  margin-top: 0 !important;
+  padding-top: 0 !important;
+}
+
+/* Fix for PageHeader specifically */
+[class*="from-fixlyfy/10"][class*="to-blue-50"],
+[class*="PageHeader"],
+.page-header {
+  margin-top: 0 !important;
+  width: 100%; /* Ensure full width */
+}
+
+/* Override any space-y utilities on the first element */
+.space-y-4 > *:first-child,
+.space-y-6 > *:first-child {
+  margin-top: 0 !important;
+}
+
+/* Ensure consistent background */
+.bg-background,
+[data-sidebar-inset="true"],
+header,
+main {
+  background-color: hsl(var(--background)) !important;
+}
+
+/* Fix for content width constraints */
+main > div {
+  width: 100%;
+  max-width: 100%;
+}
+
+/* Ensure AnimatedContainer doesn't break layout */
+main > div > div {
+  width: 100%;
+}

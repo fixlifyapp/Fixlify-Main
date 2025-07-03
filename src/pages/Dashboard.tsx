@@ -48,7 +48,7 @@ const Dashboard = () => {
 
   return (
     <PageLayout>
-      <div className={`space-y-6 ${isMobile ? 'space-y-4' : 'space-y-6'}`}>
+      <div className="w-full">
         <PageHeader
           title="Dashboard"
           subtitle={isMobile ? "Business overview" : "Get an overview of your business performance and key metrics"}
@@ -61,7 +61,7 @@ const Dashboard = () => {
         />
 
         {/* Filter Controls */}
-        <div className={`flex ${isMobile ? 'justify-center' : 'justify-end'}`}>
+        <div className={`flex ${isMobile ? 'justify-center' : 'justify-end'} mb-6`}>
           <DashboardFilterControls
             currentPeriod={timePeriod}
             dateRange={dateRange}
@@ -70,7 +70,7 @@ const Dashboard = () => {
         </div>
 
         {/* Key Metrics - Fixed Grid Layout */}
-        <div className="w-full">
+        <div className="w-full mb-6">
           <EnhancedKpiCards 
             timePeriod={timePeriod}
             dateRange={dateRange}
@@ -79,7 +79,7 @@ const Dashboard = () => {
         </div>
 
         {/* Enhanced Dashboard Grid */}
-        <div className={`grid grid-cols-1 ${isMobile ? 'lg:grid-cols-1' : 'lg:grid-cols-3'} gap-4 lg:gap-6`}>
+        <div className={`grid grid-cols-1 ${isMobile ? 'lg:grid-cols-1' : 'lg:grid-cols-3'} gap-4 lg:gap-6 mb-6`}>
           {/* Charts and Metrics */}
           <div className={`${isMobile ? 'col-span-1' : 'lg:col-span-2'} space-y-4 lg:space-y-6`}>
             <DashboardCharts />
@@ -96,14 +96,14 @@ const Dashboard = () => {
         </div>
 
         {/* Secondary Metrics and Tables */}
-        <div className={`grid grid-cols-1 ${isMobile ? 'gap-4' : 'lg:grid-cols-2 gap-4 lg:gap-6'}`}>
+        <div className={`grid grid-cols-1 ${isMobile ? 'gap-4' : 'lg:grid-cols-2 gap-4 lg:gap-6'} mb-6`}>
           <RecentJobs />
           <UpcomingJobs />
         </div>
 
         {/* Mobile-only Client Value Panel */}
         {isMobile && (
-          <div className="w-full">
+          <div className="w-full mb-6">
             <ClientValuePanel />
           </div>
         )}

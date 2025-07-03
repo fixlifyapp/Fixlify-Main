@@ -107,13 +107,9 @@ const JobDetailsPage = () => {
     <PageLayout>
       <JobDetailsProvider jobId={jobId}>
         <div className="container mx-auto px-2 sm:px-4 max-w-none overflow-x-hidden">
-          <div className="mb-4 sm:mb-6">
-            <Card className="border-fixlyfy-border shadow-sm">
-              <JobDetailsHeader />
-            </Card>
-          </div>
+          <JobDetailsHeader />
           
-          <div className="w-full">
+          <div className="w-full mt-6">
             <JobDetailsTabs 
               activeTab={activeTab} 
               onTabChange={setActiveTab}

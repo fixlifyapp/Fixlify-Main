@@ -389,6 +389,177 @@ See `email_sms_test_instructions.md` for detailed testing procedures.
 - Running on port 8082/8083 (ports 8080 and 8081 were in use)
 - Access at: http://localhost:8083/
 
+## 🐛 Dashboard Content Not Showing on PC Fix (2025-07-02)
+
+### Problem
+Dashboard content was not displaying on PC/desktop browsers while it worked correctly on mobile. Only the left sidebar menu was visible, with the main content area appearing blank.
+
+### Root Cause
+The SidebarInset component was using `min-h-svh` (minimum height: small viewport height) which caused layout issues on desktop. The flex container wasn't properly distributing width between the sidebar and main content area.
+
+### Solution
+1. **Updated PageLayout Component**
+   - Added `w-full min-w-0` to ensure proper width distribution
+   - Added max-width container for content centering
+   - Removed `overflow-hidden` which was hiding content
+
+2. **Fixed SidebarInset Component**
+   - Changed from `min-h-svh` to proper flex layout
+   - Added `w-full min-w-0` for correct width handling
+   - Added `data-sidebar-inset` attribute for CSS targeting
+
+3. **Updated Header Component**
+   - Ensured full width on header element
+   - Fixed padding structure for proper layout
+
+4. **Created Layout Fix CSS**
+   - Added specific CSS rules to ensure proper flex behavior
+   - Fixed width constraints on sidebar and content areas
+   - Prevented overflow issues
+
+### Files Modified
+- `/src/components/layout/PageLayout.tsx`
+- `/src/components/ui/sidebar/sidebar-sections.tsx`
+- `/src/components/layout/Header.tsx`
+- `/src/pages/Dashboard.tsx`
+- `/src/styles/layout-fix.css` (created)
+- `/src/index.css` (imported layout-fix.css)
+
+### Result
+- Dashboard content now displays correctly on all screen sizes
+- Sidebar and content area properly share available space
+- Responsive behavior maintained for mobile devices
+- No visual regressions on other pages
+
+## 🔐 Blank Page Authentication Error Fix (2025-07-02)
+
+### Problem
+Pages showing blank content on PC with authentication errors in console:
+- "Failed to load resource: the server responded with a status of 400"
+- "Invalid Refresh Token" errors
+- Auth state change: SIGNED_OUT no session
+
+### Root Cause
+Expired or corrupted authentication tokens in localStorage causing the Supabase client to fail when trying to refresh the session. The app gets stuck in a loop trying to authenticate with invalid tokens.
+
+### Quick Fix (Run in Browser Console)
+1. Open browser console (F12)
+2. Copy and paste the contents of `FIX_BLANK_PAGE.js`
+3. Press Enter - this will clear auth data and redirect to login
+
+### Permanent Solution Implemented
+1. **Updated ProtectedRoute Component**
+   - Added auth error detection
+   - Auto-redirect on refresh token errors
+   - Better loading state handling
+
+2. **Enhanced Auth State Management**
+   - Added error handling in useAuthState hook
+   - Improved session validation
+   - Debug logging for auth issues
+
+3. **Created Auth Fix Utilities**
+   - `/src/utils/auth-fix.ts` - Helper functions for auth issues
+   - `/src/utils/auth-monitor.js` - Monitors and auto-fixes auth errors
+   - `FIX_BLANK_PAGE.js` - Console script for manual fixes
+
+4. **Updated Supabase Client**
+   - Enabled debug mode for auth
+   - Added error handling for fetch operations
+   - Better token refresh management
+
+### Files Modified
+- `/src/components/auth/ProtectedRoute.tsx`
+- `/src/integrations/supabase/client.ts`
+- `/src/App.tsx`
+- Created: `/src/utils/auth-fix.ts`
+- Created: `/src/utils/auth-monitor.js`
+- Created: `FIX_BLANK_PAGE.js`
+
+## 🔧 Layout Gap Fix & PageHeader Restoration (2025-07-02)
+
+### Problem
+After fixing the dashboard display issue, there was:
+1. A large white gap between the header (search bar) and page content on all pages
+2. PageHeader sections were too small after the fix
+3. Action buttons on the right side of PageHeaders were working but needed proper sizing
+
+### Root Cause
+1. The `SidebarInset` component was rendering as a `<main>` element, creating nested main elements
+2. The `space-y-6` utility class was adding unwanted margin between elements
+3. Padding and sizing had been reduced too much in previous fixes
+
+### Solution
+1. **Fixed HTML Structure**
+   - Changed `SidebarInset` from `<main>` to `<div>` element
+   - Eliminated invalid nested main elements
+   - Updated CSS selectors to match new structure
+
+2. **Restored PageHeader Sizing**
+   - Increased padding from `p-4 sm:p-6` to `p-6 sm:p-8`
+   - Increased bottom margin from `mb-4` to `mb-6`
+   - Maintained responsive design
+
+3. **Fixed Layout Spacing**
+   - Removed problematic `space-y-6` from Dashboard
+   - Added explicit margins where needed
+   - Restored proper content padding (1.5rem on desktop, 0.75rem on mobile)
+
+### Files Modified
+- `/src/components/ui/sidebar/sidebar-sections.tsx` - Changed SidebarInset to div
+- `/src/components/ui/page-header.tsx` - Restored proper sizing
+- `/src/pages/Dashboard.tsx` - Removed space-y utilities
+- `/src/styles/layout-fix.css` - Updated selectors and spacing
+
+## 🎨 Client Management Page Redesign (2025-07-02)
+
+### Problem
+The Client Management page had alignment issues and didn't look polished across different devices (PC, notebooks, tablets, phones).
+
+### Changes Made
+1. **Improved Stats Cards**
+   - Better spacing and consistent heights
+   - Enhanced hover effects with scale and shadow
+   - Gradient backgrounds with proper opacity
+   - Icon containers with hover animations
+   - Responsive grid (1 column mobile, 2 columns tablet, 4 columns desktop)
+
+2. **Search and Filter Bar**
+   - Better alignment with rounded corners (rounded-2xl)
+   - Improved shadow and backdrop blur effects
+   - Filter button changes color when active
+   - View toggle with smooth transitions
+   - Proper spacing between elements
+
+3. **Responsive Design**
+   - Max width container (1600px) for ultra-wide screens
+   - Consistent padding and margins across devices
+   - Mobile-first approach with proper breakpoints
+   - Typography scales appropriately on different screens
+
+4. **Visual Enhancements**
+   - Smooth transitions on all interactive elements
+   - Better focus states for accessibility
+   - Loading skeletons with shimmer effect
+   - Consistent border radius (rounded-2xl for main containers)
+
+5. **Layout Improvements**
+   - Fixed grid layouts with proper gaps
+   - Centered content on large screens
+   - Better pagination design with proper spacing
+   - Animated filter expansion
+
+### Files Modified
+- `/src/pages/ClientsPage.tsx` - Complete redesign with better structure
+- `/src/styles/clients-page.css` - New CSS file for additional styling
+- `/src/index.css` - Import new CSS file
+
+### Result
+- Clean, modern design that looks consistent across all devices
+- Better visual hierarchy with proper spacing
+- Smooth animations and transitions
+- Improved user experience with better alignment
+
 
 ## 🏢 Organization Context Management (2025-06-30)
 
@@ -1037,3 +1208,427 @@ SELECT generate_portal_access(
 ---
 
 *Portal Access System Added: 2025-07-02*
+
+
+## 🎨 ClientsList Redesign to Match JobsList (2025-07-02)
+
+### Problem
+The ClientsList component design was inconsistent with the JobsList design. It lacked checkboxes for bulk actions and had a different visual structure.
+
+### Changes Made
+
+1. **Matching Table Design**
+   - Added checkbox column for selection
+   - Matching header structure with JobsList
+   - Similar hover effects and transitions
+   - Consistent column layout
+   - Action buttons matching Jobs design
+
+2. **Bulk Actions Support**
+   - Added `selectedClients` state management
+   - Created `BulkActionsBar` component for clients
+   - Support for bulk status updates
+   - Bulk delete functionality
+   - Export selected clients to CSV
+
+3. **Grid View Updates**
+   - Checkboxes in grid cards
+   - Consistent card design with Jobs
+   - Better hover states
+   - Portal link button
+   - Edit and delete actions
+
+4. **List View Columns**
+   - Checkbox selection
+   - Name with status badge
+   - Company
+   - Contact (email/phone)
+   - Address
+   - Segment
+   - Jobs count
+   - Revenue
+   - Actions (portal link, edit, delete)
+
+5. **Visual Consistency**
+   - Same status badge styling
+   - Matching icon usage
+   - Consistent spacing and padding
+   - Similar hover and focus states
+
+### Files Modified
+- `/src/components/clients/ClientsList.tsx` - Complete redesign
+- `/src/pages/ClientsPage.tsx` - Added bulk action support
+- `/src/components/clients/BulkActionsBar.tsx` - New component
+
+### Result
+- ClientsList now matches JobsList design exactly
+- Consistent user experience across modules
+- Better bulk action capabilities
+- Improved visual hierarchy
+
+## 🐛 Fixed ClientsList Component Error (2025-07-03)
+
+### Problem
+The ClientsList component was throwing TypeScript errors about missing required props (selectedClients, onSelectClient, onSelectAllClients) when used in places like ClientStats.tsx where these props weren't provided.
+
+### Root Cause
+The redesigned ClientsList component made selection-related props required, but the component was being used in other places without these props.
+
+### Solution
+1. Made all selection-related props optional in the ClientsList interface
+2. Added a `showSelection` flag that checks if selection handlers are provided
+3. Conditionally render checkboxes and selection UI only when handlers are available
+4. Updated both grid and list views to handle optional selection functionality
+
+### Key Changes
+- Selection props are now optional: `selectedClients?`, `onSelectClient?`, `onSelectAllClients?`
+- Added `showSelection` boolean to control checkbox visibility
+- Checkboxes only appear when selection handlers are provided
+- Component maintains backward compatibility with existing usage
+
+### Files Modified
+- `/src/components/clients/ClientsList.tsx` - Made selection props optional and conditional
+
+### Result
+- ClientsList works both with and without selection functionality
+- No more TypeScript errors
+- Backward compatible with existing usage
+- Clean separation of concerns
+
+## 🐛 Fixed DialogPortal Error in ClientsList (2025-07-03)
+
+### Problem
+The clients page was showing error: "'DialogPortal' must be used within 'Dialog'" when accessing http://localhost:8080/clients
+
+### Root Cause
+The DeleteConfirmDialog component was being called with incorrect props in ClientsList:
+- Used `isOpen` instead of `open`
+- Used `onClose` instead of `onOpenChange`
+
+### Solution
+Updated the DeleteConfirmDialog usage in ClientsList to use the correct props:
+- Changed `isOpen={showDeleteDialog}` to `open={showDeleteDialog}`
+- Changed `onClose` to `onOpenChange` with proper handling
+
+### Files Modified
+- `/src/components/clients/ClientsList.tsx` - Fixed DeleteConfirmDialog prop names
+
+### Additional Notes
+If you see authentication errors in the console, try:
+1. Clear your browser's localStorage
+2. Go to login page and sign in again
+3. This will refresh the authentication tokens
+
+### Result
+- Client page now loads without Dialog errors
+- Delete confirmation dialog works properly
+- No breaking changes to the website
+
+## 🎨 Fixed PageHeader Button Alignment (2025-07-03)
+
+### Problem
+The "Add Client" button in the Client Management page header was not aligned to the right side properly.
+
+### Solution
+Updated the PageHeader component to improve button alignment:
+1. Changed breakpoint from `lg:` to `md:` for earlier horizontal layout
+2. Added `self-start md:self-auto` to button container
+3. Ensured proper flexbox layout with `md:flex-row md:justify-between`
+
+### Files Modified
+- `/src/components/ui/page-header.tsx` - Updated flex layout and button alignment
+
+### Result
+- Action buttons now properly align to the right on tablets and larger screens
+- Better responsive behavior
+- Consistent header layout across all pages
+
+## 🎨 Fixed Global PageHeader Button Alignment (2025-07-03)
+
+### Problem
+Action buttons in PageHeader were not aligning to the right on all pages (notebooks, PCs, tablets). The issue was related to:
+1. Inconsistent wrapper divs (ClientsPage had max-w-[1600px] wrapper)
+2. PageHeader flex layout not working properly at all breakpoints
+3. Related to previous gap fix that added padding to main element
+
+### Root Causes
+1. **Inconsistent page wrappers** - Some pages had constraining wrapper divs
+2. **Breakpoint issues** - Button alignment only worked on large screens (lg:)
+3. **Parent padding** - Main element has 1.5rem padding affecting layout
+
+### Solution
+1. **Removed constraining wrapper** from ClientsPage
+2. **Updated PageHeader breakpoints**:
+   - Changed from `lg:` to `sm:` for earlier responsive behavior
+   - Updated flex layout to `sm:flex-row sm:justify-between`
+   - Added `sm:self-center` to button container
+3. **Improved responsive padding**:
+   - Mobile: p-4
+   - Small screens: sm:p-6
+   - Large screens: lg:p-8
+
+### Files Modified
+- `/src/components/ui/page-header.tsx` - Fixed responsive layout and breakpoints
+- `/src/pages/ClientsPage.tsx` - Removed max-w-[1600px] wrapper div
+
+### Result
+- Action buttons now properly align to the right on all screen sizes
+- Consistent behavior across all pages
+- Better responsive design
+- No visual gaps or alignment issues
+
+## 🎨 Complete Fix for PageHeader Button Alignment (2025-07-03)
+
+### Problem
+Deep global layout issue where buttons appeared below content instead of aligned to the right on tablets/notebooks/PCs.
+
+### Root Causes
+1. **Flexbox limitations** - Flex layout wasn't working properly across all screen sizes
+2. **Content overflow** - Main container's `overflow-y-auto` was affecting layout
+3. **Width constraints** - Some pages had wrapper divs constraining content
+4. **Responsive breakpoints** - Button alignment only worked on specific screen sizes
+
+### Solution Applied
+Complete redesign of PageHeader with different approaches for different screen sizes:
+
+#### Mobile & Tablets (< 1024px):
+- Stack layout with button centered below content
+- Clean, touch-friendly design
+- Button appears after badges
+
+#### Desktop (≥ 1024px):
+- **Absolute positioning** for the button
+- Button positioned at `top-6 right-6`
+- Content has `pr-40` padding to prevent overlap
+- Clean side-by-side layout
+
+### Technical Changes
+
+1. **PageHeader Component**:
+   - Split into two different layouts using `lg:hidden` and `hidden lg:block`
+   - Desktop uses absolute positioning for precise control
+   - Mobile/tablet uses flex stack layout
+   - Proper padding to prevent content overlap
+
+2. **Layout CSS Updates**:
+   - Added `min-height: 0` to main for proper flex sizing
+   - Ensured full width for all content
+   - Fixed overflow issues
+
+### Files Modified
+- `/src/components/ui/page-header.tsx` - Complete redesign with responsive layouts
+- `/src/styles/layout-fix.css` - Enhanced for better flex container handling
+
+### Result
+✅ **Mobile**: Centered button below content
+✅ **Tablets**: Centered button below content  
+✅ **Desktop/Notebooks**: Button properly aligned to the right using absolute positioning
+✅ **All screen sizes**: Clean, professional appearance
+
+### Testing Breakpoints
+- Mobile: < 640px
+- Tablet: 640px - 1023px
+- Desktop: ≥ 1024px (lg breakpoint)
+
+## 🎨 Fixed Vertical Centering in PageHeader (2025-07-03)
+
+### Problem
+Text and content were too high, almost touching the top border. Both left content and right button needed to be vertically centered.
+
+### Solution
+Completely redesigned the PageHeader with proper vertical centering:
+
+1. **Removed padding from container** - Now using `min-h` with flex centering
+2. **Added minimum heights**:
+   - Mobile: `min-h-[120px]`
+   - Tablet: `sm:min-h-[140px]`
+   - Desktop: `lg:min-h-[160px]`
+3. **Used Flexbox for vertical centering**:
+   - Wrapper has `flex items-center`
+   - Desktop layout uses `lg:flex lg:items-center lg:justify-between`
+4. **Proper spacing**:
+   - Desktop: `lg:py-8` for vertical padding
+   - Mobile/Tablet: `py-4 sm:py-6`
+   - Horizontal padding: `px-4 sm:px-6 lg:px-8`
+
+### Key Changes
+- Both text (left) and button (right) are now vertically centered
+- Consistent spacing across all screen sizes
+- Clean, professional appearance
+- No more content touching borders
+
+### Files Modified
+- `/src/components/ui/page-header.tsx` - Complete vertical centering implementation
+
+### Result
+✅ Content properly centered vertically on all devices
+✅ Button and text aligned at the same height
+✅ Consistent spacing from top and bottom borders
+
+## 🎨 Fixed Job Details Page Issues (2025-07-03)
+
+### Problems Fixed
+
+1. **Removed "Edit Job" Button**
+   - Removed the Edit Job button from the job details header as requested
+   - Cleaned up unused code and imports
+
+2. **Fixed Duplicate Job Title**
+   - The job ID (e.g., "Job J-2006") was being shown both in the PageHeader and in the JobInfoSection
+   - Removed the duplicate display from JobInfoSection to avoid redundancy
+   - Removed unused Hash icon import
+
+3. **Redesigned Estimates & Invoices Lists**
+   - Fixed broken/messy design in estimates and invoices tabs
+   - Created clean three-section card layout:
+     - Header: Gray background with number, status, and amount
+     - Details: White background with dates and notes
+     - Actions: Gray background with action buttons
+   - Improved button styling and hover effects
+   - Better mobile responsiveness
+
+### Files Modified
+- `/src/components/jobs/JobDetailsHeader.tsx` - Removed Edit Job button
+- `/src/components/jobs/header/JobInfoSection.tsx` - Removed duplicate job ID display
+- `/src/components/jobs/overview/ModernJobEstimatesTab.tsx` - Redesigned estimate cards
+- `/src/components/jobs/overview/ModernJobInvoicesTab.tsx` - Redesigned invoice cards
+
+### Result
+- Cleaner job details page without duplicate information
+- Professional-looking estimates and invoices lists
+- Consistent design across all tabs
+- Better mobile experience
+
+## 🐛 Fixed Grid View Error in ClientsList (2025-07-03)
+
+### Problem
+Clicking the grid view button in the clients page caused an error due to duplicate and out-of-scope `getStatusBadgeStyle` function definitions.
+
+### Root Cause
+The `getStatusBadgeStyle` function was defined multiple times inside different component scopes (ClientsList, ClientCard, and ClientRow), causing reference errors when components tried to access it.
+
+### Solution
+1. Moved `getStatusBadgeStyle` function to the module level (outside all components)
+2. Removed all duplicate definitions from inside components
+3. Now all components can access the shared function
+
+### Additional Improvements
+1. **Enhanced Search Bar Design**:
+   - Added consistent height (h-10) across all elements
+   - Improved border styling with border-border/50
+   - Better alignment of search input and buttons
+   - Added w-full to search input container for proper responsive behavior
+
+2. **Updated ClientsFilters Component**:
+   - Removed duplicate search input (already in main page)
+   - Improved dropdown styling to match search bar
+   - Added more filter options (prospects, time ranges)
+   - Consistent rounded-xl borders and heights
+
+### Files Modified
+- `/src/components/clients/ClientsList.tsx` - Fixed function scope issue
+- `/src/pages/ClientsPage.tsx` - Enhanced search bar styling
+- `/src/components/clients/ClientsFilters.tsx` - Removed duplicate search, improved filters
+
+### Result
+- Grid view now works without errors
+- Consistent and polished search/filter UI
+- Better user experience with aligned elements
+
+## 🎨 Added PageHeader to Details Pages (2025-07-03)
+
+### Changes Made
+
+#### Client Details Page (`/src/pages/ClientDetailPage.tsx`)
+- Added PageHeader with consistent design
+- Icon: User icon
+- Badges: "Contact Info" and "Business Details"
+- Action button: "Create Job"
+- Removed old custom header
+
+#### Job Details Page (`/src/pages/JobDetailsPage.tsx` & `/src/components/jobs/JobDetailsHeader.tsx`)
+- Integrated PageHeader into JobDetailsHeader component
+- Dynamic title: "Job J-XXXX"
+- Dynamic subtitle: Client name and job title
+- Dynamic badges based on job data:
+  - Status badge (with appropriate color)
+  - Revenue badge (if exists)
+  - Date badge
+- Action button: "Edit Job"
+- Kept JobInfoSection below for additional details
+
+### Design Consistency
+- Both detail pages now match the global PageHeader design
+- Proper vertical centering
+- Responsive layout
+- Consistent button alignment
+- Professional appearance
+
+### Files Modified
+- `/src/pages/ClientDetailPage.tsx` - Added PageHeader
+- `/src/components/jobs/JobDetailsHeader.tsx` - Integrated PageHeader
+- `/src/pages/JobDetailsPage.tsx` - Removed Card wrapper
+
+### Result
+✅ Client Details page has consistent header design
+✅ Job Details page has consistent header design
+✅ Both pages follow the same layout pattern as list pages
+
+## 🔧 Fixed Job Revenue Tracking (2025-07-03)
+
+### Problem
+Job revenue was not being updated when invoices were marked as paid. Jobs would show 0 revenue in the clients list and job list even though they had paid invoices.
+
+### Root Cause
+There was no mechanism to update the `jobs.revenue` field when an invoice status changed to 'paid'. The revenue field existed in the database but wasn't being populated.
+
+### Solution
+Created database triggers to automatically update job revenue when invoices are paid:
+
+1. **Invoice Payment Trigger** (`update_job_revenue_on_invoice_payment`)
+   - Fires when invoice status changes to 'paid'
+   - Adds invoice total to job revenue
+   - Also handles status changes from 'paid' to other statuses (subtracts revenue)
+
+2. **Invoice Insert Trigger** (`update_job_revenue_on_invoice_insert`)
+   - Handles cases where invoices are created with status already set to 'paid'
+   - Immediately updates job revenue
+
+3. **Revenue Calculation Function** (`recalculate_job_revenue`)
+   - Utility function to recalculate total revenue from all paid invoices
+   - Useful for data cleanup or verification
+
+4. **Revenue Summary View** (`job_revenue_summary`)
+   - Provides breakdown of job revenue
+   - Shows paid vs unpaid invoices
+   - Calculates pending revenue
+
+### Database Changes
+```sql
+-- Triggers created:
+- update_job_revenue_on_invoice_payment_trigger
+- update_job_revenue_on_invoice_insert_trigger
+
+-- Functions created:
+- update_job_revenue_on_invoice_payment()
+- update_job_revenue_on_invoice_insert()
+- recalculate_job_revenue(job_id TEXT)
+
+-- View created:
+- job_revenue_summary
+
+-- Index added:
+- idx_invoices_job_id_status ON invoices(job_id, status)
+```
+
+### Result
+- ✅ Job revenue automatically updates when invoices are paid
+- ✅ Historical data has been corrected (existing paid invoices updated job revenue)
+- ✅ Revenue displays correctly in all views (client lists, job lists, dashboards)
+- ✅ Supports multiple invoices per job
+- ✅ Handles invoice status changes (void, cancelled, etc.)
+
+### Files Modified
+- Database only - no frontend changes required
+- Added migration: `update_job_revenue_on_invoice_payment`
+- Added migration: `add_job_revenue_calculation_function`

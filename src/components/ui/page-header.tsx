@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -31,7 +30,7 @@ export const PageHeader = ({
 }: PageHeaderProps) => {
   return (
     <div className={cn(
-      "relative overflow-hidden bg-gradient-to-br from-fixlyfy/10 via-fixlyfy-light/10 to-blue-50 rounded-2xl p-4 sm:p-6 mb-6 border border-fixlyfy/20",
+      "relative overflow-hidden bg-gradient-to-br from-fixlyfy/10 via-fixlyfy-light/10 to-blue-50 rounded-2xl border border-fixlyfy/20 mb-6",
       className
     )}>
       {/* Background Elements */}
@@ -40,54 +39,113 @@ export const PageHeader = ({
         <div className="absolute bottom-0 right-0 w-48 h-48 sm:w-64 sm:h-64 bg-gradient-to-br from-fixlyfy-light/20 to-blue-500/20 rounded-full blur-3xl transform translate-x-1/2 translate-y-1/2"></div>
       </div>
       
-      <div className="relative z-10 flex flex-col lg:flex-row lg:justify-between lg:items-center gap-4">
-        <div className="space-y-2 flex-1 min-w-0">
-          <div className="flex items-center gap-3">
-            <div className="p-2 sm:p-3 bg-gradient-to-br from-fixlyfy to-fixlyfy-light rounded-xl shadow-lg transform rotate-3 hover:rotate-0 transition-all duration-500 flex-shrink-0">
-              <Icon className="text-white w-5 h-5 sm:w-6 sm:h-6" />
+      {/* Content wrapper with proper vertical centering */}
+      <div className="relative z-10 min-h-[120px] sm:min-h-[140px] lg:min-h-[160px] flex items-center px-4 sm:px-6 lg:px-8">
+        {/* Mobile and Tablet: Stack layout */}
+        <div className="lg:hidden w-full py-4 sm:py-6">
+          <div className="space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 sm:p-3 bg-gradient-to-br from-fixlyfy to-fixlyfy-light rounded-xl shadow-lg transform rotate-3 hover:rotate-0 transition-all duration-500 flex-shrink-0">
+                <Icon className="text-white w-5 h-5 sm:w-6 sm:h-6" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <h1 className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-fixlyfy via-fixlyfy-light to-blue-600 bg-clip-text text-transparent break-words">
+                  {title}
+                </h1>
+                <p className="text-fixlyfy-text-secondary text-xs sm:text-sm break-words">{subtitle}</p>
+              </div>
             </div>
-            <div className="min-w-0 flex-1">
-              <h1 className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-fixlyfy via-fixlyfy-light to-blue-600 bg-clip-text text-transparent break-words">
-                {title}
-              </h1>
-              <p className="text-fixlyfy-text-secondary text-xs sm:text-sm break-words">{subtitle}</p>
+            
+            {/* Feature Badges */}
+            {badges.length > 0 && (
+              <div className="flex flex-wrap gap-1 sm:gap-2">
+                {badges.map((badge, index) => (
+                  <Badge 
+                    key={index}
+                    variant="outline" 
+                    className={cn(
+                      "text-xs font-medium border flex-shrink-0",
+                      badge.variant === "fixlyfy" && "bg-fixlyfy/10 text-fixlyfy border-fixlyfy/30",
+                      badge.variant === "success" && "bg-green-100 text-green-700 border-green-200",
+                      badge.variant === "info" && "bg-blue-100 text-blue-700 border-blue-200",
+                      badge.variant === "warning" && "bg-yellow-100 text-yellow-700 border-yellow-200"
+                    )}
+                  >
+                    <badge.icon className="w-3 h-3 mr-1 flex-shrink-0" />
+                    <span className="truncate">{badge.text}</span>
+                  </Badge>
+                ))}
+              </div>
+            )}
+            
+            {/* Mobile button */}
+            {actionButton && (
+              <div className="flex justify-center">
+                <Button 
+                  onClick={actionButton.onClick}
+                  className="bg-gradient-to-r from-fixlyfy to-fixlyfy-light hover:from-fixlyfy/90 hover:to-fixlyfy-light/90 text-white px-6 py-2 rounded-xl font-semibold shadow-lg transform hover:scale-105 transition-all duration-300"
+                >
+                  <actionButton.icon className="mr-2 h-4 w-4 flex-shrink-0" />
+                  <span>{actionButton.text}</span>
+                </Button>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Desktop: Side by side with flex */}
+        <div className="hidden lg:flex lg:items-center lg:justify-between lg:w-full lg:py-8">
+          <div className="flex-1">
+            <div className="space-y-3">
+              <div className="flex items-center gap-3">
+                <div className="p-3 bg-gradient-to-br from-fixlyfy to-fixlyfy-light rounded-xl shadow-lg transform rotate-3 hover:rotate-0 transition-all duration-500 flex-shrink-0">
+                  <Icon className="text-white w-6 h-6" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <h1 className="text-2xl font-bold bg-gradient-to-r from-fixlyfy via-fixlyfy-light to-blue-600 bg-clip-text text-transparent break-words">
+                    {title}
+                  </h1>
+                  <p className="text-fixlyfy-text-secondary text-sm break-words">{subtitle}</p>
+                </div>
+              </div>
+              
+              {/* Feature Badges */}
+              {badges.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {badges.map((badge, index) => (
+                    <Badge 
+                      key={index}
+                      variant="outline" 
+                      className={cn(
+                        "text-xs font-medium border flex-shrink-0",
+                        badge.variant === "fixlyfy" && "bg-fixlyfy/10 text-fixlyfy border-fixlyfy/30",
+                        badge.variant === "success" && "bg-green-100 text-green-700 border-green-200",
+                        badge.variant === "info" && "bg-blue-100 text-blue-700 border-blue-200",
+                        badge.variant === "warning" && "bg-yellow-100 text-yellow-700 border-yellow-200"
+                      )}
+                    >
+                      <badge.icon className="w-3 h-3 mr-1 flex-shrink-0" />
+                      <span className="truncate">{badge.text}</span>
+                    </Badge>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
           
-          {/* Feature Badges */}
-          {badges.length > 0 && (
-            <div className="flex flex-wrap gap-1 sm:gap-2 mt-3">
-              {badges.map((badge, index) => (
-                <Badge 
-                  key={index}
-                  variant="outline" 
-                  className={cn(
-                    "text-xs font-medium border flex-shrink-0",
-                    badge.variant === "fixlyfy" && "bg-fixlyfy/10 text-fixlyfy border-fixlyfy/30",
-                    badge.variant === "success" && "bg-green-100 text-green-700 border-green-200",
-                    badge.variant === "info" && "bg-blue-100 text-blue-700 border-blue-200",
-                    badge.variant === "warning" && "bg-yellow-100 text-yellow-700 border-yellow-200"
-                  )}
-                >
-                  <badge.icon className="w-3 h-3 mr-1 flex-shrink-0" />
-                  <span className="truncate">{badge.text}</span>
-                </Badge>
-              ))}
+          {/* Desktop button */}
+          {actionButton && (
+            <div className="flex-shrink-0 ml-6">
+              <Button 
+                onClick={actionButton.onClick}
+                className="bg-gradient-to-r from-fixlyfy to-fixlyfy-light hover:from-fixlyfy/90 hover:to-fixlyfy-light/90 text-white px-6 py-2 rounded-xl font-semibold shadow-lg transform hover:scale-105 transition-all duration-300"
+              >
+                <actionButton.icon className="mr-2 h-4 w-4 flex-shrink-0" />
+                <span>{actionButton.text}</span>
+              </Button>
             </div>
           )}
         </div>
-        
-        {actionButton && (
-          <div className="flex-shrink-0">
-            <Button 
-              onClick={actionButton.onClick}
-              className="bg-gradient-to-r from-fixlyfy to-fixlyfy-light hover:from-fixlyfy/90 hover:to-fixlyfy-light/90 text-white px-4 sm:px-6 py-2 rounded-xl font-semibold shadow-lg transform hover:scale-105 transition-all duration-300 w-full sm:w-auto"
-            >
-              <actionButton.icon className="mr-2 h-4 w-4 flex-shrink-0" />
-              <span className="truncate">{actionButton.text}</span>
-            </Button>
-          </div>
-        )}
       </div>
     </div>
   );

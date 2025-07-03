@@ -1,7 +1,3 @@
-
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Search, Filter } from "lucide-react";
 import { 
   Select, 
   SelectContent, 
@@ -12,14 +8,9 @@ import {
 
 export const ClientsFilters = () => {
   return (
-    <div className="flex flex-wrap gap-3 items-center flex-1">
-      <div className="relative flex-1 min-w-[200px]">
-        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-fixlyfy-text-secondary" size={18} />
-        <Input placeholder="Search clients..." className="pl-10" />
-      </div>
-      
+    <>
       <Select defaultValue="all">
-        <SelectTrigger className="w-full md:w-[180px]">
+        <SelectTrigger className="w-full bg-background/50 border-muted-foreground/20 rounded-xl h-10">
           <SelectValue placeholder="Client Status" />
         </SelectTrigger>
         <SelectContent>
@@ -27,24 +18,35 @@ export const ClientsFilters = () => {
           <SelectItem value="active">Active</SelectItem>
           <SelectItem value="inactive">Inactive</SelectItem>
           <SelectItem value="leads">Leads</SelectItem>
+          <SelectItem value="prospect">Prospects</SelectItem>
+        </SelectContent>
+      </Select>
+      
+      <Select defaultValue="all-segments">
+        <SelectTrigger className="w-full bg-background/50 border-muted-foreground/20 rounded-xl h-10">
+          <SelectValue placeholder="Segment" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="all-segments">All Segments</SelectItem>
+          <SelectItem value="residential">Residential</SelectItem>
+          <SelectItem value="commercial">Commercial</SelectItem>
+          <SelectItem value="industrial">Industrial</SelectItem>
         </SelectContent>
       </Select>
       
       <Select defaultValue="all-time">
-        <SelectTrigger className="w-full md:w-[180px]">
+        <SelectTrigger className="w-full bg-background/50 border-muted-foreground/20 rounded-xl h-10">
           <SelectValue placeholder="Last Interaction" />
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="all-time">All Time</SelectItem>
+          <SelectItem value="today">Today</SelectItem>
+          <SelectItem value="this-week">This Week</SelectItem>
           <SelectItem value="this-month">This Month</SelectItem>
           <SelectItem value="last-month">Last Month</SelectItem>
           <SelectItem value="this-year">This Year</SelectItem>
         </SelectContent>
       </Select>
-      
-      <Button variant="outline" size="icon">
-        <Filter size={18} />
-      </Button>
-    </div>
+    </>
   );
 };

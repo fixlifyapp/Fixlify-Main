@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { PageLayout } from "@/components/layout/PageLayout";
+import { PageHeader } from "@/components/ui/page-header";
 import { ClientForm } from "@/components/clients/ClientForm";
 import { ScheduleJobModal } from "@/components/schedule/ScheduleJobModal";
 import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
+import { Plus, User, Phone, Building2 } from "lucide-react";
 import { useJobs } from "@/hooks/useJobs";
 import { toast } from "sonner";
 
@@ -62,22 +63,20 @@ const ClientDetailPage = () => {
 
   return (
     <PageLayout>
-      <div className="mb-4 sm:mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 px-2 sm:px-0">
-        <div className="min-w-0 flex-1">
-          <h1 className="text-xl sm:text-2xl font-bold truncate">Client Details</h1>
-          <p className="text-muted-foreground text-sm sm:text-base">
-            View and manage client information.
-          </p>
-        </div>
-        <Button 
-          onClick={() => setIsCreateJobModalOpen(true)} 
-          className="bg-primary hover:bg-primary/90 w-full sm:w-auto flex-shrink-0"
-          size="sm"
-        >
-          <Plus size={16} className="mr-2" /> 
-          <span>Create Job</span>
-        </Button>
-      </div>
+      <PageHeader
+        title="Client Details"
+        subtitle="View and manage client information, history, and communications"
+        icon={User}
+        badges={[
+          { text: "Contact Info", icon: Phone, variant: "info" },
+          { text: "Business Details", icon: Building2, variant: "fixlyfy" }
+        ]}
+        actionButton={{
+          text: "Create Job",
+          icon: Plus,
+          onClick: () => setIsCreateJobModalOpen(true)
+        }}
+      />
       
       <div className="space-y-6 sm:space-y-8">
         <ClientForm clientId={decodedClientId} onCreateJob={() => setIsCreateJobModalOpen(true)} />

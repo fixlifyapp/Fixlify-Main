@@ -3,16 +3,64 @@ import { Badge } from "@/components/ui/badge";
 import { Crown, Users, TrendingUp, Clock } from "lucide-react";
 
 interface ClientSegmentBadgeProps {
-  stats: {
+  stats?: {
     totalRevenue: number;
     totalJobs: number;
     lastServiceDate?: string;
   };
+  segment?: string; // For backward compatibility
 }
 
-export const ClientSegmentBadge = ({ stats }: ClientSegmentBadgeProps) => {
+export const ClientSegmentBadge = ({ stats, segment: segmentProp }: ClientSegmentBadgeProps) => {
+  // Handle legacy usage where segment is passed directly
+  if (!stats && segmentProp) {
+    const segmentMap: Record<string, { label: string; icon: any; color: string; variant: any }> = {
+      vip: {
+        label: "VIP Client",
+        variant: "default" as const,
+        icon: Crown,
+        color: "bg-amber-100 text-amber-800 border-amber-300"
+      },
+      regular: {
+        label: "Regular",
+        variant: "secondary" as const,
+        icon: Users,
+        color: "bg-blue-100 text-blue-800 border-blue-300"
+      },
+      new: {
+        label: "New",
+        variant: "outline" as const,
+        icon: TrendingUp,
+        color: "bg-green-100 text-green-800 border-green-300"
+      },
+      inactive: {
+        label: "Inactive",
+        variant: "outline" as const,
+        icon: Clock,
+        color: "bg-gray-100 text-gray-600 border-gray-300"
+      }
+    };
+
+    const segmentKey = segmentProp ? segmentProp.toLowerCase() : '';
+    const segmentData = segmentMap[segmentKey];
+    if (!segmentData) return null;
+
+    const Icon = segmentData.icon;
+    return (
+      <Badge variant={segmentData.variant} className={`flex items-center gap-1 ${segmentData.color}`}>
+        <Icon className="h-3 w-3" />
+        {segmentData.label}
+      </Badge>
+    );
+  }
+
+  // Return null if no stats provided
+  if (!stats) {
+    return null;
+  }
+
   const getClientSegment = () => {
-    const { totalRevenue, totalJobs, lastServiceDate } = stats;
+    const { totalRevenue = 0, totalJobs = 0, lastServiceDate } = stats;
     
     // Check if client is recent (within last 6 months)
     const sixMonthsAgo = new Date();
@@ -68,19 +116,19 @@ export const ClientSegmentBadge = ({ stats }: ClientSegmentBadgeProps) => {
     return null;
   };
 
-  const segment = getClientSegment();
+  const segmentInfo = getClientSegment();
   
   // Don't render anything if no segment applies
-  if (!segment) {
+  if (!segmentInfo) {
     return null;
   }
 
-  const Icon = segment.icon;
+  const Icon = segmentInfo.icon;
 
   return (
-    <Badge variant={segment.variant} className={`flex items-center gap-1 ${segment.color}`}>
+    <Badge variant={segmentInfo.variant} className={`flex items-center gap-1 ${segmentInfo.color}`}>
       <Icon className="h-3 w-3" />
-      {segment.label}
+      {segmentInfo.label}
     </Badge>
   );
 };
