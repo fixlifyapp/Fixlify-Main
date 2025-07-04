@@ -13,17 +13,18 @@ export const Header = () => {
   const [showSearch, setShowSearch] = useState(false);
 
   return (
-    <header className="border-b bg-background w-full">
-      <div className="px-4 py-3 w-full">
+    <header className="layout-header">
+      <div className="container-responsive py-3">
         <div className="flex items-center justify-between w-full">
           <div className="flex items-center gap-2">
             <div className="md:hidden">
-              <SidebarTrigger />
+              <SidebarTrigger className="hamburger-menu touch-target" />
             </div>
             <div className="flex items-center gap-2">
               <Button 
                 variant="ghost" 
                 size="sm"
+                className="touch-target"
                 onClick={() => setShowSearch(!showSearch)}
               >
                 <Search className="h-4 w-4" />

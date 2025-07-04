@@ -1794,6 +1794,13 @@ export type Database = {
             foreignKeyName: "communication_logs_job_id_fkey"
             columns: ["job_id"]
             isOneToOne: false
+            referencedRelation: "job_revenue_summary"
+            referencedColumns: ["job_id"]
+          },
+          {
+            foreignKeyName: "communication_logs_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
             referencedRelation: "jobs"
             referencedColumns: ["id"]
           },
@@ -2016,6 +2023,13 @@ export type Database = {
             foreignKeyName: "conversations_job_id_fkey"
             columns: ["job_id"]
             isOneToOne: false
+            referencedRelation: "job_revenue_summary"
+            referencedColumns: ["job_id"]
+          },
+          {
+            foreignKeyName: "conversations_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
             referencedRelation: "jobs"
             referencedColumns: ["id"]
           },
@@ -2223,6 +2237,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "fact_jobs"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_conversations_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "job_revenue_summary"
+            referencedColumns: ["job_id"]
           },
           {
             foreignKeyName: "email_conversations_job_id_fkey"
@@ -2559,6 +2580,13 @@ export type Database = {
             foreignKeyName: "fk_estimates_job_id"
             columns: ["job_id"]
             isOneToOne: false
+            referencedRelation: "job_revenue_summary"
+            referencedColumns: ["job_id"]
+          },
+          {
+            foreignKeyName: "fk_estimates_job_id"
+            columns: ["job_id"]
+            isOneToOne: false
             referencedRelation: "jobs"
             referencedColumns: ["id"]
           },
@@ -2772,6 +2800,13 @@ export type Database = {
             foreignKeyName: "fk_invoices_job_id"
             columns: ["job_id"]
             isOneToOne: false
+            referencedRelation: "job_revenue_summary"
+            referencedColumns: ["job_id"]
+          },
+          {
+            foreignKeyName: "fk_invoices_job_id"
+            columns: ["job_id"]
+            isOneToOne: false
             referencedRelation: "jobs"
             referencedColumns: ["id"]
           },
@@ -2822,6 +2857,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "fact_jobs"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "job_attachments_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "job_revenue_summary"
+            referencedColumns: ["job_id"]
           },
           {
             foreignKeyName: "job_attachments_job_id_fkey"
@@ -2934,6 +2976,13 @@ export type Database = {
             foreignKeyName: "job_history_job_id_fkey"
             columns: ["job_id"]
             isOneToOne: false
+            referencedRelation: "job_revenue_summary"
+            referencedColumns: ["job_id"]
+          },
+          {
+            foreignKeyName: "job_history_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
             referencedRelation: "jobs"
             referencedColumns: ["id"]
           },
@@ -2943,6 +2992,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "fact_jobs"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "job_history_job_id_idx"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "job_revenue_summary"
+            referencedColumns: ["job_id"]
           },
           {
             foreignKeyName: "job_history_job_id_idx"
@@ -3000,6 +3056,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "fact_jobs"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "job_overview_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "job_revenue_summary"
+            referencedColumns: ["job_id"]
           },
           {
             foreignKeyName: "job_overview_job_id_fkey"
@@ -3088,6 +3151,7 @@ export type Database = {
           created_by: string | null
           created_by_automation: string | null
           date: string | null
+          deleted_at: string | null
           description: string | null
           id: string
           job_type: string | null
@@ -3114,6 +3178,7 @@ export type Database = {
           created_by?: string | null
           created_by_automation?: string | null
           date?: string | null
+          deleted_at?: string | null
           description?: string | null
           id: string
           job_type?: string | null
@@ -3140,6 +3205,7 @@ export type Database = {
           created_by?: string | null
           created_by_automation?: string | null
           date?: string | null
+          deleted_at?: string | null
           description?: string | null
           id?: string
           job_type?: string | null
@@ -4066,6 +4132,13 @@ export type Database = {
             foreignKeyName: "portal_messages_job_id_fkey"
             columns: ["job_id"]
             isOneToOne: false
+            referencedRelation: "job_revenue_summary"
+            referencedColumns: ["job_id"]
+          },
+          {
+            foreignKeyName: "portal_messages_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
             referencedRelation: "jobs"
             referencedColumns: ["id"]
           },
@@ -4666,6 +4739,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "fact_jobs"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "job_revenue_summary"
+            referencedColumns: ["job_id"]
           },
           {
             foreignKeyName: "tasks_job_id_fkey"
@@ -5276,6 +5356,13 @@ export type Database = {
             foreignKeyName: "warranty_analytics_job_id_fkey"
             columns: ["job_id"]
             isOneToOne: false
+            referencedRelation: "job_revenue_summary"
+            referencedColumns: ["job_id"]
+          },
+          {
+            foreignKeyName: "warranty_analytics_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
             referencedRelation: "jobs"
             referencedColumns: ["id"]
           },
@@ -5550,6 +5637,21 @@ export type Database = {
           },
         ]
       }
+      job_revenue_summary: {
+        Row: {
+          calculated_revenue: number | null
+          job_id: string | null
+          job_status: string | null
+          job_title: string | null
+          paid_invoices: number | null
+          pending_revenue: number | null
+          recorded_revenue: number | null
+          total_invoiced: number | null
+          total_invoices: number | null
+          unpaid_invoices: number | null
+        }
+        Relationships: []
+      }
       warranty_analytics_summary: {
         Row: {
           avg_job_value: number | null
@@ -5673,6 +5775,14 @@ export type Database = {
           user_id: string | null
         }
       }
+      debug_job_access: {
+        Args: { p_client_id?: string }
+        Returns: {
+          check_name: string
+          result: string
+          details: Json
+        }[]
+      }
       debug_niche_switch: {
         Args: { p_new_niche: string }
         Returns: Json
@@ -5726,7 +5836,7 @@ export type Database = {
           p_client_id: string
           p_permissions?: Json
           p_hours_valid?: number
-          p_domain_restriction?: string
+          p_domain?: string
         }
         Returns: string
       }
@@ -5741,6 +5851,21 @@ export type Database = {
           responsesreceived: number
           revenuegenerated: number
           recentexecutions: number
+        }[]
+      }
+      get_client_jobs: {
+        Args: { p_client_id: string; p_limit?: number; p_offset?: number }
+        Returns: {
+          id: string
+          title: string
+          status: string
+          job_type: string
+          service: string
+          date: string
+          schedule_start: string
+          revenue: number
+          address: string
+          created_at: string
         }[]
       }
       get_current_user_info: {
@@ -5780,6 +5905,10 @@ export type Database = {
           available_tags: string[]
           available_lead_sources: string[]
         }[]
+      }
+      get_next_document_number: {
+        Args: { p_entity_type: string }
+        Returns: string
       }
       get_popular_warranties_by_job_type: {
         Args: { p_job_type: string; p_limit?: number }
@@ -5919,6 +6048,10 @@ export type Database = {
       process_pending_automations: {
         Args: Record<PropertyKey, never>
         Returns: undefined
+      }
+      recalculate_job_revenue: {
+        Args: { job_id_param: string }
+        Returns: number
       }
       reload_products_for_current_niche: {
         Args: Record<PropertyKey, never>
