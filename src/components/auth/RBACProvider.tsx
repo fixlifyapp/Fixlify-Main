@@ -63,15 +63,11 @@ export const RBACProvider = ({ children }: { children: ReactNode }) => {
               email: profile.email || session.user.email || 'unknown@example.com',
               role: (profile.role as UserRole) || 'technician',
               avatar: profile.avatar_url || "https://github.com/shadcn.png",
-               customRole: profile.custom_role ? {
+              customRole: profile.custom_role ? {
                 id: profile.custom_role.id,
                 name: profile.custom_role.name,
                 description: profile.custom_role.description,
-                 permissions: Array.isArray(profile.custom_role.permissions) 
-                  ? profile.custom_role.permissions.map(String)
-                  : (typeof profile.custom_role.permissions === 'string' 
-                    ? [profile.custom_role.permissions] 
-                    : [])
+                permissions: profile.custom_role.permissions || []
               } : undefined
             });
           }
@@ -99,15 +95,7 @@ export const RBACProvider = ({ children }: { children: ReactNode }) => {
         if (error) {
           console.error("Error fetching custom roles:", error);
         } else {
-          const formattedRoles = data?.map(role => ({
-            ...role,
-            permissions: Array.isArray(role.permissions) 
-              ? role.permissions.map(String)
-              : (typeof role.permissions === 'string' 
-                ? [role.permissions] 
-                : [])
-          })) || [];
-          setCustomRoles(formattedRoles);
+          setCustomRoles(data || []);
         }
       } catch (error) {
         console.error("Error in fetchCustomRoles:", error);
@@ -194,25 +182,7 @@ export const RBACProvider = ({ children }: { children: ReactNode }) => {
         return false;
       }
 
-      // Refresh custom roles after creation
-      const fetchData = async () => {
-        const { data: newData } = await supabase
-          .from('custom_roles')
-          .select('*')
-          .order('name');
-        if (newData) {
-          const formattedRoles = newData.map(role => ({
-            ...role,
-            permissions: Array.isArray(role.permissions) 
-              ? role.permissions.map(String)
-              : (typeof role.permissions === 'string' 
-                ? [role.permissions] 
-                : [])
-          }));
-          setCustomRoles(formattedRoles);
-        }
-      };
-      await fetchData();
+      await fetchCustomRoles();
       toast.success('Custom role created successfully');
       return true;
     } catch (error) {
@@ -238,25 +208,7 @@ export const RBACProvider = ({ children }: { children: ReactNode }) => {
         return false;
       }
 
-      // Refresh custom roles after update
-      const fetchData = async () => {
-        const { data: newData } = await supabase
-          .from('custom_roles')
-          .select('*')
-          .order('name');
-        if (newData) {
-          const formattedRoles = newData.map(role => ({
-            ...role,
-            permissions: Array.isArray(role.permissions) 
-              ? role.permissions.map(String)
-              : (typeof role.permissions === 'string' 
-                ? [role.permissions] 
-                : [])
-          }));
-          setCustomRoles(formattedRoles);
-        }
-      };
-      await fetchData();
+      await fetchCustomRoles();
       toast.success('Custom role updated successfully');
       return true;
     } catch (error) {
@@ -278,25 +230,7 @@ export const RBACProvider = ({ children }: { children: ReactNode }) => {
         return false;
       }
 
-      // Refresh custom roles after deletion
-      const fetchData = async () => {
-        const { data: newData } = await supabase
-          .from('custom_roles')
-          .select('*')
-          .order('name');
-        if (newData) {
-          const formattedRoles = newData.map(role => ({
-            ...role,
-            permissions: Array.isArray(role.permissions) 
-              ? role.permissions.map(String)
-              : (typeof role.permissions === 'string' 
-                ? [role.permissions] 
-                : [])
-          }));
-          setCustomRoles(formattedRoles);
-        }
-      };
-      await fetchData();
+      await fetchCustomRoles();
       toast.success('Custom role deleted successfully');
       return true;
     } catch (error) {

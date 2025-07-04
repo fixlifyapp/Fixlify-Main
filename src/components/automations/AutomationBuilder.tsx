@@ -222,8 +222,7 @@ export const AutomationBuilder = ({
       {currentStep === 1 && (
         <ModernCard variant="elevated">
           <ModernCardHeader>
-            <ModernCardTitle>
-              <Settings className="w-5 h-5 mr-2" />
+            <ModernCardTitle icon={Settings}>
               Basic Information
             </ModernCardTitle>
           </ModernCardHeader>
@@ -269,8 +268,7 @@ export const AutomationBuilder = ({
       {currentStep === 2 && (
         <ModernCard variant="elevated">
           <ModernCardHeader>
-            <ModernCardTitle>
-              <Zap className="w-5 h-5 mr-2" />
+            <ModernCardTitle icon={Zap}>
               When this happens (Trigger)
             </ModernCardTitle>
           </ModernCardHeader>
@@ -311,8 +309,7 @@ export const AutomationBuilder = ({
       {currentStep === 3 && (
         <ModernCard variant="elevated">
           <ModernCardHeader>
-            <ModernCardTitle>
-              <Target className="w-5 h-5 mr-2" />
+            <ModernCardTitle icon={Target}>
               Only if these conditions are met (Optional)
             </ModernCardTitle>
           </ModernCardHeader>
@@ -402,8 +399,7 @@ export const AutomationBuilder = ({
       {currentStep === 4 && (
         <ModernCard variant="elevated">
           <ModernCardHeader>
-            <ModernCardTitle>
-              <MessageSquare className="w-5 h-5 mr-2" />
+            <ModernCardTitle icon={MessageSquare}>
               Do this (Action)
             </ModernCardTitle>
           </ModernCardHeader>
@@ -525,7 +521,7 @@ export const AutomationBuilder = ({
                           <Badge variant="destructive" className="ml-2">Over SMS limit</Badge>
                         )}
                       </span>
-                      <span>Use {"{{"+"variable_name"+"}}"} for dynamic content</span>
+                      <span>Use {{variable_name}} for dynamic content</span>
                     </div>
                   </div>
                   {/* Smart Variable Selector */}
@@ -593,8 +589,7 @@ export const AutomationBuilder = ({
       {currentStep === 5 && (
         <ModernCard variant="elevated">
           <ModernCardHeader>
-            <ModernCardTitle>
-              <Clock className="w-5 h-5 mr-2" />
+            <ModernCardTitle icon={Clock}>
               When to send (Delivery Window)
             </ModernCardTitle>
           </ModernCardHeader>
@@ -702,7 +697,7 @@ export const AutomationBuilder = ({
             </Button>
           ) : (
             <GradientButton
-              variant="default"
+              variant="primary"
               onClick={handleSave}
               disabled={!validateStep(5)}
             >

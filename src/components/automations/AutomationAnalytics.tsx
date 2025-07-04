@@ -121,10 +121,7 @@ export const AutomationAnalytics = ({ workflows }: AutomationAnalyticsProps) => 
         {/* Execution Trends */}
         <ModernCard variant="elevated">
           <ModernCardHeader>
-            <ModernCardTitle>
-              <TrendingUp className="w-5 h-5 mr-2" />
-              Execution Trends
-            </ModernCardTitle>
+            <ModernCardTitle icon={TrendingUp}>Execution Trends</ModernCardTitle>
           </ModernCardHeader>
           <ModernCardContent>
             <ResponsiveContainer width="100%" height={300}>
@@ -162,10 +159,7 @@ export const AutomationAnalytics = ({ workflows }: AutomationAnalyticsProps) => 
         {/* Category Distribution */}
         <ModernCard variant="elevated">
           <ModernCardHeader>
-            <ModernCardTitle>
-              <Users className="w-5 h-5 mr-2" />
-              Automation Categories
-            </ModernCardTitle>
+            <ModernCardTitle icon={Users}>Automation Categories</ModernCardTitle>
           </ModernCardHeader>
           <ModernCardContent>
             <div className="flex items-center justify-center">
@@ -194,10 +188,7 @@ export const AutomationAnalytics = ({ workflows }: AutomationAnalyticsProps) => 
       {/* Top Performers */}
       <ModernCard variant="elevated">
         <ModernCardHeader>
-          <ModernCardTitle>
-            <Target className="w-5 h-5 mr-2" />
-            Top Performing Automations
-          </ModernCardTitle>
+          <ModernCardTitle icon={Target}>Top Performing Automations</ModernCardTitle>
         </ModernCardHeader>
         <ModernCardContent>
           <div className="space-y-4">

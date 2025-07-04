@@ -17,12 +17,17 @@ export const supabase = createClient<Database>(
       persistSession: true,
       detectSessionInUrl: true,
       storage: window.localStorage,
-      storageKey: 'supabase.auth.token',
-      flowType: 'pkce'
+      storageKey: 'fixlify-auth-token',
+      flowType: 'implicit',
+      debug: true // Enable auth debugging
     },
     global: {
-      headers: {
-        'x-application-name': 'fixlify'
+      fetch: (url, options = {}) => {
+        // Add error handling for auth issues
+        return fetch(url, options).catch(error => {
+          console.error('Supabase fetch error:', error);
+          throw error;
+        });
       }
     }
   }

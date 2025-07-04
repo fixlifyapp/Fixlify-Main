@@ -3088,7 +3088,6 @@ export type Database = {
           created_by: string | null
           created_by_automation: string | null
           date: string | null
-          deleted_at: string | null
           description: string | null
           id: string
           job_type: string | null
@@ -3115,7 +3114,6 @@ export type Database = {
           created_by?: string | null
           created_by_automation?: string | null
           date?: string | null
-          deleted_at?: string | null
           description?: string | null
           id: string
           job_type?: string | null
@@ -3142,7 +3140,6 @@ export type Database = {
           created_by?: string | null
           created_by_automation?: string | null
           date?: string | null
-          deleted_at?: string | null
           description?: string | null
           id?: string
           job_type?: string | null
@@ -5676,14 +5673,6 @@ export type Database = {
           user_id: string | null
         }
       }
-      debug_job_access: {
-        Args: { p_client_id?: string }
-        Returns: {
-          check_name: string
-          result: string
-          details: Json
-        }[]
-      }
       debug_niche_switch: {
         Args: { p_new_niche: string }
         Returns: Json
@@ -5737,7 +5726,7 @@ export type Database = {
           p_client_id: string
           p_permissions?: Json
           p_hours_valid?: number
-          p_domain?: string
+          p_domain_restriction?: string
         }
         Returns: string
       }
@@ -5752,21 +5741,6 @@ export type Database = {
           responsesreceived: number
           revenuegenerated: number
           recentexecutions: number
-        }[]
-      }
-      get_client_jobs: {
-        Args: { p_client_id: string; p_limit?: number; p_offset?: number }
-        Returns: {
-          id: string
-          title: string
-          status: string
-          job_type: string
-          service: string
-          date: string
-          schedule_start: string
-          revenue: number
-          address: string
-          created_at: string
         }[]
       }
       get_current_user_info: {
@@ -5806,10 +5780,6 @@ export type Database = {
           available_tags: string[]
           available_lead_sources: string[]
         }[]
-      }
-      get_next_document_number: {
-        Args: { p_entity_type: string }
-        Returns: string
       }
       get_popular_warranties_by_job_type: {
         Args: { p_job_type: string; p_limit?: number }
