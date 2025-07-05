@@ -22,18 +22,6 @@ export const JobDetailsHeader = () => {
     }
   };
 
-  const handleCallClick = () => {
-    if (job?.phone) {
-      window.open(`tel:${job.phone}`, '_self');
-    }
-  };
-
-  const handleMessageClick = () => {
-    if (job?.phone) {
-      window.open(`sms:${job.phone}`, '_self');
-    }
-  };
-
   if (isLoading) {
     return (
       <div className="relative overflow-hidden bg-gradient-to-br from-fixlyfy/10 via-fixlyfy-light/10 to-blue-50 rounded-2xl border border-fixlyfy/20">
@@ -90,7 +78,6 @@ export const JobDetailsHeader = () => {
     <>
       <PageHeader
         title={`Job ${job.id}`}
-        subtitle={`${job.client?.name || 'Unknown Client'} • ${job.title || job.service || 'Service Job'}`}
         icon={Wrench}
         badges={badges}
       />
@@ -101,13 +88,13 @@ export const JobDetailsHeader = () => {
           job={job}
           status={job.status || 'scheduled'}
           onStatusChange={handleStatusChange}
-          onCallClick={handleCallClick}
-          onMessageClick={handleMessageClick}
           onEditClient={() => {
-            if (job.client_id) {
-              navigate(`/clients/${job.client_id}`);
+            if (job.clientId) {
+              navigate(`/clients/${job.clientId}`);
             }
           }}
+          clientName={job.clients?.name || job.client || 'Unknown Client'}
+          jobType={job.title || job.service || 'Service Job'}
         />
       </div>
     </>

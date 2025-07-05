@@ -11,19 +11,25 @@ interface ClientContactButtonsProps {
   onEditClient: () => void;
 }
 
-export const ClientContactButtons = ({ onEditClient }: ClientContactButtonsProps) => {
+export const ClientContactButtons = ({ onCallClick, onMessageClick, onEditClient }: ClientContactButtonsProps) => {
   const { job } = useJobDetails();
   const navigate = useNavigate();
   const isMobile = useIsMobile();
 
   const handleCallClick = () => {
-    if (job?.clientId && job?.client && job?.phone) {
+    // Use provided callback if available, otherwise use default navigation
+    if (onCallClick) {
+      onCallClick();
+    } else if (job?.clientId && job?.client && job?.phone) {
       navigate(`/connect?tab=calls&clientId=${job.clientId}&clientName=${encodeURIComponent(job.client)}&clientPhone=${encodeURIComponent(job.phone)}`);
     }
   };
 
   const handleMessageClick = () => {
-    if (job?.clientId && job?.client && job?.phone) {
+    // Use provided callback if available, otherwise use default navigation
+    if (onMessageClick) {
+      onMessageClick();
+    } else if (job?.clientId && job?.client && job?.phone) {
       navigate(`/connect?tab=messages&clientId=${job.clientId}&clientName=${encodeURIComponent(job.client)}&clientPhone=${encodeURIComponent(job.phone)}&autoOpen=true`);
     }
   };

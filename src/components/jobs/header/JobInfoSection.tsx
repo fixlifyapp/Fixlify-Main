@@ -20,9 +20,11 @@ interface JobInfoSectionProps {
   };
   status: string;
   onStatusChange: (newStatus: string) => void;
-  onCallClick: () => void;
-  onMessageClick: () => void;
+  onCallClick?: () => void;
+  onMessageClick?: () => void;
   onEditClient: () => void;
+  clientName?: string;
+  jobType?: string;
 }
 
 export const JobInfoSection = ({
@@ -31,7 +33,9 @@ export const JobInfoSection = ({
   onStatusChange,
   onCallClick,
   onMessageClick,
-  onEditClient
+  onEditClient,
+  clientName,
+  jobType
 }: JobInfoSectionProps) => {
   const isMobile = useIsMobile();
   const [currentStatus, setCurrentStatus] = useState(status);
@@ -105,20 +109,32 @@ export const JobInfoSection = ({
         {/* Header Section */}
         <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4">
           <div className="space-y-2 min-w-0 flex-1">
-            {/* Status Badge Section */}
+            {/* Status Badge Section with Client Name and Job Type */}
             <div className="relative">
               <div className="absolute inset-0 bg-gradient-to-r from-fixlyfy to-fixlyfy-light rounded-lg blur-sm opacity-30 transform translate-y-0.5"></div>
-              <div className="relative bg-gradient-to-r from-fixlyfy to-fixlyfy-light p-2 rounded-lg shadow-lg border border-white/20 backdrop-blur-sm">
-                <div className="flex items-center gap-2">
+              <div className="relative bg-gradient-to-r from-fixlyfy to-fixlyfy-light p-3 rounded-lg shadow-lg border border-white/20 backdrop-blur-sm">
+                <div className="flex items-center gap-2 mb-2">
                   <div className="w-1.5 h-1.5 bg-white rounded-full animate-pulse"></div>
                   <span className="text-white text-xs font-medium uppercase tracking-wide">Status</span>
                 </div>
-                <div className="mt-1">
-                  <JobStatusBadge 
-                    status={currentStatus} 
-                    onStatusChange={handleStatusChange} 
-                    className="bg-white/90 text-fixlyfy border-white/30 hover:bg-white shadow-md text-xs h-6" 
-                  />
+                <div className="space-y-2">
+                  <div>
+                    <JobStatusBadge 
+                      status={currentStatus} 
+                      onStatusChange={handleStatusChange} 
+                      className="bg-white/90 text-fixlyfy border-white/30 hover:bg-white shadow-md text-sm h-7 font-medium" 
+                    />
+                  </div>
+                  {clientName && (
+                    <div className="text-white text-base sm:text-lg font-semibold">
+                      {clientName}
+                    </div>
+                  )}
+                  {jobType && (
+                    <div className="text-white/90 text-sm sm:text-base">
+                      {jobType}
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
