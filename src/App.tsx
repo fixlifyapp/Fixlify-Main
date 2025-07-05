@@ -239,6 +239,11 @@ function App() {
               <Navigate to="/communications?tab=messages" replace />
             } />
             
+            {/* Connect - Redirect to Connect Center */}
+            <Route path="/connect" element={
+              <Navigate to="/communications" replace />
+            } />
+            
             {/* AI Center */}
             <Route path="/ai-center" element={
               <AuthProvider>
