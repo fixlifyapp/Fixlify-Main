@@ -2,57 +2,16 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 
-const supabaseUrl = "https://mqppvcrlvsgrsqelglod.supabase.co";
-const supabaseAnonKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1xcHB2Y3JsdnNncnNxZWxnbG9kIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc1OTE3MDUsImV4cCI6MjA2MzE2NzcwNX0.My-KiqG1bCMqzUru4m59d4v18N3WGxNoNtFPOFAmhzg";
+const SUPABASE_URL = "https://mqppvcrlvsgrsqelglod.supabase.co";
+const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1xcHB2Y3JsdnNncnNxZWxnbG9kIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc1OTE3MDUsImV4cCI6MjA2MzE2NzcwNX0.My-KiqG1bCMqzUru4m59d4v18N3WGxNoNtFPOFAmhzg";
 
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
 
-export const supabase = createClient<Database>(
-  supabaseUrl, 
-  supabaseAnonKey,
-  {
-    auth: {
-      autoRefreshToken: true,
-      persistSession: true,
-      detectSessionInUrl: true,
-      storage: window.localStorage,
-      storageKey: 'fixlify-auth-token',
-      flowType: 'implicit',
-      debug: true // Enable auth debugging
-    },
-    global: {
-      fetch: (url, options = {}) => {
-        // Add error handling for auth issues
-        return fetch(url, options).catch(error => {
-          console.error('Supabase fetch error:', error);
-          throw error;
-        });
-      }
-    }
+export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+  auth: {
+    storage: localStorage,
+    persistSession: true,
+    autoRefreshToken: true,
   }
-);
-
-// Make supabase available globally for debugging
-if (typeof window !== 'undefined') {
-  (window as any).supabase = supabase;
-}
-
-// Export a function to create a new client if needed
-export const createNewClient = () => {
-  return createClient<Database>(supabaseUrl, supabaseAnonKey, {
-    auth: {
-      autoRefreshToken: true,
-      persistSession: true,
-      detectSessionInUrl: true,
-      storage: window.localStorage,
-      storageKey: 'fixlify-auth-token',
-      flowType: 'implicit'
-    },
-    global: {
-      headers: {
-        'x-application-name': 'fixlify'
-      }
-    }
-  });
-};
+});
