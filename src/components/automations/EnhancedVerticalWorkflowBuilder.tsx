@@ -850,8 +850,8 @@ const StepConfigPanel: React.FC<{
                   variant="outline"
                   size="sm"
                   onClick={() => {
-                    setCurrentEditingStep(step.id);
-                    setShowTemplates(true);
+                    // setCurrentEditingStep(step.id);
+                    // setShowTemplates(true);
                   }}
                   className="flex items-center gap-2"
                 >
@@ -863,8 +863,8 @@ const StepConfigPanel: React.FC<{
                   variant="outline"
                   size="sm"
                   onClick={() => {
-                    setCurrentEditingStep(step.id);
-                    setShowAIDialog(true);
+                    // setCurrentEditingStep(step.id);
+                    // setShowAIDialog(true);
                   }}
                   className="flex items-center gap-2"
                 >
@@ -925,8 +925,8 @@ const StepConfigPanel: React.FC<{
                   variant="outline"
                   size="sm"
                   onClick={() => {
-                    setCurrentEditingStep(step.id);
-                    setShowTemplates(true);
+                    // setCurrentEditingStep(step.id);
+                    // setShowTemplates(true);
                   }}
                   className="flex items-center gap-2"
                 >
@@ -938,8 +938,8 @@ const StepConfigPanel: React.FC<{
                   variant="outline"
                   size="sm"
                   onClick={() => {
-                    setCurrentEditingStep(step.id);
-                    setShowAIDialog(true);
+                    // setCurrentEditingStep(step.id);
+                    // setShowAIDialog(true);
                   }}
                   className="flex items-center gap-2"
                 >

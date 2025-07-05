@@ -873,7 +873,8 @@ const SimpleWorkflowBuilder: React.FC<SimpleWorkflowBuilderProps> = ({
       type: actionType.type,
       name: actionType.name,
       description: actionType.description,
-      config: {}
+                config: {},
+                icon: 'MessageSquare'
     };
     setSteps([...steps, newStep]);
   };
