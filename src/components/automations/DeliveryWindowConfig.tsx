@@ -12,7 +12,7 @@ interface DeliveryWindowConfigProps {
     startTime: string;
     endTime: string;
     timezone?: string;
-    weekdays?: boolean[];
+    weekdays?: number[];
   };
   onChange: (deliveryWindow: any) => void;
   userTimezone?: string;
@@ -106,8 +106,8 @@ export const DeliveryWindowConfig: React.FC<DeliveryWindowConfigProps> = ({
   const handleWeekdayToggle = (day: number) => {
     const currentWeekdays = deliveryWindow.weekdays || [1, 2, 3, 4, 5];
     const newWeekdays = currentWeekdays.includes(day)
-      ? currentWeekdays.filter(d => d !== day)
-      : [...currentWeekdays, day].sort();
+      ? currentWeekdays.filter((d: number) => d !== day)
+      : [...currentWeekdays, day].sort((a: number, b: number) => a - b);
     
     onChange({
       ...deliveryWindow,
