@@ -30,15 +30,20 @@ export const PhoneNumberCheck = () => {
         setPhoneNumbers(telnyxNumbers || []);
       }
 
-      // Also check via edge function
-      const { data: functionData, error: functionError } = await supabase.functions.invoke('telnyx-phone-numbers', {
-        body: { action: 'list' }
+      // Also test the function that sends SMS
+      console.log('Testing phone number lookup in SMS functions...');
+      const { data: functionData, error: functionError } = await supabase.functions.invoke('send-estimate-sms', {
+        body: { 
+          action: 'test_phone_lookup',
+          estimateId: 'test-id',
+          recipientPhone: '+1234567890'
+        }
       });
 
       if (functionError) {
-        console.error('Error from function:', functionError);
+        console.error('Error from SMS function test:', functionError);
       } else {
-        console.log('Function response:', functionData);
+        console.log('SMS function test response:', functionData);
       }
 
     } catch (error) {
@@ -67,13 +72,16 @@ export const PhoneNumberCheck = () => {
             <h4 className="font-medium">Your Phone Numbers:</h4>
             {phoneNumbers.map((number, index) => (
               <div key={index} className="p-3 border rounded">
-                <div className="font-mono">{number.phone_number}</div>
+                <div className="font-mono text-lg">{number.phone_number}</div>
                 <div className="text-sm text-muted-foreground">
-                  Status: {number.status} | Added: {new Date(number.purchased_at || number.created_at).toLocaleDateString()}
+                  Status: {number.status} | Created: {new Date(number.created_at).toLocaleDateString()}
                 </div>
-                {number.ai_dispatcher_enabled && (
-                  <div className="text-sm text-green-600">AI Dispatcher Enabled</div>
-                )}
+                <div className="text-sm text-muted-foreground">
+                  User ID: {number.user_id}
+                </div>
+                <div className="text-sm text-muted-foreground">
+                  Purchased At: {number.purchased_at ? new Date(number.purchased_at).toLocaleDateString() : 'N/A'}
+                </div>
               </div>
             ))}
           </div>
@@ -81,7 +89,11 @@ export const PhoneNumberCheck = () => {
 
         {phoneNumbers.length === 0 && !loading && (
           <div className="text-sm text-amber-600">
-            No phone numbers found in database. You may need to add your Telnyx number to the system.
+            No phone numbers found in database for your account.
+            <br />
+            Your account email: {user?.email}
+            <br />
+            Your user ID: {user?.id}
           </div>
         )}
       </CardContent>

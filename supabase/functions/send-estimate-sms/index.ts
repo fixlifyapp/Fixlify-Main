@@ -70,7 +70,29 @@ serve(async (req) => {
     }
 
     const requestBody = await req.json()
-    const { estimateId, recipientPhone, message } = requestBody;
+    const { estimateId, recipientPhone, message, action } = requestBody;
+
+    // Handle test phone lookup
+    if (action === 'test_phone_lookup') {
+      console.log('🔍 Testing phone number lookup for user:', userData.user.id);
+      
+      const { data: phoneNumbers, error: phoneError } = await supabaseAdmin
+        .from('telnyx_phone_numbers')
+        .select('*')
+        .eq('user_id', userData.user.id);
+
+      console.log('Phone lookup result:', { phoneNumbers, phoneError });
+      
+      return new Response(
+        JSON.stringify({ 
+          success: true, 
+          user_id: userData.user.id,
+          phone_numbers: phoneNumbers,
+          error: phoneError 
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
+      );
+    }
 
     if (!estimateId || !recipientPhone) {
       return new Response(
@@ -79,7 +101,7 @@ serve(async (req) => {
       );
     }
 
-    console.log('Processing estimate SMS:', { estimateId, recipientPhone });
+    console.log('Processing estimate SMS:', { estimateId, recipientPhone, userId: userData.user.id });
 
     // Format the phone number
     const formattedPhone = formatPhoneNumber(recipientPhone);
@@ -150,17 +172,36 @@ serve(async (req) => {
       smsMessage = `Hi ${client.name || 'valued customer'}! Your estimate ${estimate.estimate_number} for $${estimateTotal.toFixed(2)} is ready. View and approve it here: ${portalLink}`;
     }
 
-    // Get active phone number for sending
-    const { data: phoneNumbers } = await supabaseAdmin
+    // Get active phone number for sending - FIXED QUERY
+    console.log('Looking for active phone numbers for user:', userData.user.id);
+    const { data: phoneNumbers, error: phoneError } = await supabaseAdmin
       .from('telnyx_phone_numbers')
       .select('*')
       .eq('status', 'active')
-      .eq('user_id', userData.user.id)
-      .limit(1);
+      .eq('user_id', userData.user.id);
+
+    console.log('Phone numbers found:', phoneNumbers);
+    console.log('Phone query error:', phoneError);
 
     if (!phoneNumbers || phoneNumbers.length === 0) {
+      // Let's also check what phone numbers exist for this user with any status
+      const { data: allUserPhones } = await supabaseAdmin
+        .from('telnyx_phone_numbers')
+        .select('*')
+        .eq('user_id', userData.user.id);
+      
+      console.log('All phone numbers for user:', allUserPhones);
+      
       return new Response(
-        JSON.stringify({ success: false, error: 'No active phone number found. Please configure a Telnyx phone number first.' }),
+        JSON.stringify({ 
+          success: false, 
+          error: 'No active phone number found. Please configure a Telnyx phone number first.',
+          debug: {
+            user_id: userData.user.id,
+            all_phones: allUserPhones,
+            query_error: phoneError
+          }
+        }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
       );
     }
@@ -175,7 +216,7 @@ serve(async (req) => {
       );
     }
 
-    console.log('Sending SMS via Telnyx...');
+    console.log('Sending SMS via Telnyx...', { from: fromPhone, to: formattedPhone });
 
     // Send SMS via Telnyx API directly
     const telnyxPayload = {
@@ -229,7 +270,8 @@ serve(async (req) => {
         success: true, 
         message: 'SMS sent successfully',
         messageId: smsResult?.data?.id,
-        portalLink: portalLink
+        portalLink: portalLink,
+        fromPhone: fromPhone
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
     )
