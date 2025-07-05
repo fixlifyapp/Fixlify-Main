@@ -2,6 +2,7 @@
 export const TELNYX_CONFIG = {
   // Connection ID 
   CONNECTION_ID: '2709100729850660858',
+  DEFAULT_CONNECTION_ID: '2709100729850660858',
   
   // Webhook URLs - Direct URLs (secrets are handled in edge functions)
   WEBHOOK_BASE_URL: 'https://mqppvcrlvsgrsqelglod.supabase.co',

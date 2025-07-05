@@ -2,7 +2,7 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { 
   Thermometer, Droplets, Zap, Package, Home,
-  TrendingUp, Clock, AlertCircle, Tool, Calendar
+  TrendingUp, Clock, AlertCircle, Settings, Calendar
 } from "lucide-react";
 
 interface NicheDashboardProps {
@@ -106,7 +106,7 @@ export const NicheDashboard: React.FC<NicheDashboardProps> = ({ businessType }) 
           { 
             label: 'Completed Today', 
             value: metrics.completedToday,
-            icon: <Tool className="h-4 w-4 text-muted-foreground" />,
+             icon: <Settings className="h-4 w-4 text-muted-foreground" />,
             trend: 20
           },
           { 
@@ -178,7 +178,7 @@ export const NicheDashboard: React.FC<NicheDashboardProps> = ({ businessType }) 
           { 
             label: 'Active Jobs', 
             value: metrics.activeJobs,
-            icon: <Tool className="h-4 w-4 text-muted-foreground" />,
+            icon: <Settings className="h-4 w-4 text-muted-foreground" />,
             trend: 10
           },
           { 
