@@ -1,1 +1,11 @@
+
 project_id = "mqppvcrlvsgrsqelglod"
+
+[functions.send-estimate-sms]
+verify_jwt = true
+
+[functions.send-invoice-sms]
+verify_jwt = true
+
+[functions.telnyx-sms]
+verify_jwt = true
