@@ -1,7 +1,6 @@
 
 import { serve } from 'https://deno.land/std@0.190.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.24.0'
-import { sendSMSViaTelnyx } from './telnyx.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -80,6 +79,8 @@ serve(async (req) => {
       );
     }
 
+    console.log('Processing estimate SMS:', { estimateId, recipientPhone });
+
     // Format the phone number
     const formattedPhone = formatPhoneNumber(recipientPhone);
     
@@ -103,6 +104,7 @@ serve(async (req) => {
       .single();
 
     if (estimateError || !estimate) {
+      console.error('Estimate not found:', estimateError);
       return new Response(
         JSON.stringify({ success: false, error: 'Estimate not found' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 404 }
@@ -125,6 +127,7 @@ serve(async (req) => {
       });
 
     if (portalError || !portalToken) {
+      console.error('Portal token generation failed:', portalError);
       return new Response(
         JSON.stringify({ success: false, error: 'Failed to generate portal access' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
@@ -137,7 +140,7 @@ serve(async (req) => {
     const estimateTotal = estimate.total || 0;
     
     let smsMessage;
-    if (message) {
+    if (message?.trim()) {
       smsMessage = message;
       // Add portal link to custom message if not already included
       if (!message.includes('/portal/')) {
@@ -157,7 +160,7 @@ serve(async (req) => {
 
     if (!phoneNumbers || phoneNumbers.length === 0) {
       return new Response(
-        JSON.stringify({ success: false, error: 'No active phone number found' }),
+        JSON.stringify({ success: false, error: 'No active phone number found. Please configure a Telnyx phone number first.' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
       );
     }
@@ -172,8 +175,37 @@ serve(async (req) => {
       );
     }
 
-    // Send SMS via Telnyx
-    const smsResult = await sendSMSViaTelnyx(fromPhone, formattedPhone, smsMessage, telnyxApiKey);
+    console.log('Sending SMS via Telnyx...');
+
+    // Send SMS via Telnyx API directly
+    const telnyxPayload = {
+      from: fromPhone,
+      to: formattedPhone,
+      text: smsMessage
+    };
+
+    const messagingProfileId = Deno.env.get('TELNYX_MESSAGING_PROFILE_ID');
+    if (messagingProfileId) {
+      telnyxPayload.messaging_profile_id = messagingProfileId;
+    }
+
+    const smsResponse = await fetch('https://api.telnyx.com/v2/messages', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${telnyxApiKey}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(telnyxPayload)
+    });
+
+    const smsResult = await smsResponse.json();
+
+    if (!smsResponse.ok) {
+      console.error('Telnyx SMS error:', smsResult);
+      throw new Error(smsResult.errors?.[0]?.detail || 'Failed to send SMS via Telnyx');
+    }
+
+    console.log('SMS sent successfully:', smsResult.data?.id);
 
     // Log communication
     await supabaseAdmin
@@ -202,7 +234,7 @@ serve(async (req) => {
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
     )
   } catch (error) {
-    console.error('Error:', error);
+    console.error('Error in send-estimate-sms:', error);
     return new Response(
       JSON.stringify({ success: false, error: error.message }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
