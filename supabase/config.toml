@@ -9,3 +9,6 @@ verify_jwt = true
 
 [functions.telnyx-sms]
 verify_jwt = true
+
+[functions.execute-automation]
+verify_jwt = true

@@ -1,33 +1,42 @@
+
 import { serve } from 'https://deno.land/std@0.190.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.24.0'
-import { corsHeaders } from './cors.ts'
+import { sendSMSViaTelnyx } from '../send-estimate-sms/telnyx.ts'
 
-// Helper function to format phone numbers
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+}
+
+// Helper function to format phone numbers for Telnyx
 function formatPhoneNumber(phone: string): string {
-  // Remove all non-numeric characters
-  let cleaned = phone.replace(/\D/g, '');
+  // Remove all non-digit characters except +
+  let cleaned = phone.replace(/[^\d+]/g, '');
   
-  // Remove leading 0 if present
-  if (cleaned.startsWith('0')) {
-    cleaned = cleaned.substring(1);
+  // If already has + at the beginning, validate and return
+  if (cleaned.startsWith('+')) {
+    const digitsOnly = cleaned.substring(1);
+    if (digitsOnly.length >= 10 && digitsOnly.length <= 15) {
+      return cleaned;
+    }
+    throw new Error(`Invalid phone number length: ${digitsOnly.length} digits`);
   }
   
-  // Handle different number formats
+  // Remove leading zeros
+  cleaned = cleaned.replace(/^0+/, '');
+  
+  // Handle different formats
   if (cleaned.length === 10) {
-    // North American number without country code - add +1
+    // US/Canada number without country code
     return `+1${cleaned}`;
   } else if (cleaned.length === 11 && cleaned.startsWith('1')) {
-    // North American number with 1 prefix - add +
+    // US/Canada number with country code
     return `+${cleaned}`;
-  } else if (cleaned.length > 10 && !cleaned.startsWith('1')) {
-    // International number - just add +
+  } else if (cleaned.length >= 11 && cleaned.length <= 15) {
+    // International number
     return `+${cleaned}`;
-  } else if (cleaned.startsWith('+')) {
-    // Already has + prefix
-    return cleaned;
   } else {
-    // Default: assume it needs + prefix
-    return `+${cleaned}`;
+    throw new Error(`Invalid phone number format. Expected 10-15 digits, got ${cleaned.length}`);
   }
 }
 
@@ -74,15 +83,6 @@ serve(async (req) => {
     // Format the phone number
     const formattedPhone = formatPhoneNumber(recipientPhone);
     
-    // Validate the formatted phone number
-    const phoneDigits = formattedPhone.replace(/\D/g, '');
-    if (phoneDigits.length < 10) {
-      return new Response(
-        JSON.stringify({ success: false, error: 'Invalid phone number format' }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
-      );
-    }
-
     // Get invoice with client info
     const { data: invoice, error: invoiceError } = await supabaseAdmin
       .from('invoices')
@@ -131,49 +131,49 @@ serve(async (req) => {
       );
     }
 
-    // Use hub.fixlify.app for production portal
-    if (!portalToken) {
-      throw new Error('Failed to generate portal access token');
-    }
-    
     const portalLink = `https://hub.fixlify.app/portal/${portalToken}`;
 
     // Create SMS message
     const invoiceTotal = invoice.total || 0;
-    const isPaid = invoice.status === 'paid';
     
     let smsMessage;
     if (message) {
       smsMessage = message;
       // Add portal link to custom message if not already included
       if (!message.includes('/portal/')) {
-        smsMessage = `${message}\n\nAccess your client portal: ${portalLink}`;
+        smsMessage = `${message}\n\nView your invoice: ${portalLink}`;
       }
     } else {
-      if (isPaid) {
-        smsMessage = `Hi ${client.name || 'valued customer'}! Invoice ${invoice.invoice_number} for $${invoiceTotal.toFixed(2)} has been paid. Thank you! View all documents in your portal: ${portalLink}`;
-      } else {
-        smsMessage = `Hi ${client.name || 'valued customer'}! Invoice ${invoice.invoice_number} for $${invoiceTotal.toFixed(2)} is ready. Pay online in your client portal: ${portalLink}`;
-      }
+      smsMessage = `Hi ${client.name || 'valued customer'}! Your invoice ${invoice.invoice_number} for $${invoiceTotal.toFixed(2)} is ready. View and pay it here: ${portalLink}`;
     }
 
-    // Send SMS via telnyx-sms function
-    const { data: smsData, error: smsError } = await supabaseAdmin.functions.invoke('telnyx-sms', {
-      body: {
-        recipientPhone: formattedPhone,
-        message: smsMessage,
-        client_id: client.id,
-        job_id: invoice.job_id,
-        user_id: userData.user.id
-      }
-    });
+    // Get active phone number for sending
+    const { data: phoneNumbers } = await supabaseAdmin
+      .from('telnyx_phone_numbers')
+      .select('*')
+      .eq('status', 'active')
+      .eq('user_id', userData.user.id)
+      .limit(1);
 
-    if (smsError || !smsData?.success) {
+    if (!phoneNumbers || phoneNumbers.length === 0) {
       return new Response(
-        JSON.stringify({ success: false, error: 'Failed to send SMS' }),
+        JSON.stringify({ success: false, error: 'No active phone number found' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+      );
+    }
+
+    const fromPhone = phoneNumbers[0].phone_number;
+    const telnyxApiKey = Deno.env.get('TELNYX_API_KEY');
+
+    if (!telnyxApiKey) {
+      return new Response(
+        JSON.stringify({ success: false, error: 'Telnyx API key not configured' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
       );
     }
+
+    // Send SMS via Telnyx
+    const smsResult = await sendSMSViaTelnyx(fromPhone, formattedPhone, smsMessage, telnyxApiKey);
 
     // Log communication
     await supabaseAdmin
@@ -184,7 +184,7 @@ serve(async (req) => {
         recipient: formattedPhone,
         content: smsMessage,
         status: 'sent',
-        provider_message_id: smsData?.messageId,
+        provider_message_id: smsResult?.data?.id,
         invoice_number: invoice.invoice_number,
         client_name: client.name,
         client_email: client.email,
@@ -196,7 +196,7 @@ serve(async (req) => {
       JSON.stringify({ 
         success: true, 
         message: 'SMS sent successfully',
-        messageId: smsData?.messageId,
+        messageId: smsResult?.data?.id,
         portalLink: portalLink
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
