@@ -1,16 +1,10 @@
 // Telnyx Configuration
 export const TELNYX_CONFIG = {
-  // Connection ID from environment
-  CONNECTION_ID: import.meta.env.VITE_TELNYX_CONNECTION_ID || '2709100729850660858',
+  // Connection ID 
+  CONNECTION_ID: '2709100729850660858',
   
-  // API Key
-  API_KEY: import.meta.env.VITE_TELNYX_API_KEY || '',
-  
-  // Public Key for webhook validation
-  PUBLIC_KEY: import.meta.env.VITE_TELNYX_PUBLIC_KEY || '',
-  
-  // Webhook URLs
-  WEBHOOK_BASE_URL: import.meta.env.VITE_SUPABASE_URL || 'https://mqppvcrlvsgrsqelglod.supabase.co',
+  // Webhook URLs - Direct URLs (secrets are handled in edge functions)
+  WEBHOOK_BASE_URL: 'https://mqppvcrlvsgrsqelglod.supabase.co',
   
   // Call settings
   DEFAULT_CALL_TIMEOUT: 30, // seconds

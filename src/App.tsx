@@ -46,6 +46,7 @@ import ClientPortal from "@/pages/ClientPortal";
 import TestPortalAccessPage from "@/pages/TestPortalAccessPage";
 import EstimatePortal from "@/pages/EstimatePortal";
 import InvoicePortal from "@/pages/InvoicePortal";
+import SMSTestPage from "@/pages/SMSTestPage";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -54,7 +55,7 @@ const queryClient = new QueryClient({
       refetchOnWindowFocus: false,
       refetchOnReconnect: false,
       staleTime: 5 * 60 * 1000,
-      cacheTime: 10 * 60 * 1000,
+      gcTime: 10 * 60 * 1000,
     },
   },
 });
@@ -118,6 +119,15 @@ function App() {
               <AuthProvider>
                 <ProtectedRouteWithProviders>
                   <TestPortalAccessPage />
+                </ProtectedRouteWithProviders>
+              </AuthProvider>
+            } />
+            
+            {/* SMS Test */}
+            <Route path="/test-sms" element={
+              <AuthProvider>
+                <ProtectedRouteWithProviders>
+                  <SMSTestPage />
                 </ProtectedRouteWithProviders>
               </AuthProvider>
             } />

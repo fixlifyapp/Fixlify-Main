@@ -14,15 +14,15 @@ import ClientDetailPage from "@/pages/ClientDetailPage";
 import SchedulePage from "@/pages/SchedulePage";
 import FinancePage from "@/pages/FinancePage";
 import ConnectCenterPageOptimized from "@/pages/ConnectCenterPageOptimized";
-import CommunicationsSettingsPage from "@/pages/CommunicationsSettingsPage";
+// import CommunicationsSettingsPage from "@/pages/CommunicationsSettingsPage";
 import AiCenterPage from "@/pages/AiCenterPage";
 import AutomationsPage from "@/pages/AutomationsPage";
-import AutomationBuilderPage from "@/pages/AutomationBuilderPage";
-import AutomationTemplatesPage from "@/pages/AutomationTemplatesPage";
-import AiAutomationPage from "@/pages/AiAutomationPage";
-import AutomationAnalyticsPage from "@/pages/AutomationAnalyticsPage";
-import AutomationTestingPage from "@/pages/AutomationTestingPage";
-import AutomationSettingsPage from "@/pages/AutomationSettingsPage";
+// import AutomationBuilderPage from "@/pages/AutomationBuilderPage";
+// import AutomationTemplatesPage from "@/pages/AutomationTemplatesPage";
+// import AiAutomationPage from "@/pages/AiAutomationPage";
+// import AutomationAnalyticsPage from "@/pages/AutomationAnalyticsPage";
+// import AutomationTestingPage from "@/pages/AutomationTestingPage";
+// import AutomationSettingsPage from "@/pages/AutomationSettingsPage";
 import AnalyticsPage from "@/pages/AnalyticsPage";
 import TeamManagementPage from "@/pages/TeamManagementPage";
 import SettingsPage from "@/pages/SettingsPage";
@@ -142,7 +142,7 @@ function App() {
           <Route path="/communications" element={
             <AuthProvider>
               <ProtectedRouteWithProviders>
-                <CommunicationsSettingsPage />
+                <ConnectCenterPageOptimized />
               </ProtectedRouteWithProviders>
             </AuthProvider>
           } />
@@ -166,7 +166,7 @@ function App() {
           <Route path="/automations/builder" element={
             <AuthProvider>
               <ProtectedRouteWithProviders>
-                <AutomationBuilderPage />
+                <AutomationsPage />
               </ProtectedRouteWithProviders>
             </AuthProvider>
           } />
@@ -174,7 +174,7 @@ function App() {
           <Route path="/automations/templates" element={
             <AuthProvider>
               <ProtectedRouteWithProviders>
-                <AutomationTemplatesPage />
+                <AutomationsPage />
               </ProtectedRouteWithProviders>
             </AuthProvider>
           } />
@@ -182,7 +182,7 @@ function App() {
           <Route path="/automations/ai" element={
             <AuthProvider>
               <ProtectedRouteWithProviders>
-                <AiAutomationPage />
+                <AutomationsPage />
               </ProtectedRouteWithProviders>
             </AuthProvider>
           } />
@@ -190,7 +190,7 @@ function App() {
           <Route path="/automations/analytics" element={
             <AuthProvider>
               <ProtectedRouteWithProviders>
-                <AutomationAnalyticsPage />
+                <AutomationsPage />
               </ProtectedRouteWithProviders>
             </AuthProvider>
           } />
@@ -198,7 +198,7 @@ function App() {
           <Route path="/automations/testing" element={
             <AuthProvider>
               <ProtectedRouteWithProviders>
-                <AutomationTestingPage />
+                <AutomationsPage />
               </ProtectedRouteWithProviders>
             </AuthProvider>
           } />
@@ -206,7 +206,7 @@ function App() {
           <Route path="/automations/settings" element={
             <AuthProvider>
               <ProtectedRouteWithProviders>
-                <AutomationSettingsPage />
+                <AutomationsPage />
               </ProtectedRouteWithProviders>
             </AuthProvider>
           } />
@@ -304,7 +304,7 @@ function App() {
           <Route path="/settings/telnyx" element={
             <AuthProvider>
               <ProtectedRouteWithProviders>
-                <CommunicationsSettingsPage />
+                <ConnectCenterPageOptimized />
               </ProtectedRouteWithProviders>
             </AuthProvider>
           } />
@@ -312,7 +312,7 @@ function App() {
           <Route path="/settings/ai" element={
             <AuthProvider>
               <ProtectedRouteWithProviders>
-                <CommunicationsSettingsPage />
+                <ConnectCenterPageOptimized />
               </ProtectedRouteWithProviders>
             </AuthProvider>
           } />
@@ -320,7 +320,7 @@ function App() {
           <Route path="/ai-settings" element={
             <AuthProvider>
               <ProtectedRouteWithProviders>
-                <CommunicationsSettingsPage />
+                <ConnectCenterPageOptimized />
               </ProtectedRouteWithProviders>
             </AuthProvider>
           } />
