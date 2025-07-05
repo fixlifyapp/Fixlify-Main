@@ -1,4 +1,3 @@
-
 import { serve } from 'https://deno.land/std@0.190.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.24.0'
 
@@ -13,126 +12,152 @@ serve(async (req) => {
   }
 
   try {
+    console.log('=== Telnyx SMS Function Called ===')
+    
     const supabaseAdmin = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      return new Response(JSON.stringify({ success: false, error: 'Authentication required' }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 401,
-      });
-    }
+    const { recipientPhone, message, client_id, job_id } = await req.json()
+    console.log('Request data:', { recipientPhone, message, client_id, job_id })
 
-    const token = authHeader.replace('Bearer ', '');
-    const { data: userData, error: userError } = await supabaseAdmin.auth.getUser(token);
-    if (userError || !userData.user) {
-      return new Response(JSON.stringify({ success: false, error: 'Invalid authentication' }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 401,
-      });
-    }
-
-    const { recipientPhone, message, client_id, job_id, user_id } = await req.json();
-
+    // Validate required fields
     if (!recipientPhone || !message) {
-      return new Response(JSON.stringify({ success: false, error: 'Missing phone number or message' }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 400,
-      });
-    }
-
-    // Format phone number for Telnyx (ensure +1 prefix for US numbers)
-    let formattedPhone = recipientPhone.replace(/\D/g, '');
-    if (formattedPhone.length === 10) {
-      formattedPhone = `+1${formattedPhone}`;
-    } else if (formattedPhone.length === 11 && formattedPhone.startsWith('1')) {
-      formattedPhone = `+${formattedPhone}`;
-    } else if (!formattedPhone.startsWith('+')) {
-      formattedPhone = `+${formattedPhone}`;
-    }
-
-    // Get an active phone number for this user or any available one
-    const { data: phoneNumbers } = await supabaseAdmin
-      .from('telnyx_phone_numbers')
-      .select('*')
-      .or(`user_id.eq.${userData.user.id},user_id.is.null`)
-      .eq('status', 'active')
-      .limit(1);
-
-    if (!phoneNumbers || phoneNumbers.length === 0) {
+      console.error('Missing required fields:', { recipientPhone: !!recipientPhone, message: !!message })
       return new Response(JSON.stringify({ 
         success: false, 
-        error: 'No active phone number available. Please configure a Telnyx phone number first.' 
+        error: 'Missing required fields: recipientPhone and message' 
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 400,
-      });
+      })
     }
 
-    const fromPhone = phoneNumbers[0].phone_number;
+    // Get Telnyx configuration
+    const telnyxApiKey = Deno.env.get('TELNYX_API_KEY')
+    const messagingProfileId = Deno.env.get('TELNYX_MESSAGING_PROFILE_ID')
+    
+    console.log('Telnyx config:', { 
+      hasApiKey: !!telnyxApiKey, 
+      hasMessagingProfile: !!messagingProfileId 
+    })
+
+    if (!telnyxApiKey) {
+      console.error('TELNYX_API_KEY not configured')
+      return new Response(JSON.stringify({ 
+        success: false, 
+        error: 'TELNYX_API_KEY not configured in Supabase secrets' 
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 500,
+      })
+    }
+
+    // Get active phone number from database
+    const { data: phoneNumbers, error: phoneError } = await supabaseAdmin
+      .from('telnyx_phone_numbers')
+      .select('*')
+      .eq('status', 'active')
+      .limit(1)
+
+    console.log('Phone numbers query:', { phoneNumbers, phoneError })
+
+    if (phoneError || !phoneNumbers || phoneNumbers.length === 0) {
+      console.error('No active phone number found:', phoneError)
+      return new Response(JSON.stringify({ 
+        success: false, 
+        error: 'No active phone number found. Please configure a Telnyx phone number first.' 
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 500,
+      })
+    }
+
+    const fromPhone = phoneNumbers[0].phone_number
+    console.log('Using from phone:', fromPhone)
 
     // Send SMS via Telnyx
-    const telnyxApiKey = Deno.env.get('TELNYX_API_KEY');
+    const smsPayload = {
+      from: fromPhone,
+      to: recipientPhone,
+      text: message,
+      ...(messagingProfileId && { messaging_profile_id: messagingProfileId })
+    }
     
+    console.log('Sending SMS with payload:', smsPayload)
+
     const smsResponse = await fetch('https://api.telnyx.com/v2/messages', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${telnyxApiKey}`,
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({
-        from: fromPhone,
-        to: formattedPhone,
-        text: message,
-        messaging_profile_id: Deno.env.get('TELNYX_MESSAGING_PROFILE_ID')
-      })
-    });
+      body: JSON.stringify(smsPayload)
+    })
+
+    const smsResult = await smsResponse.json()
+    console.log('Telnyx API response:', { status: smsResponse.status, result: smsResult })
 
     if (!smsResponse.ok) {
-      const error = await smsResponse.text();
-      console.error('Telnyx SMS error:', error);
+      console.error('SMS send failed:', smsResult)
       return new Response(JSON.stringify({ 
         success: false, 
-        error: `SMS failed: ${error}` 
+        error: `SMS send failed: ${smsResult.errors?.[0]?.detail || 'Unknown error'}`,
+        telnyxError: smsResult
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 500,
-      });
+        status: 400,
+      })
     }
 
-    const smsResult = await smsResponse.json();
+    // Log the message in communication_logs if we have client_id
+    if (client_id) {
+      try {
+        const { error: logError } = await supabaseAdmin
+          .from('communication_logs')
+          .insert({
+            client_id,
+            job_id,
+            type: 'sms',
+            direction: 'outbound',
+            phone_number: recipientPhone,
+            message: message,
+            status: 'sent',
+            telnyx_message_id: smsResult.data?.id,
+            metadata: { telnyx_response: smsResult }
+          })
+        
+        if (logError) {
+          console.error('Failed to log message:', logError)
+        } else {
+          console.log('Message logged successfully')
+        }
+      } catch (logErr) {
+        console.error('Error logging message:', logErr)
+      }
+    }
 
-    // Log the SMS
-    await supabaseAdmin.from('messages').insert({
-      from: fromPhone,
-      to: formattedPhone,
-      content: message,
-      direction: 'outbound',
-      status: 'sent',
-      provider_message_id: smsResult.data.id,
-      user_id: userData.user.id,
-      client_id: client_id,
-      job_id: job_id,
-      phone_number_id: phoneNumbers[0].id
-    });
+    console.log('SMS sent successfully:', smsResult.data?.id)
 
     return new Response(JSON.stringify({ 
       success: true, 
-      messageId: smsResult.data.id,
+      messageId: smsResult.data?.id,
       from: fromPhone,
-      to: formattedPhone
+      to: recipientPhone,
+      message: 'SMS sent successfully'
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    })
 
   } catch (error) {
-    console.error('Error in telnyx-sms:', error);
-    return new Response(JSON.stringify({ success: false, error: error.message }), {
+    console.error('Error in telnyx-sms function:', error)
+    return new Response(JSON.stringify({ 
+      success: false, 
+      error: error.message || 'Internal server error' 
+    }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 500,
-    });
+    })
   }
-});
+})
