@@ -83,10 +83,18 @@ serve(async (req) => {
     const portalUrl = `${Deno.env.get('SUPABASE_URL')?.replace('/v1', '')}/estimate/${estimateId}?token=${portalToken}`
     
     // Prepare email content
-    const clientName = estimate.jobs?.clients?.name || 'Valued Customer'
-    const companyName = 'Your Company' // TODO: Get from company settings
+    const clientName = estimate.jobs?.clients?.name || 'Valued Customer';
     
-    const emailSubject = `Estimate ${estimate.estimate_number} from ${companyName}`
+    // Get company settings
+    const { data: companyData } = await supabaseAdmin
+      .from('profiles')
+      .select('company_name')
+      .eq('user_id', userData.user.id)
+      .single();
+    
+    const companyName = companyData?.company_name || 'Your Company';
+    
+    const emailSubject = `Estimate ${estimate.estimate_number} from ${companyName}`;
     const emailBody = `
       <h2>New Estimate from ${companyName}</h2>
       <p>Dear ${clientName},</p>
@@ -99,8 +107,8 @@ serve(async (req) => {
       
       <p>If you have any questions, please don't hesitate to contact us.</p>
       
-      <p>Best regards,<br>${companyName}</p>
-    `
+      <p>Best regards,<br>${companyName} Team</p>
+    `;
 
     // Call send-email function
     const { data: emailResult, error: emailError } = await supabaseAdmin.functions.invoke('send-email', {

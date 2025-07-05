@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useDocumentSending } from "@/hooks/useDocumentSending";
+import { useCompanySettings } from "@/hooks/useCompanySettings";
 import { needsCountryCode, suggestCountryCode } from "@/utils/phoneUtils";
 
 interface UniversalSendDialogProps {
@@ -42,12 +43,14 @@ export const UniversalSendDialog = ({
   const [validationError, setValidationError] = useState("");
 
   const { sendDocument, isProcessing } = useDocumentSending();
+  const { companySettings } = useCompanySettings();
 
   // Generate default message template
   const generateDefaultMessage = (method: "email" | "sms") => {
     const clientName = contactInfo?.name || "Valued Customer";
     const docType = documentType === "estimate" ? "Estimate" : "Invoice";
     const portalUrl = `${window.location.origin}/${documentType}/${documentId}?token=PORTAL_TOKEN`;
+    const companyName = companySettings?.company_name || "Your Company";
     
     if (method === "email") {
       return `Hello ${clientName},
@@ -60,9 +63,9 @@ ${portalUrl}
 If you have any questions, please don't hesitate to contact us.
 
 Best regards,
-Your Service Team`;
+${companyName} Team`;
     } else {
-      return `Hello ${clientName}! Your ${docType} #${documentNumber} for $${total.toFixed(2)} is ready. View and ${documentType === "estimate" ? "approve" : "pay"} here: ${portalUrl}`;
+      return `Hello ${clientName}! Your ${docType} #${documentNumber} for $${total.toFixed(2)} is ready. View and ${documentType === "estimate" ? "approve" : "pay"} here: ${portalUrl} - ${companyName} Team`;
     }
   };
 
