@@ -2,13 +2,14 @@
 import React, { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Send, Mail, MessageSquare, ArrowLeft, AlertCircle } from "lucide-react";
+import { Send, Mail, MessageSquare, ArrowLeft, AlertCircle, Info } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useDocumentSending } from "@/hooks/useDocumentSending";
+import { needsCountryCode, suggestCountryCode } from "@/utils/phoneUtils";
 
 interface UniversalSendDialogProps {
   isOpen: boolean;
@@ -75,7 +76,8 @@ export const UniversalSendDialog = ({
   const isValidPhoneNumber = (phone: string): boolean => {
     if (!phone) return false;
     const cleaned = phone.replace(/\D/g, '');
-    return cleaned.length >= 10;
+    // Allow 10-15 digits for international numbers
+    return cleaned.length >= 10 && cleaned.length <= 15;
   };
 
   const validateInput = (): boolean => {
@@ -90,7 +92,7 @@ export const UniversalSendDialog = ({
     }
 
     if (sendMethod === "sms" && !isValidPhoneNumber(sendTo)) {
-      setValidationError("Please enter a valid phone number (e.g., +1234567890 or (555) 123-4567)");
+      setValidationError("Please enter a valid phone number");
       return false;
     }
 
@@ -190,7 +192,7 @@ export const UniversalSendDialog = ({
             <Input
               id="sendTo"
               type={sendMethod === "email" ? "email" : "tel"}
-              placeholder={sendMethod === "email" ? "client@example.com" : "+1234567890 or (555) 123-4567"}
+              placeholder={sendMethod === "email" ? "client@example.com" : "Phone number"}
               value={sendTo}
               onChange={(e) => {
                 setSendTo(e.target.value);
@@ -203,7 +205,7 @@ export const UniversalSendDialog = ({
             )}
             {sendMethod === "sms" && (
               <p className="text-xs text-muted-foreground">
-                Phone numbers will be automatically formatted for delivery
+                Phone number will be automatically formatted
               </p>
             )}
           </div>

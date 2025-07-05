@@ -1,4 +1,3 @@
-
 import { serve } from 'https://deno.land/std@0.190.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.24.0'
 
@@ -74,9 +73,25 @@ serve(async (req) => {
 
     const fromPhone = phoneNumbers[0].phone_number;
 
-    // Send SMS via Telnyx
+    // Get Telnyx API key
     const telnyxApiKey = Deno.env.get('TELNYX_API_KEY');
     
+    // Check if API key exists
+    if (!telnyxApiKey) {
+      console.error('TELNYX_API_KEY not found in environment variables');
+      return new Response(JSON.stringify({ 
+        success: false, 
+        error: 'SMS service not configured. Please contact support.' 
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 500,
+      });
+    }
+
+    console.log('Sending SMS from', fromPhone, 'to', formattedPhone);
+    console.log('API Key length:', telnyxApiKey.length);
+    
+    // Send SMS via Telnyx
     const smsResponse = await fetch('https://api.telnyx.com/v2/messages', {
       method: 'POST',
       headers: {
@@ -107,16 +122,14 @@ serve(async (req) => {
 
     // Log the SMS
     await supabaseAdmin.from('messages').insert({
-      from: fromPhone,
-      to: formattedPhone,
-      content: message,
+      sender: fromPhone,
+      recipient: formattedPhone,
+      body: message,
       direction: 'outbound',
       status: 'sent',
-      provider_message_id: smsResult.data.id,
+      message_sid: smsResult.data.id,
       user_id: userData.user.id,
-      client_id: client_id,
-      job_id: job_id,
-      phone_number_id: phoneNumbers[0].id
+      conversation_id: null
     });
 
     return new Response(JSON.stringify({ 

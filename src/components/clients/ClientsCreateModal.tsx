@@ -23,6 +23,7 @@ import { useClients, Client } from "@/hooks/useClients";
 import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { User, Phone, Mail, MapPin, Building2, FileText } from "lucide-react";
+import { formatPhoneForTelnyx } from "@/utils/phoneUtils";
 
 interface ClientsCreateModalProps {
   open: boolean;
@@ -61,10 +62,13 @@ export const ClientsCreateModal = ({ open, onOpenChange, onSuccess }: ClientsCre
         return;
       }
       
+      // Format phone number automatically
+      const formattedPhone = formatPhoneForTelnyx(phone);
+      
       // Create client data with required name and phone fields and optional fields
       const clientData = {
         name,
-        phone,
+        phone: formattedPhone,  // Use the formatted phone number
         email: formData.get('email') as string,
         address: formData.get('address') as string,
         city: formData.get('city') as string,
@@ -198,12 +202,12 @@ export const ClientsCreateModal = ({ open, onOpenChange, onSuccess }: ClientsCre
                         <Input 
                           id="phone" 
                           name="phone" 
-                          placeholder="(555) 123-4567" 
+                          placeholder="Phone number" 
                           required 
                           className="h-10 pl-10"
                         />
                       </div>
-                      <p className="text-xs text-fixlyfy-text-secondary">Required for SMS messaging</p>
+                      <p className="text-xs text-fixlyfy-text-secondary">Automatically formatted</p>
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="altPhone" className="text-sm font-medium">Alternative Phone</Label>
@@ -212,7 +216,7 @@ export const ClientsCreateModal = ({ open, onOpenChange, onSuccess }: ClientsCre
                         <Input 
                           id="altPhone" 
                           name="altPhone" 
-                          placeholder="(555) 987-6543" 
+                          placeholder="Alternative phone" 
                           className="h-10 pl-10"
                         />
                       </div>

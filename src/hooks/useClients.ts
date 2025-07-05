@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { generateNextId } from "@/utils/idGeneration";
 import { useAuth } from "@/hooks/use-auth";
+import { formatPhoneForTelnyx } from "@/utils/phoneUtils";
 
 export interface Client {
   id: string;
@@ -97,14 +98,18 @@ export const useClients = (options: UseClientsOptions = {}) => {
       // Generate new client ID using the database function
       const clientId = await generateNextId('client');
       
+      // Format phone number if provided
+      const clientData = {
+        ...client,
+        phone: client.phone ? formatPhoneForTelnyx(client.phone) : client.phone,
+        id: clientId,
+        user_id: user?.id,
+        created_by: user?.id
+      };
+      
       const { data, error } = await supabase
         .from('clients')
-        .insert({
-          ...client,
-          id: clientId,
-          user_id: user?.id,
-          created_by: user?.id
-        })
+        .insert(clientData)
         .select()
         .single();
         
@@ -132,9 +137,15 @@ export const useClients = (options: UseClientsOptions = {}) => {
     }
     
     try {
+      // Format phone number if it's being updated
+      const updateData = {
+        ...updates,
+        phone: updates.phone ? formatPhoneForTelnyx(updates.phone) : updates.phone
+      };
+      
       const { data, error } = await supabase
         .from('clients')
-        .update(updates)
+        .update(updateData)
         .eq('id', id)
         .or(`user_id.eq.${user?.id},created_by.eq.${user?.id}`)
         .select()

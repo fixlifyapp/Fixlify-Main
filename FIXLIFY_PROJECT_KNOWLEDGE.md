@@ -1632,3 +1632,264 @@ Created database triggers to automatically update job revenue when invoices are 
 - Database only - no frontend changes required
 - Added migration: `update_job_revenue_on_invoice_payment`
 - Added migration: `add_job_revenue_calculation_function`
+
+
+## 🔧 Mobile Sidebar Background Issue Analysis (2025-01-07)
+
+### Problem
+Mobile hamburger menu opens with dark/black background, making menu items invisible. Multiple fix attempts were made but ultimately reverted.
+
+### Root Cause Analysis
+- Radix UI Sheet component not inheriting proper background colors
+- CSS variable conflicts between sidebar and main background
+- Specificity wars with multiple CSS override attempts
+
+### Attempted Solutions (Reverted)
+1. Created multiple CSS fix files with !important overrides
+2. Modified sidebar components with inline styles
+3. Added JavaScript mutation observers to force backgrounds
+4. Created emergency console scripts
+
+### Learnings
+- Forcing styles with !important creates cascading problems
+- Multiple CSS files targeting same issue causes conflicts
+- Need to address root cause in component library rather than override
+
+### Recommended Approach
+- Consider alternative mobile menu implementation
+- Use native mobile menu component instead of Sheet
+- Ensure proper CSS variable inheritance from start
+
+## 🎨 Comprehensive Layout Analysis (2025-01-07)
+
+### Issues Identified
+
+#### Mobile (< 768px)
+- **Padding**: Only 12px - content too close to edges
+- **Touch Targets**: Below 44px minimum requirement  
+- **Sidebar**: Transparent background on hamburger menu
+
+#### Tablet (768px - 1023px)
+- **Breakpoints**: Awkward transitions between layouts
+- **Grid**: Cards don't properly reflow in 2 columns
+- **Headers**: Inconsistent heights across breakpoints
+
+#### Desktop (≥ 1024px)
+- **Container**: No max-width, content stretches infinitely
+- **Spacing**: Same padding all sides (needs more horizontal)
+- **Readability**: Lines too long on wide screens
+
+#### Ultra-wide (≥ 1920px)
+- **Layout**: No consideration for multi-panel layouts
+- **Whitespace**: Poor use of available space
+- **Content**: Stretches beyond comfortable reading width
+
+### Solution Implemented
+After pulling latest from GitHub:
+- Removed conflicting CSS: `critical-layout-fix.css`, `layout-fix.css`
+- Added unified `responsive-layout.css` with semantic approach
+- Implemented proper container system
+- Established consistent spacing scale
+
+### New Responsive System
+```
+Breakpoints:
+- Mobile: < 640px  
+- Tablet: 640px - 1023px
+- Desktop: 1024px - 1279px
+- Wide: ≥ 1280px
+
+Container Max-widths:
+- Desktop: 1200px
+- Wide: 1400px
+
+Spacing Scale:
+- Mobile: 1rem base
+- Tablet: 1.5rem base  
+- Desktop: 2rem base
+- Wide: 2.5rem base
+```
+
+### Tools Created
+1. **LAYOUT_ANALYSIS_REPORT.md** - Detailed analysis of all issues
+2. **LAYOUT_DEBUG.js** - Browser tool to visualize problems
+3. **CONTEXT_ENGINEERING_GUIDE.md** - How to maintain context
+
+### Best Practices Going Forward
+1. **Mobile First**: Always start with mobile design
+2. **Container Based**: Use `.container-responsive` class
+3. **Semantic Spacing**: Use device-specific space classes
+4. **Test All Sizes**: Check mobile, tablet, desktop, wide
+5. **Document Changes**: Update context files immediately
+
+
+## 🔧 Fixed Job Page Client Display & Message Icon (2025-07-05)
+
+### Problems Fixed
+1. Job pages were showing "Unknown Client" instead of the actual client name
+2. Message icon in job pages was not functional (no action when clicked)
+
+### Root Causes
+1. **Client Data Issue**: The `jobDataTransformer` was looking for `jobData.clients` but needed to handle both `clients` (from Supabase join) and `client` variations
+2. **Message Icon Issue**: The `ClientContactButtons` component was ignoring the `onMessageClick` prop and had its own navigation logic that properly opens the messaging center
+
+### Solutions Implemented
+1. **Updated jobDataTransformer.ts**
+   - Now handles both `jobData.clients` and `jobData.client` for flexibility
+   - Added `title` field to JobInfo type and transformer
+
+2. **Fixed JobDetailsHeader.tsx**
+   - Removed duplicate handler functions that were trying to open SMS directly
+   - Now uses the proper `job.client` property instead of `job.client?.name`
+   - Simplified to let ClientContactButtons handle navigation
+
+3. **ClientContactButtons Behavior**
+   - Component navigates to `/connect` page with proper parameters
+   - Opens messaging center with client pre-selected
+   - Better UX than opening native SMS app
+
+### Files Modified
+- `/src/components/jobs/context/utils/jobDataTransformer.ts`
+- `/src/components/jobs/context/types.ts`
+- `/src/components/jobs/JobDetailsHeader.tsx`
+- `/src/components/jobs/header/ClientContactButtons.tsx`
+
+### Result
+- Job pages now correctly display client names
+- Message icon opens the messaging center with the client pre-selected
+- Call icon opens the call center with the client pre-selected
+- Email icon opens the email center with the client pre-selected
+- Edit icon navigates to the client details page
+
+
+## 🔧 Fixed Job Page Client Display & Message Icon (2025-07-05)
+
+### Problems Fixed
+1. Job pages were showing "Unknown Client" instead of the actual client name
+2. Message icon in job pages was not opening the messaging center when clicked
+
+### Root Causes
+1. **Client Data Issue**: The JobDetailsHeader was only looking for `job.client` but the client data from the join query was in `job.clients`
+2. **Message Icon Issue**: Empty callback functions were being passed to ClientContactButtons, overriding the default navigation behavior
+
+### Solutions Implemented
+1. **Updated JobDetailsHeader.tsx**
+   - Changed subtitle to check both `job.clients?.name` and `job.client` for flexibility
+   - Removed empty `onCallClick` and `onMessageClick` callbacks that were blocking functionality
+
+2. **Updated JobInfoSection.tsx**
+   - Made `onCallClick` and `onMessageClick` props optional
+   - Allows ClientContactButtons to use its default navigation logic
+
+3. **Enhanced jobDataTransformer.ts**
+   - Better handling of client data extraction
+   - Added `clients` property to JobInfo type to store full client object
+   - Improved logging for debugging
+
+### Files Modified
+- `/src/components/jobs/JobDetailsHeader.tsx`
+- `/src/components/jobs/header/JobInfoSection.tsx`
+- `/src/components/jobs/context/utils/jobDataTransformer.ts`
+- `/src/components/jobs/context/types.ts`
+
+### Result
+- Job pages now correctly display client names from the database
+- Message icon opens the messaging center with the client pre-selected
+- Call icon opens the call center with the client pre-selected
+- Email icon opens the email center with the client pre-selected
+- Edit icon navigates to the client details page
+
+
+## 🎨 Job Header Redesign (2025-07-05)
+
+### Changes Made
+1. **Simplified Job Title**
+   - Now shows only "Job J-2006" in the main header
+   - Removed client name and job type from the subtitle
+
+2. **Enhanced Status Section**
+   - Added client name and job type next to the status badge
+   - Information displayed in the blue gradient status bar
+   - Format: Status Badge • Client Name • Job Type
+   - Clean separator dots between elements
+
+### Files Modified
+- `/src/components/jobs/JobDetailsHeader.tsx` - Removed subtitle, added props to JobInfoSection
+- `/src/components/jobs/header/JobInfoSection.tsx` - Added client name and job type display
+
+### Visual Result
+- Cleaner header with just the job number
+- All relevant information (status, client, job type) grouped together in the status section
+- Better visual hierarchy and organization
+
+
+## 🎨 Job Status Section Layout Update (2025-07-05)
+
+### Changes Made
+1. **Vertical Layout for Status Section**
+   - Changed from horizontal inline layout to vertical stacked layout
+   - Client name and job type now appear on separate lines under the status badge
+
+2. **Larger Font Sizes**
+   - Client name: `text-base sm:text-lg font-semibold` (16px/18px, bold)
+   - Job type: `text-sm sm:text-base` (14px/16px)
+   - Status badge: Increased to `text-sm h-7` (from `text-xs h-6`)
+
+3. **Better Spacing**
+   - Added `space-y-2` between elements for better readability
+   - Increased padding from `p-2` to `p-3` in the status container
+   - Added `mb-2` margin after the status label
+
+### Visual Result
+- More prominent display of client name
+- Better hierarchy with larger, bolder fonts
+- Cleaner vertical layout instead of cramped horizontal layout
+- Improved readability on all devices
+
+
+## 🌍 International SMS Support for USA, Canada, and Spain (2025-07-05)
+
+### Problem Fixed
+SMS sending was failing when users entered phone numbers without country codes, especially for international numbers.
+
+### Solution Implemented
+
+1. **Enhanced Phone Number Formatting in telnyx-sms Edge Function**
+   - Automatically detects and formats phone numbers for USA, Canada, and Spain
+   - USA/Canada numbers: 10 digits → +1XXXXXXXXXX
+   - Spain numbers: 9 digits starting with 6 or 7 → +34XXXXXXXXX
+   - Handles numbers with country codes already included
+   - Better error messages for invalid phone numbers
+
+2. **Improved User Interface in UniversalSendDialog**
+   - Added helpful blue info box showing supported phone formats
+   - Examples: US/Canada: (555) 123-4567 or 5551234567
+   - Examples: Spain: +34 612345678 or 34612345678
+   - Clear instruction to include country code for non-US/Canada numbers
+   - Updated placeholder text to show better examples
+   - Improved validation error messages with specific examples
+
+3. **Phone Number Validation**
+   - Accepts 10-15 digits (standard international phone number length)
+   - Removes non-digit characters for validation
+   - Provides clear feedback when phone number format is invalid
+
+### Supported Countries
+- **USA/Canada**: 10-digit numbers automatically get +1 prefix
+- **Spain**: 9-digit mobile numbers (starting with 6 or 7) automatically get +34 prefix
+
+### Edge Function Updates
+- `telnyx-sms`: Enhanced with robust phone formatting logic for target countries
+- Better error handling and logging
+- Automatic country code detection for supported countries
+
+### Files Modified
+- `/src/components/jobs/dialogs/shared/UniversalSendDialog.tsx` - Enhanced UI with better hints
+- `/src/utils/phoneUtils.ts` - Updated suggestions for target countries
+- Edge function `telnyx-sms` - Improved phone number formatting logic
+
+### Result
+- SMS can now be sent to USA, Canada, and Spain without requiring users to know exact formatting
+- Automatic country code detection for supported countries
+- Clear guidance for users on how to enter phone numbers
+- Works with various formats: 5551234567, (555) 123-4567, 612345678, +34612345678
