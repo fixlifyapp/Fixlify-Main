@@ -40,17 +40,8 @@ export const useDocumentSending = () => {
           }
         });
       } else {
-        // Call SMS sending edge function
-        const functionName = documentType === "estimate" ? "send-estimate-sms" : "send-invoice-sms";
-        
-        console.log(`📱 Calling ${functionName} function...`);
-        response = await supabase.functions.invoke(functionName, {
-          body: {
-            [`${documentType}Id`]: documentId,
-            recipientPhone: sendTo,
-            message: customMessage || undefined
-          }
-        });
+        // SMS sending is not available
+        throw new Error('SMS sending is not available');
       }
 
       console.log(`📤 Edge function response:`, { 

@@ -1709,6 +1709,53 @@ export type Database = {
         }
         Relationships: []
       }
+      communication_automations: {
+        Row: {
+          created_at: string | null
+          delay_minutes: number | null
+          id: string
+          is_active: boolean | null
+          name: string
+          organization_id: string
+          template_id: string
+          trigger_conditions: Json | null
+          trigger_type: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          delay_minutes?: number | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          organization_id: string
+          template_id: string
+          trigger_conditions?: Json | null
+          trigger_type: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          delay_minutes?: number | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          organization_id?: string
+          template_id?: string
+          trigger_conditions?: Json | null
+          trigger_type?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "communication_automations_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "communication_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       communication_logs: {
         Row: {
           clicked_at: string | null
@@ -1849,6 +1896,121 @@ export type Database = {
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      communications: {
+        Row: {
+          category: string
+          client_id: string | null
+          content: string
+          created_at: string | null
+          created_by: string
+          delivered_at: string | null
+          error_message: string | null
+          estimate_id: string | null
+          from: string
+          id: string
+          invoice_id: string | null
+          job_id: string | null
+          metadata: Json | null
+          organization_id: string
+          read_at: string | null
+          sent_at: string | null
+          status: string
+          subject: string | null
+          to: string
+          type: string
+          updated_at: string | null
+        }
+        Insert: {
+          category: string
+          client_id?: string | null
+          content: string
+          created_at?: string | null
+          created_by: string
+          delivered_at?: string | null
+          error_message?: string | null
+          estimate_id?: string | null
+          from: string
+          id?: string
+          invoice_id?: string | null
+          job_id?: string | null
+          metadata?: Json | null
+          organization_id: string
+          read_at?: string | null
+          sent_at?: string | null
+          status?: string
+          subject?: string | null
+          to: string
+          type: string
+          updated_at?: string | null
+        }
+        Update: {
+          category?: string
+          client_id?: string | null
+          content?: string
+          created_at?: string | null
+          created_by?: string
+          delivered_at?: string | null
+          error_message?: string | null
+          estimate_id?: string | null
+          from?: string
+          id?: string
+          invoice_id?: string | null
+          job_id?: string | null
+          metadata?: Json | null
+          organization_id?: string
+          read_at?: string | null
+          sent_at?: string | null
+          status?: string
+          subject?: string | null
+          to?: string
+          type?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "communications_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "communications_estimate_id_fkey"
+            columns: ["estimate_id"]
+            isOneToOne: false
+            referencedRelation: "estimates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "communications_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "communications_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "fact_jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "communications_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "job_revenue_summary"
+            referencedColumns: ["job_id"]
+          },
+          {
+            foreignKeyName: "communications_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
             referencedColumns: ["id"]
           },
         ]
@@ -2257,6 +2419,92 @@ export type Database = {
             columns: ["template_id"]
             isOneToOne: false
             referencedRelation: "automation_message_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      email_logs: {
+        Row: {
+          automation_id: string | null
+          body: string | null
+          client_id: string | null
+          created_at: string
+          error_message: string | null
+          html: string | null
+          id: string
+          job_id: string | null
+          metadata: Json | null
+          provider: string | null
+          provider_message_id: string | null
+          recipient_email: string
+          status: string | null
+          subject: string
+          user_id: string | null
+          workflow_id: string | null
+        }
+        Insert: {
+          automation_id?: string | null
+          body?: string | null
+          client_id?: string | null
+          created_at?: string
+          error_message?: string | null
+          html?: string | null
+          id?: string
+          job_id?: string | null
+          metadata?: Json | null
+          provider?: string | null
+          provider_message_id?: string | null
+          recipient_email: string
+          status?: string | null
+          subject: string
+          user_id?: string | null
+          workflow_id?: string | null
+        }
+        Update: {
+          automation_id?: string | null
+          body?: string | null
+          client_id?: string | null
+          created_at?: string
+          error_message?: string | null
+          html?: string | null
+          id?: string
+          job_id?: string | null
+          metadata?: Json | null
+          provider?: string | null
+          provider_message_id?: string | null
+          recipient_email?: string
+          status?: string | null
+          subject?: string
+          user_id?: string | null
+          workflow_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_logs_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_logs_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "fact_jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_logs_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "job_revenue_summary"
+            referencedColumns: ["job_id"]
+          },
+          {
+            foreignKeyName: "email_logs_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
             referencedColumns: ["id"]
           },
         ]
@@ -4633,6 +4881,92 @@ export type Database = {
           },
         ]
       }
+      sms_logs: {
+        Row: {
+          automation_id: string | null
+          client_id: string | null
+          created_at: string | null
+          error_message: string | null
+          from_number: string
+          id: string
+          job_id: string | null
+          message: string
+          metadata: Json | null
+          provider: string | null
+          provider_message_id: string | null
+          status: string
+          to_number: string
+          updated_at: string | null
+          user_id: string | null
+          workflow_id: string | null
+        }
+        Insert: {
+          automation_id?: string | null
+          client_id?: string | null
+          created_at?: string | null
+          error_message?: string | null
+          from_number: string
+          id?: string
+          job_id?: string | null
+          message: string
+          metadata?: Json | null
+          provider?: string | null
+          provider_message_id?: string | null
+          status?: string
+          to_number: string
+          updated_at?: string | null
+          user_id?: string | null
+          workflow_id?: string | null
+        }
+        Update: {
+          automation_id?: string | null
+          client_id?: string | null
+          created_at?: string | null
+          error_message?: string | null
+          from_number?: string
+          id?: string
+          job_id?: string | null
+          message?: string
+          metadata?: Json | null
+          provider?: string | null
+          provider_message_id?: string | null
+          status?: string
+          to_number?: string
+          updated_at?: string | null
+          user_id?: string | null
+          workflow_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sms_logs_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sms_logs_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "fact_jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sms_logs_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "job_revenue_summary"
+            referencedColumns: ["job_id"]
+          },
+          {
+            foreignKeyName: "sms_logs_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tags: {
         Row: {
           category: string
@@ -5745,6 +6079,10 @@ export type Database = {
       cleanup_all_user_data: {
         Args: { p_keep_system_users?: boolean; p_dry_run?: boolean }
         Returns: Json
+      }
+      cleanup_old_communication_logs: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
       }
       clear_my_products: {
         Args: Record<PropertyKey, never>

@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Mail, MessageSquare, ArrowLeft } from "lucide-react";
+import { Mail, ArrowLeft } from "lucide-react";
 
 interface SendMethodStepProps {
   sendMethod: "email" | "sms";
@@ -47,8 +47,6 @@ export const SendMethodStep = ({
     
     if (value === "email" && hasValidEmail) {
       setSendTo(contactInfo.email);
-    } else if (value === "sms" && hasValidPhone) {
-      setSendTo(contactInfo.phone);
     } else {
       setSendTo("");
     }
@@ -90,35 +88,12 @@ export const SendMethodStep = ({
               <p className="text-xs text-blue-600 mt-1">Includes secure portal access link</p>
             </div>
           </div>
-          
-          <div className={`flex items-start space-x-3 border rounded-lg p-3 transition-colors hover:bg-muted/50 cursor-pointer ${
-            sendMethod === "sms" ? "border-primary bg-primary/5" : "border-input"
-          } ${!hasValidPhone ? "opacity-60" : ""}`}>
-            <RadioGroupItem 
-              value="sms" 
-              id="sms" 
-              className="mt-1 flex-shrink-0" 
-              disabled={!hasValidPhone} 
-            />
-            <div className="flex-1 min-w-0">
-              <Label htmlFor="sms" className="flex items-center gap-2 font-medium cursor-pointer text-sm">
-                <MessageSquare size={16} className="flex-shrink-0" />
-                Send via Text Message
-              </Label>
-              {hasValidPhone ? (
-                <p className="text-xs text-muted-foreground mt-1">{contactInfo.phone}</p>
-              ) : (
-                <p className="text-xs text-amber-600 mt-1">No valid phone number available for this client</p>
-              )}
-              <p className="text-xs text-blue-600 mt-1">Includes secure portal access link</p>
-            </div>
-          </div>
         </RadioGroup>
       </div>
       
       <div className="space-y-2">
         <Label htmlFor="send-to" className="text-sm font-medium">
-          {sendMethod === "email" ? "Email Address" : "Phone Number"}
+          Email Address
         </Label>
         <Input
           id="send-to"
@@ -127,16 +102,11 @@ export const SendMethodStep = ({
             setSendTo(e.target.value);
             setValidationError("");
           }}
-          placeholder={sendMethod === "email" ? "client@example.com" : "+1234567890 or (555) 123-4567"}
+          placeholder="client@example.com"
           className={`${validationError ? "border-red-500" : ""} text-sm`}
         />
         {validationError && (
           <p className="text-xs text-red-600 mt-1">{validationError}</p>
-        )}
-        {sendMethod === "sms" && (
-          <p className="text-xs text-muted-foreground mt-1">
-            Phone numbers will be automatically formatted for Telnyx delivery
-          </p>
         )}
       </div>
       
