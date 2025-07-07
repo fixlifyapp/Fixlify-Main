@@ -34,20 +34,28 @@ export const GeneratePortalLinkDialog = ({ open, onOpenChange, clientId, clientN
         make_payments: allowPayments,
       };
 
-      const { data, error } = await supabase.rpc('generate_portal_access_token', {
-        p_client_id: clientId,
-        p_permissions: permissions,
-        p_hours_valid: hoursValid,
-        p_domain: restrictToDomain ? domainRestriction : undefined,
+      // Use the portal-data edge function to create a portal link
+      const { data, error } = await supabase.functions.invoke('portal-data', {
+        body: {
+          action: 'generate_token',
+          client_id: clientId,
+          permissions: permissions,
+          hours_valid: hoursValid,
+          domain: restrictToDomain ? domainRestriction : undefined,
+        }
       });
 
       if (error) throw error;
 
-      const baseUrl = window.location.origin;
-      const portalUrl = `${baseUrl}/client-portal/${clientId}?token=${data.token}`;
-      setGeneratedLink(portalUrl);
-      
-      toast.success('Portal link generated successfully!');
+      if (data && typeof data === 'object' && 'token' in data) {
+        const baseUrl = window.location.origin;
+        const portalUrl = `${baseUrl}/client-portal/${clientId}?token=${data.token}`;
+        setGeneratedLink(portalUrl);
+        
+        toast.success('Portal link generated successfully!');
+      } else {
+        throw new Error('Invalid response from server');
+      }
     } catch (error) {
       console.error('Error generating portal link:', error);
       toast.error('Failed to generate portal link');

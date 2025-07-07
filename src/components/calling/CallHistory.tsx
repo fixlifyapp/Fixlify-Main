@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -44,12 +43,12 @@ export const CallHistory = () => {
         id: call.id,
         direction: (call.direction === 'inbound' || call.direction === 'outbound') ? call.direction : 'inbound',
         phone_number: call.from_number || call.to_number || '',
-        client_name: call.client_name || undefined,
+        client_name: call.client?.name || undefined,
         duration: call.call_duration || undefined,
         status: call.call_status || 'unknown',
         created_at: call.created_at,
         ai_transcript: call.ai_transcript || undefined,
-        call_summary: call.call_summary || undefined,
+        call_summary: call.call_data?.summary || undefined,
       }));
 
       setCalls(transformedCalls);

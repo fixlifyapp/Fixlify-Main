@@ -53,19 +53,32 @@ export const EmailTemplateSelector = ({
       if (error) throw error;
 
       // Transform the data to match our interface
-      const transformedTemplates: EmailTemplate[] = (data || []).map(template => ({
-        id: template.id,
-        name: template.name,
-        subject: template.subject || '',
-        content: template.content,
-        category: template.category || 'general',
-        variables: Array.isArray(template.variables) ? template.variables : 
-                  typeof template.variables === 'string' ? [template.variables] : [],
-        is_default: template.is_default || false,
-        description: template.description || undefined,
-        tone: template.tone || undefined,
-        preview_text: template.preview_text || undefined,
-      }));
+      const transformedTemplates: EmailTemplate[] = (data || []).map(template => {
+        let variables: string[] = [];
+        
+        // Handle different types of variables data
+        if (Array.isArray(template.variables)) {
+          variables = template.variables.map(v => String(v));
+        } else if (typeof template.variables === 'string') {
+          variables = [template.variables];
+        } else if (template.variables) {
+          // If it's an object or other type, convert to string
+          variables = [String(template.variables)];
+        }
+
+        return {
+          id: template.id,
+          name: template.name,
+          subject: template.subject || '',
+          content: template.content,
+          category: template.category || 'general',
+          variables: variables,
+          is_default: template.is_default || false,
+          description: template.description || undefined,
+          tone: template.tone || undefined,
+          preview_text: template.preview_text || undefined,
+        };
+      });
 
       setTemplates(transformedTemplates);
     } catch (error) {
