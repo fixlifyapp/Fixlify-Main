@@ -1,13 +1,10 @@
 
 project_id = "mqppvcrlvsgrsqelglod"
 
-[functions.send-estimate]
+[functions.mailgun-email]
 verify_jwt = true
 
-[functions.send-invoice]
-verify_jwt = true
-
-[functions.telnyx-sms]
+[functions.portal-data]
 verify_jwt = true
 
 [functions.execute-automation]
