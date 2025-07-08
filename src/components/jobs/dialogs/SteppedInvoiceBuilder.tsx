@@ -1,112 +1,54 @@
-
 import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { ArrowLeft, ArrowRight } from 'lucide-react';
-import { Stepper } from '@/components/ui/stepper';
-import { InvoiceFormStep } from './invoice-builder/InvoiceFormStep';
-import { InvoicePreviewStep } from './invoice-builder/InvoicePreviewStep';
-import { InvoiceSendStep } from './invoice-builder/InvoiceSendStep';
-import { useInvoiceBuilder } from '@/hooks/useInvoiceBuilder';
+import InvoiceSendStep from './invoice-builder/InvoiceSendStep';
 
-export interface SteppedInvoiceBuilderProps {
-  isOpen: boolean;
+interface SteppedInvoiceBuilderProps {
+  open: boolean;
   onOpenChange: (open: boolean) => void;
   jobId: string;
-  onInvoiceCreated?: () => void;
 }
 
-const steps = [
-  { title: 'Details', description: 'Invoice information' },
-  { title: 'Preview', description: 'Review invoice' },
-  { title: 'Send', description: 'Send to client' }
-];
-
-export const SteppedInvoiceBuilder: React.FC<SteppedInvoiceBuilderProps> = ({
-  isOpen,
+const SteppedInvoiceBuilder: React.FC<SteppedInvoiceBuilderProps> = ({
+  open,
   onOpenChange,
-  jobId,
-  onInvoiceCreated
+  jobId
 }) => {
   const [currentStep, setCurrentStep] = useState(0);
-  const { invoiceData, updateInvoiceData, saveInvoice, isSaving } = useInvoiceBuilder(jobId);
+  const [invoiceId, setInvoiceId] = useState<string>('');
 
-  const handleNext = () => {
-    if (currentStep < steps.length - 1) {
-      setCurrentStep(currentStep + 1);
-    }
-  };
-
-  const handleBack = () => {
-    if (currentStep > 0) {
-      setCurrentStep(currentStep - 1);
-    }
-  };
-
-  const handleClose = () => {
-    setCurrentStep(0);
+  const handleSendComplete = () => {
     onOpenChange(false);
   };
 
-  const handleSave = async () => {
-    const success = await saveInvoice();
-    if (success) {
-      onInvoiceCreated?.();
-      handleClose();
-    }
-  };
-
   return (
-    <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-4xl">
         <DialogHeader>
-          <DialogTitle>Create Invoice</DialogTitle>
+          <DialogTitle>Create Invoice - Step {currentStep + 1}</DialogTitle>
         </DialogHeader>
-
-        <div className="space-y-6">
-          <Stepper currentStep={currentStep} steps={steps} />
-
-          <div className="min-h-[400px]">
-            {currentStep === 0 && (
-              <InvoiceFormStep
-                invoiceData={invoiceData}
-                onUpdate={updateInvoiceData}
-              />
-            )}
-            {currentStep === 1 && (
-              <InvoicePreviewStep invoiceData={invoiceData} />
-            )}
-            {currentStep === 2 && (
-              <InvoiceSendStep 
-                invoiceId={invoiceData.id || ''}
-                onClose={handleClose}
-              />
-            )}
-          </div>
-
-          <div className="flex justify-between">
-            <Button
-              variant="outline"
-              onClick={handleBack}
-              disabled={currentStep === 0}
-            >
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Back
-            </Button>
-
-            {currentStep === steps.length - 1 ? (
-              <Button onClick={handleSave} disabled={isSaving}>
-                {isSaving ? 'Saving...' : 'Save & Send'}
-              </Button>
-            ) : (
-              <Button onClick={handleNext}>
-                Next
-                <ArrowRight className="w-4 h-4 ml-2" />
-              </Button>
-            )}
-          </div>
+        <div className="p-4">
+          {currentStep === 0 && (
+            <div>
+              <p>Step 1: Invoice Form</p>
+              {/* Invoice form implementation */}
+            </div>
+          )}
+          {currentStep === 1 && (
+            <div>
+              <p>Step 2: Invoice Preview</p>
+              {/* Invoice preview implementation */}
+            </div>
+          )}
+          {currentStep === 2 && invoiceId && (
+            <InvoiceSendStep
+              invoiceId={invoiceId}
+              onSendComplete={handleSendComplete}
+            />
+          )}
         </div>
       </DialogContent>
     </Dialog>
   );
 };
+
+export default SteppedInvoiceBuilder;

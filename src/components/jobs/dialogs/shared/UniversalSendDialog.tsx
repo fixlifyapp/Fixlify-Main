@@ -2,182 +2,142 @@
 import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Mail, MessageSquare, Loader2 } from 'lucide-react';
-import { useDocumentSending } from '@/hooks/useDocumentSending';
-import { toast } from 'sonner';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
-export interface UniversalSendDialogProps {
+export interface SendDocumentParams {
+  type: 'email' | 'sms';
+  to: string;
+  subject?: string;
+  message: string;
+  documentType: 'estimate' | 'invoice';
+  documentId: string;
+}
+
+interface UniversalSendDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   documentType: 'estimate' | 'invoice';
   documentId: string;
-  documentNumber: string;
-  total: number;
-  contactInfo: {
-    name: string;
-    email: string;
-    phone: string;
-  };
-  onSuccess?: () => void;
+  onSend: (params: SendDocumentParams) => Promise<void>;
+  defaultRecipient?: string;
 }
 
-export function UniversalSendDialog({
+const UniversalSendDialog: React.FC<UniversalSendDialogProps> = ({
   open,
   onOpenChange,
   documentType,
   documentId,
-  documentNumber,
-  total,
-  contactInfo,
-  onSuccess
-}: UniversalSendDialogProps) {
-  const [selectedTab, setSelectedTab] = useState('email');
-  const [emailData, setEmailData] = useState({
-    to: contactInfo.email || '',
-    subject: `${documentType === 'estimate' ? 'Estimate' : 'Invoice'} ${documentNumber}`,
-    message: `Please find your ${documentType} attached.`
-  });
-  const [smsData, setSmsData] = useState({
-    to: contactInfo.phone || '',
-    message: `Hi ${contactInfo.name}, your ${documentType} ${documentNumber} for $${total} is ready. Please check your email for details.`
-  });
-
-  const { sendDocument, isProcessing } = useDocumentSending();
+  onSend,
+  defaultRecipient = ''
+}) => {
+  const [sendType, setSendType] = useState<'email' | 'sms'>('email');
+  const [recipient, setRecipient] = useState(defaultRecipient);
+  const [subject, setSubject] = useState(`Your ${documentType}`);
+  const [message, setMessage] = useState(`Please find your ${documentType} attached.`);
+  const [isSending, setIsSending] = useState(false);
 
   const handleSend = async () => {
+    setIsSending(true);
     try {
-      const recipient = {
-        name: contactInfo.name,
-        email: selectedTab === 'email' ? emailData.to : contactInfo.email,
-        phone: selectedTab === 'sms' ? smsData.to : contactInfo.phone
-      };
-
-      const result = await sendDocument({
+      await onSend({
+        type: sendType,
+        to: recipient,
+        subject: sendType === 'email' ? subject : undefined,
+        message,
         documentType,
-        documentId,
-        method: selectedTab as 'email' | 'sms',
-        recipient,
-        customMessage: selectedTab === 'email' ? emailData.message : smsData.message,
-        subject: selectedTab === 'email' ? emailData.subject : undefined
+        documentId
       });
-
-      if (result.success) {
-        toast.success(`${documentType === 'estimate' ? 'Estimate' : 'Invoice'} sent successfully via ${selectedTab}!`);
-        onSuccess?.();
-        onOpenChange(false);
-      } else {
-        toast.error(result.error || `Failed to send ${documentType}`);
-      }
+      onOpenChange(false);
     } catch (error) {
-      console.error('Error sending document:', error);
-      toast.error(`Failed to send ${documentType}`);
+      console.error('Error sending:', error);
+    } finally {
+      setIsSending(false);
     }
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>
-            Send {documentType === 'estimate' ? 'Estimate' : 'Invoice'} {documentNumber}
-          </DialogTitle>
+          <DialogTitle>Send {documentType}</DialogTitle>
         </DialogHeader>
-
-        <Tabs value={selectedTab} onValueChange={setSelectedTab} className="w-full">
+        
+        <Tabs value={sendType} onValueChange={(value) => setSendType(value as 'email' | 'sms')}>
           <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="email" className="flex items-center gap-2">
-              <Mail className="h-4 w-4" />
-              Email
-            </TabsTrigger>
-            <TabsTrigger value="sms" className="flex items-center gap-2">
-              <MessageSquare className="h-4 w-4" />
-              SMS
-            </TabsTrigger>
+            <TabsTrigger value="email">Email</TabsTrigger>
+            <TabsTrigger value="sms">SMS</TabsTrigger>
           </TabsList>
-
+          
           <TabsContent value="email" className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="email-to">To</Label>
+            <div>
+              <Label htmlFor="email">Email Address</Label>
               <Input
-                id="email-to"
+                id="email"
                 type="email"
-                value={emailData.to}
-                onChange={(e) => setEmailData({ ...emailData, to: e.target.value })}
+                value={recipient}
+                onChange={(e) => setRecipient(e.target.value)}
                 placeholder="Enter email address"
               />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="email-subject">Subject</Label>
+            <div>
+              <Label htmlFor="subject">Subject</Label>
               <Input
-                id="email-subject"
-                value={emailData.subject}
-                onChange={(e) => setEmailData({ ...emailData, subject: e.target.value })}
-                placeholder="Enter subject"
+                id="subject"
+                value={subject}
+                onChange={(e) => setSubject(e.target.value)}
+                placeholder="Email subject"
               />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="email-message">Message</Label>
+            <div>
+              <Label htmlFor="message">Message</Label>
               <Textarea
-                id="email-message"
-                value={emailData.message}
-                onChange={(e) => setEmailData({ ...emailData, message: e.target.value })}
-                placeholder="Enter your message"
+                id="message"
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+                placeholder="Email message"
                 rows={4}
               />
             </div>
           </TabsContent>
-
+          
           <TabsContent value="sms" className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="sms-to">To</Label>
+            <div>
+              <Label htmlFor="phone">Phone Number</Label>
               <Input
-                id="sms-to"
+                id="phone"
                 type="tel"
-                value={smsData.to}
-                onChange={(e) => setSmsData({ ...smsData, to: e.target.value })}
+                value={recipient}
+                onChange={(e) => setRecipient(e.target.value)}
                 placeholder="Enter phone number"
               />
             </div>
-            <div className="space-y-2">
+            <div>
               <Label htmlFor="sms-message">Message</Label>
               <Textarea
                 id="sms-message"
-                value={smsData.message}
-                onChange={(e) => setSmsData({ ...smsData, message: e.target.value })}
-                placeholder="Enter your message"
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+                placeholder="SMS message"
                 rows={4}
               />
             </div>
           </TabsContent>
         </Tabs>
-
-        <div className="flex justify-end space-x-2 pt-4">
-          <Button
-            variant="outline"
-            onClick={() => onOpenChange(false)}
-            disabled={isProcessing}
-          >
+        
+        <div className="flex justify-end space-x-2">
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
-          <Button
-            onClick={handleSend}
-            disabled={isProcessing || (selectedTab === 'email' && !emailData.to) || (selectedTab === 'sms' && !smsData.to)}
-          >
-            {isProcessing ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Sending...
-              </>
-            ) : (
-              `Send ${selectedTab === 'email' ? 'Email' : 'SMS'}`
-            )}
+          <Button onClick={handleSend} disabled={isSending || !recipient}>
+            {isSending ? 'Sending...' : `Send ${sendType.toUpperCase()}`}
           </Button>
         </div>
       </DialogContent>
     </Dialog>
   );
-}
+};
+
+export default UniversalSendDialog;

@@ -1,39 +1,41 @@
 
-import { useModal } from "@/components/ui/modal-provider";
-import { Button } from "@/components/ui/button";
+import React, { useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { ModalType } from '@/types/modal';
 
-export function ModalExample() {
-  const { openModal } = useModal();
+const ModalExample: React.FC = () => {
+  const [modalType, setModalType] = useState<ModalType | null>(null);
 
-  const handleOpenClientModal = () => {
-    openModal("clientSelection", {
-      onSave: (client: string) => {
-        console.log("Selected client:", client);
-      }
-    });
+  const openModal = (type: ModalType) => {
+    setModalType(type);
   };
 
-  const handleOpenDeleteConfirmation = () => {
-    openModal("deleteConfirm", {
-      title: "Delete Item",
-      description: "Are you sure you want to delete this item? This action cannot be undone.",
-      onConfirm: () => {
-        console.log("Item deleted");
-      }
-    });
+  const closeModal = () => {
+    setModalType(null);
   };
 
   return (
-    <div className="space-y-4 p-4">
-      <h2 className="text-xl font-semibold">Modal System Examples</h2>
-      <div className="space-x-4">
-        <Button onClick={handleOpenClientModal}>
-          Select Client
-        </Button>
-        <Button variant="destructive" onClick={handleOpenDeleteConfirmation}>
-          Delete Item
-        </Button>
-      </div>
+    <div className="space-y-4">
+      <Button onClick={() => openModal('clientSelection')}>
+        Open Client Selection
+      </Button>
+      <Button onClick={() => openModal('deleteConfirm')}>
+        Open Delete Confirmation
+      </Button>
+      <Button onClick={() => openModal('taskManagement')}>
+        Open Task Management
+      </Button>
+      
+      {modalType && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+          <div className="bg-white p-6 rounded-lg">
+            <h2>Modal: {modalType}</h2>
+            <Button onClick={closeModal}>Close</Button>
+          </div>
+        </div>
+      )}
     </div>
   );
-}
+};
+
+export default ModalExample;

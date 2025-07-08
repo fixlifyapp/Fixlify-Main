@@ -1,153 +1,280 @@
-import React, { useState } from "react";
-import { useJobDetails } from "./context/JobDetailsContext";
-import { useJobs } from "@/hooks/useJobs";
-import { JobSummaryCard } from "./overview/JobSummaryCard";
-import { ScheduleInfoCard } from "./overview/ScheduleInfoCard";
-import { JobDescriptionCard } from "./overview/JobDescriptionCard";
-import { JobTagsCard } from "./overview/JobTagsCard";
-import { TasksCard } from "./overview/TasksCard";
-import { TechnicianCard } from "./overview/TechnicianCard";
-import { AdditionalInfoCard } from "./overview/AdditionalInfoCard";
-import { AttachmentsCard } from "./overview/AttachmentsCard";
-import { ConditionalCustomFieldsCard } from "./overview/ConditionalCustomFieldsCard";
-import { TaskManagementDialog } from "./dialogs/TaskManagementDialog";
-import { toast } from "sonner";
+import React, { useState } from 'react';
+import { JobInfo, Task } from '@/types/job';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Button } from "@/components/ui/button"
+import {
+  Table,
+  TableBody,
+  TableCaption,
+  TableCell,
+  TableFooter,
+  TableHead,
+  TableRow,
+} from "@/components/ui/table"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { MoreHorizontal } from 'lucide-react';
+import { Checkbox } from "@/components/ui/checkbox"
+import { Calendar } from "@/components/ui/calendar"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { cn } from "@/lib/utils"
+import { format } from "date-fns"
 
-interface JobOverviewProps {
-  jobId: string;
+interface TaskManagementDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  tasks: Task[];
+  onSave: (updatedTasks: Task[]) => Promise<void>;
+  disabled: boolean;
 }
 
-interface Task {
-  id: number;
-  name: string;
-  completed: boolean;
-}
+const TaskManagementDialog: React.FC<TaskManagementDialogProps> = ({
+  open,
+  onOpenChange,
+  tasks,
+  onSave,
+  disabled
+}) => {
+  const [taskTitle, setTaskTitle] = useState('');
+  const [taskDescription, setTaskDescription] = useState('');
+  const [taskPriority, setTaskPriority] = useState<'low' | 'medium' | 'high'>('medium');
+  const [taskDueDate, setTaskDueDate] = useState<Date | undefined>(undefined);
+  const [currentTasks, setCurrentTasks] = useState<Task[]>(tasks);
 
-export const JobOverview = ({ jobId }: JobOverviewProps) => {
-  const { job, isLoading } = useJobDetails();
-  const [isTaskDialogOpen, setIsTaskDialogOpen] = useState(false);
-  const [isUpdating, setIsUpdating] = useState(false);
-  const { updateJob } = useJobs();
-
-  // Convert job tasks to dialog format
-  const convertToDialogTasks = (jobTasks: string[] | undefined): Task[] => {
-    if (!jobTasks || !Array.isArray(jobTasks)) return [];
-    
-    return jobTasks.map((task, index) => ({
-      id: index + 1,
-      name: typeof task === 'string' ? task : String(task),
-      completed: false // For now, we'll assume all tasks are incomplete
-    }));
-  };
-
-  // Convert dialog tasks back to job format
-  const convertToJobTasks = (dialogTasks: Task[]): string[] => {
-    return dialogTasks.map(task => task.name);
-  };
-
-  const handleUpdateTasks = async (updatedTasks: Task[]) => {
-    setIsUpdating(true);
-    const taskNames = convertToJobTasks(updatedTasks);
-    
-    try {
-      const result = await updateJob(jobId, {
-        tasks: taskNames
-      });
-      
-      if (result) {
-        console.log("Tasks updated successfully:", taskNames);
-        toast.success("Tasks updated successfully");
-        // Real-time will handle the refresh automatically
-      }
-    } catch (error) {
-      console.error("Error updating tasks:", error);
-      toast.error("Failed to update tasks");
-    } finally {
-      setIsUpdating(false);
+  const handleAddTask = () => {
+    if (taskTitle.trim() !== '') {
+      const newTask: Task = {
+        id: Math.random().toString(36).substring(7),
+        title: taskTitle,
+        description: taskDescription,
+        completed: false,
+        priority: taskPriority,
+        dueDate: taskDueDate ? taskDueDate.toISOString() : undefined,
+      };
+      setCurrentTasks([...currentTasks, newTask]);
+      setTaskTitle('');
+      setTaskDescription('');
+      setTaskPriority('medium');
+      setTaskDueDate(undefined);
     }
   };
 
-  if (isLoading) {
-    return (
-      <div className="space-y-6">
-        <div className="animate-pulse">
-          <div className="h-8 bg-gray-200 rounded mb-4 w-48"></div>
-          <div className="h-5 bg-gray-200 rounded w-72"></div>
-        </div>
-      </div>
+  const handleTaskCompletion = (taskId: string) => {
+    const updatedTasks = currentTasks.map(task =>
+      task.id === taskId ? { ...task, completed: !task.completed } : task
     );
-  }
+    setCurrentTasks(updatedTasks);
+  };
 
-  if (!job) {
-    return (
-      <div className="space-y-6">
-        <div className="text-red-500">Error loading job details</div>
-      </div>
+  const handleSave = async () => {
+    await onSave(currentTasks);
+    onOpenChange(false);
+  };
+
+  const handlePriorityChange = (taskId: string, priority: 'low' | 'medium' | 'high') => {
+    const updatedTasks = currentTasks.map(task =>
+      task.id === taskId ? { ...task, priority } : task
     );
-  }
+    setCurrentTasks(updatedTasks);
+  };
+
+  const handleDueDateChange = (taskId: string, date: Date | undefined) => {
+    const updatedTasks = currentTasks.map(task =>
+      task.id === taskId ? { ...task, dueDate: date ? date.toISOString() : undefined } : task
+    );
+    setCurrentTasks(updatedTasks);
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-[825px]">
+        <DialogHeader>
+          <DialogTitle>Manage Tasks</DialogTitle>
+          <DialogDescription>
+            Add, edit, and manage tasks associated with this job.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="grid gap-4 py-4">
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="title">Title</Label>
+            <Input id="title" value={taskTitle} onChange={(e) => setTaskTitle(e.target.value)} className="col-span-3" />
+          </div>
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="description">Description</Label>
+            <Input id="description" value={taskDescription} onChange={(e) => setTaskDescription(e.target.value)} className="col-span-3" />
+          </div>
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="priority">Priority</Label>
+            <select
+              id="priority"
+              value={taskPriority}
+              onChange={(e) => setTaskPriority(e.target.value as 'low' | 'medium' | 'high')}
+              className="col-span-3 rounded-md border-gray-200 focus:border-blue-500 focus:ring-blue-500"
+            >
+              <option value="low">Low</option>
+              <option value="medium">Medium</option>
+              <option value="high">High</option>
+            </select>
+          </div>
+          <Button onClick={handleAddTask} disabled={disabled}>Add Task</Button>
+        </div>
+
+        <Table>
+          <TableCaption>A list of your tasks.</TableCaption>
+          <TableHead>
+            <TableRow>
+              <TableHead>Completed</TableHead>
+              <TableHead>Title</TableHead>
+              <TableHead>Description</TableHead>
+              <TableHead>Priority</TableHead>
+              <TableHead>Due Date</TableHead>
+              <TableHead className="text-right">Actions</TableHead>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {currentTasks.map((task) => (
+              <TableRow key={task.id}>
+                <TableCell>
+                  <Checkbox
+                    checked={task.completed}
+                    onCheckedChange={() => handleTaskCompletion(task.id)}
+                    id={`task-${task.id}`}
+                  />
+                </TableCell>
+                <TableCell>{task.title}</TableCell>
+                <TableCell>{task.description}</TableCell>
+                <TableCell>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="sm">
+                        {task.priority || 'Medium'}
+                        <MoreHorizontal className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuLabel>Set priority</DropdownMenuLabel>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem onClick={() => handlePriorityChange(task.id, 'low')}>
+                        Low
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handlePriorityChange(task.id, 'medium')}>
+                        Medium
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handlePriorityChange(task.id, 'high')}>
+                        High
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </TableCell>
+                <TableCell>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant={"ghost"}
+                        className={cn(
+                          "pl-3 text-left font-normal",
+                          !task.dueDate && "text-muted-foreground"
+                        )}
+                      >
+                        {task.dueDate ? (
+                          format(new Date(task.dueDate), "PPP")
+                        ) : (
+                          <span>Pick a date</span>
+                        )}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="center" side="bottom">
+                      <Calendar
+                        mode="single"
+                        selected={task.dueDate ? new Date(task.dueDate) : undefined}
+                        onSelect={(date) => handleDueDateChange(task.id, date)}
+                        disabled={disabled}
+                        className="rounded-md border"
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </TableCell>
+                <TableCell className="text-right">
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="sm">
+                        <MoreHorizontal className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem>
+                        Edit
+                      </DropdownMenuItem>
+                      <DropdownMenuItem>
+                        Delete
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+
+        <div className="flex justify-end space-x-2">
+          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+          <Button onClick={handleSave} disabled={disabled}>Save</Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
+interface JobOverviewProps {
+  job: JobInfo;
+}
+
+const JobOverview: React.FC<JobOverviewProps> = ({ job }) => {
+  const [isTaskDialogOpen, setIsTaskDialogOpen] = useState(false);
+  const [tasks, setTasks] = useState<Task[]>([]);
+
+  const handleSaveTasks = async (updatedTasks: Task[]) => {
+    // Save tasks logic
+    setTasks(updatedTasks);
+  };
 
   return (
     <div className="space-y-6">
-      {/* Primary Information Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="space-y-6">
-          <JobDescriptionCard 
-            description={job.description || ""} 
-            jobId={jobId} 
-            editable 
-          />
-          <JobSummaryCard 
-            job={job} 
-            jobId={jobId} 
-            editable 
-          />
-          <TechnicianCard 
-            job={job} 
-            jobId={jobId} 
-            editable 
-          />
-          <TasksCard 
-            tasks={job.tasks || []} 
-            jobId={jobId} 
-            editable 
-            onManageTasks={() => setIsTaskDialogOpen(true)}
-          />
-        </div>
-        
-        <div className="space-y-6">
-          <AdditionalInfoCard job={job} />
-          <ScheduleInfoCard 
-            job={job} 
-            jobId={jobId} 
-            editable 
-          />
-          <AttachmentsCard 
-            jobId={jobId} 
-            editable 
-          />
-          <ConditionalCustomFieldsCard jobId={jobId} />
-        </div>
+      <div>
+        <h2 className="text-xl font-semibold">Job Overview</h2>
+        <p className="text-gray-600">{job.description}</p>
       </div>
-
-      {/* Secondary Information Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="space-y-6">
-          <JobTagsCard 
-            tags={job.tags || []} 
-            jobId={jobId} 
-            editable 
-          />
-        </div>
-      </div>
-
-      {/* Task Management Dialog */}
+      
+      <DialogTrigger asChild>
+        <Button variant="outline">Manage Tasks</Button>
+      </DialogTrigger>
       <TaskManagementDialog
         open={isTaskDialogOpen}
         onOpenChange={setIsTaskDialogOpen}
-        initialTasks={convertToDialogTasks(job.tasks)}
-        onSave={handleUpdateTasks}
-        disabled={isUpdating}
+        tasks={tasks}
+        onSave={handleSaveTasks}
+        disabled={false}
       />
     </div>
   );
 };
+
+export default JobOverview;

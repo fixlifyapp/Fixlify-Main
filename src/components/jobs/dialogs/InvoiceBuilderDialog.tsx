@@ -1,30 +1,38 @@
+
 import React from 'react';
-import { SteppedInvoiceBuilder } from './SteppedInvoiceBuilder';
-import { Estimate, Invoice } from "@/types/documents";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 interface InvoiceBuilderDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   jobId: string;
-  estimate?: Estimate;
-  invoice?: Invoice;
-  onInvoiceCreated?: (invoice: Invoice) => void;
+  onInvoiceCreated: (invoice: any) => void;
 }
 
-export const InvoiceBuilderDialog: React.FC<InvoiceBuilderDialogProps> = ({
+const InvoiceBuilderDialog: React.FC<InvoiceBuilderDialogProps> = ({
   open,
   onOpenChange,
   jobId,
-  estimate,
-  invoice,
   onInvoiceCreated
-}: InvoiceBuilderDialogProps) => {
+}) => {
+  const handleInvoiceCreate = (invoice: any) => {
+    onInvoiceCreated(invoice);
+    onOpenChange(false);
+  };
+
   return (
-    <SteppedInvoiceBuilder
-      isOpen={open}
-      onOpenChange={onOpenChange}
-      jobId={jobId}
-      onInvoiceCreated={(invoice) => onInvoiceCreated(invoice)}
-    />
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-4xl">
+        <DialogHeader>
+          <DialogTitle>Create Invoice</DialogTitle>
+        </DialogHeader>
+        <div className="p-4">
+          <p>Invoice builder for job: {jobId}</p>
+          {/* Invoice builder implementation */}
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 };
+
+export default InvoiceBuilderDialog;
