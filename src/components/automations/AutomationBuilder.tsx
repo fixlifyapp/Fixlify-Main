@@ -521,7 +521,7 @@ export const AutomationBuilder = ({
                           <Badge variant="destructive" className="ml-2">Over SMS limit</Badge>
                         )}
                       </span>
-                      <span>Use {{variable_name}} for dynamic content</span>
+                      <span>Use {"{variable_name}"} for dynamic content</span>
                     </div>
                   </div>
                   {/* Smart Variable Selector */}
@@ -697,7 +697,7 @@ export const AutomationBuilder = ({
             </Button>
           ) : (
             <GradientButton
-              variant="primary"
+              variant="default"
               onClick={handleSave}
               disabled={!validateStep(5)}
             >
