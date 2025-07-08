@@ -1,67 +1,54 @@
-import { useState } from 'react';
-import { MessageSquare, Mail, Phone, History, Send, Plus, Settings } from 'lucide-react';
+
+import React, { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { PageHeader } from '@/components/ui/page-header';
-import { PageLayout } from '@/components/layout/PageLayout';
-import { SendCommunicationDialog } from './SendCommunicationDialog';
-import { CommunicationHistory } from './CommunicationHistory';
-import { CommunicationTemplates } from './CommunicationTemplates';
+import { Button } from '@/components/ui/button';
+import CommunicationHistory from './CommunicationHistory';
+import CommunicationTemplates from './CommunicationTemplates';
 import { CommunicationAutomations } from './CommunicationAutomations';
-import { useAuth } from '@/hooks/use-auth';
+import { SendCommunicationDialog } from './SendCommunicationDialog';
+import { MessageSquare, Mail, Phone, Settings, Plus } from 'lucide-react';
 
-export function ConnectCenter() {
-  const [sendDialogOpen, setSendDialogOpen] = useState(false);
-  const [selectedType, setSelectedType] = useState<'email' | 'sms'>('email');
-  const { user } = useAuth();
-
-  const handleSendClick = (type: 'email' | 'sms') => {
-    setSelectedType(type);
-    setSendDialogOpen(true);
-  };
+export const ConnectCenter = () => {
+  const [activeTab, setActiveTab] = useState('history');
 
   return (
-    <PageLayout>
+    <div className="space-y-6">
       <PageHeader
         title="Connect Center"
-        description="Manage all your communications in one place"
         actions={
-          <div className="flex gap-2">
-            <Button onClick={() => handleSendClick('email')}>
-              <Mail className="h-4 w-4 mr-2" />
-              Send Email
+          <SendCommunicationDialog>
+            <Button>
+              <Plus className="w-4 h-4 mr-2" />
+              Send Message
             </Button>
-            <Button onClick={() => handleSendClick('sms')} variant="secondary">
-              <Phone className="h-4 w-4 mr-2" />
-              Send SMS
-            </Button>
-          </div>
+          </SendCommunicationDialog>
         }
       />
 
-      <Tabs defaultValue="history" className="space-y-6">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
         <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="history">
-            <History className="h-4 w-4 mr-2" />
-            History
+          <TabsTrigger value="history" className="flex items-center space-x-2">
+            <MessageSquare className="w-4 h-4" />
+            <span>History</span>
           </TabsTrigger>
-          <TabsTrigger value="templates">
-            <MessageSquare className="h-4 w-4 mr-2" />
-            Templates
+          <TabsTrigger value="templates" className="flex items-center space-x-2">
+            <Mail className="w-4 h-4" />
+            <span>Templates</span>
           </TabsTrigger>
-          <TabsTrigger value="automations">
-            <Settings className="h-4 w-4 mr-2" />
-            Automations
+          <TabsTrigger value="automations" className="flex items-center space-x-2">
+            <Settings className="w-4 h-4" />
+            <span>Automations</span>
           </TabsTrigger>
-          <TabsTrigger value="analytics">
-            <MessageSquare className="h-4 w-4 mr-2" />
-            Analytics
+          <TabsTrigger value="phone" className="flex items-center space-x-2">
+            <Phone className="w-4 h-4" />
+            <span>Phone</span>
           </TabsTrigger>
         </TabsList>
 
         <TabsContent value="history">
-          <CommunicationHistory />        </TabsContent>
+          <CommunicationHistory />
+        </TabsContent>
 
         <TabsContent value="templates">
           <CommunicationTemplates />
@@ -71,57 +58,18 @@ export function ConnectCenter() {
           <CommunicationAutomations />
         </TabsContent>
 
-        <TabsContent value="analytics">
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Emails Sent</CardTitle>
-                <Mail className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">1,234</div>
-                <p className="text-xs text-muted-foreground">+20.1% from last month</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">SMS Sent</CardTitle>
-                <Phone className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">856</div>
-                <p className="text-xs text-muted-foreground">+15.3% from last month</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Open Rate</CardTitle>
-                <MessageSquare className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">68.5%</div>
-                <p className="text-xs text-muted-foreground">+2.5% from last month</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Click Rate</CardTitle>
-                <Send className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">24.8%</div>
-                <p className="text-xs text-muted-foreground">+4.1% from last month</p>
-              </CardContent>
-            </Card>
+        <TabsContent value="phone">
+          <div className="text-center py-8">
+            <Phone className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
+            <h3 className="text-lg font-medium mb-2">Phone Management</h3>
+            <p className="text-muted-foreground">
+              Phone number management and call features coming soon
+            </p>
           </div>
         </TabsContent>
       </Tabs>
-
-      <SendCommunicationDialog 
-        open={sendDialogOpen} 
-        onOpenChange={setSendDialogOpen}
-        defaultType={selectedType}
-      />
-    </PageLayout>
+    </div>
   );
-}
+};
+
+export default ConnectCenter;

@@ -1,214 +1,148 @@
+
 import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { 
-  Thermometer, Droplets, Zap, Package, Home,
-  TrendingUp, Clock, AlertCircle, Tool, Calendar
-} from "lucide-react";
+  Wrench, 
+  Zap, 
+  Droplets, 
+  Thermometer, 
+  Home, 
+  Car,
+  Paintbrush2,
+  TreePine,
+  Hammer,
+  ShieldCheck
+} from 'lucide-react';
 
 interface NicheDashboardProps {
-  businessType: string;
+  niche: string;
 }
 
-interface Metric {
-  label: string;
-  value: number | string;
-  icon?: React.ReactNode;
-  trend?: number;
-}
-
-const useNicheMetrics = (businessType: string) => {
-  // In a real implementation, this would fetch data from your backend
-  // For now, returning mock data
-  return {
-    serviceCalls: 5,
-    maintenanceDue: 12,
-    emergencyRequests: 2,
-    lowInventory: 3,
-    totalRevenue: "$12,500",
-    activeJobs: 8,
-    completedToday: 3,
-    upcomingAppointments: 6
-  };
+const getNicheIcon = (niche: string) => {
+  switch (niche?.toLowerCase()) {
+    case 'appliance repair':
+      return <Wrench className="w-8 h-8" />;
+    case 'electrical services':
+      return <Zap className="w-8 h-8" />;
+    case 'plumbing services':
+      return <Droplets className="w-8 h-8" />;
+    case 'hvac services':
+      return <Thermometer className="w-8 h-8" />;
+    case 'general handyman':
+      return <Home className="w-8 h-8" />;
+    case 'garage door services':
+      return <Car className="w-8 h-8" />;
+    case 'painting & decorating':
+      return <Paintbrush2 className="w-8 h-8" />;
+    case 'landscaping':
+      return <TreePine className="w-8 h-8" />;
+    case 'roofing':
+      return <ShieldCheck className="w-8 h-8" />;
+    default:
+      return <Hammer className="w-8 h-8" />;
+  }
 };
 
-const MetricsGrid = ({ kpis }: { kpis: Metric[] }) => {
+const getNicheColor = (niche: string) => {
+  switch (niche?.toLowerCase()) {
+    case 'appliance repair':
+      return 'text-blue-600';
+    case 'electrical services':
+      return 'text-yellow-600';
+    case 'plumbing services':
+      return 'text-blue-500';
+    case 'hvac services':
+      return 'text-orange-600';
+    case 'general handyman':
+      return 'text-green-600';
+    case 'garage door services':
+      return 'text-gray-600';
+    case 'painting & decorating':
+      return 'text-purple-600';
+    case 'landscaping':
+      return 'text-green-500';
+    case 'roofing':
+      return 'text-red-600';
+    default:
+      return 'text-gray-600';
+  }
+};
+
+const getNicheDescription = (niche: string) => {
+  switch (niche?.toLowerCase()) {
+    case 'appliance repair':
+      return 'Specialized in repairing and maintaining household appliances including refrigerators, washers, dryers, and dishwashers.';
+    case 'electrical services':
+      return 'Professional electrical work including wiring, panel upgrades, outlet installation, and troubleshooting.';
+    case 'plumbing services':
+      return 'Complete plumbing solutions from leak repairs to water heater installation and drain cleaning.';
+    case 'hvac services':
+      return 'Heating, ventilation, and air conditioning services including installation, repair, and maintenance.';
+    case 'general handyman':
+      return 'Versatile home repair and maintenance services covering multiple trades and general fixes.';
+    case 'garage door services':
+      return 'Garage door installation, repair, and maintenance including springs, openers, and safety sensors.';
+    case 'painting & decorating':
+      return 'Interior and exterior painting services with color consultation and decorative finishes.';
+    case 'landscaping':
+      return 'Outdoor beautification including lawn care, garden design, and landscape maintenance.';
+    case 'roofing':
+      return 'Roofing installation, repair, and maintenance to protect your home from the elements.';
+    default:
+      return 'Professional service provider dedicated to quality work and customer satisfaction.';
+  }
+};
+
+export const NicheDashboard = ({ niche }: NicheDashboardProps) => {
+  const icon = getNicheIcon(niche);
+  const colorClass = getNicheColor(niche);
+  const description = getNicheDescription(niche);
+
   return (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-      {kpis.map((kpi, index) => (
-        <Card key={index}>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              {kpi.label}
-            </CardTitle>
-            {kpi.icon}
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{kpi.value}</div>
-            {kpi.trend && (
-              <p className="text-xs text-muted-foreground">
-                <TrendingUp className="inline w-3 h-3 mr-1" />
-                {kpi.trend > 0 ? '+' : ''}{kpi.trend}% from last month
+    <Card className="mb-6">
+      <CardHeader>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-4">
+            <div className={`p-3 rounded-lg bg-muted ${colorClass}`}>
+              {icon}
+            </div>
+            <div>
+              <CardTitle className="text-2xl">
+                {niche || 'General Services'}
+              </CardTitle>
+              <p className="text-muted-foreground mt-1">
+                {description}
               </p>
-            )}
-          </CardContent>
-        </Card>
-      ))}
-    </div>
-  );
-};
-export const NicheDashboard: React.FC<NicheDashboardProps> = ({ businessType }) => {
-  const metrics = useNicheMetrics(businessType);
-  
-  const getKPIs = (): Metric[] => {
-    switch (businessType) {
-      case 'HVAC Services':
-        return [
-          { 
-            label: 'Service Calls Today', 
-            value: metrics.serviceCalls,
-            icon: <Thermometer className="h-4 w-4 text-muted-foreground" />,
-            trend: 12
-          },
-          { 
-            label: 'Maintenance Due', 
-            value: metrics.maintenanceDue,
-            icon: <Clock className="h-4 w-4 text-muted-foreground" />,
-            trend: -5
-          },
-          { 
-            label: 'Emergency Requests', 
-            value: metrics.emergencyRequests,
-            icon: <AlertCircle className="h-4 w-4 text-muted-foreground" />,
-            trend: 0
-          },
-          { 
-            label: 'Parts Inventory Low', 
-            value: metrics.lowInventory,
-            icon: <Package className="h-4 w-4 text-muted-foreground" />,
-            trend: -8
-          }
-        ];
-        
-      case 'Plumbing Services':
-        return [
-          { 
-            label: 'Active Jobs', 
-            value: metrics.activeJobs,
-            icon: <Droplets className="h-4 w-4 text-muted-foreground" />,
-            trend: 15
-          },
-          { 
-            label: 'Emergency Calls', 
-            value: metrics.emergencyRequests,
-            icon: <AlertCircle className="h-4 w-4 text-muted-foreground" />,
-            trend: 5
-          },
-          { 
-            label: 'Completed Today', 
-            value: metrics.completedToday,
-            icon: <Tool className="h-4 w-4 text-muted-foreground" />,
-            trend: 20
-          },
-          { 
-            label: 'Revenue Today', 
-            value: metrics.totalRevenue,
-            icon: <TrendingUp className="h-4 w-4 text-muted-foreground" />,
-            trend: 18
-          }
-        ];
-      case 'Electrical Services':
-        return [
-          { 
-            label: 'Jobs Scheduled', 
-            value: metrics.activeJobs,
-            icon: <Zap className="h-4 w-4 text-muted-foreground" />,
-            trend: 10
-          },
-          { 
-            label: 'Inspections Due', 
-            value: metrics.maintenanceDue,
-            icon: <Clock className="h-4 w-4 text-muted-foreground" />,
-            trend: -3
-          },
-          { 
-            label: 'Emergency Calls', 
-            value: metrics.emergencyRequests,
-            icon: <AlertCircle className="h-4 w-4 text-muted-foreground" />,
-            trend: 0
-          },
-          { 
-            label: 'Revenue MTD', 
-            value: metrics.totalRevenue,
-            icon: <TrendingUp className="h-4 w-4 text-muted-foreground" />,
-            trend: 22
-          }
-        ];
-        
-      case 'Roofing Services':
-        return [
-          { 
-            label: 'Active Projects', 
-            value: metrics.activeJobs,
-            icon: <Home className="h-4 w-4 text-muted-foreground" />,
-            trend: 8
-          },
-          { 
-            label: 'Inspections', 
-            value: metrics.maintenanceDue,
-            icon: <Clock className="h-4 w-4 text-muted-foreground" />,
-            trend: 12
-          },
-          { 
-            label: 'Storm Damage Calls', 
-            value: metrics.emergencyRequests,
-            icon: <AlertCircle className="h-4 w-4 text-muted-foreground" />,
-            trend: 25
-          },
-          { 
-            label: 'Revenue This Month', 
-            value: metrics.totalRevenue,
-            icon: <TrendingUp className="h-4 w-4 text-muted-foreground" />,
-            trend: 30
-          }
-        ];
-        
-      default:
-        // Generic metrics for other business types
-        return [
-          { 
-            label: 'Active Jobs', 
-            value: metrics.activeJobs,
-            icon: <Tool className="h-4 w-4 text-muted-foreground" />,
-            trend: 10
-          },
-          { 
-            label: 'Completed Today', 
-            value: metrics.completedToday,
-            icon: <Clock className="h-4 w-4 text-muted-foreground" />,
-            trend: 5
-          },
-          { 
-            label: 'Upcoming', 
-            value: metrics.upcomingAppointments,
-            icon: <Calendar className="h-4 w-4 text-muted-foreground" />,
-            trend: 8
-          },
-          { 
-            label: 'Revenue Today', 
-            value: metrics.totalRevenue,
-            icon: <TrendingUp className="h-4 w-4 text-muted-foreground" />,
-            trend: 15
-          }
-        ];
-    }
-  };
-  
-  return (
-    <div className="space-y-4">
-      <h2 className="text-2xl font-bold tracking-tight">
-        {businessType} Dashboard
-      </h2>
-      <MetricsGrid kpis={getKPIs()} />
-    </div>
+            </div>
+          </div>
+          <Badge variant="secondary" className="text-sm">
+            Specialized Business
+          </Badge>
+        </div>
+      </CardHeader>
+      <CardContent>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="text-center p-4 bg-muted/50 rounded-lg">
+            <h4 className="font-semibold text-lg">Service Focus</h4>
+            <p className="text-sm text-muted-foreground mt-1">
+              Tailored for {niche?.toLowerCase() || 'general services'}
+            </p>
+          </div>
+          <div className="text-center p-4 bg-muted/50 rounded-lg">
+            <h4 className="font-semibold text-lg">Industry Tools</h4>
+            <p className="text-sm text-muted-foreground mt-1">
+              Specialized products & pricing
+            </p>
+          </div>
+          <div className="text-center p-4 bg-muted/50 rounded-lg">
+            <h4 className="font-semibold text-lg">Expert Support</h4>
+            <p className="text-sm text-muted-foreground mt-1">
+              Industry-specific guidance
+            </p>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
   );
 };

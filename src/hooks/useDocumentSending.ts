@@ -1,125 +1,104 @@
-import { useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
-import { DocumentSendParams, DocumentSendResult } from "@/types/documents";
+
+import { useState } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
+
+interface SendEmailParams {
+  recipientEmail: string;
+  recipientName?: string;
+  documentType: 'estimate' | 'invoice';
+  documentId: string;
+  documentNumber: string;
+  subject?: string;
+  message?: string;
+}
+
+interface SendSMSParams {
+  recipientPhone: string;
+  recipientName?: string;
+  documentType: 'estimate' | 'invoice';
+  documentId: string;
+  documentNumber: string;
+  message?: string;
+}
 
 export const useDocumentSending = () => {
-  const [isProcessing, setIsProcessing] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
-  const sendDocument = async (params: DocumentSendParams): Promise<DocumentSendResult> => {
-    const {
-      documentType,
-      documentId,
-      sendMethod,
-      sendTo,
-      customMessage,
-      contactInfo
-    } = params;
-
-    setIsProcessing(true);
-
+  const sendEmail = async (params: SendEmailParams) => {
+    setIsLoading(true);
+    console.log('📧 Sending email with params:', params);
+    
     try {
-      console.log(`🚀 Processing ${documentType} send via ${sendMethod}...`);
-      console.log(`📄 Document ID: ${documentId}`);
-      console.log(`📧 Send to: ${sendTo}`);
-      console.log(`💬 Custom message: ${customMessage ? 'Yes' : 'No'}`);
-
-      // Get document details first
-      const { data: document, error: fetchError } = await supabase
-        .from(documentType === 'estimate' ? 'estimates' : 'invoices')
-        .select('*, jobs(*)')
-        .eq('id', documentId)
-        .single();
-
-      if (fetchError || !document) {
-        console.error('Document fetch error:', fetchError);
-        throw new Error(`${documentType} not found`);
-      }
-
-      // Get user ID
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Not authenticated');
-
-      // Use unified edge functions
-      const functionName = sendMethod === 'sms' ? 'telnyx-sms' : 'mailgun-email';
-
-      console.log(`📡 Calling unified edge function: ${functionName}`);
-
-      // Call the unified edge function
+      const functionName = params.documentType === 'estimate' ? 'send-estimate' : 'send-invoice';
+      
       const { data, error } = await supabase.functions.invoke(functionName, {
         body: {
-          documentType,
-          documentId,
-          sendToClient: true,
-          customMessage: customMessage
+          recipientEmail: params.recipientEmail,
+          recipientName: params.recipientName || 'Client',
+          documentId: params.documentId,
+          documentNumber: params.documentNumber,
+          subject: params.subject,
+          message: params.message,
+          documentType: params.documentType
         }
       });
 
       if (error) {
-        console.error(`❌ Edge function error:`, error);
+        console.error('❌ Email sending error:', error);
         throw error;
       }
 
-      console.log(`✅ ${documentType} sent successfully!`, data);
-
-      // Generate portal URL for reference
-      const portalUrl = `${window.location.origin}/${documentType}/${documentId}`;
-      
-      // Copy portal link to clipboard
-      try {
-        await navigator.clipboard.writeText(portalUrl);
-      } catch (err) {
-        console.error('Clipboard error:', err);
-      }
-
-      // Show success message
-      const successTitle = documentType === "estimate" ? "Estimate sent successfully!" : "Invoice sent successfully!";
-      const methodText = sendMethod === 'sms' ? 'SMS' : 'Email';
-      
-      let description = `✅ ${methodText} sent to ${sendTo}\n📋 Portal link copied to clipboard!`;
-      if (customMessage) {
-        description += '\n💬 Included your custom message';
-      }
-      
-      toast.success(successTitle, {
-        description: description,
-        duration: 5000
-      });
-      
-      return { success: true };
-
+      console.log('✅ Email sent successfully:', data);
+      toast.success(`${params.documentType.charAt(0).toUpperCase() + params.documentType.slice(1)} sent via email successfully!`);
+      return data;
     } catch (error: any) {
-      console.error(`❌ Failed to send ${documentType}:`, error);
-      
-      let userMessage = error.message;
-      
-      // Handle specific error cases
-      if (error.message?.includes('MAILGUN_API_KEY')) {
-        userMessage = 'Email service is not configured. Please check Mailgun settings.';
-      } else if (error.message?.includes('TELNYX_API_KEY')) {
-        userMessage = 'SMS service is not configured. Please check Telnyx settings.';
-      } else if (error.message?.includes('client_id')) {
-        userMessage = `Database schema issue. Please contact support.`;
-      } else if (error.message?.includes('not found')) {
-        userMessage = 'Client contact information not found.';
-      }
-      
-      const errorTitle = `Failed to send ${documentType}`;
-      toast.error(errorTitle, {
-        description: userMessage
-      });
-      
-      return { 
-        success: false, 
-        error: userMessage
-      };
+      console.error('❌ Failed to send email:', error);
+      toast.error(`Failed to send ${params.documentType} via email: ${error.message}`);
+      throw error;
     } finally {
-      setIsProcessing(false);
+      setIsLoading(false);
+    }
+  };
+
+  const sendSMS = async (params: SendSMSParams) => {
+    setIsLoading(true);
+    console.log('📱 Sending SMS with params:', params);
+    
+    try {
+      const functionName = params.documentType === 'estimate' ? 'send-estimate-sms' : 'send-invoice-sms';
+      
+      const { data, error } = await supabase.functions.invoke(functionName, {
+        body: {
+          recipientPhone: params.recipientPhone,
+          recipientName: params.recipientName || 'Client',
+          documentId: params.documentId,
+          documentNumber: params.documentNumber,
+          message: params.message,
+          documentType: params.documentType
+        }
+      });
+
+      if (error) {
+        console.error('❌ SMS sending error:', error);
+        throw error;
+      }
+
+      console.log('✅ SMS sent successfully:', data);
+      toast.success(`${params.documentType.charAt(0).toUpperCase() + params.documentType.slice(1)} sent via SMS successfully!`);
+      return data;
+    } catch (error: any) {
+      console.error('❌ Failed to send SMS:', error);
+      toast.error(`Failed to send ${params.documentType} via SMS: ${error.message}`);
+      throw error;
+    } finally {
+      setIsLoading(false);
     }
   };
 
   return {
-    sendDocument,
-    isProcessing
+    sendEmail,
+    sendSMS,
+    isLoading
   };
 };

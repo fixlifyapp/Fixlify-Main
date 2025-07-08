@@ -1,25 +1,24 @@
-import React, { useEffect, useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
+
+import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { Phone, PhoneIncoming, PhoneOutgoing, PhoneMissed, Clock, User, Search, RefreshCw } from 'lucide-react';
-import { format } from 'date-fns';
-import { toast } from 'sonner';
-import { CallButton } from './CallButton';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Phone, PhoneCall, Clock, User, MessageSquare } from 'lucide-react';
+import { formatDistanceToNow } from 'date-fns';
 
 interface Call {
   id: string;
-  call_control_id: string;
-  direction: 'inbound' | 'outbound';
-  from_number: string;
-  to_number: string;
-  status: string;
-  created_at: string;
-  answered_at: string | null;
+  client_phone: string;
+  call_status: string;
+  call_duration: number | null;
+  started_at: string;
   ended_at: string | null;
-  duration_seconds: number | null;
+  ai_transcript: string | null;
+  call_summary: string | null;
+  customer_intent: string | null;
+  appointment_scheduled: boolean | null;
+  direction: 'inbound' | 'outbound';
   client?: {
     id: string;
     name: string;
@@ -27,267 +26,164 @@ interface Call {
   };
 }
 
-export const CallHistory: React.FC = () => {
+export const CallHistory = () => {
   const [calls, setCalls] = useState<Call[]>([]);
   const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [filteredCalls, setFilteredCalls] = useState<Call[]>([]);
 
   useEffect(() => {
-    loadCalls();
-    setupRealtimeSubscription();
+    fetchCalls();
   }, []);
 
-  useEffect(() => {
-    filterCalls();
-  }, [calls, searchTerm]);
-
-  const loadCalls = async () => {
+  const fetchCalls = async () => {
     try {
-      setLoading(true);
-      
-      const { data: callsData, error: callsError } = await supabase
-        .from('telnyx_calls')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(100);
+      const { data, error } = await supabase
+        .from('ai_dispatcher_call_logs')
+        .select(`
+          *,
+          client:clients!inner(id, name, phone)
+        `)
+        .order('started_at', { ascending: false })
+        .limit(50);
 
-      if (callsError) throw callsError;
+      if (error) throw error;
 
-      // Load client data for each call
-      const callsWithClients = await Promise.all(
-        (callsData || []).map(async (call) => {
-          const phoneToSearch = call.direction === 'inbound' ? call.from_number : call.to_number;
-          const client = await findClientByPhone(phoneToSearch);
-          return { ...call, client };
-        })
-      );
+      // Transform the data to match our Call interface
+      const transformedCalls = (data || []).map(call => ({
+        ...call,
+        direction: call.direction === 'inbound' ? 'inbound' : 'outbound' as 'inbound' | 'outbound'
+      }));
 
-      setCalls(callsWithClients);
+      setCalls(transformedCalls);
     } catch (error) {
-      console.error('Error loading calls:', error);
-      toast.error('Failed to load call history');
+      console.error('Error fetching calls:', error);
     } finally {
       setLoading(false);
     }
   };
 
-  const findClientByPhone = async (phoneNumber: string) => {
-    if (!phoneNumber) return null;
-    
-    const cleanPhone = phoneNumber.replace(/\D/g, '');
-    
-    try {
-      const { data: clients, error } = await supabase
-        .from('clients')
-        .select('id, name, phone')
-        .ilike('phone', `%${cleanPhone.slice(-10)}%`);
-      
-      if (error) {
-        console.error('Error searching for client:', error);
-        return null;
-      }
-      
-      return clients && clients.length > 0 ? clients[0] : null;
-    } catch (error) {
-      console.error('Error finding client by phone:', error);
-      return null;
+  const getStatusColor = (status: string) => {
+    switch (status.toLowerCase()) {
+      case 'completed':
+        return 'bg-green-500';
+      case 'answered':
+        return 'bg-blue-500';
+      case 'no-answer':
+        return 'bg-yellow-500';
+      case 'busy':
+        return 'bg-orange-500';
+      case 'failed':
+        return 'bg-red-500';
+      default:
+        return 'bg-gray-500';
     }
-  };
-
-  const setupRealtimeSubscription = () => {
-    const subscription = supabase
-      .channel('call-history')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'telnyx_calls'
-        },
-        () => {
-          // Reload calls when any change occurs
-          loadCalls();
-        }
-      )
-      .subscribe();
-
-    return () => {
-      subscription.unsubscribe();
-    };
-  };
-
-  const filterCalls = () => {
-    if (!searchTerm) {
-      setFilteredCalls(calls);
-      return;
-    }
-
-    const search = searchTerm.toLowerCase();
-    const filtered = calls.filter(call => {
-      return (
-        call.from_number.includes(search) ||
-        call.to_number.includes(search) ||
-        call.client?.name.toLowerCase().includes(search) ||
-        call.status.toLowerCase().includes(search)
-      );
-    });
-
-    setFilteredCalls(filtered);
-  };
-
-  const formatPhoneNumber = (phoneNumber: string) => {
-    if (!phoneNumber) return 'Unknown';
-    const cleaned = phoneNumber.replace(/\D/g, '');
-    if (cleaned.length === 11 && cleaned.startsWith('1')) {
-      const number = cleaned.slice(1);
-      return `(${number.slice(0, 3)}) ${number.slice(3, 6)}-${number.slice(6)}`;
-    }
-    if (cleaned.length === 10) {
-      return `(${cleaned.slice(0, 3)}) ${cleaned.slice(3, 6)}-${cleaned.slice(6)}`;
-    }
-    return phoneNumber;
   };
 
   const formatDuration = (seconds: number | null) => {
-    if (!seconds) return '-';
-    const minutes = Math.floor(seconds / 60);
-    const remainingSeconds = seconds % 60;
-    return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
-  };
-
-  const getCallIcon = (call: Call) => {
-    if (call.direction === 'inbound') {
-      if (call.status === 'missed' || call.status === 'no-answer') {
-        return <PhoneMissed className="h-4 w-4 text-red-500" />;
-      }
-      return <PhoneIncoming className="h-4 w-4 text-green-500" />;
-    }
-    return <PhoneOutgoing className="h-4 w-4 text-blue-500" />;
-  };
-
-  const getStatusBadge = (status: string) => {
-    const statusConfig: Record<string, { variant: any; label: string }> = {
-      'completed': { variant: 'default', label: 'Completed' },
-      'answered': { variant: 'default', label: 'Answered' },
-      'missed': { variant: 'destructive', label: 'Missed' },
-      'no-answer': { variant: 'destructive', label: 'No Answer' },
-      'busy': { variant: 'secondary', label: 'Busy' },
-      'failed': { variant: 'destructive', label: 'Failed' },
-      'initiated': { variant: 'secondary', label: 'Initiated' },
-      'ringing': { variant: 'secondary', label: 'Ringing' },
-    };
-
-    const config = statusConfig[status] || { variant: 'outline', label: status };
-    
-    return (
-      <Badge variant={config.variant} className="text-xs">
-        {config.label}
-      </Badge>
-    );
+    if (!seconds) return 'N/A';
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
   if (loading) {
-    return (
-      <Card>
-        <CardContent className="p-8 text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-fixlyfy mx-auto"></div>
-          <p className="text-sm text-gray-500 mt-2">Loading call history...</p>
-        </CardContent>
-      </Card>
-    );
+    return <div className="p-6">Loading call history...</div>;
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center gap-2">
-            <Phone className="h-5 w-5" />
-            Call History
-          </CardTitle>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={loadCalls}
-            className="gap-2"
-          >
-            <RefreshCw className="h-4 w-4" />
-            Refresh
-          </Button>
-        </div>
-        <div className="mt-4">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-            <Input
-              placeholder="Search by phone number, name, or status..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10"
-            />
-          </div>
-        </div>
-      </CardHeader>
-      <CardContent>
-        {filteredCalls.length === 0 ? (
-          <div className="text-center py-8 text-gray-500">
-            {searchTerm ? 'No calls found matching your search' : 'No calls yet'}
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {filteredCalls.map((call) => {
-              const phoneNumber = call.direction === 'inbound' ? call.from_number : call.to_number;
-              const displayName = call.client?.name || formatPhoneNumber(phoneNumber);
-              
-              return (
-                <div
-                  key={call.id}
-                  className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 transition-colors"
-                >
-                  <div className="flex items-center gap-4">
-                    <div className="p-2 rounded-full bg-gray-100">
-                      {getCallIcon(call)}
-                    </div>
-                    
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium">{displayName}</span>
-                        {call.client && (
-                          <Badge variant="outline" className="text-xs">
-                            <User className="h-3 w-3 mr-1" />
-                            Client
-                          </Badge>
-                        )}
-                      </div>
-                      <div className="text-sm text-gray-500">
-                        {formatPhoneNumber(phoneNumber)}
-                      </div>
-                      <div className="flex items-center gap-4 text-xs text-gray-400 mt-1">
-                        <span>{format(new Date(call.created_at), 'MMM d, h:mm a')}</span>
-                        <span className="flex items-center gap-1">
-                          <Clock className="h-3 w-3" />
-                          {formatDuration(call.duration_seconds)}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-center gap-2">
-                    {getStatusBadge(call.status)}
-                    <CallButton
-                      phoneNumber={phoneNumber}
-                      clientId={call.client?.id}
-                      clientName={call.client?.name}
-                      size="icon"
-                      showText={false}
-                    />
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <h2 className="text-2xl font-bold">Call History</h2>
+        <Button onClick={fetchCalls} variant="outline">
+          <Phone className="w-4 h-4 mr-2" />
+          Refresh
+        </Button>
+      </div>
+
+      <div className="grid gap-4">
+        {calls.map((call) => (
+          <Card key={call.id}>
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                  <PhoneCall className="w-5 h-5" />
+                  <div>
+                    <CardTitle className="text-lg">
+                      {call.client?.name || 'Unknown Caller'}
+                    </CardTitle>
+                    <p className="text-sm text-muted-foreground">
+                      {call.client_phone}
+                    </p>
                   </div>
                 </div>
-              );
-            })}
-          </div>
+                <Badge className={getStatusColor(call.call_status)}>
+                  {call.call_status}
+                </Badge>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                <div className="flex items-center space-x-2">
+                  <Clock className="w-4 h-4 text-muted-foreground" />
+                  <span className="text-sm">
+                    {formatDuration(call.call_duration)}
+                  </span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <User className="w-4 h-4 text-muted-foreground" />
+                  <span className="text-sm capitalize">{call.direction}</span>
+                </div>
+                <div className="text-sm">
+                  <strong>Started:</strong> {formatDistanceToNow(new Date(call.started_at))} ago
+                </div>
+                {call.appointment_scheduled && (
+                  <Badge variant="secondary">
+                    Appointment Scheduled
+                  </Badge>
+                )}
+              </div>
+
+              {call.customer_intent && (
+                <div className="mb-3">
+                  <strong className="text-sm">Intent:</strong>
+                  <p className="text-sm text-muted-foreground">{call.customer_intent}</p>
+                </div>
+              )}
+
+              {call.call_summary && (
+                <div className="mb-3">
+                  <strong className="text-sm">Summary:</strong>
+                  <p className="text-sm text-muted-foreground">{call.call_summary}</p>
+                </div>
+              )}
+
+              {call.ai_transcript && (
+                <details className="mt-3">
+                  <summary className="cursor-pointer flex items-center space-x-2 text-sm font-medium">
+                    <MessageSquare className="w-4 h-4" />
+                    <span>View Transcript</span>
+                  </summary>
+                  <div className="mt-2 p-3 bg-muted rounded-md">
+                    <pre className="text-xs whitespace-pre-wrap">
+                      {call.ai_transcript}
+                    </pre>
+                  </div>
+                </details>
+              )}
+            </CardContent>
+          </Card>
+        ))}
+
+        {calls.length === 0 && (
+          <Card>
+            <CardContent className="text-center py-8">
+              <Phone className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
+              <p className="text-muted-foreground">No calls found</p>
+            </CardContent>
+          </Card>
         )}
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
-}; 
+};
+
+export default CallHistory;

@@ -1,175 +1,106 @@
-import { useState, useEffect } from 'react';
-import { Plus, Edit, Trash, Play, Pause } from 'lucide-react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+
+import React, { useState, useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
-import { CommunicationAutomation, CommunicationTemplate } from '@/types/communications';
-import { supabase } from '@/integrations/supabase/client';
+import { Plus, Settings, Clock, MessageSquare } from 'lucide-react';
 import { toast } from 'sonner';
-import { useAuth } from '@/hooks/use-auth';
 
-export function CommunicationAutomations() {
+interface CommunicationAutomation {
+  id: string;
+  name: string;
+  trigger_type: 'estimate_created' | 'invoice_created' | 'job_completed' | 'custom';
+  template_id: string;
+  is_active: boolean;
+  delay_minutes: number;
+  trigger_conditions: any;
+  created_at: string;
+  updated_at: string;
+  organization_id: string;
+}
+
+interface CommunicationTemplate {
+  id: string;
+  name: string;
+  type: string;
+  subject: string;
+  content: string;
+  variables: any;
+  category: string;
+  content_template: string;
+  is_active: boolean;
+  organization_id: string;
+  preview_data: any;
+  created_at: string;
+  updated_at: string;
+}
+
+export const CommunicationAutomations = () => {
   const [automations, setAutomations] = useState<CommunicationAutomation[]>([]);
   const [templates, setTemplates] = useState<CommunicationTemplate[]>([]);
   const [loading, setLoading] = useState(true);
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [editingAutomation, setEditingAutomation] = useState<CommunicationAutomation | null>(null);
-  const { user } = useAuth();
-  
-  const [formData, setFormData] = useState({
-    name: '',
-    trigger_type: 'estimate_created' as CommunicationAutomation['trigger_type'],
-    template_id: '',
-    delay_minutes: 0,
-    is_active: true
-  });
 
   useEffect(() => {
-    loadData();
+    fetchData();
   }, []);
-  const loadData = async () => {
+
+  const fetchData = async () => {
     try {
-      setLoading(true);
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('organization_id')
-        .eq('id', user?.id)
-        .single();
+      const [automationsResult, templatesResult] = await Promise.all([
+        supabase.from('communication_automations').select('*').order('created_at', { ascending: false }),
+        supabase.from('communication_templates').select('*').order('name')
+      ]);
 
-      const orgId = profile?.organization_id || user?.id;
+      if (automationsResult.error) throw automationsResult.error;
+      if (templatesResult.error) throw templatesResult.error;
 
-      // Load automations
-      const { data: automationsData, error: automationsError } = await supabase
-        .from('communication_automations')
-        .select('*')
-        .eq('organization_id', orgId)
-        .order('created_at', { ascending: false });
+      // Transform automations data to match interface
+      const transformedAutomations = (automationsResult.data || []).map(automation => ({
+        ...automation,
+        trigger_type: automation.trigger_type as 'estimate_created' | 'invoice_created' | 'job_completed' | 'custom'
+      }));
 
-      if (automationsError) throw automationsError;
+      // Transform templates data to match interface
+      const transformedTemplates = (templatesResult.data || []).map(template => ({
+        ...template,
+        category: template.type || 'general',
+        content_template: template.content,
+        is_active: true,
+        variables: Array.isArray(template.variables) ? template.variables : []
+      }));
 
-      // Load templates
-      const { data: templatesData, error: templatesError } = await supabase
-        .from('communication_templates')
-        .select('*')
-        .eq('organization_id', orgId)
-        .eq('is_active', true)
-        .order('name');
-
-      if (templatesError) throw templatesError;
-
-      setAutomations(automationsData || []);
-      setTemplates(templatesData || []);
-    } catch (error) {
-      console.error('Failed to load data:', error);
-      toast.error('Failed to load automations');
+      setAutomations(transformedAutomations);
+      setTemplates(transformedTemplates);
+    } catch (error: any) {
+      console.error('Error fetching data:', error);
+      toast.error('Failed to load communication automations');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleSave = async () => {
-    try {
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('organization_id')
-        .eq('id', user?.id)
-        .single();
-
-      const automationData = {
-        ...formData,
-        organization_id: profile?.organization_id || user?.id
-      };
-
-      if (editingAutomation) {
-        const { error } = await supabase
-          .from('communication_automations')
-          .update(automationData)
-          .eq('id', editingAutomation.id);
-        
-        if (error) throw error;
-        toast.success('Automation updated successfully');
-      } else {
-        const { error } = await supabase
-          .from('communication_automations')
-          .insert(automationData);
-        
-        if (error) throw error;
-        toast.success('Automation created successfully');
-      }
-
-      setDialogOpen(false);
-      resetForm();
-      loadData();
-    } catch (error) {
-      console.error('Failed to save automation:', error);
-      toast.error('Failed to save automation');
-    }
-  };
-  const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this automation?')) return;
-
+  const toggleAutomation = async (id: string, isActive: boolean) => {
     try {
       const { error } = await supabase
         .from('communication_automations')
-        .delete()
+        .update({ is_active: isActive })
         .eq('id', id);
-      
-      if (error) throw error;
-      toast.success('Automation deleted successfully');
-      loadData();
-    } catch (error) {
-      console.error('Failed to delete automation:', error);
-      toast.error('Failed to delete automation');
-    }
-  };
 
-  const toggleActive = async (id: string, isActive: boolean) => {
-    try {
-      const { error } = await supabase
-        .from('communication_automations')
-        .update({ is_active: !isActive })
-        .eq('id', id);
-      
       if (error) throw error;
-      toast.success(`Automation ${!isActive ? 'activated' : 'deactivated'}`);
-      loadData();
-    } catch (error) {
-      console.error('Failed to toggle automation:', error);
+
+      setAutomations(prev => 
+        prev.map(automation => 
+          automation.id === id ? { ...automation, is_active: isActive } : automation
+        )
+      );
+
+      toast.success(`Automation ${isActive ? 'enabled' : 'disabled'}`);
+    } catch (error: any) {
+      console.error('Error toggling automation:', error);
       toast.error('Failed to update automation');
     }
-  };
-
-  const resetForm = () => {
-    setFormData({
-      name: '',
-      trigger_type: 'estimate_created',
-      template_id: '',
-      delay_minutes: 0,
-      is_active: true
-    });
-    setEditingAutomation(null);
-  };
-
-  const openEditDialog = (automation: CommunicationAutomation) => {
-    setEditingAutomation(automation);
-    setFormData({
-      name: automation.name,
-      trigger_type: automation.trigger_type,
-      template_id: automation.template_id,
-      delay_minutes: automation.delay_minutes || 0,
-      is_active: automation.is_active
-    });
-    setDialogOpen(true);
-  };
-
-  const getTemplate = (templateId: string) => {
-    return templates.find(t => t.id === templateId);
   };
 
   const getTriggerLabel = (trigger: string) => {
@@ -180,218 +111,115 @@ export function CommunicationAutomations() {
         return 'Invoice Created';
       case 'job_completed':
         return 'Job Completed';
-      case 'custom':
-        return 'Custom';
       default:
-        return trigger;
+        return 'Custom';
     }
   };
+
+  const getTriggerColor = (trigger: string) => {
+    switch (trigger) {
+      case 'estimate_created':
+        return 'bg-blue-500';
+      case 'invoice_created':
+        return 'bg-green-500';
+      case 'job_completed':
+        return 'bg-purple-500';
+      default:
+        return 'bg-gray-500';
+    }
+  };
+
+  if (loading) {
+    return <div className="p-6">Loading communication automations...</div>;
+  }
+
   return (
-    <>
-      <Card>
-        <CardHeader>
-          <CardTitle>Communication Automations</CardTitle>
-          <CardDescription>Automatically send messages based on triggers</CardDescription>
-          <div className="flex justify-end">
-            <Button onClick={() => setDialogOpen(true)}>
-              <Plus className="h-4 w-4 mr-2" />
-              New Automation
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Trigger</TableHead>
-                <TableHead>Template</TableHead>
-                <TableHead>Delay</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {automations.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={6} className="text-center text-muted-foreground">
-                    No automations found
-                  </TableCell>
-                </TableRow>
-              ) : (
-                automations.map((automation) => {
-                  const template = getTemplate(automation.template_id);
-                  return (
-                    <TableRow key={automation.id}>
-                      <TableCell className="font-medium">{automation.name}</TableCell>
-                      <TableCell>
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold">Communication Automations</h2>
+          <p className="text-muted-foreground">
+            Automatically send messages based on business events
+          </p>
+        </div>
+        <Button>
+          <Plus className="w-4 h-4 mr-2" />
+          Create Automation
+        </Button>
+      </div>
+
+      <div className="grid gap-4">
+        {automations.map((automation) => {
+          const template = templates.find(t => t.id === automation.template_id);
+          
+          return (
+            <Card key={automation.id}>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div className="space-y-1">
+                    <CardTitle className="text-lg">{automation.name}</CardTitle>
+                    <div className="flex items-center space-x-2">
+                      <Badge className={getTriggerColor(automation.trigger_type)}>
+                        {getTriggerLabel(automation.trigger_type)}
+                      </Badge>
+                      {automation.delay_minutes > 0 && (
                         <Badge variant="outline">
-                          {getTriggerLabel(automation.trigger_type)}
+                          <Clock className="w-3 h-3 mr-1" />
+                          {automation.delay_minutes}m delay
                         </Badge>
-                      </TableCell>
-                      <TableCell>
-                        {template ? (
-                          <span className="text-sm">{template.name}</span>
-                        ) : (
-                          <span className="text-sm text-muted-foreground">Template not found</span>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        {automation.delay_minutes ? `${automation.delay_minutes} min` : 'Immediate'}
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant={automation.is_active ? 'default' : 'secondary'}>
-                          {automation.is_active ? 'Active' : 'Inactive'}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => toggleActive(automation.id, automation.is_active)}
-                        >
-                          {automation.is_active ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => openEditDialog(automation)}
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => handleDelete(automation.id)}
-                        >
-                          <Trash className="h-4 w-4" />
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })
-              )}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="sm:max-w-[600px]">
-          <DialogHeader>
-            <DialogTitle>
-              {editingAutomation ? 'Edit Automation' : 'Create Automation'}
-            </DialogTitle>
-            <DialogDescription>
-              Set up automatic communications based on system events
-            </DialogDescription>
-          </DialogHeader>
+                      )}
+                    </div>
+                  </div>
+                  <Switch
+                    checked={automation.is_active}
+                    onCheckedChange={(checked) => toggleAutomation(automation.id, checked)}
+                  />
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {template && (
+                    <div className="flex items-center space-x-2">
+                      <MessageSquare className="w-4 h-4 text-muted-foreground" />
+                      <span className="text-sm">
+                        Template: <strong>{template.name}</strong>
+                      </span>
+                    </div>
+                  )}
+                  
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-muted-foreground">
+                      Created {new Date(automation.created_at).toLocaleDateString()}
+                    </span>
+                    <Button variant="outline" size="sm">
+                      <Settings className="w-4 h-4 mr-2" />
+                      Configure
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })}
 
-          <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="name" className="text-right">
-                Name
-              </Label>
-              <Input
-                id="name"
-                value={formData.name}
-                onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                className="col-span-3"
-                placeholder="Automation name..."
-              />
-            </div>
-
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="trigger" className="text-right">
-                Trigger
-              </Label>
-              <Select
-                value={formData.trigger_type}
-                onValueChange={(value: CommunicationAutomation['trigger_type']) => 
-                  setFormData(prev => ({ ...prev, trigger_type: value }))
-                }
-              >
-                <SelectTrigger className="col-span-3">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="estimate_created">Estimate Created</SelectItem>
-                  <SelectItem value="invoice_created">Invoice Created</SelectItem>
-                  <SelectItem value="job_completed">Job Completed</SelectItem>
-                  <SelectItem value="custom">Custom</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="template" className="text-right">
-                Template
-              </Label>
-              <Select
-                value={formData.template_id}
-                onValueChange={(value) => 
-                  setFormData(prev => ({ ...prev, template_id: value }))
-                }
-              >
-                <SelectTrigger className="col-span-3">
-                  <SelectValue placeholder="Select a template..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {templates.map((template) => (
-                    <SelectItem key={template.id} value={template.id}>
-                      {template.name} ({template.type})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="delay" className="text-right">
-                Delay (minutes)
-              </Label>
-              <Input
-                id="delay"
-                type="number"
-                min="0"
-                value={formData.delay_minutes}
-                onChange={(e) => setFormData(prev => ({ 
-                  ...prev, 
-                  delay_minutes: parseInt(e.target.value) || 0 
-                }))}
-                className="col-span-3"
-                placeholder="0"
-              />
-            </div>
-
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="active" className="text-right">
-                Active
-              </Label>
-              <div className="col-span-3">
-                <Switch
-                  id="active"
-                  checked={formData.is_active}
-                  onCheckedChange={(checked) => 
-                    setFormData(prev => ({ ...prev, is_active: checked }))
-                  }
-                />
-              </div>
-            </div>
-          </div>
-
-          <DialogFooter>
-            <Button variant="outline" onClick={() => {
-              resetForm();
-              setDialogOpen(false);
-            }}>
-              Cancel
-            </Button>
-            <Button onClick={handleSave}>
-              {editingAutomation ? 'Update' : 'Create'} Automation
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </>
+        {automations.length === 0 && (
+          <Card>
+            <CardContent className="text-center py-8">
+              <MessageSquare className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
+              <h3 className="text-lg font-medium mb-2">No automations configured</h3>
+              <p className="text-muted-foreground mb-4">
+                Set up automated messages to engage with your clients
+              </p>
+              <Button>
+                <Plus className="w-4 h-4 mr-2" />
+                Create Your First Automation
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+      </div>
+    </div>
   );
-}
+};
+
+export default CommunicationAutomations;

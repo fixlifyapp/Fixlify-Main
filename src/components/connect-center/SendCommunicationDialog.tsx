@@ -1,297 +1,244 @@
-import { useState, useEffect } from 'react';
-import { Mail, Phone, Search, User } from 'lucide-react';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+
+import React, { useState, useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { CommunicationService } from '@/services/communication-service';
-import { CommunicationCategory } from '@/types/communications';
-import { supabase } from '@/integrations/supabase/client';
+import { Badge } from '@/components/ui/badge';
+import { Mail, MessageSquare, Send, User, Search } from 'lucide-react';
 import { toast } from 'sonner';
 
-interface SendCommunicationDialogProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  defaultType: 'email' | 'sms';
-  clientId?: string;
-  jobId?: string;
-  estimateId?: string;
-  invoiceId?: string;
+interface Client {
+  id: string;
+  name: string;
+  email: string | null;
+  phone: string | null;
 }
 
-export function SendCommunicationDialog({
-  open,
-  onOpenChange,
-  defaultType,
-  clientId,
-  jobId,
-  estimateId,
-  invoiceId
-}: SendCommunicationDialogProps) {
-  const [type, setType] = useState<'email' | 'sms'>(defaultType);
-  const [to, setTo] = useState('');
-  const [subject, setSubject] = useState('');
-  const [content, setContent] = useState('');
-  const [category, setCategory] = useState<CommunicationCategory>('general');
-  const [loading, setLoading] = useState(false);
+interface SendCommunicationDialogProps {
+  children: React.ReactNode;
+}
+
+export const SendCommunicationDialog = ({ children }: SendCommunicationDialogProps) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [isSending, setIsSending] = useState(false);
+  const [type, setType] = useState<'email' | 'sms'>('email');
+  const [clients, setClients] = useState<Client[]>([]);
+  const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
-  const [clients, setClients] = useState<any[]>([]);
-  const [selectedClient, setSelectedClient] = useState<any>(null);
+  const [subject, setSubject] = useState('');
+  const [message, setMessage] = useState('');
 
-  // Search for clients when query changes
   useEffect(() => {
-    const searchClients = async () => {
-      if (searchQuery.length < 2) {
-        setClients([]);
-        return;
-      }
+    if (isOpen) {
+      fetchClients();
+    }
+  }, [isOpen]);
 
-      try {
-        const { data, error } = await supabase
-          .from('clients')
-          .select('*')
-          .or(`name.ilike.%${searchQuery}%,email.ilike.%${searchQuery}%,phone.ilike.%${searchQuery}%`)
-          .limit(5);
+  const fetchClients = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('clients')
+        .select('id, name, email, phone')
+        .order('name');
 
-        if (error) throw error;
-        setClients(data || []);
-      } catch (error) {
-        console.error('Error searching clients:', error);
-      }
-    };
-
-    const debounceTimer = setTimeout(searchClients, 300);
-    return () => clearTimeout(debounceTimer);
-  }, [searchQuery]);
-
-  const handleClientSelect = (client: any) => {
-    setSelectedClient(client);
-    setTo(type === 'email' ? client.email : client.phone);
-    setSearchQuery('');
-    setClients([]);
+      if (error) throw error;
+      setClients(data || []);
+    } catch (error: any) {
+      console.error('Error fetching clients:', error);
+      toast.error('Failed to load clients');
+    }
   };
 
-  const handleSend = async () => {
-    if (!to) {
-      toast.error('Please enter a recipient');
+  const filteredClients = clients.filter(client =>
+    client.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (client.email && client.email.toLowerCase().includes(searchQuery.toLowerCase())) ||
+    (client.phone && client.phone.includes(searchQuery))
+  );
+
+  const sendCommunication = async () => {
+    if (!selectedClient || !message.trim()) {
+      toast.error('Please select a client and enter a message');
       return;
     }
 
-    if (type === 'email' && !subject) {
-      toast.error('Please enter a subject');
+    if (type === 'email' && !selectedClient.email) {
+      toast.error('Selected client has no email address');
       return;
     }
 
-    if (!content) {
-      toast.error('Please enter a message');
+    if (type === 'sms' && !selectedClient.phone) {
+      toast.error('Selected client has no phone number');
       return;
     }
 
-    setLoading(true);
+    setIsSending(true);
     try {
-      if (type === 'email') {
-        await CommunicationService.sendEmail({
-          to,
-          subject,
-          content,
-          category,
-          relatedEntityId: clientId || jobId || estimateId || invoiceId,
-          relatedEntityType: clientId ? 'client' : jobId ? 'job' : estimateId ? 'estimate' : invoiceId ? 'invoice' : undefined
-        });
-      } else {
-        await CommunicationService.sendSMS({
-          to,
-          content,
-          category,
-          relatedEntityId: clientId || jobId || estimateId || invoiceId,
-          relatedEntityType: clientId ? 'client' : jobId ? 'job' : estimateId ? 'estimate' : invoiceId ? 'invoice' : undefined
-        });
-      }
+      const functionName = type === 'email' ? 'mailgun-email' : 'telnyx-sms';
+      
+      const requestBody = type === 'email' 
+        ? {
+            to: selectedClient.email,
+            subject: subject || 'Message from your service provider',
+            html: message.replace(/\n/g, '<br>'),
+            from: 'no-reply@yourdomain.com'
+          }
+        : {
+            to: selectedClient.phone,
+            message: message
+          };
 
-      toast.success(`${type === 'email' ? 'Email' : 'SMS'} sent successfully`);
-      onOpenChange(false);
+      const { data, error } = await supabase.functions.invoke(functionName, {
+        body: requestBody
+      });
+
+      if (error) throw error;
+
+      toast.success(`${type === 'email' ? 'Email' : 'SMS'} sent successfully!`);
       
       // Reset form
-      setTo('');
-      setSubject('');
-      setContent('');
-      setCategory('general');
       setSelectedClient(null);
+      setSubject('');
+      setMessage('');
+      setSearchQuery('');
+      setIsOpen(false);
+
     } catch (error: any) {
+      console.error(`Error sending ${type}:`, error);
       toast.error(`Failed to send ${type}: ${error.message}`);
     } finally {
-      setLoading(false);
+      setIsSending(false);
     }
   };
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[600px]">
+    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+      <DialogTrigger asChild>
+        {children}
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>Send {type === 'email' ? 'Email' : 'SMS'}</DialogTitle>
-          <DialogDescription>
-            Send a {type === 'email' ? 'email' : 'text message'} to a client
-          </DialogDescription>
+          <DialogTitle className="flex items-center space-x-2">
+            {type === 'email' ? <Mail className="w-5 h-5" /> : <MessageSquare className="w-5 h-5" />}
+            <span>Send {type === 'email' ? 'Email' : 'SMS'}</span>
+          </DialogTitle>
         </DialogHeader>
 
-        <div className="grid gap-4 py-4">
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="type" className="text-right">
-              Type
-            </Label>
-            <Select value={type} onValueChange={(value: 'email' | 'sms') => setType(value)}>
-              <SelectTrigger className="col-span-3">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="email">
-                  <div className="flex items-center">
-                    <Mail className="h-4 w-4 mr-2" />
-                    Email
-                  </div>
-                </SelectItem>
-                <SelectItem value="sms">
-                  <div className="flex items-center">
-                    <Phone className="h-4 w-4 mr-2" />
-                    SMS
-                  </div>
-                </SelectItem>
-              </SelectContent>
-            </Select>
+        <div className="space-y-4">
+          <div className="flex space-x-2">
+            <Button
+              variant={type === 'email' ? 'default' : 'outline'}
+              onClick={() => setType('email')}
+              className="flex-1"
+            >
+              <Mail className="w-4 h-4 mr-2" />
+              Email
+            </Button>
+            <Button
+              variant={type === 'sms' ? 'default' : 'outline'}
+              onClick={() => setType('sms')}
+              className="flex-1"
+            >
+              <MessageSquare className="w-4 h-4 mr-2" />
+              SMS
+            </Button>
           </div>
 
-          {!selectedClient && (
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="search" className="text-right">
-                Client
-              </Label>
-              <div className="col-span-3 relative">
-                <Input
-                  id="search"
-                  placeholder="Search for a client..."
-                  value={searchQuery}
-                  onChange={(e) => {
-                    setSearchQuery(e.target.value);
-                    if (e.target.value) searchClients(e.target.value);
-                  }}
-                  icon={<Search className="h-4 w-4" />}
-                />
-                {clients.length > 0 && (
-                  <div className="absolute top-full left-0 right-0 mt-1 bg-background border rounded-md shadow-lg z-10">
-                    {clients.map((client) => (
-                      <div
-                        key={client.id}
-                        className="p-2 hover:bg-accent cursor-pointer"
-                        onClick={() => handleClientSelect(client)}
-                      >
-                        <div className="font-medium">{client.name}</div>
-                        <div className="text-sm text-muted-foreground">
-                          {client.email} • {client.phone}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-          {selectedClient && (
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label className="text-right">Client</Label>
-              <div className="col-span-3 flex items-center gap-2 p-2 bg-muted rounded-md">
-                <User className="h-4 w-4" />
-                <div>
-                  <div className="font-medium">{selectedClient.name}</div>
-                  <div className="text-sm text-muted-foreground">
-                    {selectedClient.email} • {selectedClient.phone}
-                  </div>
-                </div>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => {
-                    setSelectedClient(null);
-                    setTo('');
-                  }}
-                  className="ml-auto"
-                >
-                  Change
-                </Button>
-              </div>
-            </div>
-          )}
-
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="to" className="text-right">
-              To
-            </Label>
+          <div className="space-y-2">
+            <Label>Select Client</Label>
             <Input
-              id="to"
-              value={to}
-              onChange={(e) => setTo(e.target.value)}
-              placeholder={type === 'email' ? 'email@example.com' : '+1234567890'}
-              className="col-span-3"
-              disabled={!!selectedClient}
+              placeholder="Search clients..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
             />
+            
+            {searchQuery && (
+              <div className="max-h-40 overflow-y-auto border rounded-md">
+                {filteredClients.map((client) => (
+                  <div
+                    key={client.id}
+                    className={`p-3 cursor-pointer hover:bg-muted ${
+                      selectedClient?.id === client.id ? 'bg-muted' : ''
+                    }`}
+                    onClick={() => {
+                      setSelectedClient(client);
+                      setSearchQuery(client.name);
+                    }}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="font-medium">{client.name}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {type === 'email' ? client.email : client.phone}
+                        </p>
+                      </div>
+                      {((type === 'email' && client.email) || (type === 'sms' && client.phone)) && (
+                        <Badge variant="secondary">Available</Badge>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {selectedClient && (
+              <div className="p-3 bg-muted rounded-md">
+                <div className="flex items-center space-x-2">
+                  <User className="w-4 h-4" />
+                  <span className="font-medium">{selectedClient.name}</span>
+                </div>
+                <p className="text-sm text-muted-foreground mt-1">
+                  {type === 'email' ? selectedClient.email : selectedClient.phone}
+                </p>
+              </div>
+            )}
           </div>
 
           {type === 'email' && (
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="subject" className="text-right">
-                Subject
-              </Label>
+            <div className="space-y-2">
+              <Label htmlFor="subject">Subject</Label>
               <Input
                 id="subject"
+                placeholder="Enter email subject"
                 value={subject}
                 onChange={(e) => setSubject(e.target.value)}
-                placeholder="Email subject..."
-                className="col-span-3"
               />
             </div>
           )}
 
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="category" className="text-right">
-              Category
-            </Label>
-            <Select value={category} onValueChange={(value: CommunicationCategory) => setCategory(value)}>
-              <SelectTrigger className="col-span-3">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="general">General</SelectItem>
-                <SelectItem value="estimate">Estimate</SelectItem>
-                <SelectItem value="invoice">Invoice</SelectItem>
-                <SelectItem value="notification">Notification</SelectItem>
-                <SelectItem value="marketing">Marketing</SelectItem>
-                <SelectItem value="system">System</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="grid grid-cols-4 items-start gap-4">
-            <Label htmlFor="content" className="text-right pt-2">
-              Message
-            </Label>
+          <div className="space-y-2">
+            <Label htmlFor="message">Message</Label>
             <Textarea
-              id="content"
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-              placeholder={type === 'email' ? 'Email content...' : 'SMS message...'}
-              className="col-span-3 min-h-[150px]"
+              id="message"
+              placeholder={`Enter your ${type === 'email' ? 'email' : 'SMS'} message...`}
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              rows={type === 'email' ? 6 : 4}
             />
           </div>
-        </div>
 
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Cancel
+          <Button 
+            onClick={sendCommunication}
+            disabled={!selectedClient || !message.trim() || isSending}
+            className="w-full"
+          >
+            {isSending ? (
+              <>
+                <MessageSquare className="w-4 h-4 mr-2 animate-pulse" />
+                Sending...
+              </>
+            ) : (
+              <>
+                <Send className="w-4 h-4 mr-2" />
+                Send {type === 'email' ? 'Email' : 'SMS'}
+              </>
+            )}
           </Button>
-          <Button onClick={handleSend} disabled={loading}>
-            {loading ? 'Sending...' : `Send ${type === 'email' ? 'Email' : 'SMS'}`}
-          </Button>
-        </DialogFooter>
+        </div>
       </DialogContent>
     </Dialog>
   );
-}
+};

@@ -1,33 +1,45 @@
 
 import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Search, Mail, MessageSquare, Phone, Eye, Download } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
+import { supabase } from '@/integrations/supabase/client';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Mail, MessageSquare, Phone, Search, Filter, ExternalLink } from 'lucide-react';
+import { formatDistanceToNow } from 'date-fns';
 
 interface CommunicationLog {
   id: string;
   type: 'email' | 'sms' | 'call';
   recipient: string;
-  subject?: string;
-  content?: string;
-  status: string;
-  sent_at: string;
-  client_id?: string;
-  job_id?: string;
-  metadata?: any;
+  subject: string | null;
+  content: string | null;
+  status: string | null;
+  provider: string;
+  direction: string | null;
+  sent_at: string | null;
+  delivered_at: string | null;
+  opened_at: string | null;
+  clicked_at: string | null;
+  error_message: string | null;
+  external_id: string | null;
+  metadata: any;
+  client_id: string;
+  job_id: string | null;
+  user_id: string | null;
+  created_at: string;
+  updated_at: string | null;
+  from_address: string | null;
+  to_address: string | null;
 }
 
-const CommunicationHistory: React.FC = () => {
+const CommunicationHistory = () => {
   const [communications, setCommunications] = useState<CommunicationLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterType, setFilterType] = useState<string>('all');
-  const [filterStatus, setFilterStatus] = useState<string>('all');
+  const [typeFilter, setTypeFilter] = useState<string>('all');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
 
   useEffect(() => {
     fetchCommunications();
@@ -43,10 +55,15 @@ const CommunicationHistory: React.FC = () => {
 
       if (error) throw error;
 
-      setCommunications(data || []);
-    } catch (error) {
+      // Transform data to match our interface
+      const transformedData = (data || []).map(comm => ({
+        ...comm,
+        type: comm.type as 'email' | 'sms' | 'call'
+      }));
+
+      setCommunications(transformedData);
+    } catch (error: any) {
       console.error('Error fetching communications:', error);
-      toast.error('Failed to load communication history');
     } finally {
       setLoading(false);
     }
@@ -55,150 +72,191 @@ const CommunicationHistory: React.FC = () => {
   const getTypeIcon = (type: string) => {
     switch (type) {
       case 'email':
-        return <Mail className="h-4 w-4" />;
+        return <Mail className="w-4 h-4" />;
       case 'sms':
-        return <MessageSquare className="h-4 w-4" />;
+        return <MessageSquare className="w-4 h-4" />;
       case 'call':
-        return <Phone className="h-4 w-4" />;
+        return <Phone className="w-4 h-4" />;
       default:
-        return <MessageSquare className="h-4 w-4" />;
+        return <MessageSquare className="w-4 h-4" />;
     }
   };
 
-  const getStatusColor = (status: string) => {
+  const getStatusColor = (status: string | null) => {
+    if (!status) return 'bg-gray-500';
+    
     switch (status.toLowerCase()) {
       case 'sent':
       case 'delivered':
-        return 'success';
+        return 'bg-green-500';
       case 'pending':
-        return 'warning';
+        return 'bg-yellow-500';
       case 'failed':
       case 'error':
-        return 'destructive';
+        return 'bg-red-500';
+      case 'opened':
+        return 'bg-blue-500';
+      case 'clicked':
+        return 'bg-purple-500';
       default:
-        return 'secondary';
+        return 'bg-gray-500';
     }
   };
 
   const filteredCommunications = communications.filter(comm => {
-    const matchesSearch = !searchTerm || 
+    const matchesSearch = searchTerm === '' || 
       comm.recipient.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      comm.subject?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      comm.content?.toLowerCase().includes(searchTerm.toLowerCase());
+      (comm.subject && comm.subject.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (comm.content && comm.content.toLowerCase().includes(searchTerm.toLowerCase()));
     
-    const matchesType = filterType === 'all' || comm.type === filterType;
-    const matchesStatus = filterStatus === 'all' || comm.status === filterStatus;
+    const matchesType = typeFilter === 'all' || comm.type === typeFilter;
+    const matchesStatus = statusFilter === 'all' || comm.status === statusFilter;
     
     return matchesSearch && matchesType && matchesStatus;
   });
 
   if (loading) {
-    return (
-      <Card>
-        <CardContent className="flex items-center justify-center h-64">
-          <div className="animate-pulse">Loading communication history...</div>
-        </CardContent>
-      </Card>
-    );
+    return <div className="p-6">Loading communication history...</div>;
   }
 
   return (
     <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle>Communication History</CardTitle>
-          <CardDescription>
-            View all sent emails, SMS messages, and call logs
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-col sm:flex-row gap-4 mb-6">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search communications..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
-              />
-            </div>
-            
-            <Select value={filterType} onValueChange={setFilterType}>
-              <SelectTrigger className="w-full sm:w-40">
-                <SelectValue placeholder="Type" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Types</SelectItem>
-                <SelectItem value="email">Email</SelectItem>
-                <SelectItem value="sms">SMS</SelectItem>
-                <SelectItem value="call">Call</SelectItem>
-              </SelectContent>
-            </Select>
-            
-            <Select value={filterStatus} onValueChange={setFilterStatus}>
-              <SelectTrigger className="w-full sm:w-40">
-                <SelectValue placeholder="Status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Status</SelectItem>
-                <SelectItem value="sent">Sent</SelectItem>
-                <SelectItem value="delivered">Delivered</SelectItem>
-                <SelectItem value="pending">Pending</SelectItem>
-                <SelectItem value="failed">Failed</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold">Communication History</h2>
+          <p className="text-muted-foreground">
+            Track all your email, SMS, and call communications
+          </p>
+        </div>
+        <Button onClick={fetchCommunications} variant="outline">
+          <Search className="w-4 h-4 mr-2" />
+          Refresh
+        </Button>
+      </div>
 
-          <div className="space-y-4">
-            {filteredCommunications.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">
-                No communications found matching your criteria.
-              </div>
-            ) : (
-              filteredCommunications.map((comm) => (
-                <Card key={comm.id} className="p-4">
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-start gap-3 flex-1">
-                      <div className="mt-1">
-                        {getTypeIcon(comm.type)}
-                      </div>
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="font-medium">{comm.recipient}</span>
-                          <Badge variant={getStatusColor(comm.status)}>
-                            {comm.status}
-                          </Badge>
-                        </div>
-                        {comm.subject && (
-                          <p className="text-sm font-medium text-muted-foreground mb-1">
-                            {comm.subject}
-                          </p>
-                        )}
-                        {comm.content && (
-                          <p className="text-sm text-muted-foreground line-clamp-2">
-                            {comm.content}
-                          </p>
-                        )}
-                        <p className="text-xs text-muted-foreground mt-2">
-                          {new Date(comm.sent_at).toLocaleString()}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex gap-2 ml-4">
-                      <Button variant="ghost" size="sm">
-                        <Eye className="h-4 w-4" />
-                      </Button>
-                      <Button variant="ghost" size="sm">
-                        <Download className="h-4 w-4" />
-                      </Button>
-                    </div>
+      <div className="flex flex-col sm:flex-row gap-4">
+        <div className="flex-1">
+          <Input
+            placeholder="Search communications..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full"
+          />
+        </div>
+        <Select value={typeFilter} onValueChange={setTypeFilter}>
+          <SelectTrigger className="w-[180px]">
+            <SelectValue placeholder="Filter by type" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Types</SelectItem>
+            <SelectItem value="email">Email</SelectItem>
+            <SelectItem value="sms">SMS</SelectItem>
+            <SelectItem value="call">Call</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select value={statusFilter} onValueChange={setStatusFilter}>
+          <SelectTrigger className="w-[180px]">
+            <SelectValue placeholder="Filter by status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Status</SelectItem>
+            <SelectItem value="sent">Sent</SelectItem>
+            <SelectItem value="delivered">Delivered</SelectItem>
+            <SelectItem value="opened">Opened</SelectItem>
+            <SelectItem value="failed">Failed</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="grid gap-4">
+        {filteredCommunications.map((comm) => (
+          <Card key={comm.id}>
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                  {getTypeIcon(comm.type)}
+                  <div>
+                    <CardTitle className="text-lg">
+                      {comm.subject || `${comm.type.toUpperCase()} to ${comm.recipient}`}
+                    </CardTitle>
+                    <p className="text-sm text-muted-foreground">
+                      To: {comm.recipient}
+                    </p>
                   </div>
-                </Card>
-              ))
-            )}
-          </div>
-        </CardContent>
-      </Card>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Badge className={getStatusColor(comm.status)}>
+                    {comm.status || 'Unknown'}
+                  </Badge>
+                  <Badge variant="outline">{comm.provider}</Badge>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {comm.content && (
+                  <div className="text-sm">
+                    <p className="line-clamp-2">{comm.content}</p>
+                  </div>
+                )}
+                
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-xs text-muted-foreground">
+                  <div>
+                    <strong>Sent:</strong> {comm.sent_at ? formatDistanceToNow(new Date(comm.sent_at)) + ' ago' : 'Not sent'}
+                  </div>
+                  {comm.delivered_at && (
+                    <div>
+                      <strong>Delivered:</strong> {formatDistanceToNow(new Date(comm.delivered_at))} ago
+                    </div>
+                  )}
+                  {comm.opened_at && (
+                    <div>
+                      <strong>Opened:</strong> {formatDistanceToNow(new Date(comm.opened_at))} ago
+                    </div>
+                  )}
+                  {comm.clicked_at && (
+                    <div>
+                      <strong>Clicked:</strong> {formatDistanceToNow(new Date(comm.clicked_at))} ago
+                    </div>
+                  )}
+                </div>
+
+                {comm.error_message && (
+                  <div className="p-2 bg-red-50 border border-red-200 rounded text-sm text-red-700">
+                    <strong>Error:</strong> {comm.error_message}
+                  </div>
+                )}
+
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-muted-foreground">
+                    {formatDistanceToNow(new Date(comm.created_at))} ago
+                  </span>
+                  {comm.external_id && (
+                    <Button variant="ghost" size="sm">
+                      <ExternalLink className="w-3 h-3 mr-1" />
+                      View Details
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+
+        {filteredCommunications.length === 0 && (
+          <Card>
+            <CardContent className="text-center py-8">
+              <MessageSquare className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
+              <p className="text-muted-foreground">
+                {searchTerm || typeFilter !== 'all' || statusFilter !== 'all' 
+                  ? 'No communications match your filters'
+                  : 'No communications found'
+                }
+              </p>
+            </CardContent>
+          </Card>
+        )}
+      </div>
     </div>
   );
 };

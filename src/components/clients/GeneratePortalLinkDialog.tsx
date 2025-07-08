@@ -1,14 +1,14 @@
 
 import React, { useState } from 'react';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
-import { Copy, Link, ExternalLink } from "lucide-react";
-import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from '@/integrations/supabase/client';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Card, CardContent } from '@/components/ui/card';
+import { ExternalLink, Copy, Clock, Share } from 'lucide-react';
+import { toast } from 'sonner';
 
 interface GeneratePortalLinkDialogProps {
   clientId: string;
@@ -16,48 +16,62 @@ interface GeneratePortalLinkDialogProps {
   children: React.ReactNode;
 }
 
-const GeneratePortalLinkDialog: React.FC<GeneratePortalLinkDialogProps> = ({
-  clientId,
-  clientName,
-  children
-}) => {
+export const GeneratePortalLinkDialog = ({ clientId, clientName, children }: GeneratePortalLinkDialogProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [documentType, setDocumentType] = useState<'estimate' | 'invoice'>('estimate');
+  const [documentId, setDocumentId] = useState('');
+  const [expirationHours, setExpirationHours] = useState('24');
   const [generatedLink, setGeneratedLink] = useState('');
-  const [hoursValid, setHoursValid] = useState('24');
-  const [domainRestriction, setDomainRestriction] = useState('');
-  const [allowDownloads, setAllowDownloads] = useState(true);
-  const [allowUploads, setAllowUploads] = useState(false);
 
-  const generateLink = async () => {
+  const generatePortalLink = async () => {
+    if (!documentId.trim()) {
+      toast.error('Please enter a document ID');
+      return;
+    }
+
     setIsGenerating(true);
     try {
-      // Call the generate portal link function
-      const { data, error } = await supabase.rpc('generate_portal_access_link', {
-        p_client_id: clientId,
-        p_hours_valid: parseInt(hoursValid),
-        p_domain: domainRestriction || null,
-        p_permissions: {
-          downloads: allowDownloads,
-          uploads: allowUploads
-        }
-      });
+      // Use client-side generation since the edge function doesn't exist
+      const accessToken = `token_${Math.random().toString(36).substring(2, 15)}${Math.random().toString(36).substring(2, 15)}`;
+      const expiresAt = new Date();
+      expiresAt.setHours(expiresAt.getHours() + parseInt(expirationHours));
 
-      if (error) throw error;
+      // Insert portal access record
+      const { error: insertError } = await supabase
+        .from('client_portal_access')
+        .insert({
+          access_token: accessToken,
+          client_id: clientId,
+          document_id: documentId,
+          document_type: documentType,
+          expires_at: expiresAt.toISOString(),
+          max_uses: 10,
+          permissions: {
+            can_view: true,
+            can_approve: documentType === 'estimate',
+            can_pay: documentType === 'invoice'
+          }
+        });
 
+      if (insertError) throw insertError;
+
+      // Generate the portal link
       const baseUrl = window.location.origin;
-      const portalLink = `${baseUrl}/portal/${data}`;
+      const portalLink = `${baseUrl}/portal/${accessToken}`;
+      
       setGeneratedLink(portalLink);
       toast.success('Portal link generated successfully!');
-    } catch (error) {
+
+    } catch (error: any) {
       console.error('Error generating portal link:', error);
-      toast.error('Failed to generate portal link');
+      toast.error(`Failed to generate portal link: ${error.message}`);
     } finally {
       setIsGenerating(false);
     }
   };
 
-  const copyLink = async () => {
+  const copyToClipboard = async () => {
     try {
       await navigator.clipboard.writeText(generatedLink);
       toast.success('Link copied to clipboard!');
@@ -66,8 +80,10 @@ const GeneratePortalLinkDialog: React.FC<GeneratePortalLinkDialogProps> = ({
     }
   };
 
-  const openLink = () => {
-    window.open(generatedLink, '_blank');
+  const handleClose = () => {
+    setIsOpen(false);
+    setGeneratedLink('');
+    setDocumentId('');
   };
 
   return (
@@ -77,89 +93,104 @@ const GeneratePortalLinkDialog: React.FC<GeneratePortalLinkDialogProps> = ({
       </DialogTrigger>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Generate Portal Link</DialogTitle>
-          <DialogDescription>
-            Create a secure access link for {clientName} to view their documents and project details.
-          </DialogDescription>
+          <DialogTitle className="flex items-center space-x-2">
+            <Share className="w-5 h-5" />
+            <span>Generate Portal Link</span>
+          </DialogTitle>
         </DialogHeader>
-        
+
         <div className="space-y-4">
-          <div>
-            <Label htmlFor="hours-valid">Link Valid For (Hours)</Label>
-            <Select value={hoursValid} onValueChange={setHoursValid}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="1">1 Hour</SelectItem>
-                <SelectItem value="6">6 Hours</SelectItem>
-                <SelectItem value="24">24 Hours</SelectItem>
-                <SelectItem value="72">3 Days</SelectItem>
-                <SelectItem value="168">1 Week</SelectItem>
-              </SelectContent>
-            </Select>
+          <div className="text-sm text-muted-foreground">
+            Generate a secure portal link for <strong>{clientName}</strong> to view their document.
           </div>
 
-          <div>
-            <Label htmlFor="domain-restriction">Domain Restriction (Optional)</Label>
-            <Input
-              id="domain-restriction"
-              value={domainRestriction}
-              onChange={(e) => setDomainRestriction(e.target.value)}
-              placeholder="example.com"
-            />
-          </div>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="documentType">Document Type</Label>
+              <Select value={documentType} onValueChange={(value: 'estimate' | 'invoice') => setDocumentType(value)}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="estimate">Estimate</SelectItem>
+                  <SelectItem value="invoice">Invoice</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
 
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <Label htmlFor="allow-downloads">Allow Downloads</Label>
-              <Switch
-                id="allow-downloads"
-                checked={allowDownloads}
-                onCheckedChange={setAllowDownloads}
+            <div className="space-y-2">
+              <Label htmlFor="documentId">Document ID</Label>
+              <Input
+                id="documentId"
+                placeholder="Enter document ID"
+                value={documentId}
+                onChange={(e) => setDocumentId(e.target.value)}
               />
             </div>
-            
-            <div className="flex items-center justify-between">
-              <Label htmlFor="allow-uploads">Allow Uploads</Label>
-              <Switch
-                id="allow-uploads"
-                checked={allowUploads}
-                onCheckedChange={setAllowUploads}
-              />
-            </div>
-          </div>
 
-          {!generatedLink ? (
+            <div className="space-y-2">
+              <Label htmlFor="expiration">Link Expiration</Label>
+              <Select value={expirationHours} onValueChange={setExpirationHours}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="1">1 hour</SelectItem>
+                  <SelectItem value="6">6 hours</SelectItem>
+                  <SelectItem value="24">24 hours</SelectItem>
+                  <SelectItem value="72">3 days</SelectItem>
+                  <SelectItem value="168">1 week</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
             <Button 
-              onClick={generateLink} 
-              disabled={isGenerating}
+              onClick={generatePortalLink}
+              disabled={isGenerating || !documentId.trim()}
               className="w-full"
             >
-              <Link className="h-4 w-4 mr-2" />
-              {isGenerating ? 'Generating...' : 'Generate Portal Link'}
+              {isGenerating ? (
+                <>
+                  <Clock className="w-4 h-4 mr-2 animate-spin" />
+                  Generating...
+                </>
+              ) : (
+                <>
+                  <ExternalLink className="w-4 h-4 mr-2" />
+                  Generate Portal Link
+                </>
+              )}
             </Button>
-          ) : (
-            <div className="space-y-3">
-              <div className="p-3 bg-muted rounded-lg">
-                <p className="text-sm break-all">{generatedLink}</p>
-              </div>
-              <div className="flex gap-2">
-                <Button onClick={copyLink} variant="outline" className="flex-1">
-                  <Copy className="h-4 w-4 mr-2" />
-                  Copy Link
-                </Button>
-                <Button onClick={openLink} variant="outline" className="flex-1">
-                  <ExternalLink className="h-4 w-4 mr-2" />
-                  Open Portal
-                </Button>
-              </div>
-            </div>
+          </div>
+
+          {generatedLink && (
+            <Card>
+              <CardContent className="p-4">
+                <div className="space-y-3">
+                  <Label>Generated Portal Link</Label>
+                  <div className="flex items-center space-x-2">
+                    <Input
+                      value={generatedLink}
+                      readOnly
+                      className="flex-1"
+                    />
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={copyToClipboard}
+                    >
+                      <Copy className="w-4 h-4" />
+                    </Button>
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    This link will expire in {expirationHours} hour{expirationHours !== '1' ? 's' : ''}.
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           )}
         </div>
       </DialogContent>
     </Dialog>
   );
 };
-
-export default GeneratePortalLinkDialog;
