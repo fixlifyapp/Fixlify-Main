@@ -1,151 +1,149 @@
+
 import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Stepper } from '@/components/ui/stepper/stepper';
-import { useJob } from '@/hooks/useJob';
-import { InvoiceForm } from '@/components/jobs/invoices/InvoiceForm';
-import { useInvoice } from '@/hooks/useInvoice';
+import { ArrowLeft, ArrowRight } from 'lucide-react';
+import { InvoiceFormStep } from './invoice-builder/InvoiceFormStep';
+import { InvoicePreviewStep } from './invoice-builder/InvoicePreviewStep';
+import { InvoiceSendStep } from './invoice-builder/InvoiceSendStep';
+import { useInvoiceBuilder } from '@/hooks/useInvoiceBuilder';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { Invoice } from '@/types/invoice';
-import { formatCurrency } from '@/lib/currency';
-import { UniversalSendDialog } from '@/components/jobs/dialogs/shared/UniversalSendDialog';
 
 interface SteppedInvoiceBuilderProps {
-  jobId: string;
+  isOpen: boolean;
   onClose: () => void;
+  jobId: string;
+  clientId?: string;
+  estimateId?: string;
 }
 
-export function SteppedInvoiceBuilder({ jobId, onClose }: SteppedInvoiceBuilderProps) {
-  const [step, setStep] = useState(1);
-  const [invoiceData, setInvoiceData] = useState<Partial<Invoice>>({});
-  const [showSendDialog, setShowSendDialog] = useState(false);
-  const { job: jobData } = useJob(jobId);
-  const { invoice: currentInvoice, createInvoice, updateInvoice } = useInvoice();
+export function SteppedInvoiceBuilder({ 
+  isOpen, 
+  onClose, 
+  jobId, 
+  clientId, 
+  estimateId 
+}: SteppedInvoiceBuilderProps) {
+  const [currentStep, setCurrentStep] = useState(1);
+  const [jobData, setJobData] = useState<any>(null);
+  const [clientData, setClientData] = useState<any>(null);
+  
+  const {
+    invoiceData,
+    updateInvoiceData,
+    saveInvoice,
+    isLoading
+  } = useInvoiceBuilder(jobId);
 
   useEffect(() => {
-    if (currentInvoice) {
-      setInvoiceData(currentInvoice);
+    if (isOpen && jobId) {
+      fetchJobAndClientData();
     }
-  }, [currentInvoice]);
+  }, [isOpen, jobId]);
+
+  const fetchJobAndClientData = async () => {
+    try {
+      // Fetch job data
+      const { data: job, error: jobError } = await supabase
+        .from('jobs')
+        .select('*')
+        .eq('id', jobId)
+        .single();
+
+      if (jobError) throw jobError;
+      setJobData(job);
+
+      // Fetch client data
+      if (job.client_id) {
+        const { data: client, error: clientError } = await supabase
+          .from('clients')
+          .select('*')
+          .eq('id', job.client_id)
+          .single();
+
+        if (clientError) throw clientError;
+        setClientData(client);
+      }
+    } catch (error) {
+      console.error('Error fetching data:', error);
+      toast.error('Failed to load job data');
+    }
+  };
 
   const handleNext = () => {
-    setStep((prev) => prev + 1);
-  };
-
-  const handleBack = () => {
-    setStep((prev) => prev - 1);
-  };
-
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
-    setInvoiceData((prev) => ({ ...prev, [name]: value }));
-  };
-
-  const handleSubmit = async () => {
-    try {
-      if (currentInvoice) {
-        await updateInvoice(currentInvoice.id, invoiceData as Invoice);
-        toast.success('Invoice updated successfully!');
-      } else {
-        if (!jobId) {
-          toast.error('Job ID is required to create an invoice.');
-          return;
-        }
-        await createInvoice(jobId, invoiceData as Invoice);
-        toast.success('Invoice created successfully!');
-      }
-      setShowSendDialog(true);
-    } catch (error: any) {
-      toast.error(error?.message || 'Failed to save invoice.');
+    if (currentStep < 3) {
+      setCurrentStep(currentStep + 1);
     }
+  };
+
+  const handlePrevious = () => {
+    if (currentStep > 1) {
+      setCurrentStep(currentStep - 1);
+    }
+  };
+
+  const handleClose = () => {
+    setCurrentStep(1);
+    onClose();
   };
 
   return (
-    <Dialog open={true} onOpenChange={onClose}>
-      <DialogHeader>
-        <DialogTitle>Create Invoice</DialogTitle>
-      </DialogHeader>
-      <DialogContent>
-        <Stepper step={step} steps={2} />
+    <Dialog open={isOpen} onOpenChange={handleClose}>
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Create Invoice - Step {currentStep} of 3</DialogTitle>
+        </DialogHeader>
 
-        {step === 1 && (
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold">Invoice Details</h3>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="invoice_number">Invoice Number</Label>
-                <Input
-                  type="text"
-                  id="invoice_number"
-                  name="invoice_number"
-                  value={invoiceData.invoice_number || ''}
-                  onChange={handleInputChange}
-                />
-              </div>
-              <div>
-                <Label htmlFor="invoice_date">Invoice Date</Label>
-                <Input
-                  type="date"
-                  id="invoice_date"
-                  name="invoice_date"
-                  value={invoiceData.invoice_date || ''}
-                  onChange={handleInputChange}
-                />
-              </div>
-            </div>
-            <div>
-              <Label htmlFor="notes">Notes</Label>
-              <Input
-                type="text"
-                id="notes"
-                name="notes"
-                value={invoiceData.notes || ''}
-                onChange={handleInputChange}
-              />
-            </div>
-            <div className="flex justify-end">
-              <Button onClick={handleNext}>Next</Button>
-            </div>
-          </div>
+        {currentStep === 1 && (
+          <InvoiceFormStep
+            invoiceData={invoiceData}
+            onUpdate={updateInvoiceData}
+            jobData={jobData}
+            clientData={clientData}
+            estimateId={estimateId}
+          />
         )}
 
-        {step === 2 && (
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold">Line Items</h3>
-            <InvoiceForm
-              invoiceId={currentInvoice?.id}
-              onChange={(data) => setInvoiceData((prev) => ({ ...prev, line_items: data }))}
-            />
-            <div className="flex justify-between">
-              <Button variant="outline" onClick={handleBack}>
-                Back
-              </Button>
-              <Button onClick={handleSubmit}>
-                Save Invoice ({formatCurrency(currentInvoice?.total || 0)})
-              </Button>
-            </div>
-          </div>
+        {currentStep === 2 && (
+          <InvoicePreviewStep
+            invoiceData={invoiceData}
+            jobData={jobData}
+            clientData={clientData}
+          />
         )}
-      
-      <UniversalSendDialog
-        open={showSendDialog}
-        onOpenChange={setShowSendDialog}
-        documentType="invoice"
-        documentId={currentInvoice?.id || ''}
-        documentNumber={currentInvoice?.invoice_number || ''}
-        total={currentInvoice?.total || 0}
-        contactInfo={{
-          name: jobData?.client?.name || '',
-          email: jobData?.client?.email || '',
-          phone: jobData?.client?.phone || ''
-        }}
-        onSuccess={() => {
-          setShowSendDialog(false);
-          onClose();
-        }}
-      />
+
+        {currentStep === 3 && (
+          <InvoiceSendStep
+            invoiceData={invoiceData}
+            jobData={jobData}
+            clientData={clientData}
+            onClose={handleClose}
+          />
+        )}
+
+        <div className="flex justify-between mt-6">
+          <Button
+            variant="outline"
+            onClick={handlePrevious}
+            disabled={currentStep === 1}
+          >
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Previous
+          </Button>
+
+          {currentStep < 3 ? (
+            <Button onClick={handleNext}>
+              Next
+              <ArrowRight className="w-4 h-4 ml-2" />
+            </Button>
+          ) : (
+            <Button variant="outline" onClick={handleClose}>
+              Close
+            </Button>
+          )}
+        </div>
+      </DialogContent>
     </Dialog>
   );
 }
