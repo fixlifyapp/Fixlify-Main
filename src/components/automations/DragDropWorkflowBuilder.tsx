@@ -1,58 +1,52 @@
 
-import React, { useState, useCallback } from 'react';
+import React, { useCallback, useMemo } from 'react';
 import ReactFlow, {
-  Node,
-  Edge,
+  MiniMap,
   Controls,
   Background,
   useNodesState,
   useEdgesState,
   addEdge,
   Connection,
-  MiniMap,
+  Edge,
+  BackgroundVariant,
 } from 'reactflow';
+
 import 'reactflow/dist/style.css';
 
-interface WorkflowStep {
-  id: string;
-  type: string;
-  name: string;
-  description: string;
-  config: any;
-  icon: string;
-}
+const initialNodes = [
+  {
+    id: '1',
+    type: 'input',
+    data: { label: 'Start' },
+    position: { x: 250, y: 25 },
+  },
+];
 
-interface DragDropWorkflowBuilderProps {
-  steps: WorkflowStep[];
-  onChange: (steps: WorkflowStep[]) => void;
-}
+const initialEdges: Edge[] = [];
 
-export const DragDropWorkflowBuilder: React.FC<DragDropWorkflowBuilderProps> = ({
-  steps,
-  onChange
-}) => {
-  const [nodes, setNodes, onNodesChange] = useNodesState([]);
-  const [edges, setEdges, onEdgesChange] = useEdgesState([]);
+export default function DragDropWorkflowBuilder() {
+  const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
+  const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
 
   const onConnect = useCallback(
-    (params: Connection) => setEdges((eds) => addEdge(params, eds)),
-    [setEdges]
+    (params: Edge | Connection) => setEdges((eds) => addEdge(params, eds)),
+    [setEdges],
   );
 
   return (
-    <div className="h-96 border rounded-lg">
+    <div className="w-full h-96">
       <ReactFlow
         nodes={nodes}
         edges={edges}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
-        fitView
       >
         <Controls />
         <MiniMap />
-        <Background variant="dot" gap={12} size={1} />
+        <Background variant={BackgroundVariant.Dots} />
       </ReactFlow>
     </div>
   );
-};
+}
