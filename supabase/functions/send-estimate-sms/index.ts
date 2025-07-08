@@ -1,5 +1,6 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+
+import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -12,127 +13,99 @@ serve(async (req) => {
   }
 
   try {
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
-    
-    const { estimateId, recipientPhone, message: customMessage } = await req.json();
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    );
 
-    if (!estimateId || !recipientPhone) {
-      throw new Error('Missing required fields: estimateId and recipientPhone');
-    }
+    const { estimate_id, phone_number, message } = await req.json();
+    console.log('Sending estimate SMS:', { estimate_id, phone_number });
 
-    // Fetch estimate details - using separate queries to avoid nested query issues
+    // Get estimate details
     const { data: estimate, error: estimateError } = await supabase
       .from('estimates')
-      .select('*')
-      .eq('id', estimateId)
-      .maybeSingle();
+      .select('*, jobs(client_id, clients(name, email, phone))')
+      .eq('id', estimate_id)
+      .single();
 
-    if (estimateError) throw estimateError;
-    if (!estimate) throw new Error('Estimate not found');
-    // Fetch job details if job_id exists
-    let job = null;
-    if (estimate.job_id) {
-      const { data: jobData } = await supabase
-        .from('jobs')
-        .select('*')
-        .eq('id', estimate.job_id)
-        .maybeSingle();
-      job = jobData;
+    if (estimateError || !estimate) {
+      console.error('Error fetching estimate:', estimateError);
+      throw new Error('Estimate not found');
     }
 
-    // Fetch client details
-    let client = null;
-    const clientId = estimate.client_id || job?.client_id;
-    if (clientId) {
-      const { data: clientData } = await supabase
-        .from('clients')
-        .select('*')
-        .eq('id', clientId)
-        .maybeSingle();
-      client = clientData;
+    const telnyx_api_key = Deno.env.get('TELNYX_API_KEY');
+    const telnyx_from_number = Deno.env.get('TELNYX_FROM_NUMBER');
+
+    if (!telnyx_api_key || !telnyx_from_number) {
+      throw new Error('Telnyx configuration missing');
     }
 
-    // Generate portal URL
-    const authorization = req.headers.get('authorization');
-    const baseUrl = authorization?.includes('localhost') 
-      ? 'http://localhost:8083' 
-      : 'https://fixlify.app';
-    const portalUrl = `${baseUrl}/estimate/${estimateId}`;
+    // Create SMS content
+    const sms_message = message || `Your estimate ${estimate.estimate_number} for $${estimate.total} is ready. Contact us for details.`;
 
-    // Create message    const messagePrefix = customMessage ? `${customMessage}\n\n` : '';
-    const defaultMessage = `Hi ${client?.name || 'there'},\n\nYour estimate #${estimate.estimate_number} for $${estimate.total_amount} is ready to view.\n\nView estimate: ${portalUrl}\n\n- Fixlify Team`;
-    const fullMessage = messagePrefix + defaultMessage;
-
-    // Get auth header from the request
-    const authHeader = req.headers.get('authorization');
-    if (!authHeader) {
-      throw new Error('Missing authorization header');
-    }
-
-    // Call telnyx-sms function to send the SMS
-    const smsResponse = await fetch(`${supabaseUrl}/functions/v1/telnyx-sms`, {
+    // Send SMS via Telnyx
+    const response = await fetch('https://api.telnyx.com/v2/messages', {
       method: 'POST',
       headers: {
-        'Authorization': authHeader,
+        'Authorization': `Bearer ${telnyx_api_key}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        recipientPhone,
-        message: fullMessage,
-        user_id: estimate.user_id,
-        metadata: {
-          estimate_id: estimateId,
-          type: 'estimate_sms',
-          portal_url: portalUrl
-        }
-      })
+        from: telnyx_from_number,
+        to: phone_number || estimate.jobs?.clients?.phone || '',
+        text: sms_message,
+      }),
     });
 
-    if (!smsResponse.ok) {
-      const error = await smsResponse.text();
-      throw new Error(`Failed to send SMS: ${error}`);    }
+    const result = await response.json();
+    console.log('Telnyx response:', result);
 
-    const smsResult = await smsResponse.json();
+    if (!response.ok) {
+      throw new Error(`Telnyx error: ${result.errors?.[0]?.detail || 'Unknown error'}`);
+    }
 
     // Log the communication
     await supabase.from('estimate_communications').insert({
-      estimate_id: estimateId,
-      type: 'sms',
-      recipient_phone: recipientPhone,
-      content: fullMessage,
+      estimate_id: estimate.id,
+      estimate_number: estimate.estimate_number,
+      client_id: estimate.client_id,
+      client_name: estimate.jobs?.clients?.name,
+      client_email: estimate.jobs?.clients?.email,
+      client_phone: phone_number || estimate.jobs?.clients?.phone,
+      communication_type: 'sms',
+      recipient: phone_number || estimate.jobs?.clients?.phone || '',
+      subject: null,
+      content: sms_message,
       status: 'sent',
-      metadata: {
-        portal_url: portalUrl,
-        client_name: client?.name,
-        sms_id: smsResult.messageId
-      }
+      external_id: result.data?.id,
+      provider_message_id: result.data?.id,
+      portal_link_included: false,
+      sent_at: new Date().toISOString(),
     });
 
     return new Response(
-      JSON.stringify({ 
-        success: true, 
-        message: 'SMS sent successfully',
-        messageId: smsResult.messageId,
-        portalUrl
-      }),
+      JSON.stringify({ success: true, message: 'Estimate SMS sent successfully', telnyx_id: result.data?.id }),
       { 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 200,
+        headers: { 
+          'Content-Type': 'application/json',
+          ...corsHeaders 
+        } 
       }
     );
-    
+
   } catch (error) {
-    console.error('Error in send-estimate-sms:', error);
+    console.error('Error sending estimate SMS:', error);
     return new Response(
       JSON.stringify({ 
-        error: error.message || 'Failed to send SMS',
-        success: false 
+        success: false, 
+        error: error.message || 'Failed to send estimate SMS' 
       }),
       { 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 400,
+        status: 500,
+        headers: { 
+          'Content-Type': 'application/json',
+          ...corsHeaders 
+        } 
       }
     );
   }

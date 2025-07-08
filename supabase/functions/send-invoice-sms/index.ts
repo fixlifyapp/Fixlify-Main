@@ -1,5 +1,6 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+
+import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -12,127 +13,99 @@ serve(async (req) => {
   }
 
   try {
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
-    
-    const { invoiceId, recipientPhone, message: customMessage } = await req.json();
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    );
 
-    if (!invoiceId || !recipientPhone) {
-      throw new Error('Missing required fields: invoiceId and recipientPhone');
-    }
+    const { invoice_id, phone_number, message } = await req.json();
+    console.log('Sending invoice SMS:', { invoice_id, phone_number });
 
-    // Fetch invoice details - using separate queries to avoid nested query issues
+    // Get invoice details
     const { data: invoice, error: invoiceError } = await supabase
       .from('invoices')
-      .select('*')
-      .eq('id', invoiceId)
-      .maybeSingle();
+      .select('*, jobs(client_id, clients(name, email, phone))')
+      .eq('id', invoice_id)
+      .single();
 
-    if (invoiceError) throw invoiceError;
-    if (!invoice) throw new Error('Invoice not found');
-    // Fetch job details if job_id exists
-    let job = null;
-    if (invoice.job_id) {
-      const { data: jobData } = await supabase
-        .from('jobs')
-        .select('*')
-        .eq('id', invoice.job_id)
-        .maybeSingle();
-      job = jobData;
+    if (invoiceError || !invoice) {
+      console.error('Error fetching invoice:', invoiceError);
+      throw new Error('Invoice not found');
     }
 
-    // Fetch client details
-    let client = null;
-    const clientId = invoice.client_id || job?.client_id;
-    if (clientId) {
-      const { data: clientData } = await supabase
-        .from('clients')
-        .select('*')
-        .eq('id', clientId)
-        .maybeSingle();
-      client = clientData;
+    const telnyx_api_key = Deno.env.get('TELNYX_API_KEY');
+    const telnyx_from_number = Deno.env.get('TELNYX_FROM_NUMBER');
+
+    if (!telnyx_api_key || !telnyx_from_number) {
+      throw new Error('Telnyx configuration missing');
     }
 
-    // Generate portal URL
-    const authorization = req.headers.get('authorization');
-    const baseUrl = authorization?.includes('localhost') 
-      ? 'http://localhost:8083' 
-      : 'https://fixlify.app';
-    const portalUrl = `${baseUrl}/invoice/${invoiceId}`;
+    // Create SMS content
+    const sms_message = message || `Your invoice ${invoice.invoice_number} for $${invoice.total} is ready. Payment due: ${invoice.due_date || 'Upon receipt'}. Contact us for details.`;
 
-    // Create message    const messagePrefix = customMessage ? `${customMessage}\n\n` : '';
-    const defaultMessage = `Hi ${client?.name || 'there'},\n\nYour invoice #${invoice.invoice_number} for $${invoice.total_amount} is ready.\n\nView & pay invoice: ${portalUrl}\n\n- Fixlify Team`;
-    const fullMessage = messagePrefix + defaultMessage;
-
-    // Get auth header from the request
-    const authHeader = req.headers.get('authorization');
-    if (!authHeader) {
-      throw new Error('Missing authorization header');
-    }
-
-    // Call telnyx-sms function to send the SMS
-    const smsResponse = await fetch(`${supabaseUrl}/functions/v1/telnyx-sms`, {
+    // Send SMS via Telnyx
+    const response = await fetch('https://api.telnyx.com/v2/messages', {
       method: 'POST',
       headers: {
-        'Authorization': authHeader,
+        'Authorization': `Bearer ${telnyx_api_key}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        recipientPhone,
-        message: fullMessage,
-        user_id: invoice.user_id,
-        metadata: {
-          invoice_id: invoiceId,
-          type: 'invoice_sms',
-          portal_url: portalUrl
-        }
-      })
+        from: telnyx_from_number,
+        to: phone_number || invoice.jobs?.clients?.phone || '',
+        text: sms_message,
+      }),
     });
 
-    if (!smsResponse.ok) {
-      const error = await smsResponse.text();
-      throw new Error(`Failed to send SMS: ${error}`);    }
+    const result = await response.json();
+    console.log('Telnyx response:', result);
 
-    const smsResult = await smsResponse.json();
+    if (!response.ok) {
+      throw new Error(`Telnyx error: ${result.errors?.[0]?.detail || 'Unknown error'}`);
+    }
 
     // Log the communication
     await supabase.from('invoice_communications').insert({
-      invoice_id: invoiceId,
-      type: 'sms',
-      recipient_phone: recipientPhone,
-      content: fullMessage,
+      invoice_id: invoice.id,
+      invoice_number: invoice.invoice_number,
+      client_id: invoice.client_id,
+      client_name: invoice.jobs?.clients?.name,
+      client_email: invoice.jobs?.clients?.email,
+      client_phone: phone_number || invoice.jobs?.clients?.phone,
+      communication_type: 'sms',
+      recipient: phone_number || invoice.jobs?.clients?.phone || '',
+      subject: null,
+      content: sms_message,
       status: 'sent',
-      metadata: {
-        portal_url: portalUrl,
-        client_name: client?.name,
-        sms_id: smsResult.messageId
-      }
+      external_id: result.data?.id,
+      provider_message_id: result.data?.id,
+      portal_link_included: false,
+      sent_at: new Date().toISOString(),
     });
 
     return new Response(
-      JSON.stringify({ 
-        success: true, 
-        message: 'SMS sent successfully',
-        messageId: smsResult.messageId,
-        portalUrl
-      }),
+      JSON.stringify({ success: true, message: 'Invoice SMS sent successfully', telnyx_id: result.data?.id }),
       { 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 200,
+        headers: { 
+          'Content-Type': 'application/json',
+          ...corsHeaders 
+        } 
       }
     );
-    
+
   } catch (error) {
-    console.error('Error in send-invoice-sms:', error);
+    console.error('Error sending invoice SMS:', error);
     return new Response(
       JSON.stringify({ 
-        error: error.message || 'Failed to send SMS',
-        success: false 
+        success: false, 
+        error: error.message || 'Failed to send invoice SMS' 
       }),
       { 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 400,
+        status: 500,
+        headers: { 
+          'Content-Type': 'application/json',
+          ...corsHeaders 
+        } 
       }
     );
   }
