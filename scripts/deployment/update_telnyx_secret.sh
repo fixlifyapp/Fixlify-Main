@@ -1,0 +1,22 @@
+#!/bin/bash
+# Script to update TELNYX_API_KEY using Supabase CLI
+
+echo "🔧 Updating TELNYX_API_KEY in Supabase..."
+echo ""
+echo "📝 Instructions:"
+echo "1. Make sure you have the Supabase CLI installed"
+echo "2. Make sure you're logged in: supabase login"
+echo "3. Replace YOUR_TELNYX_API_KEY with your actual key"
+echo ""
+echo "Run this command in your terminal:"
+echo ""
+echo "supabase secrets set TELNYX_API_KEY=YOUR_TELNYX_API_KEY --project-ref mqppvcrlvsgrsqelglod"
+echo ""
+echo "Example:"
+echo "supabase secrets set TELNYX_API_KEY=KEY01973792571E80381EF8E470CD832049 --project-ref mqppvcrlvsgrsqelglod"
+echo ""
+echo "⚠️  Important:"
+echo "- Replace YOUR_TELNYX_API_KEY with your actual API key"
+echo "- The key should start with 'KEY'"
+echo "- No quotes around the key"
+echo "- No spaces before or after"

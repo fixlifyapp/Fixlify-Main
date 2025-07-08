@@ -1,0 +1,142 @@
+/* Visual Workflow Builder Responsive Styles */
+.visual-workflow-builder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ReactFlow Container - Responsive */
+.react-flow-wrapper {
+  flex: 1;
+  width: 100%;
+  height: 100%;
+  min-height: 400px;
+}
+
+/* Sidebar - Responsive */
+.workflow-sidebar {
+  width: 100%;
+  max-width: 320px;
+  height: 100%;
+  overflow-y: auto;
+}
+
+/* Mobile adjustments */
+@media (max-width: 768px) {
+  .workflow-sidebar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    max-width: 100%;
+    height: 50vh;
+    z-index: 50;
+    background: white;
+    border-top: 2px solid #e5e7eb;
+    border-radius: 1rem 1rem 0 0;
+    box-shadow: 0 -4px 6px -1px rgba(0, 0, 0, 0.1);
+  }
+
+  .react-flow-wrapper {
+    height: calc(100vh - 200px);
+  }
+
+  /* Make nodes smaller on mobile */
+  .react-flow__node {
+    font-size: 12px;
+  }
+
+  .react-flow__handle {
+    width: 8px;
+    height: 8px;
+  }
+}
+
+/* Tablet adjustments */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .workflow-sidebar {
+    max-width: 280px;
+  }
+  
+  .visual-workflow-builder {
+    display: grid;
+    grid-template-columns: 280px 1fr;
+    gap: 1rem;
+  }
+}
+
+/* Desktop adjustments */
+@media (min-width: 1025px) {
+  .visual-workflow-builder {
+    display: grid;
+    grid-template-columns: 320px 1fr;
+    gap: 1.5rem;
+  }
+}
+
+/* Node styles - responsive */
+.workflow-node {
+  padding: 0.75rem;
+  border-radius: 0.5rem;
+  min-width: 150px;
+  max-width: 250px;
+  background: white;
+  border: 2px solid #e5e7eb;
+  transition: all 0.2s;
+}
+
+.workflow-node:hover {
+  border-color: #8b5cf6;
+  box-shadow: 0 4px 6px -1px rgba(139, 92, 246, 0.1);
+}
+
+/* Make controls responsive */
+.react-flow__controls {
+  bottom: 10px;
+  left: 10px;
+}
+
+@media (max-width: 768px) {
+  .react-flow__controls {
+    bottom: auto;
+    top: 10px;
+    right: 10px;
+    left: auto;
+  }
+}
+
+/* Dialog responsive */
+.automation-dialog {
+  width: 95vw;
+  max-width: 1400px;
+  height: 90vh;
+  max-height: 900px;
+}
+
+@media (max-width: 768px) {
+  .automation-dialog {
+    width: 100vw;
+    height: 100vh;
+    max-width: 100%;
+    max-height: 100%;
+    margin: 0;
+    border-radius: 0;
+  }
+}
+
+/* Ensure touch events work properly on mobile */
+.react-flow__renderer {
+  touch-action: none;
+}
+
+/* Improve visibility on small screens */
+@media (max-width: 640px) {
+  .react-flow__edge-text {
+    font-size: 10px;
+  }
+  
+  .react-flow__node-default {
+    padding: 8px;
+  }
+}

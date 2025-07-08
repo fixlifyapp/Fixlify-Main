@@ -1,0 +1,55 @@
+
+project_id = "mqppvcrlvsgrsqelglod"
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public", "graphql_public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[auth]
+enabled = true
+site_url = "http://localhost:3000"
+additional_redirect_urls = ["https://lovable.dev"]
+jwt_expiry = 3600
+enable_signup = true
+
+[auth.email]
+enable_signup = true
+double_confirm_changes = false
+enable_confirmations = false
+
+[db]
+port = 54322
+
+[functions.telnyx-phone-manager]
+verify_jwt = false
+
+[functions.send-estimate]
+verify_jwt = true
+
+[functions.send-invoice] 
+verify_jwt = true
+
+[functions.send-estimate-sms]
+verify_jwt = true
+
+[functions.send-invoice-sms]
+verify_jwt = true
+
+[functions.telnyx-sms]
+verify_jwt = true
+
+[functions.mailgun-email]
+verify_jwt = true
+
+[functions.send-email]
+verify_jwt = true
+
+[functions.check-telnyx-key]
+verify_jwt = false
+
+[storage]
+enabled = true
+file_size_limit = "50MiB"
