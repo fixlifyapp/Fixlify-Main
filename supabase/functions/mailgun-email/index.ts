@@ -1,32 +1,17 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+
+import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS'
 };
 
-interface EmailRequest {
-  to: string;
-  subject: string;
-  html?: string;
-  text?: string;
-  from?: string;
-  replyTo?: string;
-  userId?: string;
-  template?: string;
-  variables?: Record<string, any>;
-  attachments?: Array<{
-    filename: string;
-    content: string;
-    contentType?: string;
-  }>;
-  // Document sending fields
-  documentType?: 'estimate' | 'invoice';
-  documentId?: string;
-  sendToClient?: boolean;
-  customMessage?: string;
-}
+const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+
+const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
 serve(async (req) => {
   // Handle CORS preflight requests
@@ -35,70 +20,90 @@ serve(async (req) => {
   }
 
   try {
-    const emailRequest: EmailRequest = await req.json();
-    console.log('Received email request:', emailRequest);
+    const { documentType, documentId, recipientEmail, recipientName } = await req.json();
     
-    // Handle document sending if documentType and documentId provided
-    if (emailRequest.documentType && emailRequest.documentId) {
-      return await handleDocumentSending(emailRequest);
+    console.log('📧 Sending email for:', { documentType, documentId, recipientEmail });
+
+    // Fetch the document data
+    let documentData;
+    let documentQuery;
+    
+    if (documentType === 'estimate') {
+      documentQuery = supabase
+        .from('estimates')
+        .select(`
+          *,
+          jobs:job_id (
+            *,
+            clients:client_id (*)
+          )
+        `)
+        .eq('id', documentId)
+        .single();
+    } else if (documentType === 'invoice') {
+      documentQuery = supabase
+        .from('invoices')
+        .select(`
+          *,
+          jobs:job_id (
+            *,
+            clients:client_id (*)
+          )
+        `)
+        .eq('id', documentId)
+        .single();
+    } else {
+      throw new Error(`Invalid document type: ${documentType}`);
     }
+
+    const { data: document, error: documentError } = await documentQuery;
     
-    // Get Mailgun credentials from environment variables
-    const mailgunApiKey = Deno.env.get('MAILGUN_API_KEY');
+    if (documentError) {
+      console.error('Document fetch error:', documentError);
+      throw new Error(`${documentType} not found`);
+    }
+
+    if (!document) {
+      throw new Error(`${documentType} not found`);
+    }
+
+    console.log('📄 Document found:', document.id);
+
+    // Get Mailgun configuration
     const mailgunDomain = Deno.env.get('MAILGUN_DOMAIN');
-    const mailgunFrom = Deno.env.get('MAILGUN_FROM_EMAIL') || 'noreply@fixlify.com';
-    
-    if (!mailgunApiKey || !mailgunDomain) {
-      console.error('Missing Mailgun configuration');
-      throw new Error('Email service not configured properly');
+    const mailgunApiKey = Deno.env.get('MAILGUN_API_KEY');
+
+    if (!mailgunDomain || !mailgunApiKey) {
+      throw new Error('Mailgun configuration missing');
     }
+
+    // Prepare email content
+    const documentNumber = documentType === 'estimate' ? document.estimate_number : document.invoice_number;
+    const clientName = document.jobs?.clients?.name || recipientName || 'Valued Customer';
+    const companyName = document.jobs?.clients?.company || 'Our Company';
     
-    // Initialize Supabase client for logging
-    const supabaseUrl = Deno.env.get('SUPABASE_URL');
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-    let supabase = null;
+    const subject = `${documentType === 'estimate' ? 'Estimate' : 'Invoice'} ${documentNumber}`;
+    const portalUrl = `https://be121f52-204f-481a-9959-4f68a3e3bea7.lovableproject.com/portal/${documentType}/${documentId}`;
     
-    if (supabaseUrl && supabaseServiceKey) {
-      supabase = createClient(supabaseUrl, supabaseServiceKey);
-    }    
-    // Build email data
-    const from = emailRequest.from || mailgunFrom;
-    const formData = new FormData();
-    formData.append('from', from);
-    formData.append('to', emailRequest.to);
-    formData.append('subject', emailRequest.subject);
-    
-    // Add both HTML and text versions
-    if (emailRequest.html) {
-      formData.append('html', emailRequest.html);
-    }
-    if (emailRequest.text) {
-      formData.append('text', emailRequest.text);
-    } else if (emailRequest.html) {
-      // Generate text version from HTML if not provided
-      const textVersion = emailRequest.html.replace(/<[^>]*>/g, '');
-      formData.append('text', textVersion);
-    }
-    
-    // Add reply-to if provided
-    if (emailRequest.replyTo) {
-      formData.append('h:Reply-To', emailRequest.replyTo);
-    }
-    
-    // Add attachments if provided
-    if (emailRequest.attachments && emailRequest.attachments.length > 0) {
-      for (const attachment of emailRequest.attachments) {
-        const blob = new Blob([attachment.content], {
-          type: attachment.contentType || 'application/octet-stream'
-        });
-        formData.append('attachment', blob, attachment.filename);
-      }
-    }
-    
-    // Send email via Mailgun API
-    console.log('Sending email via Mailgun...');
+    const emailBody = `
+      <h2>Hello ${clientName},</h2>
+      <p>Please find your ${documentType} attached.</p>
+      <p><strong>${documentType === 'estimate' ? 'Estimate' : 'Invoice'} #:</strong> ${documentNumber}</p>
+      <p><strong>Total:</strong> $${document.total}</p>
+      <p><a href="${portalUrl}" style="background-color: #007cba; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">View ${documentType === 'estimate' ? 'Estimate' : 'Invoice'}</a></p>
+      <p>Thank you for your business!</p>
+      <p>Best regards,<br>${companyName}</p>
+    `;
+
+    // Send email via Mailgun
     const mailgunUrl = `https://api.mailgun.net/v3/${mailgunDomain}/messages`;
     
+    const formData = new FormData();
+    formData.append('from', `${companyName} <noreply@${mailgunDomain}>`);
+    formData.append('to', recipientEmail);
+    formData.append('subject', subject);
+    formData.append('html', emailBody);
+
     const mailgunResponse = await fetch(mailgunUrl, {
       method: 'POST',
       headers: {
@@ -106,204 +111,53 @@ serve(async (req) => {
       },
       body: formData,
     });
-    
-    const responseText = await mailgunResponse.text();
-    console.log('Mailgun response:', mailgunResponse.status, responseText);
-    
+
     if (!mailgunResponse.ok) {
-      console.error('Mailgun API error:', responseText);
-      
-      // Log failure if Supabase is available
-      if (supabase && emailRequest.userId) {
-        try {
-          await supabase
-            .from('communication_logs')
-            .insert({
-              user_id: emailRequest.userId,
-              type: 'email',
-              recipient: emailRequest.to,
-              subject: emailRequest.subject,
-              message: emailRequest.text || emailRequest.html,
-              status: 'failed',
-              error: responseText,
-              metadata: {
-                mailgun_status: mailgunResponse.status,
-                from: from
-              }
-            });
-        } catch (logError) {
-          console.error('Failed to log email error:', logError);
-        }
-      }
-      
-      throw new Error(`Failed to send email: ${responseText}`);
-    }    
-    const mailgunResult = JSON.parse(responseText);
-    
-    // Log success if Supabase is available
-    if (supabase && emailRequest.userId) {
-      try {
-        await supabase
-          .from('communication_logs')
-          .insert({
-            user_id: emailRequest.userId,
-            type: 'email',
-            recipient: emailRequest.to,
-            subject: emailRequest.subject,
-            message: emailRequest.text || emailRequest.html,
-            status: 'sent',
-            metadata: {
-              mailgun_id: mailgunResult.id,
-              from: from
-            }
-          });
-      } catch (logError) {
-        console.error('Failed to log email success:', logError);
-      }
+      const errorText = await mailgunResponse.text();
+      console.error('Mailgun error:', errorText);
+      throw new Error(`Failed to send email: ${errorText}`);
     }
-    
+
+    const mailgunResult = await mailgunResponse.json();
+    console.log('✅ Email sent successfully:', mailgunResult.id);
+
+    // Log the communication
+    await supabase.from('communication_logs').insert({
+      client_id: document.jobs?.client_id || document.client_id,
+      job_id: document.job_id,
+      type: 'email',
+      direction: 'outbound',
+      recipient: recipientEmail,
+      subject: subject,
+      content: emailBody,
+      status: 'sent',
+      provider: 'mailgun',
+      external_id: mailgunResult.id,
+      sent_at: new Date().toISOString(),
+    });
+
     return new Response(
       JSON.stringify({ 
         success: true, 
-        message: 'Email sent successfully',
-        mailgunId: mailgunResult.id,
-        recipient: emailRequest.to
+        messageId: mailgunResult.id,
+        message: 'Email sent successfully' 
       }),
       {
-        status: 200,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       }
     );
-    
-  } catch (error) {
-    console.error('Error sending email:', error);
-    
+
+  } catch (error: any) {
+    console.error('❌ Error sending email:', error.message);
     return new Response(
       JSON.stringify({ 
         success: false, 
-        error: error.message || 'Failed to send email'
+        error: error.message 
       }),
       {
         status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       }
     );
   }
 });
-
-async function handleDocumentSending(emailRequest: EmailRequest) {
-  const { documentType, documentId, customMessage } = emailRequest;
-  
-  console.log(`📧 Sending ${documentType} ${documentId} via email`);
-  
-  // Get Supabase client
-  const supabaseUrl = Deno.env.get('SUPABASE_URL');
-  const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-  
-  if (!supabaseUrl || !supabaseServiceKey) {
-    throw new Error('Supabase configuration missing');
-  }
-  
-  const supabase = createClient(supabaseUrl, supabaseServiceKey);
-  
-  // Fetch document with client info
-  const tableName = documentType === 'estimate' ? 'estimates' : 'invoices';
-  const { data: document, error: docError } = await supabase
-    .from(tableName)
-    .select(`
-      *,
-      jobs!inner(
-        *,
-        clients!inner(*)
-      )
-    `)
-    .eq('id', documentId)
-    .single();
-
-  if (docError || !document) {
-    console.error('Document fetch error:', docError);
-    throw new Error(`${documentType} not found`);
-  }
-
-  const client = document.jobs.clients;
-  if (!client?.email) {
-    throw new Error('Client email not found');
-  }
-
-  // Generate email content
-  const subject = `${documentType === 'estimate' ? 'Estimate' : 'Invoice'} from ${document.jobs.company_name || 'Our Company'}`;
-  const portalUrl = `${Deno.env.get('SUPABASE_URL')?.replace('.supabase.co', '.vercel.app') || 'https://yourapp.com'}/${documentType}/${documentId}`;
-  
-  const html = `
-    <h2>${subject}</h2>
-    <p>Hello ${client.name},</p>
-    ${customMessage ? `<p>${customMessage}</p>` : ''}
-    <p>Please click the link below to view your ${documentType}:</p>
-    <a href="${portalUrl}" style="background: #007bff; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">View ${documentType}</a>
-    <p>Thank you for your business!</p>
-  `;
-
-  // Send email using existing Mailgun logic
-  const mailgunApiKey = Deno.env.get('MAILGUN_API_KEY');
-  const mailgunDomain = Deno.env.get('MAILGUN_DOMAIN');
-  const mailgunFrom = Deno.env.get('MAILGUN_FROM_EMAIL') || 'noreply@fixlify.com';
-  
-  if (!mailgunApiKey || !mailgunDomain) {
-    throw new Error('Mailgun configuration missing');
-  }
-  
-  const formData = new FormData();
-  formData.append('from', mailgunFrom);
-  formData.append('to', client.email);
-  formData.append('subject', subject);
-  formData.append('html', html);
-  
-  const mailgunResponse = await fetch(`https://api.mailgun.net/v3/${mailgunDomain}/messages`, {
-    method: 'POST',
-    headers: {
-      'Authorization': `Basic ${btoa(`api:${mailgunApiKey}`)}`,
-    },
-    body: formData,
-  });
-  
-  const responseText = await mailgunResponse.text();
-  console.log('Mailgun response:', mailgunResponse.status, responseText);
-  
-  if (!mailgunResponse.ok) {
-    throw new Error(`Failed to send email: ${responseText}`);
-  }
-  
-  // Log the communication
-  try {
-    await supabase
-      .from(`${documentType}_communications`)
-      .insert({
-        [documentType === 'estimate' ? 'estimate_id' : 'invoice_id']: documentId,
-        client_id: client.id,
-        job_id: document.job_id,
-        communication_type: 'email',
-        recipient: client.email,
-        subject: subject,
-        message: html,
-        status: 'sent',
-        sent_at: new Date().toISOString(),
-        metadata: {
-          mailgun_response: JSON.parse(responseText)
-        }
-      });
-  } catch (logError) {
-    console.error('Failed to log communication:', logError);
-  }
-  
-  return new Response(
-    JSON.stringify({ 
-      success: true, 
-      message: `${documentType} sent successfully`,
-      recipient: client.email
-    }),
-    {
-      status: 200,
-      headers: { 'Content-Type': 'application/json' }
-    }
-  );
-}

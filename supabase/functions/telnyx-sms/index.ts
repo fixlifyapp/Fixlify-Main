@@ -1,199 +1,149 @@
 
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS'
 };
 
+const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+
+const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
 serve(async (req) => {
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    );
-
-    const requestBody = await req.json();
-    console.log('SMS request:', requestBody);
+    const { documentType, documentId, recipientPhone, customMessage } = await req.json();
     
-    // Handle document sending
-    if (requestBody.documentType && requestBody.documentId) {
-      return await handleDocumentSMS(requestBody);
+    console.log('📱 Sending SMS for:', { documentType, documentId, recipientPhone });
+
+    // Fetch the document data
+    let documentData;
+    let documentQuery;
+    
+    if (documentType === 'estimate') {
+      documentQuery = supabase
+        .from('estimates')
+        .select(`
+          *,
+          jobs:job_id (
+            *,
+            clients:client_id (*)
+          )
+        `)
+        .eq('id', documentId)
+        .single();
+    } else if (documentType === 'invoice') {
+      documentQuery = supabase
+        .from('invoices')
+        .select(`
+          *,
+          jobs:job_id (
+            *,
+            clients:client_id (*)
+          )
+        `)
+        .eq('id', documentId)
+        .single();
+    } else {
+      throw new Error(`Invalid document type: ${documentType}`);
     }
+
+    const { data: document, error: documentError } = await documentQuery;
     
-    // Handle direct SMS
-    const { to, message, from } = requestBody;
-    console.log('Sending direct SMS:', { to, message, from });
+    if (documentError) {
+      console.error('Document fetch error:', documentError);
+      throw new Error(`${documentType} not found`);
+    }
 
-    const telnyx_api_key = Deno.env.get('TELNYX_API_KEY');
-    const telnyx_from_number = from || Deno.env.get('TELNYX_FROM_NUMBER');
+    if (!document) {
+      throw new Error(`${documentType} not found`);
+    }
 
-    if (!telnyx_api_key || !telnyx_from_number) {
+    console.log('📄 Document found:', document.id);
+
+    // Get Telnyx configuration
+    const telnyxApiKey = Deno.env.get('TELNYX_API_KEY');
+    const telnyxFromNumber = Deno.env.get('TELNYX_FROM_NUMBER');
+
+    if (!telnyxApiKey || !telnyxFromNumber) {
       throw new Error('Telnyx configuration missing');
     }
 
+    // Prepare SMS content
+    const documentNumber = documentType === 'estimate' ? document.estimate_number : document.invoice_number;
+    const clientName = document.jobs?.clients?.name || 'Valued Customer';
+    const companyName = document.jobs?.clients?.company || 'Our Company';
+    const portalUrl = `https://be121f52-204f-481a-9959-4f68a3e3bea7.lovableproject.com/portal/${documentType}/${documentId}`;
+    
+    const smsMessage = customMessage || `Hi ${clientName}, your ${documentType} ${documentNumber} for $${document.total} is ready. View it here: ${portalUrl} - ${companyName}`;
+
     // Send SMS via Telnyx
-    const response = await fetch('https://api.telnyx.com/v2/messages', {
+    const telnyxResponse = await fetch('https://api.telnyx.com/v2/messages', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${telnyx_api_key}`,
+        'Authorization': `Bearer ${telnyxApiKey}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        from: telnyx_from_number,
-        to: to,
-        text: message,
+        from: telnyxFromNumber,
+        to: recipientPhone,
+        text: smsMessage,
       }),
     });
 
-    const result = await response.json();
-    console.log('Telnyx response:', result);
-
-    if (!response.ok) {
-      throw new Error(`Telnyx error: ${result.errors?.[0]?.detail || 'Unknown error'}`);
+    if (!telnyxResponse.ok) {
+      const errorText = await telnyxResponse.text();
+      console.error('Telnyx error:', errorText);
+      throw new Error(`Failed to send SMS: ${errorText}`);
     }
+
+    const telnyxResult = await telnyxResponse.json();
+    console.log('✅ SMS sent successfully:', telnyxResult.data.id);
+
+    // Log the communication
+    await supabase.from('communication_logs').insert({
+      client_id: document.jobs?.client_id || document.client_id,
+      job_id: document.job_id,
+      type: 'sms',
+      direction: 'outbound',
+      recipient: recipientPhone,
+      content: smsMessage,
+      status: 'sent',
+      provider: 'telnyx',
+      external_id: telnyxResult.data.id,
+      sent_at: new Date().toISOString(),
+    });
 
     return new Response(
       JSON.stringify({ 
         success: true, 
-        message: 'SMS sent successfully', 
-        telnyx_id: result.data?.id,
-        result: result.data 
+        messageId: telnyxResult.data.id,
+        message: 'SMS sent successfully' 
       }),
-      { 
-        headers: { 
-          'Content-Type': 'application/json',
-          ...corsHeaders 
-        } 
+      {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       }
     );
 
-  } catch (error) {
-    console.error('Error sending SMS:', error);
+  } catch (error: any) {
+    console.error('❌ Error sending SMS:', error.message);
     return new Response(
       JSON.stringify({ 
         success: false, 
-        error: error.message || 'Failed to send SMS' 
+        error: error.message 
       }),
-      { 
+      {
         status: 500,
-        headers: { 
-          'Content-Type': 'application/json',
-          ...corsHeaders 
-        } 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       }
     );
   }
 });
-
-async function handleDocumentSMS(requestBody: any) {
-  const { documentType, documentId, customMessage } = requestBody;
-  
-  console.log(`📱 Sending ${documentType} ${documentId} via SMS`);
-  
-  const supabase = createClient(
-    Deno.env.get('SUPABASE_URL') ?? '',
-    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-  );
-  
-  // Fetch document with client info
-  const tableName = documentType === 'estimate' ? 'estimates' : 'invoices';
-  const { data: document, error: docError } = await supabase
-    .from(tableName)
-    .select(`
-      *,
-      jobs!inner(
-        *,
-        clients!inner(*)
-      )
-    `)
-    .eq('id', documentId)
-    .single();
-
-  if (docError || !document) {
-    console.error('Document fetch error:', docError);
-    throw new Error(`${documentType} not found`);
-  }
-
-  const client = document.jobs.clients;
-  if (!client?.phone) {
-    throw new Error('Client phone number not found');
-  }
-
-  // Generate SMS content
-  const portalUrl = `${Deno.env.get('SUPABASE_URL')?.replace('.supabase.co', '.vercel.app') || 'https://yourapp.com'}/${documentType}/${documentId}`;
-  
-  let smsMessage = `Hi ${client.name}, `;
-  if (customMessage) {
-    smsMessage += `${customMessage} `;
-  }
-  smsMessage += `Your ${documentType} is ready: ${portalUrl}`;
-
-  // Send SMS using existing Telnyx logic
-  const telnyx_api_key = Deno.env.get('TELNYX_API_KEY');
-  const telnyx_from_number = Deno.env.get('TELNYX_FROM_NUMBER');
-
-  if (!telnyx_api_key || !telnyx_from_number) {
-    throw new Error('Telnyx configuration missing');
-  }
-
-  const response = await fetch('https://api.telnyx.com/v2/messages', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${telnyx_api_key}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      from: telnyx_from_number,
-      to: client.phone,
-      text: smsMessage,
-    }),
-  });
-
-  const result = await response.json();
-  console.log('Telnyx response:', result);
-
-  if (!response.ok) {
-    throw new Error(`Telnyx error: ${result.errors?.[0]?.detail || 'Unknown error'}`);
-  }
-
-  // Log the communication
-  try {
-    await supabase
-      .from(`${documentType}_communications`)
-      .insert({
-        [documentType === 'estimate' ? 'estimate_id' : 'invoice_id']: documentId,
-        client_id: client.id,
-        job_id: document.job_id,
-        communication_type: 'sms',
-        recipient: client.phone,
-        message: smsMessage,
-        status: 'sent',
-        sent_at: new Date().toISOString(),
-        metadata: {
-          telnyx_response: result.data
-        }
-      });
-  } catch (logError) {
-    console.error('Failed to log communication:', logError);
-  }
-
-  return new Response(
-    JSON.stringify({ 
-      success: true, 
-      message: `${documentType} SMS sent successfully`,
-      recipient: client.phone,
-      telnyx_id: result.data?.id
-    }),
-    { 
-      headers: { 
-        'Content-Type': 'application/json'
-      } 
-    }
-  );
-}

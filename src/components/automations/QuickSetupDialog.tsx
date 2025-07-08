@@ -1,244 +1,157 @@
-import React from 'react';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { GradientButton } from '@/components/ui/gradient-button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Switch } from '@/components/ui/switch';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Info } from 'lucide-react';
 
-interface AutomationConfig {
-  templateId: string;
-  name: string;
-  description: string;
-  trigger: {
-    type: string;
-    conditions: any;
-  };
-  actions: {
-    sms: boolean;
-    email: boolean;
-    notification: boolean;
-  };
-  messageTemplates: {
-    sms?: string;
-    email?: {
-      subject: string;
-      body: string;
-    };
-  };
-  enabled: boolean;
-}
+import React, { useState } from 'react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Clock, Mail, MessageSquare, Calendar, Star } from "lucide-react";
 
 interface QuickSetupDialogProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  automationConfig: AutomationConfig | null;
-  onConfigChange: (config: AutomationConfig) => void;
-  onSave: () => void;
+  isOpen: boolean;
+  onClose: () => void;
+  onSelectTemplate: (template: any) => void;
 }
 
+const QUICK_TEMPLATES = [
+  {
+    id: 'appointment-reminder',
+    name: 'Appointment Reminder',
+    description: 'Send automatic reminders before appointments',
+    icon: Calendar,
+    category: 'Customer Service',
+    estimatedTime: '5 minutes',
+    popularity: 95,
+    steps: [
+      {
+        type: 'trigger',
+        name: 'Appointment Scheduled',
+        description: 'When a new appointment is created'
+      },
+      {
+        type: 'delay',
+        name: 'Wait 24 hours',
+        description: 'Wait until 24 hours before appointment'
+      },
+      {
+        type: 'action',
+        name: 'Send SMS Reminder',
+        description: 'Send reminder with appointment details',
+        template: 'Hi {client_name}, reminder: You have an appointment tomorrow at {appointment_time} for {service_type}. See you then!'
+      }
+    ]
+  },
+  {
+    id: 'follow-up-sequence',
+    name: 'Post-Service Follow-up',
+    description: 'Follow up with customers after service completion',
+    icon: MessageSquare,
+    category: 'Customer Success',
+    estimatedTime: '3 minutes',
+    popularity: 88,
+    steps: [
+      {
+        type: 'trigger',
+        name: 'Job Completed',
+        description: 'When a job status changes to completed'
+      },
+      {
+        type: 'delay',
+        name: 'Wait 2 hours',
+        description: 'Give time for service completion'
+      },
+      {
+        type: 'action',
+        name: 'Send Follow-up Email',
+        description: 'Send thank you and feedback request',
+        template: 'Hi {client_name}, thank you for choosing us! Your service on {appointment_date} at {appointment_time} for {service_type} is complete. We hope you\'re satisfied with our work. - {company_name} {company_phone}'
+      }
+    ]
+  }
+];
+
 export const QuickSetupDialog: React.FC<QuickSetupDialogProps> = ({
-  open,
-  onOpenChange,
-  automationConfig,
-  onConfigChange,
-  onSave
+  isOpen,
+  onClose,
+  onSelectTemplate
 }) => {
-  if (!automationConfig) return null;
+  const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
+
+  const handleSelectTemplate = (template: any) => {
+    onSelectTemplate(template);
+    onClose();
+  };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl w-[95vw] max-h-[90vh] p-0 flex flex-col">
-        <DialogHeader className="px-6 pt-6 pb-4 border-b">
-          <DialogTitle>Configure Automation</DialogTitle>
-          <DialogDescription>
-            Set up your automation with custom messages and triggers
-          </DialogDescription>
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Quick Setup - Choose a Template</DialogTitle>
         </DialogHeader>
 
-        <ScrollArea className="flex-1 px-6">
-          <div className="space-y-6 py-4">
-            {/* Automation Name */}
-            <div className="space-y-2">
-              <Label htmlFor="automation-name">Automation Name</Label>
-              <Input
-                id="automation-name"
-                value={automationConfig.name}
-                onChange={(e) => onConfigChange({
-                  ...automationConfig,
-                  name: e.target.value
-                })}
-                className="w-full"
-              />
-            </div>
-
-            {/* Description */}
-            <div className="space-y-2">
-              <Label htmlFor="description">Description</Label>
-              <Textarea
-                id="description"
-                value={automationConfig.description}
-                onChange={(e) => onConfigChange({
-                  ...automationConfig,
-                  description: e.target.value
-                })}
-                rows={2}
-                className="w-full resize-none"
-              />
-            </div>
-
-            {/* Actions */}
-            <div className="space-y-3">
-              <Label>Actions</Label>
-              <div className="space-y-3 rounded-lg border p-4">
-                <div className="flex items-center space-x-3">
-                  <Checkbox
-                    id="sms"
-                    checked={automationConfig.actions.sms}
-                    onCheckedChange={(checked) => onConfigChange({
-                      ...automationConfig,
-                      actions: { ...automationConfig.actions, sms: !!checked }
-                    })}
-                  />
-                  <Label htmlFor="sms" className="cursor-pointer font-normal">
-                    Send SMS
-                  </Label>
-                </div>
-                <div className="flex items-center space-x-3">
-                  <Checkbox
-                    id="email"
-                    checked={automationConfig.actions.email}
-                    onCheckedChange={(checked) => onConfigChange({
-                      ...automationConfig,
-                      actions: { ...automationConfig.actions, email: !!checked }
-                    })}
-                  />
-                  <Label htmlFor="email" className="cursor-pointer font-normal">
-                    Send Email
-                  </Label>
-                </div>
-              </div>
-            </div>
-
-            {/* SMS Message */}
-            {automationConfig.actions.sms && (
-              <div className="space-y-2">
-                <Label htmlFor="sms-message">SMS Message</Label>
-                <Textarea
-                  id="sms-message"
-                  value={automationConfig.messageTemplates.sms}
-                  onChange={(e) => onConfigChange({
-                    ...automationConfig,
-                    messageTemplates: {
-                      ...automationConfig.messageTemplates,
-                      sms: e.target.value
-                    }
-                  })}
-                  rows={3}
-                  className="w-full resize-none"
-                />
-                <div className="flex items-start gap-2 text-xs text-muted-foreground">
-                  <Info className="w-3 h-3 mt-0.5 flex-shrink-0" />
-                  <p>
-                    Available variables: {{client_name}}, {{appointment_time}}, {{service_type}}
-                  </p>
-                </div>
-              </div>
-            )}
-
-            {/* Email Configuration */}
-            {automationConfig.actions.email && (
-              <>
-                <div className="space-y-2">
-                  <Label htmlFor="email-subject">Email Subject</Label>
-                  <Input
-                    id="email-subject"
-                    value={automationConfig.messageTemplates.email?.subject}
-                    onChange={(e) => onConfigChange({
-                      ...automationConfig,
-                      messageTemplates: {
-                        ...automationConfig.messageTemplates,
-                        email: {
-                          ...automationConfig.messageTemplates.email!,
-                          subject: e.target.value
-                        }
-                      }
-                    })}
-                    className="w-full"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="email-body">Email Body</Label>
-                  <Textarea
-                    id="email-body"
-                    value={automationConfig.messageTemplates.email?.body}
-                    onChange={(e) => onConfigChange({
-                      ...automationConfig,
-                      messageTemplates: {
-                        ...automationConfig.messageTemplates,
-                        email: {
-                          ...automationConfig.messageTemplates.email!,
-                          body: e.target.value
-                        }
-                      }
-                    })}
-                    rows={6}
-                    className="w-full resize-none"
-                  />
-                  <div className="flex items-start gap-2 text-xs text-muted-foreground">
-                    <Info className="w-3 h-3 mt-0.5 flex-shrink-0" />
-                    <p>
-                      Available variables: {{client_name}}, {{appointment_date}}, {{appointment_time}}, 
-                      {{service_type}}, {{company_name}}, {{company_phone}}
-                    </p>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+          {QUICK_TEMPLATES.map((template) => {
+            const IconComponent = template.icon;
+            return (
+              <Card 
+                key={template.id} 
+                className={`cursor-pointer transition-all hover:shadow-md ${
+                  selectedTemplate === template.id ? 'ring-2 ring-primary' : ''
+                }`}
+                onClick={() => setSelectedTemplate(template.id)}
+              >
+                <CardHeader>
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 bg-primary/10 rounded-lg">
+                        <IconComponent className="h-5 w-5 text-primary" />
+                      </div>
+                      <div>
+                        <CardTitle className="text-lg">{template.name}</CardTitle>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          {template.description}
+                        </p>
+                      </div>
+                    </div>
                   </div>
-                </div>
-              </>
-            )}
+                  
+                  <div className="flex items-center gap-2 mt-3">
+                    <Badge variant="secondary">{template.category}</Badge>
+                    <Badge variant="outline" className="flex items-center gap-1">
+                      <Clock className="h-3 w-3" />
+                      {template.estimatedTime}
+                    </Badge>
+                    <Badge variant="outline" className="flex items-center gap-1">
+                      <Star className="h-3 w-3" />
+                      {template.popularity}% popular
+                    </Badge>
+                  </div>
+                </CardHeader>
 
-            {/* Enable Automation */}
-            <div className="flex items-center justify-between rounded-lg border p-4">
-              <div className="space-y-0.5">
-                <Label htmlFor="enabled" className="text-base cursor-pointer">
-                  Enable automation immediately
-                </Label>
-                <p className="text-sm text-muted-foreground">
-                  Start running this automation as soon as it's created
-                </p>
-              </div>
-              <Switch
-                id="enabled"
-                checked={automationConfig.enabled}
-                onCheckedChange={(checked) => onConfigChange({
-                  ...automationConfig,
-                  enabled: checked
-                })}
-              />
-            </div>
-          </div>
-        </ScrollArea>
+                <CardContent>
+                  <div className="space-y-2">
+                    <h4 className="text-sm font-medium">Workflow Steps:</h4>
+                    {template.steps.map((step, index) => (
+                      <div key={index} className="flex items-center gap-2 text-sm">
+                        <span className="w-5 h-5 bg-muted rounded-full flex items-center justify-center text-xs">
+                          {index + 1}
+                        </span>
+                        <span className="font-medium">{step.name}</span>
+                        <span className="text-muted-foreground">- {step.description}</span>
+                      </div>
+                    ))}
+                  </div>
 
-        <DialogFooter className="px-6 py-4 border-t bg-background">
-          <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 w-full">
-            <Button 
-              variant="outline" 
-              onClick={() => onOpenChange(false)}
-              className="w-full sm:w-auto"
-            >
-              Cancel
-            </Button>
-            <GradientButton 
-              onClick={onSave}
-              className="w-full sm:w-auto"
-            >
-              Create Automation
-            </GradientButton>
-          </div>
-        </DialogFooter>
+                  <Button 
+                    className="w-full mt-4"
+                    onClick={() => handleSelectTemplate(template)}
+                  >
+                    Use This Template
+                  </Button>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
       </DialogContent>
     </Dialog>
   );
