@@ -1,229 +1,220 @@
 
 import React, { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
-import { useCompanySettings } from '@/hooks/useCompanySettings';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
+import { Plus, Trash2, Save, Play } from "lucide-react";
+import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
-interface WorkflowCondition {
-  field: string;
-  operator: string;
-  value: string;
+interface SimpleWorkflowBuilderProps {
+  onSave?: (workflow: any) => void;
+  existingWorkflow?: any;
 }
 
-interface WorkflowData {
-  name: string;
-  description: string;
-  trigger_type: string;
-  conditions: WorkflowCondition[];
-  action_type: string;
-  action_config: {
-    message_template: string;
-    send_email: boolean;
-    send_sms: boolean;
-    delay_hours: number;
-  };
-}
-
-export default function SimpleWorkflowBuilder() {
-  const [workflowData, setWorkflowData] = useState<WorkflowData>({
-    name: '',
-    description: '',
-    trigger_type: 'job_created',
-    conditions: [],
-    action_type: 'send_notification',
-    action_config: {
-      message_template: '',
-      send_email: true,
-      send_sms: false,
-      delay_hours: 0,
-    }
-  });
-
+const SimpleWorkflowBuilder: React.FC<SimpleWorkflowBuilderProps> = ({ onSave, existingWorkflow }) => {
+  const [workflowName, setWorkflowName] = useState(existingWorkflow?.name || '');
+  const [triggerType, setTriggerType] = useState(existingWorkflow?.trigger_type || '');
+  const [actions, setActions] = useState(existingWorkflow?.steps || []);
   const [isLoading, setIsLoading] = useState(false);
-  const { toast } = useToast();
-  const { companySettings, isLoading: settingsLoading } = useCompanySettings();
 
-  const handleSaveWorkflow = async () => {
-    if (!workflowData.name || !workflowData.description) {
-      toast({
-        title: "Validation Error",
-        description: "Please fill in all required fields",
-        variant: "destructive",
-      });
+  const triggerOptions = [
+    { value: 'job_completed', label: 'Job Completed' },
+    { value: 'invoice_sent', label: 'Invoice Sent' },
+    { value: 'payment_received', label: 'Payment Received' },
+    { value: 'estimate_sent', label: 'Estimate Sent' },
+    { value: 'customer_created', label: 'New Customer' },
+  ];
+
+  const actionTypes = [
+    { value: 'send_email', label: 'Send Email' },
+    { value: 'send_sms', label: 'Send SMS' },
+    { value: 'create_task', label: 'Create Task' },
+    { value: 'update_status', label: 'Update Status' },
+  ];
+
+  const addAction = () => {
+    setActions([...actions, {
+      id: Date.now().toString(),
+      type: 'send_email',
+      config: {}
+    }]);
+  };
+
+  const removeAction = (index: number) => {
+    setActions(actions.filter((_, i) => i !== index));
+  };
+
+  const updateAction = (index: number, field: string, value: any) => {
+    const updatedActions = actions.map((action, i) => 
+      i === index ? { ...action, [field]: value } : action
+    );
+    setActions(updatedActions);
+  };
+
+  const saveWorkflow = async () => {
+    if (!workflowName || !triggerType) {
+      toast.error('Please provide workflow name and trigger');
       return;
     }
 
     setIsLoading(true);
-
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        throw new Error('User not authenticated');
-      }
-
-      const workflowPayload = {
-        user_id: user.id,
-        organization_id: user.id, // Using user_id as organization_id for now
-        name: workflowData.name,
-        description: workflowData.description,
-        status: 'active',
-        category: 'communication',
-        trigger_type: workflowData.trigger_type,
-        trigger_conditions: JSON.stringify({ conditions: workflowData.conditions }),
-        action_type: workflowData.action_type,
-        action_config: JSON.stringify(workflowData.action_config),
-        steps: JSON.stringify([
-          {
-            id: '1',
-            type: 'trigger',
-            config: { trigger_type: workflowData.trigger_type }
-          },
-          {
-            id: '2',
-            type: 'action',
-            config: workflowData.action_config
-          }
-        ]),
+      const workflowData = {
+        name: workflowName,
+        trigger_type: triggerType,
+        steps: actions,
         enabled: true,
-        settings: JSON.stringify({
-          notifications: true,
-          logging: true
-        })
+        organization_id: (await supabase.auth.getUser()).data.user?.id,
+        user_id: (await supabase.auth.getUser()).data.user?.id,
       };
 
       const { error } = await supabase
         .from('automation_workflows')
-        .insert(workflowPayload);
+        .insert(workflowData);
 
       if (error) throw error;
 
-      toast({
-        title: "Success",
-        description: "Workflow created successfully",
-      });
-
-      // Reset form
-      setWorkflowData({
-        name: '',
-        description: '',
-        trigger_type: 'job_created',
-        conditions: [],
-        action_type: 'send_notification',
-        action_config: {
-          message_template: '',
-          send_email: true,
-          send_sms: false,
-          delay_hours: 0,
-        }
-      });
-
+      toast.success('Workflow saved successfully!');
+      onSave?.(workflowData);
     } catch (error) {
-      console.error('Error creating workflow:', error);
-      toast({
-        title: "Error",
-        description: "Failed to create workflow",
-        variant: "destructive",
-      });
+      console.error('Error saving workflow:', error);
+      toast.error('Failed to save workflow');
     } finally {
       setIsLoading(false);
     }
   };
 
-  if (settingsLoading) {
-    return <div>Loading settings...</div>;
-  }
-
   return (
-    <Card className="w-full max-w-2xl mx-auto">
-      <CardHeader>
-        <CardTitle>Create Simple Workflow</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-6">
-        <div className="grid grid-cols-1 gap-4">
-          <div className="space-y-2">
-            <Label htmlFor="name">Workflow Name *</Label>
+    <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <CardTitle>Workflow Builder</CardTitle>
+          <CardDescription>Create automated workflows for your business</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div>
+            <Label htmlFor="workflow-name">Workflow Name</Label>
             <Input
-              id="name"
-              value={workflowData.name}
-              onChange={(e) => setWorkflowData(prev => ({ ...prev, name: e.target.value }))}
+              id="workflow-name"
+              value={workflowName}
+              onChange={(e) => setWorkflowName(e.target.value)}
               placeholder="Enter workflow name"
             />
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="description">Description *</Label>
-            <Textarea
-              id="description"
-              value={workflowData.description}
-              onChange={(e) => setWorkflowData(prev => ({ ...prev, description: e.target.value }))}
-              placeholder="Describe what this workflow does"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="trigger">Trigger Event</Label>
-            <Select
-              value={workflowData.trigger_type}
-              onValueChange={(value) => setWorkflowData(prev => ({ ...prev, trigger_type: value }))}
-            >
+          <div>
+            <Label htmlFor="trigger-type">Trigger</Label>
+            <Select value={triggerType} onValueChange={setTriggerType}>
               <SelectTrigger>
-                <SelectValue placeholder="Select trigger event" />
+                <SelectValue placeholder="Select a trigger" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="job_created">Job Created</SelectItem>
-                <SelectItem value="job_completed">Job Completed</SelectItem>
-                <SelectItem value="invoice_sent">Invoice Sent</SelectItem>
-                <SelectItem value="estimate_approved">Estimate Approved</SelectItem>
+                {triggerOptions.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
+        </CardContent>
+      </Card>
 
-          <div className="space-y-2">
-            <Label htmlFor="action">Action Type</Label>
-            <Select
-              value={workflowData.action_type}
-              onValueChange={(value) => setWorkflowData(prev => ({ ...prev, action_type: value }))}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select action" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="send_notification">Send Notification</SelectItem>
-                <SelectItem value="send_email">Send Email</SelectItem>
-                <SelectItem value="send_sms">Send SMS</SelectItem>
-                <SelectItem value="create_task">Create Task</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+      <Card>
+        <CardHeader>
+          <CardTitle>Actions</CardTitle>
+          <CardDescription>Define what happens when the trigger occurs</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {actions.map((action, index) => (
+            <Card key={action.id} className="p-4">
+              <div className="flex items-center justify-between mb-4">
+                <Badge variant="secondary">Action {index + 1}</Badge>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => removeAction(index)}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
+              
+              <div className="space-y-3">
+                <div>
+                  <Label>Action Type</Label>
+                  <Select 
+                    value={action.type} 
+                    onValueChange={(value) => updateAction(index, 'type', value)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {actionTypes.map((type) => (
+                        <SelectItem key={type.value} value={type.value}>
+                          {type.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="template">Message Template</Label>
-            <Textarea
-              id="template"
-              value={workflowData.action_config.message_template}
-              onChange={(e) => setWorkflowData(prev => ({
-                ...prev,
-                action_config: { ...prev.action_config, message_template: e.target.value }
-              }))}
-              placeholder="Enter your message template here..."
-            />
-          </div>
-        </div>
+                {(action.type === 'send_email' || action.type === 'send_sms') && (
+                  <>
+                    <div>
+                      <Label>Message Content</Label>
+                      <Textarea
+                        value={action.config?.content || ''}
+                        onChange={(e) => updateAction(index, 'config', { 
+                          ...action.config, 
+                          content: e.target.value 
+                        })}
+                        placeholder="Enter your message content"
+                      />
+                    </div>
+                    {action.type === 'send_email' && (
+                      <div>
+                        <Label>Subject</Label>
+                        <Input
+                          value={action.config?.subject || ''}
+                          onChange={(e) => updateAction(index, 'config', { 
+                            ...action.config, 
+                            subject: e.target.value 
+                          })}
+                          placeholder="Email subject"
+                        />
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+            </Card>
+          ))}
 
-        <Button 
-          onClick={handleSaveWorkflow} 
-          disabled={isLoading}
-          className="w-full"
-        >
-          {isLoading ? 'Creating...' : 'Create Workflow'}
+          <Button onClick={addAction} variant="outline" className="w-full">
+            <Plus className="h-4 w-4 mr-2" />
+            Add Action
+          </Button>
+        </CardContent>
+      </Card>
+
+      <div className="flex gap-2">
+        <Button onClick={saveWorkflow} disabled={isLoading}>
+          <Save className="h-4 w-4 mr-2" />
+          Save Workflow
         </Button>
-      </CardContent>
-    </Card>
+        <Button variant="outline">
+          <Play className="h-4 w-4 mr-2" />
+          Test Workflow
+        </Button>
+      </div>
+    </div>
   );
-}
+};
+
+export default SimpleWorkflowBuilder;

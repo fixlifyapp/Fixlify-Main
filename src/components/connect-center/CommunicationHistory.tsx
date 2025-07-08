@@ -1,219 +1,206 @@
-import { useState, useEffect } from 'react';
-import { format } from 'date-fns';
-import { Mail, Phone, MessageSquare, AlertCircle, CheckCircle, Clock, Search } from 'lucide-react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Skeleton } from '@/components/ui/skeleton';
-import { CommunicationService } from '@/services/communication-service';
-import { Communication, CommunicationType, CommunicationCategory } from '@/types/communications';
-import { toast } from 'sonner';
 
-export function CommunicationHistory() {
-  const [communications, setCommunications] = useState<Communication[]>([]);
+import React, { useState, useEffect } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Search, Mail, MessageSquare, Phone, Eye, Download } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+
+interface CommunicationLog {
+  id: string;
+  type: 'email' | 'sms' | 'call';
+  recipient: string;
+  subject?: string;
+  content?: string;
+  status: string;
+  sent_at: string;
+  client_id?: string;
+  job_id?: string;
+  metadata?: any;
+}
+
+const CommunicationHistory: React.FC = () => {
+  const [communications, setCommunications] = useState<CommunicationLog[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filters, setFilters] = useState({
-    search: '',
-    type: 'all' as CommunicationType | 'all',
-    category: 'all' as CommunicationCategory | 'all'
-  });
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterType, setFilterType] = useState<string>('all');
+  const [filterStatus, setFilterStatus] = useState<string>('all');
 
   useEffect(() => {
-    loadCommunications();
+    fetchCommunications();
   }, []);
 
-  const loadCommunications = async () => {
+  const fetchCommunications = async () => {
     try {
-      setLoading(true);
-      const data = await CommunicationService.getHistory();
-      setCommunications(data);
+      const { data, error } = await supabase
+        .from('communication_logs')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(100);
+
+      if (error) throw error;
+
+      setCommunications(data || []);
     } catch (error) {
-      console.error('Failed to load communications:', error);
+      console.error('Error fetching communications:', error);
       toast.error('Failed to load communication history');
     } finally {
       setLoading(false);
     }
   };
-  const getIcon = (type: CommunicationType) => {
+
+  const getTypeIcon = (type: string) => {
     switch (type) {
       case 'email':
         return <Mail className="h-4 w-4" />;
       case 'sms':
+        return <MessageSquare className="h-4 w-4" />;
+      case 'call':
         return <Phone className="h-4 w-4" />;
-      case 'internal_message':
+      default:
         return <MessageSquare className="h-4 w-4" />;
     }
   };
 
-  const getStatusIcon = (status: string) => {
-    switch (status) {
+  const getStatusColor = (status: string) => {
+    switch (status.toLowerCase()) {
       case 'sent':
       case 'delivered':
-        return <CheckCircle className="h-4 w-4 text-green-500" />;
-      case 'failed':
-        return <AlertCircle className="h-4 w-4 text-red-500" />;
+        return 'success';
       case 'pending':
-        return <Clock className="h-4 w-4 text-yellow-500" />;
+        return 'warning';
+      case 'failed':
+      case 'error':
+        return 'destructive';
       default:
-        return null;
+        return 'secondary';
     }
   };
 
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'sent':
-        return <Badge variant="outline">Sent</Badge>;
-      case 'delivered':
-        return <Badge variant="default">Delivered</Badge>;
-      case 'failed':
-        return <Badge variant="destructive">Failed</Badge>;
-      case 'pending':
-        return <Badge variant="secondary">Pending</Badge>;
-      case 'read':
-        return <Badge variant="default">Read</Badge>;
-      default:
-        return <Badge>{status}</Badge>;
-    }
-  };
   const filteredCommunications = communications.filter(comm => {
-    const matchesSearch = !filters.search || 
-      comm.to.toLowerCase().includes(filters.search.toLowerCase()) ||
-      comm.content.toLowerCase().includes(filters.search.toLowerCase()) ||
-      (comm.subject && comm.subject.toLowerCase().includes(filters.search.toLowerCase()));
+    const matchesSearch = !searchTerm || 
+      comm.recipient.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      comm.subject?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      comm.content?.toLowerCase().includes(searchTerm.toLowerCase());
     
-    const matchesType = filters.type === 'all' || comm.type === filters.type;
-    const matchesCategory = filters.category === 'all' || comm.category === filters.category;
+    const matchesType = filterType === 'all' || comm.type === filterType;
+    const matchesStatus = filterStatus === 'all' || comm.status === filterStatus;
     
-    return matchesSearch && matchesType && matchesCategory;
+    return matchesSearch && matchesType && matchesStatus;
   });
 
   if (loading) {
     return (
       <Card>
-        <CardHeader>
-          <CardTitle>Communication History</CardTitle>
-          <CardDescription>Loading communications...</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-3">
-            {[1, 2, 3].map(i => (
-              <Skeleton key={i} className="h-16 w-full" />
-            ))}
-          </div>
+        <CardContent className="flex items-center justify-center h-64">
+          <div className="animate-pulse">Loading communication history...</div>
         </CardContent>
       </Card>
     );
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Communication History</CardTitle>
-        <CardDescription>View all your sent communications</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <div className="flex gap-4 mb-4">
-          <div className="flex-1">
-            <Input
-              placeholder="Search communications..."
-              value={filters.search}
-              onChange={(e) => setFilters(prev => ({ ...prev, search: e.target.value }))}
-              className="w-full"
-              icon={<Search className="h-4 w-4" />}
-            />
-          </div>          <Select
-            value={filters.type}
-            onValueChange={(value) => setFilters(prev => ({ ...prev, type: value as any }))}
-          >
-            <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="Type" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Types</SelectItem>
-              <SelectItem value="email">Email</SelectItem>
-              <SelectItem value="sms">SMS</SelectItem>
-              <SelectItem value="internal_message">Internal</SelectItem>
-            </SelectContent>
-          </Select>
-          
-          <Select
-            value={filters.category}
-            onValueChange={(value) => setFilters(prev => ({ ...prev, category: value as any }))}
-          >
-            <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="Category" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Categories</SelectItem>
-              <SelectItem value="estimate">Estimate</SelectItem>
-              <SelectItem value="invoice">Invoice</SelectItem>
-              <SelectItem value="notification">Notification</SelectItem>
-              <SelectItem value="marketing">Marketing</SelectItem>
-              <SelectItem value="system">System</SelectItem>
-              <SelectItem value="general">General</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-        <ScrollArea className="h-[600px]">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Type</TableHead>
-                <TableHead>To</TableHead>
-                <TableHead>Subject/Content</TableHead>
-                <TableHead>Category</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Sent At</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredCommunications.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={6} className="text-center text-muted-foreground">
-                    No communications found
-                  </TableCell>
-                </TableRow>
-              ) : (
-                filteredCommunications.map((comm) => (
-                  <TableRow key={comm.id}>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        {getIcon(comm.type)}
+    <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <CardTitle>Communication History</CardTitle>
+          <CardDescription>
+            View all sent emails, SMS messages, and call logs
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-col sm:flex-row gap-4 mb-6">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search communications..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+            
+            <Select value={filterType} onValueChange={setFilterType}>
+              <SelectTrigger className="w-full sm:w-40">
+                <SelectValue placeholder="Type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Types</SelectItem>
+                <SelectItem value="email">Email</SelectItem>
+                <SelectItem value="sms">SMS</SelectItem>
+                <SelectItem value="call">Call</SelectItem>
+              </SelectContent>
+            </Select>
+            
+            <Select value={filterStatus} onValueChange={setFilterStatus}>
+              <SelectTrigger className="w-full sm:w-40">
+                <SelectValue placeholder="Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Status</SelectItem>
+                <SelectItem value="sent">Sent</SelectItem>
+                <SelectItem value="delivered">Delivered</SelectItem>
+                <SelectItem value="pending">Pending</SelectItem>
+                <SelectItem value="failed">Failed</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-4">
+            {filteredCommunications.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                No communications found matching your criteria.
+              </div>
+            ) : (
+              filteredCommunications.map((comm) => (
+                <Card key={comm.id} className="p-4">
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-start gap-3 flex-1">
+                      <div className="mt-1">
+                        {getTypeIcon(comm.type)}
                       </div>
-                    </TableCell>
-                    <TableCell className="font-medium">{comm.to}</TableCell>
-                    <TableCell className="max-w-[400px]">
-                      <div>
-                        {comm.subject && (
-                          <div className="font-medium">{comm.subject}</div>
-                        )}
-                        <div className="text-sm text-muted-foreground truncate">
-                          {comm.content}
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="font-medium">{comm.recipient}</span>
+                          <Badge variant={getStatusColor(comm.status)}>
+                            {comm.status}
+                          </Badge>
                         </div>
+                        {comm.subject && (
+                          <p className="text-sm font-medium text-muted-foreground mb-1">
+                            {comm.subject}
+                          </p>
+                        )}
+                        {comm.content && (
+                          <p className="text-sm text-muted-foreground line-clamp-2">
+                            {comm.content}
+                          </p>
+                        )}
+                        <p className="text-xs text-muted-foreground mt-2">
+                          {new Date(comm.sent_at).toLocaleString()}
+                        </p>
                       </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="outline">{comm.category}</Badge>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        {getStatusIcon(comm.status)}
-                        {getStatusBadge(comm.status)}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      {comm.sent_at && format(new Date(comm.sent_at), 'MMM d, h:mm a')}
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </ScrollArea>
-      </CardContent>
-    </Card>
+                    </div>
+                    <div className="flex gap-2 ml-4">
+                      <Button variant="ghost" size="sm">
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                      <Button variant="ghost" size="sm">
+                        <Download className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                </Card>
+              ))
+            )}
+          </div>
+        </CardContent>
+      </Card>
+    </div>
   );
-}
+};
+
+export default CommunicationHistory;

@@ -1,297 +1,158 @@
-import { useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+
+import React, { useState } from 'react';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Copy, Mail, MessageSquare, ExternalLink, Settings } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import { Copy, Link, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 
 interface GeneratePortalLinkDialogProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
   clientId: string;
   clientName: string;
-  clientEmail?: string;
-  clientPhone?: string;
+  children: React.ReactNode;
 }
 
-export const GeneratePortalLinkDialog = ({
-  open,
-  onOpenChange,
+const GeneratePortalLinkDialog: React.FC<GeneratePortalLinkDialogProps> = ({
   clientId,
   clientName,
-  clientEmail,
-  clientPhone
-}: GeneratePortalLinkDialogProps) => {
+  children
+}) => {
+  const [isOpen, setIsOpen] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [portalLink, setPortalLink] = useState<string>("");
-  const [sendMethod, setSendMethod] = useState<"copy" | "email" | "sms">("copy");
-  const [customMessage, setCustomMessage] = useState("");
-  const [validHours, setValidHours] = useState(72);
-  const [permissions, setPermissions] = useState({
-    view_estimates: true,
-    view_invoices: true,
-    make_payments: false
-  });
-  const [showAdvanced, setShowAdvanced] = useState(false);
+  const [generatedLink, setGeneratedLink] = useState('');
+  const [hoursValid, setHoursValid] = useState('24');
+  const [domainRestriction, setDomainRestriction] = useState('');
+  const [allowDownloads, setAllowDownloads] = useState(true);
+  const [allowUploads, setAllowUploads] = useState(false);
 
-  const generatePortalLink = async () => {
+  const generateLink = async () => {
+    setIsGenerating(true);
     try {
-      setIsGenerating(true);
-      
-      // Use the Supabase RPC function to generate portal access
-      const { data: tokenData, error: tokenError } = await supabase
-        .rpc('generate_portal_access', {
-          p_client_id: clientId,
-          p_permissions: permissions,
-          p_hours_valid: validHours,
-          p_domain_restriction: 'hub.fixlify.app'
-        });
+      // Call the generate portal link function
+      const { data, error } = await supabase.rpc('generate_portal_access_link', {
+        p_client_id: clientId,
+        p_hours_valid: parseInt(hoursValid),
+        p_domain: domainRestriction || null,
+        p_permissions: {
+          downloads: allowDownloads,
+          uploads: allowUploads
+        }
+      });
 
-      if (tokenError || !tokenData) throw tokenError;
-      
-      // Generate the portal URL for hub.fixlify.app
-      const portalUrl = `https://hub.fixlify.app/portal/${tokenData}`;
-      setPortalLink(portalUrl);
-      
+      if (error) throw error;
+
+      const baseUrl = window.location.origin;
+      const portalLink = `${baseUrl}/portal/${data}`;
+      setGeneratedLink(portalLink);
       toast.success('Portal link generated successfully!');
-    } catch (err: any) {
-      console.error('Generate portal link error:', err);
+    } catch (error) {
+      console.error('Error generating portal link:', error);
       toast.error('Failed to generate portal link');
     } finally {
       setIsGenerating(false);
     }
   };
 
-  const copyToClipboard = () => {
-    navigator.clipboard.writeText(portalLink);
-    toast.success('Link copied to clipboard!');
-  };
-
-  const sendPortalLink = async () => {
-    if (!portalLink) return;
-
+  const copyLink = async () => {
     try {
-      const message = customMessage || `Hi ${clientName}! Access your secure client portal here: ${portalLink}`;
-
-      // Get current user ID for message storage
-      const { data: { user } } = await supabase.auth.getUser();
-      const userId = user?.id;
-
-      if (sendMethod === "email" && clientEmail) {
-        // Use send-email function for actual email sending
-        const { error } = await supabase.functions.invoke('send-email', {
-          body: {
-            to: clientEmail,
-            subject: 'Your Client Portal Access',
-            html: `<p>${message}</p>`,
-            client_id: clientId
-          }
-        });
-        
-        if (error) throw error;
-        toast.success('Portal link sent via email!');
-      } else if (sendMethod === "sms" && clientPhone) {
-        const { error } = await supabase.functions.invoke('telnyx-sms', {
-          body: {
-            recipientPhone: clientPhone,
-            message,
-            client_id: clientId,
-            job_id: '',
-            user_id: userId
-          }
-        });
-        
-        if (error) throw error;
-        toast.success('Portal link sent via SMS!');
-      }
-      
-      onOpenChange(false);
-    } catch (err: any) {
-      console.error('Send portal link error:', err);
-      toast.error('Failed to send portal link');
+      await navigator.clipboard.writeText(generatedLink);
+      toast.success('Link copied to clipboard!');
+    } catch (error) {
+      toast.error('Failed to copy link');
     }
   };
 
-  const openPortalLink = () => {
-    if (portalLink) {
-      window.open(portalLink, '_blank');
-    }
-  };
-
-  const handlePermissionChange = (permission: string, checked: boolean) => {
-    setPermissions(prev => ({
-      ...prev,
-      [permission]: checked
-    }));
+  const openLink = () => {
+    window.open(generatedLink, '_blank');
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg">
+    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+      <DialogTrigger asChild>
+        {children}
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Generate Client Portal Link</DialogTitle>
+          <DialogTitle>Generate Portal Link</DialogTitle>
+          <DialogDescription>
+            Create a secure access link for {clientName} to view their documents and project details.
+          </DialogDescription>
         </DialogHeader>
-
-        <div className="space-y-6">
-          <div className="text-sm text-gray-600">
-            Generate a secure access link for <strong>{clientName}</strong> to access their client portal at{" "}
-            <span className="font-mono text-blue-600">hub.fixlify.app</span>
+        
+        <div className="space-y-4">
+          <div>
+            <Label htmlFor="hours-valid">Link Valid For (Hours)</Label>
+            <Select value={hoursValid} onValueChange={setHoursValid}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="1">1 Hour</SelectItem>
+                <SelectItem value="6">6 Hours</SelectItem>
+                <SelectItem value="24">24 Hours</SelectItem>
+                <SelectItem value="72">3 Days</SelectItem>
+                <SelectItem value="168">1 Week</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
-          {!portalLink && (
-            <>
-              <div className="space-y-4">
-                <div>
-                  <Label htmlFor="validHours">Link Valid For (hours)</Label>
-                  <Input
-                    id="validHours"
-                    type="number"
-                    value={validHours}
-                    onChange={(e) => setValidHours(parseInt(e.target.value) || 72)}
-                    min="1"
-                    max="168"
-                    className="mt-1"
-                  />
-                  <p className="text-xs text-gray-500 mt-1">Default: 72 hours (3 days)</p>
-                </div>
+          <div>
+            <Label htmlFor="domain-restriction">Domain Restriction (Optional)</Label>
+            <Input
+              id="domain-restriction"
+              value={domainRestriction}
+              onChange={(e) => setDomainRestriction(e.target.value)}
+              placeholder="example.com"
+            />
+          </div>
 
-                <div>
-                  <div className="flex items-center justify-between mb-3">
-                    <Label>Client Permissions</Label>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setShowAdvanced(!showAdvanced)}
-                    >
-                      <Settings className="h-4 w-4 mr-1" />
-                      {showAdvanced ? 'Hide' : 'Show'} Advanced
-                    </Button>
-                  </div>
-                  
-                  <div className="space-y-3">
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
-                        id="view_estimates"
-                        checked={permissions.view_estimates}
-                        onCheckedChange={(checked) => handlePermissionChange('view_estimates', checked as boolean)}
-                      />
-                      <Label htmlFor="view_estimates">View Estimates</Label>
-                    </div>
-                    
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
-                        id="view_invoices"
-                        checked={permissions.view_invoices}
-                        onCheckedChange={(checked) => handlePermissionChange('view_invoices', checked as boolean)}
-                      />
-                      <Label htmlFor="view_invoices">View Invoices</Label>
-                    </div>
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <Label htmlFor="allow-downloads">Allow Downloads</Label>
+              <Switch
+                id="allow-downloads"
+                checked={allowDownloads}
+                onCheckedChange={setAllowDownloads}
+              />
+            </div>
+            
+            <div className="flex items-center justify-between">
+              <Label htmlFor="allow-uploads">Allow Uploads</Label>
+              <Switch
+                id="allow-uploads"
+                checked={allowUploads}
+                onCheckedChange={setAllowUploads}
+              />
+            </div>
+          </div>
 
-                    {showAdvanced && (
-                      <div className="flex items-center space-x-2">
-                        <Checkbox
-                          id="make_payments"
-                          checked={permissions.make_payments}
-                          onCheckedChange={(checked) => handlePermissionChange('make_payments', checked as boolean)}
-                        />
-                        <Label htmlFor="make_payments">Make Payments (Coming Soon)</Label>
-                      </div>
-                    )}
-                  </div>
-                </div>
+          {!generatedLink ? (
+            <Button 
+              onClick={generateLink} 
+              disabled={isGenerating}
+              className="w-full"
+            >
+              <Link className="h-4 w-4 mr-2" />
+              {isGenerating ? 'Generating...' : 'Generate Portal Link'}
+            </Button>
+          ) : (
+            <div className="space-y-3">
+              <div className="p-3 bg-muted rounded-lg">
+                <p className="text-sm break-all">{generatedLink}</p>
               </div>
-
-              <Button 
-                onClick={generatePortalLink}
-                disabled={isGenerating}
-                className="w-full"
-              >
-                {isGenerating ? "Generating..." : "Generate Portal Link"}
-              </Button>
-            </>
-          )}
-
-          {portalLink && (
-            <div className="space-y-4">
-              <div className="p-3 bg-gray-50 rounded-lg">
-                <div className="flex items-center justify-between gap-2">
-                  <Input 
-                    value={portalLink} 
-                    readOnly 
-                    className="text-xs"
-                  />
-                  <div className="flex gap-1">
-                    <Button 
-                      size="sm" 
-                      variant="outline"
-                      onClick={copyToClipboard}
-                    >
-                      <Copy className="h-4 w-4" />
-                    </Button>
-                    <Button 
-                      size="sm" 
-                      variant="outline"
-                      onClick={openPortalLink}
-                    >
-                      <ExternalLink className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-                
-                <div className="mt-2 text-xs text-gray-500">
-                  <p>Valid for {validHours} hours • Domain: hub.fixlify.app</p>
-                  <p>Permissions: {Object.entries(permissions).filter(([_, value]) => value).map(([key]) => key.replace('_', ' ')).join(', ')}</p>
-                </div>
-              </div>
-
-              <div className="space-y-3">
-                <Label>Send Method</Label>
-                <RadioGroup value={sendMethod} onValueChange={(value: any) => setSendMethod(value)}>
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="copy" id="copy" />
-                    <Label htmlFor="copy">Copy to clipboard only</Label>
-                  </div>
-                  
-                  {clientPhone && (
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="sms" id="sms" />
-                      <Label htmlFor="sms" className="flex items-center gap-2">
-                        <MessageSquare className="h-4 w-4" />
-                        Send via SMS ({clientPhone})
-                      </Label>
-                    </div>
-                  )}
-                </RadioGroup>
-              </div>
-
-              {sendMethod === "sms" && (
-                <div className="space-y-2">
-                  <Label>Custom Message (optional)</Label>
-                  <Input
-                    value={customMessage}
-                    onChange={(e) => setCustomMessage(e.target.value)}
-                    placeholder={`Hi ${clientName}! Access your secure client portal here: ${portalLink}`}
-                  />
-                </div>
-              )}
-
               <div className="flex gap-2">
-                <Button variant="outline" onClick={() => onOpenChange(false)} className="flex-1">
-                  Cancel
+                <Button onClick={copyLink} variant="outline" className="flex-1">
+                  <Copy className="h-4 w-4 mr-2" />
+                  Copy Link
                 </Button>
-                {sendMethod !== "copy" ? (
-                  <Button onClick={sendPortalLink} className="flex-1">
-                    Send Link
-                  </Button>
-                ) : (
-                  <Button onClick={copyToClipboard} className="flex-1">
-                    Copy Link
-                  </Button>
-                )}
+                <Button onClick={openLink} variant="outline" className="flex-1">
+                  <ExternalLink className="h-4 w-4 mr-2" />
+                  Open Portal
+                </Button>
               </div>
             </div>
           )}
@@ -300,3 +161,5 @@ export const GeneratePortalLinkDialog = ({
     </Dialog>
   );
 };
+
+export default GeneratePortalLinkDialog;
