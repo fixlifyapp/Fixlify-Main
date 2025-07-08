@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { SteppedInvoiceBuilder } from './SteppedInvoiceBuilder';
 import { Estimate, Invoice } from "@/types/documents";
@@ -12,7 +11,7 @@ interface InvoiceBuilderDialogProps {
   onInvoiceCreated?: (invoice: Invoice) => void;
 }
 
-export const InvoiceBuilderDialog = ({
+export const InvoiceBuilderDialog: React.FC<InvoiceBuilderDialogProps> = ({
   open,
   onOpenChange,
   jobId,
@@ -22,12 +21,10 @@ export const InvoiceBuilderDialog = ({
 }: InvoiceBuilderDialogProps) => {
   return (
     <SteppedInvoiceBuilder
-      open={open}
+      isOpen={open}
       onOpenChange={onOpenChange}
       jobId={jobId}
-      existingInvoice={invoice}
-      estimateToConvert={estimate}
-      onInvoiceCreated={onInvoiceCreated}
+      onInvoiceCreated={(invoice) => onInvoiceCreated(invoice)}
     />
   );
 };

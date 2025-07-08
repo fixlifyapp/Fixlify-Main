@@ -1,149 +1,112 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, ArrowRight } from 'lucide-react';
+import { Stepper } from '@/components/ui/stepper';
 import { InvoiceFormStep } from './invoice-builder/InvoiceFormStep';
 import { InvoicePreviewStep } from './invoice-builder/InvoicePreviewStep';
 import { InvoiceSendStep } from './invoice-builder/InvoiceSendStep';
 import { useInvoiceBuilder } from '@/hooks/useInvoiceBuilder';
-import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
 
-interface SteppedInvoiceBuilderProps {
+export interface SteppedInvoiceBuilderProps {
   isOpen: boolean;
-  onClose: () => void;
+  onOpenChange: (open: boolean) => void;
   jobId: string;
-  clientId?: string;
-  estimateId?: string;
+  onInvoiceCreated?: () => void;
 }
 
-export function SteppedInvoiceBuilder({ 
-  isOpen, 
-  onClose, 
-  jobId, 
-  clientId, 
-  estimateId 
-}: SteppedInvoiceBuilderProps) {
-  const [currentStep, setCurrentStep] = useState(1);
-  const [jobData, setJobData] = useState<any>(null);
-  const [clientData, setClientData] = useState<any>(null);
-  
-  const {
-    invoiceData,
-    updateInvoiceData,
-    saveInvoice,
-    isLoading
-  } = useInvoiceBuilder(jobId);
+const steps = [
+  { title: 'Details', description: 'Invoice information' },
+  { title: 'Preview', description: 'Review invoice' },
+  { title: 'Send', description: 'Send to client' }
+];
 
-  useEffect(() => {
-    if (isOpen && jobId) {
-      fetchJobAndClientData();
-    }
-  }, [isOpen, jobId]);
-
-  const fetchJobAndClientData = async () => {
-    try {
-      // Fetch job data
-      const { data: job, error: jobError } = await supabase
-        .from('jobs')
-        .select('*')
-        .eq('id', jobId)
-        .single();
-
-      if (jobError) throw jobError;
-      setJobData(job);
-
-      // Fetch client data
-      if (job.client_id) {
-        const { data: client, error: clientError } = await supabase
-          .from('clients')
-          .select('*')
-          .eq('id', job.client_id)
-          .single();
-
-        if (clientError) throw clientError;
-        setClientData(client);
-      }
-    } catch (error) {
-      console.error('Error fetching data:', error);
-      toast.error('Failed to load job data');
-    }
-  };
+export const SteppedInvoiceBuilder: React.FC<SteppedInvoiceBuilderProps> = ({
+  isOpen,
+  onOpenChange,
+  jobId,
+  onInvoiceCreated
+}) => {
+  const [currentStep, setCurrentStep] = useState(0);
+  const { invoiceData, updateInvoiceData, saveInvoice, isSaving } = useInvoiceBuilder(jobId);
 
   const handleNext = () => {
-    if (currentStep < 3) {
+    if (currentStep < steps.length - 1) {
       setCurrentStep(currentStep + 1);
     }
   };
 
-  const handlePrevious = () => {
-    if (currentStep > 1) {
+  const handleBack = () => {
+    if (currentStep > 0) {
       setCurrentStep(currentStep - 1);
     }
   };
 
   const handleClose = () => {
-    setCurrentStep(1);
-    onClose();
+    setCurrentStep(0);
+    onOpenChange(false);
+  };
+
+  const handleSave = async () => {
+    const success = await saveInvoice();
+    if (success) {
+      onInvoiceCreated?.();
+      handleClose();
+    }
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={handleClose}>
+    <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Create Invoice - Step {currentStep} of 3</DialogTitle>
+          <DialogTitle>Create Invoice</DialogTitle>
         </DialogHeader>
 
-        {currentStep === 1 && (
-          <InvoiceFormStep
-            invoiceData={invoiceData}
-            onUpdate={updateInvoiceData}
-            jobData={jobData}
-            clientData={clientData}
-            estimateId={estimateId}
-          />
-        )}
+        <div className="space-y-6">
+          <Stepper currentStep={currentStep} steps={steps} />
 
-        {currentStep === 2 && (
-          <InvoicePreviewStep
-            invoiceData={invoiceData}
-            jobData={jobData}
-            clientData={clientData}
-          />
-        )}
+          <div className="min-h-[400px]">
+            {currentStep === 0 && (
+              <InvoiceFormStep
+                invoiceData={invoiceData}
+                onUpdate={updateInvoiceData}
+              />
+            )}
+            {currentStep === 1 && (
+              <InvoicePreviewStep invoiceData={invoiceData} />
+            )}
+            {currentStep === 2 && (
+              <InvoiceSendStep 
+                invoiceId={invoiceData.id || ''}
+                onClose={handleClose}
+              />
+            )}
+          </div>
 
-        {currentStep === 3 && (
-          <InvoiceSendStep
-            invoiceData={invoiceData}
-            jobData={jobData}
-            clientData={clientData}
-            onClose={handleClose}
-          />
-        )}
-
-        <div className="flex justify-between mt-6">
-          <Button
-            variant="outline"
-            onClick={handlePrevious}
-            disabled={currentStep === 1}
-          >
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Previous
-          </Button>
-
-          {currentStep < 3 ? (
-            <Button onClick={handleNext}>
-              Next
-              <ArrowRight className="w-4 h-4 ml-2" />
+          <div className="flex justify-between">
+            <Button
+              variant="outline"
+              onClick={handleBack}
+              disabled={currentStep === 0}
+            >
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Back
             </Button>
-          ) : (
-            <Button variant="outline" onClick={handleClose}>
-              Close
-            </Button>
-          )}
+
+            {currentStep === steps.length - 1 ? (
+              <Button onClick={handleSave} disabled={isSaving}>
+                {isSaving ? 'Saving...' : 'Save & Send'}
+              </Button>
+            ) : (
+              <Button onClick={handleNext}>
+                Next
+                <ArrowRight className="w-4 h-4 ml-2" />
+              </Button>
+            )}
+          </div>
         </div>
       </DialogContent>
     </Dialog>
   );
-}
+};
