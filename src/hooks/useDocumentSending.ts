@@ -50,8 +50,8 @@ export const useDocumentSending = () => {
       // Call the appropriate edge function
       const { data, error } = await supabase.functions.invoke(functionName, {
         body: {
-          estimateId: documentType === 'estimate' ? documentId : undefined,
-          invoiceId: documentType === 'invoice' ? documentId : undefined,
+          estimate_id: documentType === 'estimate' ? documentId : undefined,
+          invoice_id: documentType === 'invoice' ? documentId : undefined,
           sendToClient: true,
           customMessage: customMessage,
           // For SMS, we might need additional params
