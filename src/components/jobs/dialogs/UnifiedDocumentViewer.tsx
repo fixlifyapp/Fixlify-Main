@@ -57,3 +57,4 @@ const UnifiedDocumentViewer: React.FC<UnifiedDocumentViewerProps> = ({
 };
 
 export default UnifiedDocumentViewer;
+export { UnifiedDocumentViewer };

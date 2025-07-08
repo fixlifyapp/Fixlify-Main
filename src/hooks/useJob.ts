@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 
 export function useJob(jobId: string) {
-  return useQuery({
+  const queryResult = useQuery({
     queryKey: ['job', jobId],
     queryFn: async () => {
       if (!jobId) return null;
@@ -22,4 +22,14 @@ export function useJob(jobId: string) {
     },
     enabled: !!jobId,
   });
+
+  return {
+    ...queryResult,
+    job: queryResult.data,
+    loading: queryResult.isLoading,
+    error: queryResult.error?.message || '',
+    jobData: queryResult.data,
+    clientInfo: queryResult.data?.client,
+    jobAddress: queryResult.data?.address
+  };
 }

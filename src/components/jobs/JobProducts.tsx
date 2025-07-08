@@ -21,12 +21,10 @@ const JobProducts: React.FC<JobProductsProps> = ({ jobId }) => {
       if (result && typeof result === 'object') {
         if (result.success) {
           toast({
-            title: "Products loaded successfully",
             description: `Added ${result.inserted_count || 0} products for ${result.business_niche || 'your business'}`
           });
         } else {
           toast({
-            title: "No new products added",
             description: `${result.message || 'No products to add'}. Current count: ${result.product_count || 0} for ${result.business_niche || 'your business'}`
           });
         }
@@ -34,7 +32,6 @@ const JobProducts: React.FC<JobProductsProps> = ({ jobId }) => {
     } catch (error) {
       console.error('Error loading products:', error);
       toast({
-        title: "Error",
         description: "Failed to load products",
         variant: "destructive"
       });
@@ -58,3 +55,4 @@ const JobProducts: React.FC<JobProductsProps> = ({ jobId }) => {
 };
 
 export default JobProducts;
+export { JobProducts };

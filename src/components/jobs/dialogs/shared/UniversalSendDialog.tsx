@@ -141,3 +141,4 @@ const UniversalSendDialog: React.FC<UniversalSendDialogProps> = ({
 };
 
 export default UniversalSendDialog;
+export { UniversalSendDialog };

@@ -52,3 +52,4 @@ const SteppedInvoiceBuilder: React.FC<SteppedInvoiceBuilderProps> = ({
 };
 
 export default SteppedInvoiceBuilder;
+export { SteppedInvoiceBuilder };

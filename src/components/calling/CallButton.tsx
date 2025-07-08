@@ -5,7 +5,13 @@ import { Phone } from 'lucide-react';
 
 interface CallButtonProps {
   defaultToNumber?: string;
+  phoneNumber?: string;
   defaultClientId?: string;
+  clientId?: string;
+  clientName?: string;
+  variant?: string;
+  size?: string;
+  showText?: boolean;
   onCallStateChange?: (state: any) => void;
 }
 
@@ -37,3 +43,4 @@ const CallButton: React.FC<CallButtonProps> = ({
 };
 
 export default CallButton;
+export { CallButton };
