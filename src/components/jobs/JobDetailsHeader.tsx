@@ -63,12 +63,12 @@ export const JobDetailsHeader = () => {
       variant: job.status === 'completed' ? 'success' : job.status === 'scheduled' ? 'info' : 'warning' as any
     });
   }
-  if (job.total) {
-    badges.push({ text: `$${job.total.toFixed(2)}`, icon: DollarSign, variant: 'fixlyfy' as any });
+  if (job.revenue) {
+    badges.push({ text: `$${job.revenue.toFixed(2)}`, icon: DollarSign, variant: 'fixlyfy' as any });
   }
-  if (job.schedule_start) {
+  if (job.date) {
     badges.push({ 
-      text: new Date(job.schedule_start).toLocaleDateString(), 
+      text: new Date(job.date).toLocaleDateString(), 
       icon: Calendar, 
       variant: 'info' as any 
     });
@@ -78,7 +78,6 @@ export const JobDetailsHeader = () => {
     <>
       <PageHeader
         title={`Job ${job.id}`}
-        subtitle="Job Details"
         icon={Wrench}
         badges={badges}
       />
@@ -94,8 +93,8 @@ export const JobDetailsHeader = () => {
               navigate(`/clients/${job.clientId}`);
             }
           }}
-          clientName={job.client || 'Unknown Client'}
-          jobType={job.description || job.service || 'Service Job'}
+          clientName={job.clients?.name || job.client || 'Unknown Client'}
+          jobType={job.title || job.service || 'Service Job'}
         />
       </div>
     </>

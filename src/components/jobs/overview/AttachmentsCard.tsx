@@ -1,158 +1,167 @@
 
 import React, { useState } from "react";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { CardTitleWithIcon } from "@/components/ui/card-title-with-icon";
+import { ModernCard, ModernCardHeader, ModernCardContent, ModernCardTitle } from "@/components/ui/modern-card";
 import { Button } from "@/components/ui/button";
+import { Upload, File, Download, Trash2, Eye, Paperclip } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { Paperclip, Upload, Download, Trash2, Eye } from "lucide-react";
 import { AttachmentUploadDialog } from "../dialogs/AttachmentUploadDialog";
+import { useJobAttachments } from "@/hooks/useJobAttachments";
 
 interface AttachmentsCardProps {
-  attachments: Array<{
-    id: string;
-    filename: string;
-    file_size: number;
-    file_type: string;
-    uploaded_at: string;
-    uploaded_by: string;
-  }>;
   jobId: string;
-  onAttachmentsUpdate: () => void;
+  editable?: boolean;
+  onUpdate?: () => void;
 }
 
-export const AttachmentsCard = ({ attachments, jobId, onAttachmentsUpdate }: AttachmentsCardProps) => {
-  const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
+export const AttachmentsCard = ({ jobId, editable = false, onUpdate }: AttachmentsCardProps) => {
+  const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false);
+  
+  const {
+    attachments,
+    isLoading,
+    deleteAttachment,
+    downloadAttachment,
+    viewAttachment,
+    formatFileSize,
+    getFileType,
+    refreshAttachments
+  } = useJobAttachments(jobId);
 
-  const formatFileSize = (bytes: number) => {
-    if (bytes === 0) return '0 Bytes';
-    const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-  };
-
-  const getFileTypeColor = (fileType: string) => {
-    if (fileType.includes('image')) return 'bg-green-100 text-green-800';
-    if (fileType.includes('pdf')) return 'bg-red-100 text-red-800';
-    if (fileType.includes('document') || fileType.includes('word')) return 'bg-blue-100 text-blue-800';
-    return 'bg-gray-100 text-gray-800';
+  const handleView = async (attachment: any) => {
+    await viewAttachment(attachment.file_path, attachment.file_name);
   };
 
   const handleDownload = async (attachment: any) => {
-    try {
-      // Implement download logic here
-      console.log('Downloading:', attachment.filename);
-    } catch (error) {
-      console.error('Error downloading file:', error);
+    await downloadAttachment(attachment.file_path, attachment.file_name);
+  };
+
+  const handleDelete = async (attachment: any) => {
+    const success = await deleteAttachment(attachment.id, attachment.file_path);
+    if (success && onUpdate) {
+      onUpdate();
     }
   };
 
-  const handleDelete = async (attachmentId: string) => {
-    try {
-      // Implement delete logic here
-      console.log('Deleting attachment:', attachmentId);
-      onAttachmentsUpdate();
-    } catch (error) {
-      console.error('Error deleting attachment:', error);
+  const handleUploadSuccess = () => {
+    console.log("Upload success callback triggered, refreshing attachments");
+    setIsUploadDialogOpen(false);
+    
+    // Force refresh the attachments list
+    refreshAttachments();
+    
+    // Also trigger any parent update callback
+    if (onUpdate) {
+      console.log("Calling parent onUpdate callback");
+      onUpdate();
     }
+    
+    // Add a small delay and refresh again to ensure we get the latest data
+    setTimeout(() => {
+      console.log("Secondary refresh triggered");
+      refreshAttachments();
+    }, 1000);
   };
+
+  if (isLoading) {
+    return (
+      <ModernCard variant="elevated" className="hover:shadow-lg transition-all duration-300">
+        <ModernCardHeader className="pb-4">
+          <ModernCardTitle icon={Paperclip}>
+            Attachments
+          </ModernCardTitle>
+        </ModernCardHeader>
+        <ModernCardContent>
+          <div className="text-sm text-muted-foreground text-center py-4">
+            Loading attachments...
+          </div>
+        </ModernCardContent>
+      </ModernCard>
+    );
+  }
 
   return (
     <>
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitleWithIcon icon={Paperclip}>
-            Attachments
-          </CardTitleWithIcon>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setUploadDialogOpen(true)}
-          >
-            <Upload className="h-4 w-4 mr-2" />
-            Upload
-          </Button>
-        </CardHeader>
-        <CardContent>
-          {attachments.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              <Paperclip className="h-12 w-12 mx-auto mb-4 opacity-50" />
-              <p>No attachments</p>
+      <ModernCard variant="elevated" className="hover:shadow-lg transition-all duration-300">
+        <ModernCardHeader className="pb-4">
+          <div className="flex items-center justify-between">
+            <ModernCardTitle icon={Paperclip}>
+              Attachments ({attachments.length})
+            </ModernCardTitle>
+            {editable && (
               <Button
                 variant="ghost"
-                onClick={() => setUploadDialogOpen(true)}
-                className="mt-2"
+                size="sm"
+                onClick={() => setIsUploadDialogOpen(true)}
+                className="text-fixlyfy hover:text-fixlyfy-dark"
               >
-                Upload your first file
+                <Upload className="h-4 w-4" />
               </Button>
-            </div>
-          ) : (
+            )}
+          </div>
+        </ModernCardHeader>
+        <ModernCardContent>
+          {attachments.length > 0 ? (
             <div className="space-y-3">
-              <div className="flex items-center gap-2 text-sm text-muted-foreground mb-3">
-                <CardTitleWithIcon icon={Paperclip}>
-                  Files ({attachments.length})
-                </CardTitleWithIcon>
-              </div>
               {attachments.map((attachment) => (
-                <div
-                  key={attachment.id}
-                  className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50"
-                >
-                  <div className="flex items-center gap-3 flex-1 min-w-0">
-                    <div className="flex-shrink-0">
-                      <Badge 
-                        variant="outline" 
-                        className={getFileTypeColor(attachment.file_type)}
-                      >
-                        {attachment.file_type.split('/')[1]?.toUpperCase() || 'FILE'}
-                      </Badge>
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium text-sm truncate">
-                        {attachment.filename}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {formatFileSize(attachment.file_size)} • 
-                        {new Date(attachment.uploaded_at).toLocaleDateString()}
-                      </p>
+                <div key={attachment.id} className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50 transition-colors">
+                  <div className="flex items-center space-x-3 min-w-0 flex-1">
+                    <File className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium truncate">{attachment.file_name}</p>
+                      <div className="flex items-center gap-2 mt-1">
+                        <Badge variant="outline" className="text-xs">
+                          {getFileType(attachment.mime_type)}
+                        </Badge>
+                        <span className="text-xs text-muted-foreground">
+                          {formatFileSize(attachment.file_size)}
+                        </span>
+                      </div>
                     </div>
                   </div>
-                  <div className="flex items-center gap-1 flex-shrink-0">
-                    <Button
-                      variant="ghost"
-                      size="sm"
+                  <div className="flex items-center space-x-1 flex-shrink-0 ml-2">
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="h-8 w-8 p-0 hover:bg-blue-50 hover:text-blue-600"
+                      onClick={() => handleView(attachment)}
+                    >
+                      <Eye className="h-3 w-3" />
+                    </Button>
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="h-8 w-8 p-0 hover:bg-green-50 hover:text-green-600"
                       onClick={() => handleDownload(attachment)}
                     >
-                      <Eye className="h-4 w-4" />
+                      <Download className="h-3 w-3" />
                     </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleDownload(attachment)}
-                    >
-                      <Download className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleDelete(attachment.id)}
-                      className="text-destructive hover:text-destructive"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                    {editable && (
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="h-8 w-8 p-0 hover:bg-red-50 hover:text-red-600"
+                        onClick={() => handleDelete(attachment)}
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </Button>
+                    )}
                   </div>
                 </div>
               ))}
             </div>
+          ) : (
+            <div className="text-sm text-muted-foreground text-center py-4">
+              {editable ? "No attachments. Click the upload button to add files." : "No attachments"}
+            </div>
           )}
-        </CardContent>
-      </Card>
+        </ModernCardContent>
+      </ModernCard>
 
       <AttachmentUploadDialog
-        open={uploadDialogOpen}
-        onOpenChange={setUploadDialogOpen}
+        open={isUploadDialogOpen}
+        onOpenChange={setIsUploadDialogOpen}
         jobId={jobId}
-        onUploadComplete={onAttachmentsUpdate}
+        onUploadSuccess={handleUploadSuccess}
       />
     </>
   );

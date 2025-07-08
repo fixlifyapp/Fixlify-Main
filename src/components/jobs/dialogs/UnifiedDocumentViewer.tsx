@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { useUnifiedDocumentViewer } from "./unified/hooks/useUnifiedDocumentViewer";
@@ -60,6 +59,7 @@ export const UnifiedDocumentViewer = ({
     onDocumentUpdated: onUpdate
   });
 
+  // Use only the convertEstimateToInvoice from useEstimates hook to avoid duplicates
   const handleConvert = async () => {
     if (documentType !== "estimate") return;
     
@@ -82,6 +82,14 @@ export const UnifiedDocumentViewer = ({
       toast.error('Failed to convert estimate to invoice');
     }
   };
+
+  console.log('UnifiedDocumentViewer Debug:', {
+    documentType,
+    documentNumber,
+    lineItems: lineItems?.length || 0,
+    document,
+    loading
+  });
 
   if (loading) {
     return (

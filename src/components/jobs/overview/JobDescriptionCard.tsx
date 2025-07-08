@@ -2,7 +2,6 @@
 import React from "react";
 import { EditableJobDescriptionCard } from "./EditableJobDescriptionCard";
 import { ModernCard, ModernCardHeader, ModernCardContent, ModernCardTitle } from "@/components/ui/modern-card";
-import { CardTitleWithIcon } from "@/components/ui/card-title-with-icon";
 import { FileText } from "lucide-react";
 
 interface JobDescriptionCardProps {
@@ -21,9 +20,9 @@ export const JobDescriptionCard = ({ description, jobId, editable = false, onUpd
   return (
     <ModernCard variant="elevated" className="hover:shadow-lg transition-all duration-300">
       <ModernCardHeader className="pb-4">
-        <CardTitleWithIcon icon={FileText}>
+        <ModernCardTitle icon={FileText}>
           Job Description
-        </CardTitleWithIcon>
+        </ModernCardTitle>
       </ModernCardHeader>
       <ModernCardContent>
         {description ? (

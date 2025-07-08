@@ -856,7 +856,7 @@ export const DragDropWorkflowBuilder: React.FC<{
             fitView
             attributionPosition="bottom-right"
           >
-            <Background />
+            <Background variant="dots" gap={12} size={1} />
             <Controls />
             <MiniMap 
               nodeColor={(node) => {

@@ -25,11 +25,8 @@ export const ClientStatsCard = ({ clientId, stats }: ClientStatsCardProps) => {
   return (
     <ModernCard variant="elevated">
       <ModernCardHeader>
-        <ModernCardTitle>
-          <div className="flex items-center gap-2">
-            <TrendingUp className="w-4 h-4" />
-            Client Statistics
-          </div>
+        <ModernCardTitle icon={TrendingUp}>
+          Client Statistics
         </ModernCardTitle>
       </ModernCardHeader>
       <ModernCardContent>

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -108,6 +107,7 @@ export const JobInvoices = ({ jobId }: JobInvoicesProps) => {
 
   const handleDocumentUpdated = () => {
     fetchInvoices();
+    // Clear selected invoice to force refresh when reopened
     setSelectedInvoice(null);
   };
 
@@ -229,12 +229,12 @@ export const JobInvoices = ({ jobId }: JobInvoicesProps) => {
       {/* Unified Document Viewer */}
       {selectedInvoice && (
         <UnifiedDocumentViewer
-          isOpen={showViewer}
-          onClose={() => setShowViewer(false)}
+          open={showViewer}
+          onOpenChange={setShowViewer}
           document={selectedInvoice}
           documentType="invoice"
           jobId={jobId}
-          onUpdate={handleDocumentUpdated}
+          onDocumentUpdated={handleDocumentUpdated}
         />
       )}
     </>

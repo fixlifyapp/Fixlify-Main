@@ -191,11 +191,8 @@ Each should use the same variables and maintain the same core message.
       {/* AI Generation */}
       <ModernCard variant="elevated">
         <ModernCardHeader>
-          <ModernCardTitle>
-            <div className="flex items-center gap-2">
-              <Sparkles className="w-4 h-4" />
-              AI Message Generator
-            </div>
+          <ModernCardTitle icon={Sparkles}>
+            AI Message Generator
           </ModernCardTitle>
         </ModernCardHeader>
         <ModernCardContent className="space-y-4">
@@ -214,6 +211,7 @@ Each should use the same variables and maintain the same core message.
             <GradientButton
               onClick={handleGenerateMessage}
               disabled={isGenerating}
+              loading={isGenerating}
               className="flex-1"
             >
               <Wand2 className="w-4 h-4 mr-2" />
@@ -235,11 +233,8 @@ Each should use the same variables and maintain the same core message.
       {/* Message Editor */}
       <ModernCard variant="elevated">
         <ModernCardHeader>
-          <ModernCardTitle>
-            <div className="flex items-center gap-2">
-              <MessageSquare className="w-4 h-4" />
-              Message Content
-            </div>
+          <ModernCardTitle icon={MessageSquare}>
+            Message Content
           </ModernCardTitle>
         </ModernCardHeader>
         <ModernCardContent className="space-y-4">
@@ -282,11 +277,8 @@ Each should use the same variables and maintain the same core message.
       {/* Variables */}
       <ModernCard variant="elevated">
         <ModernCardHeader>
-          <ModernCardTitle>
-            <div className="flex items-center gap-2">
-              <Variable className="w-4 h-4" />
-              Available Variables
-            </div>
+          <ModernCardTitle icon={Variable}>
+            Available Variables
           </ModernCardTitle>
         </ModernCardHeader>
         <ModernCardContent className="space-y-4">
@@ -340,11 +332,8 @@ Each should use the same variables and maintain the same core message.
       {suggestions.length > 0 && (
         <ModernCard variant="elevated">
           <ModernCardHeader>
-            <ModernCardTitle>
-              <div className="flex items-center gap-2">
-                <Sparkles className="w-4 h-4" />
-                AI Suggestions
-              </div>
+            <ModernCardTitle icon={Sparkles}>
+              AI Suggestions
             </ModernCardTitle>
           </ModernCardHeader>
           <ModernCardContent className="space-y-3">
