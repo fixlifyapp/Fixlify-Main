@@ -222,8 +222,11 @@ export const AutomationBuilder = ({
       {currentStep === 1 && (
         <ModernCard variant="elevated">
           <ModernCardHeader>
-            <ModernCardTitle icon={Settings}>
-              Basic Information
+            <ModernCardTitle>
+              <div className="flex items-center gap-2">
+                <Zap className="w-5 h-5" />
+                Trigger Configuration
+              </div>
             </ModernCardTitle>
           </ModernCardHeader>
           <ModernCardContent className="space-y-4">
@@ -268,8 +271,11 @@ export const AutomationBuilder = ({
       {currentStep === 2 && (
         <ModernCard variant="elevated">
           <ModernCardHeader>
-            <ModernCardTitle icon={Zap}>
-              When this happens (Trigger)
+            <ModernCardTitle>
+              <div className="flex items-center gap-2">
+                <Zap className="w-5 h-5" />
+                When this happens (Trigger)
+              </div>
             </ModernCardTitle>
           </ModernCardHeader>
           <ModernCardContent className="space-y-4">
@@ -309,8 +315,11 @@ export const AutomationBuilder = ({
       {currentStep === 3 && (
         <ModernCard variant="elevated">
           <ModernCardHeader>
-            <ModernCardTitle icon={Target}>
-              Only if these conditions are met (Optional)
+            <ModernCardTitle>
+              <div className="flex items-center gap-2">
+                <Target className="w-5 h-5" />
+                Only if these conditions are met (Optional)
+              </div>
             </ModernCardTitle>
           </ModernCardHeader>
           <ModernCardContent className="space-y-4">
@@ -399,8 +408,11 @@ export const AutomationBuilder = ({
       {currentStep === 4 && (
         <ModernCard variant="elevated">
           <ModernCardHeader>
-            <ModernCardTitle icon={MessageSquare}>
-              Do this (Action)
+            <ModernCardTitle>
+              <div className="flex items-center gap-2">
+                <MessageSquare className="w-5 h-5" />
+                Do this (Action)
+              </div>
             </ModernCardTitle>
           </ModernCardHeader>
           <ModernCardContent className="space-y-6">
@@ -521,7 +533,7 @@ export const AutomationBuilder = ({
                           <Badge variant="destructive" className="ml-2">Over SMS limit</Badge>
                         )}
                       </span>
-                      <span>Use {{variable_name}} for dynamic content</span>
+                      <span>Use {`{{variable_name}}`} for dynamic content</span>
                     </div>
                   </div>
                   {/* Smart Variable Selector */}
@@ -589,8 +601,11 @@ export const AutomationBuilder = ({
       {currentStep === 5 && (
         <ModernCard variant="elevated">
           <ModernCardHeader>
-            <ModernCardTitle icon={Clock}>
-              When to send (Delivery Window)
+            <ModernCardTitle>
+              <div className="flex items-center gap-2">
+                <Clock className="w-5 h-5" />
+                When to send (Delivery Window)
+              </div>
             </ModernCardTitle>
           </ModernCardHeader>
           <ModernCardContent className="space-y-4">
@@ -697,7 +712,6 @@ export const AutomationBuilder = ({
             </Button>
           ) : (
             <GradientButton
-              variant="primary"
               onClick={handleSave}
               disabled={!validateStep(5)}
             >

@@ -1,263 +1,146 @@
-import { useState } from "react";
-import { ModernCard, ModernCardHeader, ModernCardContent, ModernCardTitle } from "@/components/ui/modern-card";
+
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { CardTitleWithIcon } from "@/components/ui/card-title-with-icon";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
-import { 
-  Calculator, 
-  FileText, 
-  DollarSign, 
-  Phone, 
-  MessageSquare, 
-  Calendar, 
-  MapPin,
-  Clock,
-  User,
-  Settings,
-  Zap
-} from "lucide-react";
-import { SteppedEstimateBuilder } from "./dialogs/SteppedEstimateBuilder";
-import { InvoiceBuilderDialog } from "./dialogs/InvoiceBuilderDialog";
-import { useJobs } from "@/hooks/useJobs";
-import { useJobHistory } from "@/hooks/useJobHistory";
-import { useNavigate } from "react-router-dom";
+import { Calendar, Clock, DollarSign, FileText, MapPin, Phone, User, Zap } from "lucide-react";
 
 interface JobDetailsQuickActionsProps {
-  jobId: string;
+  job: {
+    id: string;
+    title: string;
+    status: string;
+    client_name?: string;
+    client_phone?: string;
+    address?: string;
+    scheduled_date?: string;
+    scheduled_time?: string;
+    estimated_value?: number;
+  };
+  onScheduleEdit?: () => void;
+  onEstimateCreate?: () => void;
+  onClientCall?: () => void;
+  onJobUpdate?: () => void;
 }
 
-export const JobDetailsQuickActions = ({ jobId }: JobDetailsQuickActionsProps) => {
-  const [isEstimateDialogOpen, setIsEstimateDialogOpen] = useState(false);
-  const [isInvoiceDialogOpen, setIsInvoiceDialogOpen] = useState(false);
-  const { jobs, isLoading } = useJobs();
-  const { addHistoryItem } = useJobHistory(jobId);
-  const navigate = useNavigate();
-  
-  const job = jobs.find(j => j.id === jobId);
-
-  const handleCreateEstimate = async () => {
-    await addHistoryItem({
-      job_id: jobId,
-      type: 'estimate',
-      title: 'Estimate Creation Started',
-      description: 'User started creating a new estimate for the job',
-      meta: { action: 'create_estimate_initiated' }
-    });
-    setIsEstimateDialogOpen(true);
-  };
-
-  const handleCreateInvoice = async () => {
-    await addHistoryItem({
-      job_id: jobId,
-      type: 'invoice',
-      title: 'Invoice Creation Started', 
-      description: 'User started creating a new invoice for the job',
-      meta: { action: 'create_invoice_initiated' }
-    });
-    setIsInvoiceDialogOpen(true);
-  };
-
-  const handleCallClient = async () => {
-    if (!job?.client?.phone) {
-      return;
+export const JobDetailsQuickActions = ({
+  job,
+  onScheduleEdit,
+  onEstimateCreate,
+  onClientCall,
+  onJobUpdate
+}: JobDetailsQuickActionsProps) => {
+  const getStatusColor = (status: string) => {
+    switch (status.toLowerCase()) {
+      case 'completed':
+        return 'bg-green-100 text-green-800';
+      case 'in progress':
+        return 'bg-blue-100 text-blue-800';
+      case 'scheduled':
+        return 'bg-purple-100 text-purple-800';
+      case 'new':
+        return 'bg-yellow-100 text-yellow-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
     }
-
-    await addHistoryItem({
-      job_id: jobId,
-      type: 'communication',
-      title: 'Call Initiated',
-      description: 'User navigated to Connect Center to call client',
-      meta: { action: 'call_navigation', client_phone: job.client.phone }
-    });
-
-    navigate(`/connect?tab=calls&clientId=${job.client.id}&clientName=${encodeURIComponent(job.client.name)}&clientPhone=${encodeURIComponent(job.client.phone)}`);
   };
 
-  const handleMessageClient = async () => {
-    if (!job?.client) {
-      return;
-    }
-
-    await addHistoryItem({
-      job_id: jobId,
-      type: 'communication',
-      title: 'Message Started',
-      description: 'User navigated to Connect Center to message client',
-      meta: { action: 'message_navigation', client_phone: job.client.phone }
-    });
-
-    navigate(`/connect?tab=messages&clientId=${job.client.id}&clientName=${encodeURIComponent(job.client.name)}&clientPhone=${encodeURIComponent(job.client.phone || "")}&autoOpen=true`);
+  const formatCurrency = (amount?: number) => {
+    if (!amount) return 'Not set';
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD'
+    }).format(amount);
   };
-
-  const handleScheduleJob = async () => {
-    await addHistoryItem({
-      job_id: jobId,
-      type: 'scheduling',
-      title: 'Job Scheduling Started',
-      description: 'User opened job scheduling interface',
-      meta: { action: 'schedule_job_initiated' }
-    });
-  };
-
-  const handleEstimateCreated = () => {
-    setIsEstimateDialogOpen(false);
-  };
-
-  if (isLoading) {
-    return (
-      <ModernCard variant="elevated">
-        <ModernCardContent className="p-6">
-          <div className="animate-pulse space-y-4">
-            <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-            <div className="h-10 bg-gray-200 rounded"></div>
-            <div className="h-10 bg-gray-200 rounded"></div>
-          </div>
-        </ModernCardContent>
-      </ModernCard>
-    );
-  }
 
   return (
-    <>
-      <ModernCard variant="elevated" className="hover:shadow-lg transition-all duration-300">
-        <ModernCardHeader className="pb-4">
-          <ModernCardTitle icon={Zap}>
+    <div className="space-y-6">
+      {/* Job Status Card */}
+      <Card>
+        <CardHeader>
+          <CardTitleWithIcon icon={Zap}>
             Quick Actions
-          </ModernCardTitle>
-        </ModernCardHeader>
-        <ModernCardContent className="space-y-4">
-          {/* Primary Actions */}
-          <div className="space-y-3">
-            <Button 
-              onClick={handleCreateEstimate}
-              className="w-full justify-start h-12 text-left"
-              variant="default"
-            >
-              <Calculator className="h-4 w-4 mr-3" />
-              <div className="flex flex-col items-start">
-                <span className="font-medium">Create Estimate</span>
-                <span className="text-xs opacity-75">Build and send estimate</span>
-              </div>
-            </Button>
-
-            <Button 
-              onClick={handleCreateInvoice}
-              className="w-full justify-start h-12 text-left"
-              variant="default"
-            >
-              <FileText className="h-4 w-4 mr-3" />
-              <div className="flex flex-col items-start">
-                <span className="font-medium">Create Invoice</span>
-                <span className="text-xs opacity-75">Generate and send invoice</span>
-              </div>
-            </Button>
-          </div>
-
-          <Separator />
-
-          {/* Communication Actions */}
-          <div className="space-y-3">
-            <h4 className="font-medium text-sm text-muted-foreground flex items-center">
-              <MessageSquare className="h-4 w-4 mr-2" />
-              Communication
-            </h4>
-            
-            <Button 
-              onClick={handleCallClient}
-              variant="outline" 
-              className="w-full justify-start h-10"
-              disabled={!job?.client?.phone}
-            >
-              <Phone className="h-4 w-4 mr-3" />
-              <span>Call Client</span>
-              {job?.client?.phone && (
-                <Badge variant="secondary" className="ml-auto text-xs">
-                  {job.client.phone}
-                </Badge>
-              )}
-            </Button>
-
-            <Button 
-              onClick={handleMessageClient}
-              variant="outline" 
-              className="w-full justify-start h-10"
-              disabled={!job?.client?.phone}
-            >
-              <MessageSquare className="h-4 w-4 mr-3" />
-              <span>Send Message</span>
-            </Button>
-          </div>
-
-          <Separator />
-
-          {/* Job Management */}
-          <div className="space-y-3">
-            <h4 className="font-medium text-sm text-muted-foreground flex items-center">
-              <Settings className="h-4 w-4 mr-2" />
-              Job Management
-            </h4>
-            
-            <Button 
-              onClick={handleScheduleJob}
-              variant="outline" 
-              className="w-full justify-start h-10"
-            >
-              <Calendar className="h-4 w-4 mr-3" />
-              <span>Schedule Job</span>
-            </Button>
-
-            <Button 
-              variant="outline" 
-              className="w-full justify-start h-10"
-            >
-              <MapPin className="h-4 w-4 mr-3" />
-              <span>Get Directions</span>
-            </Button>
-
-            <Button 
-              variant="outline" 
-              className="w-full justify-start h-10"
-            >
-              <User className="h-4 w-4 mr-3" />
-              <span>Assign Technician</span>
-            </Button>
-          </div>
-
-          {/* Job Status */}
-          <Separator />
-          <div className="pt-2">
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-muted-foreground">Status:</span>
-              <Badge variant="outline" className="capitalize">
-                {job?.status || 'Unknown'}
-              </Badge>
+          </CardTitleWithIcon>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h3 className="font-medium">{job.title}</h3>
+              <p className="text-sm text-gray-600">Job #{job.id.slice(0, 8)}</p>
             </div>
-            {job?.schedule_start && (
-              <div className="flex items-center justify-between text-sm mt-2">
-                <span className="text-muted-foreground">Scheduled:</span>
-                <span className="text-xs flex items-center">
-                  <Clock className="h-3 w-3 mr-1" />
-                  {new Date(job.schedule_start).toLocaleDateString()}
-                </span>
+            <Badge className={getStatusColor(job.status)}>
+              {job.status}
+            </Badge>
+          </div>
+          
+          <div className="space-y-2 text-sm">
+            {job.client_name && (
+              <div className="flex items-center gap-2">
+                <User className="h-4 w-4 text-gray-500" />
+                <span>{job.client_name}</span>
               </div>
             )}
+            
+            {job.client_phone && (
+              <div className="flex items-center gap-2">
+                <Phone className="h-4 w-4 text-gray-500" />
+                <span>{job.client_phone}</span>
+              </div>
+            )}
+            
+            {job.address && (
+              <div className="flex items-center gap-2">
+                <MapPin className="h-4 w-4 text-gray-500" />
+                <span>{job.address}</span>
+              </div>
+            )}
+            
+            {job.scheduled_date && (
+              <div className="flex items-center gap-2">
+                <Calendar className="h-4 w-4 text-gray-500" />
+                <span>{job.scheduled_date} {job.scheduled_time}</span>
+              </div>
+            )}
+            
+            <div className="flex items-center gap-2">
+              <DollarSign className="h-4 w-4 text-gray-500" />
+              <span>{formatCurrency(job.estimated_value)}</span>
+            </div>
           </div>
-        </ModernCardContent>
-      </ModernCard>
+        </CardContent>
+      </Card>
 
-      {/* Dialogs */}
-      <SteppedEstimateBuilder
-        open={isEstimateDialogOpen}
-        onOpenChange={setIsEstimateDialogOpen}
-        jobId={jobId}
-        onEstimateCreated={handleEstimateCreated}
-      />
-
-      <InvoiceBuilderDialog
-        open={isInvoiceDialogOpen}
-        onOpenChange={setIsInvoiceDialogOpen}
-        jobId={jobId}
-      />
-    </>
+      {/* Quick Actions */}
+      <Card>
+        <CardHeader>
+          <CardTitleWithIcon icon={Zap}>
+            Actions
+          </CardTitleWithIcon>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 gap-2">
+            <Button variant="outline" onClick={onScheduleEdit} className="justify-start">
+              <Clock className="h-4 w-4 mr-2" />
+              Edit Schedule
+            </Button>
+            
+            <Button variant="outline" onClick={onEstimateCreate} className="justify-start">
+              <FileText className="h-4 w-4 mr-2" />
+              Create Estimate
+            </Button>
+            
+            <Button variant="outline" onClick={onClientCall} className="justify-start">
+              <Phone className="h-4 w-4 mr-2" />
+              Call Client
+            </Button>
+            
+            <Button variant="outline" onClick={onJobUpdate} className="justify-start">
+              <Zap className="h-4 w-4 mr-2" />
+              Update Status
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
   );
 };

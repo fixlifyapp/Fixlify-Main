@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useDocumentSending } from "@/hooks/useDocumentSending";
+import { useCompanySettings } from "@/hooks/useCompanySettings";
 import { needsCountryCode, suggestCountryCode } from "@/utils/phoneUtils";
 
 interface UniversalSendDialogProps {
@@ -42,6 +43,31 @@ export const UniversalSendDialog = ({
   const [validationError, setValidationError] = useState("");
 
   const { sendDocument, isProcessing } = useDocumentSending();
+  const { companySettings } = useCompanySettings();
+
+  // Generate default message template
+  const generateDefaultMessage = (method: "email" | "sms") => {
+    const clientName = contactInfo?.name || "Valued Customer";
+    const docType = documentType === "estimate" ? "Estimate" : "Invoice";
+    const portalUrl = `${window.location.origin}/${documentType}/${documentId}?token=PORTAL_TOKEN`;
+    const companyName = companySettings?.company_name || "Your Company";
+    
+    if (method === "email") {
+      return `Hello ${clientName},
+
+Please find your ${docType} #${documentNumber} attached. The total amount is $${total.toFixed(2)}.
+
+You can view and ${documentType === "estimate" ? "approve" : "pay"} online using this secure link:
+${portalUrl}
+
+If you have any questions, please don't hesitate to contact us.
+
+Best regards,
+${companyName} Team`;
+    } else {
+      return `Hello ${clientName}! Your ${docType} #${documentNumber} for $${total.toFixed(2)} is ready. View and ${documentType === "estimate" ? "approve" : "pay"} here: ${portalUrl} - ${companyName} Team`;
+    }
+  };
 
   // Set default values when dialog opens
   useEffect(() => {
@@ -54,8 +80,20 @@ export const UniversalSendDialog = ({
         setSendTo("");
       }
       setValidationError("");
+      
+      // Set default message template
+      if (!customNote) {
+        setCustomNote(generateDefaultMessage(sendMethod));
+      }
     }
   }, [isOpen, sendMethod, contactInfo]);
+
+  // Update message template when send method changes
+  useEffect(() => {
+    if (isOpen && customNote === generateDefaultMessage(sendMethod === "email" ? "sms" : "email")) {
+      setCustomNote(generateDefaultMessage(sendMethod));
+    }
+  }, [sendMethod]);
 
   // Reset form when dialog closes
   useEffect(() => {
@@ -212,16 +250,17 @@ export const UniversalSendDialog = ({
 
           {/* Custom Message */}
           <div className="space-y-2">
-            <Label htmlFor="customNote">Custom Message (Optional)</Label>
+            <Label htmlFor="customNote">Message Template (Editable)</Label>
             <Textarea
               id="customNote"
               placeholder="Add a personal message..."
               value={customNote}
               onChange={(e) => setCustomNote(e.target.value)}
-              rows={3}
+              rows={sendMethod === "email" ? 8 : 4}
+              className="min-h-[120px]"
             />
             <p className="text-xs text-muted-foreground">
-              A secure portal link will be automatically included for client access.
+              Default message template with secure portal link. You can edit this message before sending.
             </p>
           </div>
 

@@ -729,4 +729,6 @@ const SmartTimingOptions: React.FC = () => {
   );
 };
 
+export type { WorkflowStep };
+
 export default WorkflowBuilder;
