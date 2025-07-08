@@ -1,257 +1,171 @@
 
-import React, { useState, useEffect } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Send, Mail, MessageSquare, ArrowLeft, AlertCircle, Info } from "lucide-react";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { useDocumentSending } from "@/hooks/useDocumentSending";
-import { needsCountryCode, suggestCountryCode } from "@/utils/phoneUtils";
+import React, { useState } from 'react';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Mail, MessageSquare, Loader2 } from 'lucide-react';
+import { useDocumentSending } from '@/hooks/useDocumentSending';
+import { toast } from 'sonner';
 
 interface UniversalSendDialogProps {
-  isOpen: boolean;
-  onClose: () => void;
-  documentType: "estimate" | "invoice";
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
   documentId: string;
-  documentNumber: string;
-  total: number;
-  contactInfo?: {
-    name: string;
-    email: string;
-    phone: string;
-  };
+  documentType: 'estimate' | 'invoice';
+  clientEmail?: string;
+  clientPhone?: string;
   onSuccess?: () => void;
 }
 
-export const UniversalSendDialog = ({
-  isOpen,
-  onClose,
-  documentType,
+export function UniversalSendDialog({
+  open,
+  onOpenChange,
   documentId,
-  documentNumber,
-  total,
-  contactInfo,
+  documentType,
+  clientEmail = '',
+  clientPhone = '',
   onSuccess
-}: UniversalSendDialogProps) => {
-  const [sendMethod, setSendMethod] = useState<"email" | "sms">("email");
-  const [sendTo, setSendTo] = useState("");
-  const [customNote, setCustomNote] = useState("");
-  const [validationError, setValidationError] = useState("");
+}: UniversalSendDialogProps) {
+  const [sendMethod, setSendMethod] = useState<'email' | 'sms'>('email');
+  const [recipientEmail, setRecipientEmail] = useState(clientEmail);
+  const [recipientPhone, setRecipientPhone] = useState(clientPhone);
+  const [subject, setSubject] = useState(`Your ${documentType}`);
+  const [message, setMessage] = useState(`Please find your ${documentType} attached.`);
 
   const { sendDocument, isProcessing } = useDocumentSending();
 
-  // Set default values when dialog opens
-  useEffect(() => {
-    if (isOpen && contactInfo) {
-      if (sendMethod === "email" && contactInfo.email) {
-        setSendTo(contactInfo.email);
-      } else if (sendMethod === "sms" && contactInfo.phone) {
-        setSendTo(contactInfo.phone);
-      } else {
-        setSendTo("");
-      }
-      setValidationError("");
-    }
-  }, [isOpen, sendMethod, contactInfo]);
-
-  // Reset form when dialog closes
-  useEffect(() => {
-    if (!isOpen) {
-      setSendTo("");
-      setCustomNote("");
-      setValidationError("");
-      setSendMethod("email");
-    }
-  }, [isOpen]);
-
-  // Validation functions
-  const isValidEmail = (email: string): boolean => {
-    if (!email) return false;
-    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-  };
-
-  const isValidPhoneNumber = (phone: string): boolean => {
-    if (!phone) return false;
-    const cleaned = phone.replace(/\D/g, '');
-    // Allow 10-15 digits for international numbers
-    return cleaned.length >= 10 && cleaned.length <= 15;
-  };
-
-  const validateInput = (): boolean => {
-    if (!sendTo.trim()) {
-      setValidationError(`Please enter a ${sendMethod === "email" ? "email address" : "phone number"}`);
-      return false;
-    }
-
-    if (sendMethod === "email" && !isValidEmail(sendTo)) {
-      setValidationError("Please enter a valid email address (e.g., client@example.com)");
-      return false;
-    }
-
-    if (sendMethod === "sms" && !isValidPhoneNumber(sendTo)) {
-      setValidationError("Please enter a valid phone number");
-      return false;
-    }
-
-    setValidationError("");
-    return true;
-  };
-
   const handleSend = async () => {
-    if (!validateInput()) return;
+    try {
+      console.log('🚀 Starting send process:', {
+        method: sendMethod,
+        documentId,
+        documentType,
+        recipientEmail: sendMethod === 'email' ? recipientEmail : undefined,
+        recipientPhone: sendMethod === 'sms' ? recipientPhone : undefined
+      });
 
-    const result = await sendDocument({
-      documentType,
-      documentId,
-      sendMethod,
-      sendTo,
-      customMessage: customNote || undefined,
-      contactInfo
-    });
+      await sendDocument({
+        method: sendMethod,
+        documentId,
+        documentType,
+        recipientEmail: sendMethod === 'email' ? recipientEmail : undefined,
+        recipientPhone: sendMethod === 'sms' ? recipientPhone : undefined,
+        subject: sendMethod === 'email' ? subject : undefined,
+        message
+      });
 
-    if (result.success) {
-      onClose();
-      if (onSuccess) {
-        onSuccess();
-      }
+      onSuccess?.();
+      onOpenChange(false);
+    } catch (error: any) {
+      console.error('❌ Send failed:', error);
+      toast.error(`Failed to send ${documentType}: ${error.message}`);
     }
   };
 
-  const hasValidEmail = contactInfo?.email && isValidEmail(contactInfo.email);
-  const hasValidPhone = contactInfo?.phone && isValidPhoneNumber(contactInfo.phone);
+  const isFormValid = () => {
+    if (sendMethod === 'email') {
+      return recipientEmail && recipientEmail.includes('@');
+    } else {
+      return recipientPhone && recipientPhone.length >= 10;
+    }
+  };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-md w-[95vw] max-h-[90vh] overflow-y-auto">
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-lg">
-            <Send className="h-5 w-5 text-blue-600 flex-shrink-0" />
-            <span className="truncate">Send {documentType === "estimate" ? "Estimate" : "Invoice"} #{documentNumber}</span>
-          </DialogTitle>
+          <DialogTitle>Send {documentType}</DialogTitle>
+          <DialogDescription>
+            Choose how you'd like to send this {documentType} to your client.
+          </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-6">
-          {/* Document Summary */}
-          <div className="bg-blue-50 p-3 rounded-lg">
-            <p className="text-sm text-blue-800">
-              <strong>Total:</strong> ${total.toFixed(2)}
-            </p>
-            {contactInfo?.name && (
-              <p className="text-sm text-blue-800 truncate">
-                <strong>Customer:</strong> {contactInfo.name}
-              </p>
-            )}
-          </div>
-
-          {/* Service Status Alert */}
-          {(!hasValidEmail && !hasValidPhone) && (
-            <Alert>
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>
-                No valid contact information found for this client. Please enter the recipient details manually.
-              </AlertDescription>
-            </Alert>
-          )}
-
-          {/* Send Method Selection */}
-          <div className="space-y-3">
-            <Label className="text-sm font-medium">Choose sending method:</Label>
-            <RadioGroup value={sendMethod} onValueChange={(value: "email" | "sms") => setSendMethod(value)}>
-              <div className={`flex items-center space-x-2 p-3 rounded-lg border ${
-                sendMethod === "email" ? "border-blue-200 bg-blue-50" : "border-gray-200"
-              } ${!hasValidEmail ? "opacity-50" : ""}`}>
-                <RadioGroupItem value="email" id="email" disabled={!hasValidEmail && !sendTo} />
-                <Mail className="h-4 w-4" />
-                <Label htmlFor="email" className="flex-1 cursor-pointer">
+        <div className="space-y-4">
+          <div>
+            <Label>Send Method</Label>
+            <RadioGroup value={sendMethod} onValueChange={(value: 'email' | 'sms') => setSendMethod(value)}>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="email" id="email" />
+                <Label htmlFor="email" className="flex items-center gap-2 cursor-pointer">
+                  <Mail className="h-4 w-4" />
                   Email
-                  {!hasValidEmail && <span className="text-amber-600 text-xs ml-2">(No valid email on file)</span>}
                 </Label>
               </div>
-              
-              <div className={`flex items-center space-x-2 p-3 rounded-lg border ${
-                sendMethod === "sms" ? "border-blue-200 bg-blue-50" : "border-gray-200"
-              } ${!hasValidPhone ? "opacity-50" : ""}`}>
-                <RadioGroupItem value="sms" id="sms" disabled={!hasValidPhone && !sendTo} />
-                <MessageSquare className="h-4 w-4" />
-                <Label htmlFor="sms" className="flex-1 cursor-pointer">
-                  SMS (Text Message)
-                  {!hasValidPhone && <span className="text-amber-600 text-xs ml-2">(No valid phone on file)</span>}
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="sms" id="sms" />
+                <Label htmlFor="sms" className="flex items-center gap-2 cursor-pointer">
+                  <MessageSquare className="h-4 w-4" />
+                  SMS
                 </Label>
               </div>
             </RadioGroup>
           </div>
 
-          {/* Recipient Input */}
-          <div className="space-y-2">
-            <Label htmlFor="sendTo">
-              {sendMethod === "email" ? "Email Address" : "Phone Number"}
-            </Label>
-            <Input
-              id="sendTo"
-              type={sendMethod === "email" ? "email" : "tel"}
-              placeholder={sendMethod === "email" ? "client@example.com" : "Phone number"}
-              value={sendTo}
-              onChange={(e) => {
-                setSendTo(e.target.value);
-                setValidationError("");
-              }}
-              className={validationError ? "border-red-500" : ""}
-            />
-            {validationError && (
-              <p className="text-sm text-red-600">{validationError}</p>
-            )}
-            {sendMethod === "sms" && (
-              <p className="text-xs text-muted-foreground">
-                Phone number will be automatically formatted
-              </p>
-            )}
-          </div>
+          {sendMethod === 'email' && (
+            <>
+              <div>
+                <Label htmlFor="recipientEmail">Recipient Email</Label>
+                <Input
+                  id="recipientEmail"
+                  type="email"
+                  value={recipientEmail}
+                  onChange={(e) => setRecipientEmail(e.target.value)}
+                  placeholder="client@example.com"
+                />
+              </div>
+              <div>
+                <Label htmlFor="subject">Subject</Label>
+                <Input
+                  id="subject"
+                  value={subject}
+                  onChange={(e) => setSubject(e.target.value)}
+                  placeholder="Email subject"
+                />
+              </div>
+            </>
+          )}
 
-          {/* Custom Message */}
-          <div className="space-y-2">
-            <Label htmlFor="customNote">Custom Message (Optional)</Label>
+          {sendMethod === 'sms' && (
+            <div>
+              <Label htmlFor="recipientPhone">Recipient Phone</Label>
+              <Input
+                id="recipientPhone"
+                type="tel"
+                value={recipientPhone}
+                onChange={(e) => setRecipientPhone(e.target.value)}
+                placeholder="+1234567890"
+              />
+            </div>
+          )}
+
+          <div>
+            <Label htmlFor="message">Message</Label>
             <Textarea
-              id="customNote"
-              placeholder="Add a personal message..."
-              value={customNote}
-              onChange={(e) => setCustomNote(e.target.value)}
+              id="message"
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              placeholder="Optional message to include"
               rows={3}
             />
-            <p className="text-xs text-muted-foreground">
-              A secure portal link will be automatically included for client access.
-            </p>
           </div>
 
-          {/* Action Buttons */}
-          <div className="flex justify-between pt-4 border-t">
-            <Button variant="outline" onClick={onClose} disabled={isProcessing}>
-              <ArrowLeft className="h-4 w-4 mr-2" />
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
-            
             <Button 
               onClick={handleSend}
-              disabled={isProcessing || !sendTo.trim() || !!validationError}
-              className="gap-2"
+              disabled={!isFormValid() || isProcessing}
             >
-              {isProcessing ? (
-                <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                  Sending...
-                </>
-              ) : (
-                <>
-                  <Send className="h-4 w-4" />
-                  Send {sendMethod === "email" ? "Email" : "SMS"}
-                </>
-              )}
+              {isProcessing && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+              Send {documentType}
             </Button>
           </div>
         </div>
       </DialogContent>
     </Dialog>
   );
-};
+}
