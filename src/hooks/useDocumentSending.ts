@@ -40,25 +40,18 @@ export const useDocumentSending = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
 
-      // Determine the edge function to call
-      const functionName = sendMethod === 'sms' 
-        ? `send-${documentType}-sms`
-        : `send-${documentType}`;
+      // Use unified edge functions
+      const functionName = sendMethod === 'sms' ? 'telnyx-sms' : 'mailgun-email';
 
-      console.log(`📡 Calling edge function: ${functionName}`);
+      console.log(`📡 Calling unified edge function: ${functionName}`);
 
-      // Call the appropriate edge function
+      // Call the unified edge function
       const { data, error } = await supabase.functions.invoke(functionName, {
         body: {
-          estimate_id: documentType === 'estimate' ? documentId : undefined,
-          invoice_id: documentType === 'invoice' ? documentId : undefined,
+          documentType,
+          documentId,
           sendToClient: true,
-          customMessage: customMessage,
-          // For SMS, we might need additional params
-          ...(sendMethod === 'sms' && {
-            recipientPhone: sendTo,
-            clientInfo: contactInfo
-          })
+          customMessage: customMessage
         }
       });
 
