@@ -29,11 +29,7 @@ export const EmailComposer = ({ recipient, onClose, onSent }: EmailComposerProps
     text: ''
   });
 
-  const sendEmail = async () => {
-    if (!formData.to || !formData.subject) {
-      toast.error('Please fill in recipient and subject');
-      return;
-    }
+  const sendEmail = () => { console.log("Email functionality not implemented"); }
 
     setLoading(true);
     try {
@@ -136,3 +132,4 @@ export const EmailComposer = ({ recipient, onClose, onSent }: EmailComposerProps
     </Card>
   );
 };
+

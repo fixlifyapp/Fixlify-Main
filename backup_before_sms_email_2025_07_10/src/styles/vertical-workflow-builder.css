@@ -1,0 +1,218 @@
+/* Vertical Workflow Builder Styles */
+
+/* Smooth drag animations */
+.draggable-step {
+  transition: transform 200ms ease;
+}
+
+.draggable-step.dragging {
+  cursor: grabbing;
+  z-index: 100;
+}
+
+/* Connection lines */
+.workflow-connection-line {
+  background: hsl(var(--border));
+  width: 2px;
+  height: 1rem;
+  margin: 0 auto;
+  position: relative;
+}
+
+.workflow-connection-line::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 6px;
+  height: 6px;
+  background: hsl(var(--border));
+  border-radius: 50%;
+}
+
+/* Step hover effects */
+.workflow-step-card {
+  transition: all 0.2s ease;
+}
+
+.workflow-step-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transform: translateY(-1px);
+}
+
+/* Add step button animations */
+.add-step-button {
+  transition: all 0.2s ease;
+}
+
+.add-step-button:hover {
+  transform: scale(1.05);
+}
+
+/* Drag overlay styles */
+.drag-overlay {
+  pointer-events: none;
+  z-index: 1000;
+}
+
+/* Configuration panel animations */
+.config-panel-enter {
+  animation: slideInRight 0.3s ease-out;
+}
+
+.config-panel-exit {
+  animation: slideOutRight 0.3s ease-out;
+}
+
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideOutRight {
+  from {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+}
+
+/* Mobile responsive adjustments */
+@media (max-width: 768px) {
+  .workflow-builder-container {
+    flex-direction: column;
+  }
+  
+  .workflow-steps-container {
+    max-height: 60vh;
+  }
+  
+  .config-panel {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    width: 100%;
+    max-height: 50vh;
+    border-radius: 1rem 1rem 0 0;
+    animation: slideInUp 0.3s ease-out;
+  }
+  
+  @keyframes slideInUp {
+    from {
+      transform: translateY(100%);
+    }
+    to {
+      transform: translateY(0);
+    }
+  }
+}
+
+/* Tablet optimizations */
+@media (min-width: 768px) and (max-width: 1024px) {
+  .workflow-builder-container {
+    gap: 1rem;
+  }
+  
+  .config-panel {
+    width: 320px;
+  }
+}
+
+/* Dark mode adjustments */
+.dark .workflow-step-card {
+  background: hsl(var(--card));
+  border-color: hsl(var(--border));
+}
+
+.dark .workflow-step-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.dark .workflow-connection-line {
+  background: hsl(var(--border));
+}
+
+/* Step type indicators */
+.step-type-trigger {
+  border-left: 4px solid hsl(var(--primary));
+}
+
+.step-type-action {
+  border-left: 4px solid hsl(217 91% 60%);
+}
+
+.step-type-condition {
+  border-left: 4px solid hsl(262 83% 58%);
+}
+
+.step-type-delay {
+  border-left: 4px solid hsl(38 92% 50%);
+}
+
+/* Disabled state */
+.workflow-step-disabled {
+  opacity: 0.5;
+  filter: grayscale(0.3);
+}
+
+/* Empty state */
+.workflow-empty-state {
+  animation: fadeIn 0.5s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Variable badges */
+.variable-badge {
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.variable-badge:hover {
+  transform: scale(1.05);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Smooth scrolling */
+.workflow-scroll-area {
+  scroll-behavior: smooth;
+  scrollbar-width: thin;
+  scrollbar-color: hsl(var(--border)) transparent;
+}
+
+.workflow-scroll-area::-webkit-scrollbar {
+  width: 6px;
+}
+
+.workflow-scroll-area::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.workflow-scroll-area::-webkit-scrollbar-thumb {
+  background-color: hsl(var(--border));
+  border-radius: 3px;
+}
+
+.workflow-scroll-area::-webkit-scrollbar-thumb:hover {
+  background-color: hsl(var(--muted-foreground));
+}
