@@ -1,46 +1,56 @@
-
-import React from 'react';
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Phone } from 'lucide-react';
+import { Phone, PhoneOff } from 'lucide-react';
+import { toast } from 'sonner';
 
 interface CallButtonProps {
-  defaultToNumber?: string;
-  phoneNumber?: string;
-  defaultClientId?: string;
-  clientId?: string;
+  phoneNumber: string;
   clientName?: string;
-  variant?: string;
-  size?: string;
-  showText?: boolean;
-  onCallStateChange?: (state: any) => void;
+  size?: 'sm' | 'default' | 'lg' | 'icon';
+  variant?: 'default' | 'outline' | 'ghost';
 }
 
-const CallButton: React.FC<CallButtonProps> = ({ 
-  defaultToNumber, 
-  defaultClientId, 
-  onCallStateChange 
+export const CallButton: React.FC<CallButtonProps> = ({
+  phoneNumber,
+  clientName,
+  size = 'icon',
+  variant = 'ghost'
 }) => {
+  const [isCallActive, setIsCallActive] = useState(false);
+
   const handleCall = () => {
-    // Implement call functionality
-    if (onCallStateChange) {
-      onCallStateChange({
-        status: 'calling',
-        number: defaultToNumber,
-        clientId: defaultClientId
-      });
+    if (!phoneNumber) {
+      toast.error('No phone number available');
+      return;
+    }
+
+    if (isCallActive) {
+      // End call logic would go here
+      setIsCallActive(false);
+      toast.info('Call ended');
+    } else {
+      // Start call logic would go here
+      setIsCallActive(true);
+      toast.success(`Calling ${clientName || phoneNumber}...`);
+      
+      // For now, just open the phone dialer
+      window.location.href = `tel:${phoneNumber}`;
     }
   };
-
   return (
-    <Button 
+    <Button
+      size={size}
+      variant={variant}
       onClick={handleCall}
-      className="flex items-center gap-2"
+      disabled={!phoneNumber}
+      title={phoneNumber ? `Call ${phoneNumber}` : 'No phone number'}
     >
-      <Phone className="h-4 w-4" />
-      Call
+      {isCallActive ? (
+        <PhoneOff className={size === 'icon' ? 'h-4 w-4' : 'h-4 w-4 mr-2'} />
+      ) : (
+        <Phone className={size === 'icon' ? 'h-4 w-4' : 'h-4 w-4 mr-2'} />
+      )}
+      {size !== 'icon' && (isCallActive ? 'End Call' : 'Call')}
     </Button>
   );
 };
-
-export default CallButton;
-export { CallButton };

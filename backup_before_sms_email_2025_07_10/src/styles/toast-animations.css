@@ -1,0 +1,159 @@
+
+@keyframes toast-timer {
+  0% {
+    transform: scaleX(1);
+  }
+  100% {
+    transform: scaleX(0);
+  }
+}
+
+@keyframes slide-in-from-top {
+  0% {
+    transform: translate(-50%, -100%);
+    opacity: 0;
+  }
+  100% {
+    transform: translate(-50%, 0);
+    opacity: 1;
+  }
+}
+
+@keyframes slide-out-to-top {
+  0% {
+    transform: translate(-50%, 0);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(-50%, -100%);
+    opacity: 0;
+  }
+}
+
+/* Top center toast styling */
+.toaster {
+  position: fixed !important;
+  top: 16px !important;
+  left: 50% !important;
+  transform: translateX(-50%) !important;
+  max-width: 320px !important;
+  width: calc(100% - 32px) !important;
+  z-index: 9999 !important;
+  pointer-events: none !important;
+}
+
+.toaster > * {
+  pointer-events: auto !important;
+}
+
+/* Success toast styling */
+.success-toast {
+  background-color: #F2FCE2 !important;
+  border-color: #BDE99F !important;
+  color: #3A7613 !important;
+  animation: slide-in-from-top 0.2s ease-out !important;
+  margin-bottom: 4px !important;
+}
+
+/* Error toast styling */
+.error-toast {
+  background-color: #FEECEE !important; 
+  border-color: #FAC6CC !important;
+  color: #ea384c !important;
+  animation: slide-in-from-top 0.2s ease-out !important;
+  margin-bottom: 4px !important;
+}
+
+/* Warning toast styling */
+.warning-toast {
+  background-color: #FEF3C7 !important;
+  border-color: #FCD34D !important;
+  color: #D97706 !important;
+  animation: slide-in-from-top 0.2s ease-out !important;
+  margin-bottom: 4px !important;
+}
+
+/* Info toast styling */
+.info-toast {
+  background-color: #EBF8FF !important;
+  border-color: #90CDF4 !important;
+  color: #2563EB !important;
+  animation: slide-in-from-top 0.2s ease-out !important;
+  margin-bottom: 4px !important;
+}
+
+/* Mobile responsive adjustments */
+@media (max-width: 640px) {
+  .toaster {
+    top: 8px !important;
+    max-width: calc(100% - 16px) !important;
+    width: calc(100% - 16px) !important;
+  }
+  
+  .toast {
+    font-size: 12px !important;
+    padding: 8px 12px !important;
+    min-height: auto !important;
+  }
+  
+  .toast button {
+    font-size: 10px !important;
+    padding: 3px 6px !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .toaster {
+    top: 6px !important;
+  }
+  
+  .toast {
+    font-size: 11px !important;
+    padding: 6px 10px !important;
+  }
+}
+
+/* Toast timer animation - shorter for 2 seconds */
+.toast-progress {
+  position: absolute !important;
+  bottom: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  height: 1px !important;
+  background-color: currentColor !important;
+  opacity: 0.4 !important;
+  animation: toast-timer 2000ms linear forwards !important;
+  transform-origin: left !important;
+}
+
+/* Smooth exit animations */
+[data-state="closed"] {
+  animation: slide-out-to-top 0.15s ease-in !important;
+}
+
+/* Hover pause animation */
+.toast:hover .toast-progress {
+  animation-play-state: paused !important;
+}
+
+/* Compact design for better UX */
+.toast {
+  border-radius: 6px !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08) !important;
+  backdrop-filter: blur(4px) !important;
+  border-width: 1px !important;
+  font-weight: 500 !important;
+  line-height: 1.3 !important;
+  max-width: 100% !important;
+}
+
+.toast [data-close-button] {
+  opacity: 0.6 !important;
+  transition: opacity 0.15s !important;
+  width: 16px !important;
+  height: 16px !important;
+}
+
+.toast [data-close-button]:hover {
+  opacity: 1 !important;
+}

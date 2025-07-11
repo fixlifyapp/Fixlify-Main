@@ -1,15 +1,13 @@
-
-import React, { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { useState } from 'react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
-import { Mail, MessageSquare, Send, User, Search } from 'lucide-react';
+import { Phone, Mail, Send } from 'lucide-react';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
+import { useSMS } from '@/contexts/SMSContext';
 
 interface Client {
   id: string;
@@ -18,141 +16,87 @@ interface Client {
   phone: string | null;
 }
 
-interface SendCommunicationDialogProps {
-  children: React.ReactNode;
-}
-
-export const SendCommunicationDialog = ({ children }: SendCommunicationDialogProps) => {
-  const [isOpen, setIsOpen] = useState(false);
-  const [isSending, setIsSending] = useState(false);
-  const [type, setType] = useState<'email' | 'sms'>('email');
-  const [clients, setClients] = useState<Client[]>([]);
-  const [selectedClient, setSelectedClient] = useState<Client | null>(null);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [subject, setSubject] = useState('');
+export function SendCommunicationDialog({
+  open,
+  onOpenChange,
+  defaultType,
+  clientId,
+  jobId,
+  estimateId,
+  invoiceId
+}: SendCommunicationDialogProps) {
+  const [type, setType] = useState<'email' | 'sms'>(defaultType);
+  const [recipient, setRecipient] = useState('');
   const [message, setMessage] = useState('');
+  const [isSending, setIsSending] = useState(false);
+  const { createConversation, sendMessage: sendSMS } = useSMS();
 
-  useEffect(() => {
-    if (isOpen) {
-      fetchClients();
-    }
-  }, [isOpen]);
-
-  const fetchClients = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('clients')
-        .select('id, name, email, phone')
-        .order('name');
-
-      if (error) throw error;
-      setClients(data || []);
-    } catch (error: any) {
-      console.error('Error fetching clients:', error);
-      toast.error('Failed to load clients');
-    }
-  };
-
-  const filteredClients = clients.filter(client =>
-    client.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (client.email && client.email.toLowerCase().includes(searchQuery.toLowerCase())) ||
-    (client.phone && client.phone.includes(searchQuery))
-  );
-
-  const sendCommunication = async () => {
-    if (!selectedClient || !message.trim()) {
-      toast.error('Please select a client and enter a message');
-      return;
-    }
-
-    if (type === 'email' && !selectedClient.email) {
-      toast.error('Selected client has no email address');
-      return;
-    }
-
-    if (type === 'sms' && !selectedClient.phone) {
-      toast.error('Selected client has no phone number');
+  const handleSend = async () => {
+    if (!recipient || !message.trim()) {
+      toast.error('Please fill in all fields');
       return;
     }
 
     setIsSending(true);
     try {
-      const functionName = type === 'email' ? 'mailgun-email' : 'telnyx-sms';
-      
-      const requestBody = type === 'email' 
-        ? {
-            to: selectedClient.email,
-            subject: subject || 'Message from your service provider',
-            html: message.replace(/\n/g, '<br>'),
-            from: 'no-reply@yourdomain.com'
-          }
-        : {
-            to: selectedClient.phone,
-            message: message
-          };
-
-      const { data, error } = await supabase.functions.invoke(functionName, {
-        body: requestBody
-      });
-
-      if (error) throw error;
-
-      toast.success(`${type === 'email' ? 'Email' : 'SMS'} sent successfully!`);
-      
-      // Reset form
-      setSelectedClient(null);
-      setSubject('');
-      setMessage('');
-      setSearchQuery('');
-      setIsOpen(false);
-
-    } catch (error: any) {
-      console.error(`Error sending ${type}:`, error);
-      toast.error(`Failed to send ${type}: ${error.message}`);
+      if (type === 'sms') {
+        // Create or find conversation
+        const conversationId = await createConversation(clientId || '', recipient);
+        if (conversationId) {
+          await sendSMS(conversationId, message);
+          toast.success('SMS sent successfully');
+          onOpenChange(false);
+        }
+      } else {
+        // Email functionality not yet implemented
+        toast.error('Email functionality coming soon');
+      }
+    } catch (error) {
+      console.error('Error sending communication:', error);
+      toast.error('Failed to send message');
     } finally {
       setIsSending(false);
     }
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogTrigger asChild>
-        {children}
-      </DialogTrigger>
-      <DialogContent className="sm:max-w-lg">
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
         <DialogHeader>
-          <DialogTitle className="flex items-center space-x-2">
-            {type === 'email' ? <Mail className="w-5 h-5" /> : <MessageSquare className="w-5 h-5" />}
-            <span>Send {type === 'email' ? 'Email' : 'SMS'}</span>
-          </DialogTitle>
+          <DialogTitle>Send Communication</DialogTitle>
         </DialogHeader>
-
         <div className="space-y-4">
-          <div className="flex space-x-2">
-            <Button
-              variant={type === 'email' ? 'default' : 'outline'}
-              onClick={() => setType('email')}
-              className="flex-1"
-            >
-              <Mail className="w-4 h-4 mr-2" />
-              Email
-            </Button>
-            <Button
-              variant={type === 'sms' ? 'default' : 'outline'}
-              onClick={() => setType('sms')}
-              className="flex-1"
-            >
-              <MessageSquare className="w-4 h-4 mr-2" />
-              SMS
-            </Button>
+          <div>
+            <Label>Type</Label>
+            <Select value={type} onValueChange={(v) => setType(v as 'email' | 'sms')}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="sms">
+                  <div className="flex items-center">
+                    <Phone className="h-4 w-4 mr-2" />
+                    SMS
+                  </div>
+                </SelectItem>
+                <SelectItem value="email">
+                  <div className="flex items-center">
+                    <Mail className="h-4 w-4 mr-2" />
+                    Email
+                  </div>
+                </SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
-          <div className="space-y-2">
-            <Label>Select Client</Label>
-            <Input
-              placeholder="Search clients..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+          <div>
+            <Label>{type === 'sms' ? 'Phone Number' : 'Email Address'}</Label>
+            <input
+              type={type === 'sms' ? 'tel' : 'email'}
+              className="w-full px-3 py-2 border rounded-md"
+              placeholder={type === 'sms' ? '+1234567890' : 'email@example.com'}
+              value={recipient}
+              onChange={(e) => setRecipient(e.target.value)}
             />
             
             {searchQuery && (
@@ -197,46 +141,25 @@ export const SendCommunicationDialog = ({ children }: SendCommunicationDialogPro
             )}
           </div>
 
-          {type === 'email' && (
-            <div className="space-y-2">
-              <Label htmlFor="subject">Subject</Label>
-              <Input
-                id="subject"
-                placeholder="Enter email subject"
-                value={subject}
-                onChange={(e) => setSubject(e.target.value)}
-              />
-            </div>
-          )}
-
-          <div className="space-y-2">
-            <Label htmlFor="message">Message</Label>
+          <div>
+            <Label>Message</Label>
             <Textarea
-              id="message"
-              placeholder={`Enter your ${type === 'email' ? 'email' : 'SMS'} message...`}
+              rows={5}
+              placeholder="Type your message here..."
               value={message}
               onChange={(e) => setMessage(e.target.value)}
-              rows={type === 'email' ? 6 : 4}
             />
           </div>
 
-          <Button 
-            onClick={sendCommunication}
-            disabled={!selectedClient || !message.trim() || isSending}
-            className="w-full"
-          >
-            {isSending ? (
-              <>
-                <MessageSquare className="w-4 h-4 mr-2 animate-pulse" />
-                Sending...
-              </>
-            ) : (
-              <>
-                <Send className="w-4 h-4 mr-2" />
-                Send {type === 'email' ? 'Email' : 'SMS'}
-              </>
-            )}
-          </Button>
+          <div className="flex justify-end space-x-2">
+            <Button variant="outline" onClick={() => onOpenChange(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleSend} disabled={isSending}>
+              <Send className="h-4 w-4 mr-2" />
+              Send {type.toUpperCase()}
+            </Button>
+          </div>
         </div>
       </DialogContent>
     </Dialog>

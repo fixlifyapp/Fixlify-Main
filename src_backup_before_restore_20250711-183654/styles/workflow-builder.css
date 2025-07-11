@@ -1,0 +1,225 @@
+/* Drag and Drop Workflow Builder Styles */
+
+/* React Flow Overrides */
+.react-flow__renderer {
+  background: var(--background);
+}
+
+.react-flow__node {
+  font-family: inherit;
+}
+
+.react-flow__handle {
+  background: hsl(var(--primary));
+  border: 2px solid hsl(var(--background));
+  width: 12px;
+  height: 12px;
+}
+
+.react-flow__handle-connecting {
+  background: hsl(var(--primary));
+}
+
+.react-flow__edge-path {
+  stroke: hsl(var(--primary) / 0.5);
+  stroke-width: 2;
+}
+
+.react-flow__edge.animated .react-flow__edge-path {
+  stroke-dasharray: 5;
+  animation: dashdraw 0.5s linear infinite;
+}
+
+@keyframes dashdraw {
+  to {
+    stroke-dashoffset: -10;
+  }
+}
+
+/* Minimap Styling */
+.react-flow__minimap {
+  background-color: hsl(var(--card));
+  border: 1px solid hsl(var(--border));
+  border-radius: var(--radius);
+  box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1);
+}
+
+.react-flow__minimap-mask {
+  fill: hsl(var(--primary) / 0.1);
+  stroke: hsl(var(--primary));
+  stroke-width: 2;
+}
+
+/* Controls Styling */
+.react-flow__controls {
+  background: hsl(var(--card));
+  border: 1px solid hsl(var(--border));
+  border-radius: var(--radius);
+  box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1);
+}
+
+.react-flow__controls-button {
+  background: hsl(var(--background));
+  border: 1px solid hsl(var(--border));
+  color: hsl(var(--foreground));
+  border-radius: calc(var(--radius) - 2px);
+}
+
+.react-flow__controls-button:hover {
+  background: hsl(var(--muted));
+}
+
+.react-flow__controls-button svg {
+  fill: currentColor;
+}
+
+/* Workflow Node Animations */
+.workflow-node-enter {
+  animation: nodeEnter 0.3s ease-out;
+}
+
+@keyframes nodeEnter {
+  from {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Drag and Drop Visual Feedback */
+.drag-over {
+  background-color: hsl(var(--primary) / 0.05);
+  border: 2px dashed hsl(var(--primary));
+  border-radius: var(--radius);
+}
+
+.dragging {
+  opacity: 0.5;
+  cursor: grabbing;
+}
+
+/* Node Type Specific Styles */
+.workflow-node-trigger {
+  border-color: hsl(var(--primary));
+  background: hsl(var(--primary) / 0.05);
+}
+
+.workflow-node-action {
+  border-color: hsl(217 91% 60%);
+  background: hsl(217 91% 60% / 0.05);
+}
+
+.workflow-node-condition {
+  border-color: hsl(262 83% 58%);
+  background: hsl(262 83% 58% / 0.05);
+}
+
+.workflow-node-delay {
+  border-color: hsl(38 92% 50%);
+  background: hsl(38 92% 50% / 0.05);
+}
+
+/* Dark Mode Adjustments */
+.dark .react-flow__background {
+  background: hsl(var(--background));
+}
+
+.dark .react-flow__minimap {
+  background-color: hsl(var(--card));
+}
+
+.dark .workflow-node-trigger {
+  background: hsl(var(--primary) / 0.1);
+}
+
+.dark .workflow-node-action {
+  background: hsl(217 91% 60% / 0.1);
+}
+
+.dark .workflow-node-condition {
+  background: hsl(262 83% 58% / 0.1);
+}
+
+.dark .workflow-node-delay {
+  background: hsl(38 92% 50% / 0.1);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .workflow-builder-sidebar {
+    position: absolute;
+    z-index: 10;
+    width: 100%;
+    max-width: 320px;
+    transform: translateX(-100%);
+    transition: transform 0.3s ease;
+  }
+  
+  .workflow-builder-sidebar.open {
+    transform: translateX(0);
+  }
+  
+  .react-flow__controls {
+    bottom: 20px;
+    right: 20px;
+  }
+  
+  .react-flow__minimap {
+    display: none;
+  }
+}
+
+/* Tablet Adjustments */
+@media (min-width: 768px) and (max-width: 1024px) {
+  .workflow-builder-sidebar {
+    width: 280px;
+  }
+  
+  .workflow-node {
+    min-width: 220px;
+  }
+}
+
+/* Touch Device Optimizations */
+@media (hover: none) and (pointer: coarse) {
+  .react-flow__handle {
+    width: 16px;
+    height: 16px;
+  }
+  
+  .workflow-node {
+    padding: 12px;
+  }
+  
+  .drag-handle {
+    padding: 8px;
+  }
+}
+
+/* Animation for node connections */
+.connecting-line {
+  stroke: hsl(var(--primary));
+  stroke-width: 2;
+  fill: none;
+  pointer-events: none;
+}
+
+/* Smooth transitions */
+.workflow-transition {
+  transition: all 0.2s ease;
+}
+
+/* Better visibility for small screens */
+@media (max-width: 640px) {
+  .workflow-node {
+    font-size: 0.875rem;
+  }
+  
+  .workflow-node-icon {
+    width: 1rem;
+    height: 1rem;
+  }
+}

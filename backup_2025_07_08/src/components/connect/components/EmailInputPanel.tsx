@@ -36,11 +36,7 @@ export const EmailInputPanel = ({ selectedConversation, onEmailSent }: EmailInpu
   const [isAILoading, setIsAILoading] = useState(false);
   const isMobile = useIsMobile();
 
-  const handleSendEmail = async () => {
-    if (!message.trim() || !selectedConversation?.client?.email || isSending) {
-      if (!selectedConversation?.client?.email) {
-        toast.error("No email address available for this client");
-      }
+  const handleSendEmail = () => { console.log("Email functionality not implemented"); }
       return;
     }
 
@@ -211,3 +207,4 @@ Fixlyfy Team`;
     </div>
   );
 };
+

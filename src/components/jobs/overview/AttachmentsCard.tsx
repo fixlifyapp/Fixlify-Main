@@ -13,22 +13,22 @@ interface AttachmentsCardProps {
   onUpdate?: () => void;
 }
 
-export const AttachmentsCard = ({ jobId, editable = false, onUpdate }: AttachmentsCardProps) => {
-  const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false);
-  
-  const {
-    attachments,
-    isLoading,
-    deleteAttachment,
-    downloadAttachment,
-    viewAttachment,
-    formatFileSize,
-    getFileType,
-    refreshAttachments
-  } = useJobAttachments(jobId);
+export const AttachmentsCard = ({ attachments = [], jobId, onAttachmentsUpdate }: AttachmentsCardProps) => {
+  const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
 
-  const handleView = async (attachment: any) => {
-    await viewAttachment(attachment.file_path, attachment.file_name);
+  const formatFileSize = (bytes: number) => {
+    if (!bytes || bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  };
+
+  const getFileTypeColor = (fileType: string) => {
+    if (fileType.includes('image')) return 'bg-green-100 text-green-800';
+    if (fileType.includes('pdf')) return 'bg-red-100 text-red-800';
+    if (fileType.includes('document') || fileType.includes('word')) return 'bg-blue-100 text-blue-800';
+    return 'bg-gray-100 text-gray-800';
   };
 
   const handleDownload = async (attachment: any) => {

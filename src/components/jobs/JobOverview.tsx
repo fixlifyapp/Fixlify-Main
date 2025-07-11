@@ -258,9 +258,49 @@ const JobOverview: React.FC<JobOverviewProps> = ({ job }) => {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-xl font-semibold">Job Overview</h2>
-        <p className="text-gray-600">{job.description}</p>
+      {/* Primary Information Section */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="space-y-6">
+          <JobDescriptionCard 
+            description={job.description || ""} 
+            jobId={jobId} 
+            editable 
+          />
+          <JobSummaryCard 
+            job={job} 
+            jobId={jobId} 
+            editable 
+          />
+          <TechnicianCard 
+            job={job} 
+            jobId={jobId} 
+            editable 
+          />
+          <TasksCard 
+            tasks={job.tasks || []} 
+            jobId={jobId} 
+            editable 
+            onManageTasks={() => setIsTaskDialogOpen(true)}
+          />
+        </div>
+        
+        <div className="space-y-6">
+          <AdditionalInfoCard job={job} />
+          <ScheduleInfoCard 
+            job={job} 
+            jobId={jobId} 
+            editable 
+          />
+          <AttachmentsCard 
+            attachments={[]}
+            jobId={jobId} 
+            onAttachmentsUpdate={() => {
+              // Refresh job data when attachments are updated
+              window.location.reload();
+            }}
+          />
+          <ConditionalCustomFieldsCard jobId={jobId} />
+        </div>
       </div>
       
       <DialogTrigger asChild>

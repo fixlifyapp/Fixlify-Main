@@ -1,0 +1,185 @@
+/* Responsive Layout System - Clean and Semantic */
+
+/* === RESPONSIVE CONTAINERS === */
+.container-responsive {
+  width: 100%;
+  max-width: 100%;
+  margin: 0 auto;
+  padding: 0 1rem;
+}
+
+/* Mobile First Approach */
+@media (min-width: 640px) {
+  .container-responsive {
+    padding: 0 1.5rem;
+  }
+}
+
+@media (min-width: 768px) {
+  .container-responsive {
+    padding: 0 2rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .container-responsive {
+    max-width: 1200px;
+    padding: 0 2.5rem;
+  }
+}
+
+@media (min-width: 1280px) {
+  .container-responsive {
+    max-width: 1400px;
+    padding: 0 3rem;
+  }
+}
+
+/* === RESPONSIVE SPACING SCALE === */
+.space-mobile { padding: 1rem; }
+.space-tablet { padding: 1.5rem; }
+.space-desktop { padding: 2rem; }
+.space-wide { padding: 2.5rem; }
+
+@media (min-width: 768px) {
+  .space-mobile { padding: 1.5rem; }
+  .space-tablet { padding: 2rem; }
+  .space-desktop { padding: 2.5rem; }
+  .space-wide { padding: 3rem; }
+}
+
+@media (min-width: 1024px) {
+  .space-mobile { padding: 2rem; }
+  .space-tablet { padding: 2.5rem; }
+  .space-desktop { padding: 3rem; }
+  .space-wide { padding: 4rem; }
+}
+
+/* === CARD RESPONSIVE WIDTHS === */
+.card-responsive {
+  width: 100%;
+  max-width: 100%;
+}
+
+@media (min-width: 768px) {
+  .card-responsive {
+    max-width: 48%;
+  }
+}
+
+@media (min-width: 1024px) {
+  .card-responsive {
+    max-width: 32%;
+  }
+}
+
+@media (min-width: 1280px) {
+  .card-responsive {
+    max-width: 24%;
+  }
+}
+
+/* === TOUCH TARGETS === */
+.touch-target {
+  min-height: 44px;
+  min-width: 44px;
+  padding: 0.75rem;
+}
+
+/* === HAMBURGER MENU VISIBILITY === */
+.hamburger-menu {
+  background: hsl(var(--card));
+  border: 1px solid hsl(var(--border));
+  border-radius: 0.5rem;
+  padding: 0.5rem;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.hamburger-menu:hover {
+  background: hsl(var(--accent));
+}
+
+/* === RESPONSIVE GRID === */
+.grid-responsive {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 768px) {
+  .grid-responsive {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.5rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .grid-responsive {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2rem;
+  }
+}
+
+@media (min-width: 1280px) {
+  .grid-responsive {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 2.5rem;
+  }
+}
+
+/* === LAYOUT FIXES === */
+.layout-main {
+  min-height: 0;
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.layout-container {
+  height: 100vh;
+  display: flex;
+  flex-direction: row;
+  overflow: hidden;
+}
+
+.layout-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  background: hsl(var(--background));
+}
+
+.layout-header {
+  flex-shrink: 0;
+  background: hsl(var(--background));
+  border-bottom: 1px solid hsl(var(--border));
+}
+
+/* === RESPONSIVE TYPOGRAPHY === */
+.text-responsive-sm {
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+}
+
+.text-responsive-base {
+  font-size: 1rem;
+  line-height: 1.5rem;
+}
+
+.text-responsive-lg {
+  font-size: 1.125rem;
+  line-height: 1.75rem;
+}
+
+@media (min-width: 768px) {
+  .text-responsive-sm { font-size: 0.9375rem; }
+  .text-responsive-base { font-size: 1.0625rem; }
+  .text-responsive-lg { font-size: 1.25rem; }
+}
+
+@media (min-width: 1024px) {
+  .text-responsive-sm { font-size: 1rem; }
+  .text-responsive-base { font-size: 1.125rem; }
+  .text-responsive-lg { font-size: 1.375rem; }
+}

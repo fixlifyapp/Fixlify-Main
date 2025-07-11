@@ -1,0 +1,4 @@
+    // Use hub.fixlify.app for production portal
+    const portalLink = portalToken 
+      ? `https://hub.fixlify.app/portal/${portalToken}`
+      : `https://hub.fixlify.app/estimate/${estimate.id}`;

@@ -1,0 +1,6 @@
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import { getProductsForNiche } from "@/data/niche-products";
+
+// Enhanced tags for each niche
+const nicheTags = {
