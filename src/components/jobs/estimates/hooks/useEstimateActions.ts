@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { Estimate } from '@/types/documents';
+import { useAuth } from '@/hooks/use-auth';
 
 export interface EstimateActionsState {
   selectedEstimate: Estimate | null;
@@ -30,6 +31,7 @@ export const useEstimateActions = (
   refreshEstimates: () => void,
   onEstimateConverted?: () => void
 ): EstimateActionsHook => {
+  const { user } = useAuth();
   const [selectedEstimate, setSelectedEstimate] = useState<Estimate | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isConverting, setIsConverting] = useState(false);
@@ -150,6 +152,7 @@ export const useEstimateActions = (
         body: {
           to: phoneNumber,
           message: message.slice(0, 160), // SMS character limit
+          userId: user?.id,
           metadata: {
             estimateId: estimateId,
             estimateNumber: estimateData.estimate_number,

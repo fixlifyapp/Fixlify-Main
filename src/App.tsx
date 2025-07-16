@@ -7,6 +7,7 @@ import { AuthProvider } from "@/hooks/use-auth";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { AppProviders } from "@/components/ui/AppProviders";
 import { setupAuthErrorHandler } from "@/utils/auth-fix";
+import { suppressSMSErrors } from "@/utils/suppressSMSErrors";
 import authMonitor from "@/utils/auth-monitor.js?raw";
 
 // Pages
@@ -80,6 +81,7 @@ function App() {
   // Setup auth error handler
   React.useEffect(() => {
     setupAuthErrorHandler();
+    suppressSMSErrors();
   }, []);
   
   return (

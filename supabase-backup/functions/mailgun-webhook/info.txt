@@ -1,0 +1,3 @@
+﻿Function: mailgun-webhook
+URL: https://mqppvcrlvsgrsqelglod.supabase.co/functions/v1/mailgun-webhook
+Status: Deployed

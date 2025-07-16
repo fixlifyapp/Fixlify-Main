@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { useAuth } from '@/hooks/use-auth';
 
 interface SendDocumentParams {
   documentType: 'estimate' | 'invoice';
@@ -16,6 +17,7 @@ interface SendDocumentParams {
 }
 
 export const useDocumentSending = () => {
+  const { user } = useAuth();
   const [isProcessing, setIsProcessing] = useState(false);
 
   const sendDocument = async ({
@@ -35,6 +37,7 @@ export const useDocumentSending = () => {
           body: {
             to: sendTo,
             message: customMessage || `Your ${documentType} is ready. View it here: ${window.location.origin}/${documentType}/${documentId}`,
+            userId: user?.id,
             metadata: {
               documentType,
               documentId,

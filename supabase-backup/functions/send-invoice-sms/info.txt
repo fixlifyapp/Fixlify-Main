@@ -1,0 +1,3 @@
+﻿Function: send-invoice-sms
+URL: https://mqppvcrlvsgrsqelglod.supabase.co/functions/v1/send-invoice-sms
+Status: Deployed

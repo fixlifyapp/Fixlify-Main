@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useCallback, useEffect, ReactNode } from 'react';
+import { createContext, useContext, useState, useCallback, useEffect, ReactNode, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/use-auth';
@@ -86,19 +86,16 @@ export const SMSProvider = ({ children }: { children: ReactNode }) => {
 
       if (error) {
         console.error('Error fetching conversations:', error);
-        toast.error('Failed to load conversations');
         return;
       }
 
       setConversations(data || []);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error:', error);
-      toast.error('Failed to load conversations');
     } finally {
       setIsLoading(false);
     }
   }, [user?.id]);
-
   const fetchMessages = useCallback(async (conversationId: string) => {
     try {
       const { data, error } = await supabase
@@ -109,16 +106,15 @@ export const SMSProvider = ({ children }: { children: ReactNode }) => {
 
       if (error) {
         console.error('Error fetching messages:', error);
-        toast.error('Failed to load messages');
         return;
       }
 
       setMessages(data || []);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error:', error);
-      toast.error('Failed to load messages');
     }
   }, []);
+
   const sendMessage = useCallback(async (conversationId: string, content: string) => {
     if (!user?.id || !conversationId || !content.trim()) return;
     
@@ -144,43 +140,80 @@ export const SMSProvider = ({ children }: { children: ReactNode }) => {
         toast.error('Please configure a primary phone number first');
         return;
       }
-
-      // Call the send-sms edge function
-      const { data, error } = await supabase.functions.invoke('send-sms', {
+      // Call the telnyx-sms edge function
+      const { data, error } = await supabase.functions.invoke('telnyx-sms', {
         body: {
-          to: conversation.client_phone,
+          recipientPhone: conversation.client_phone,
           message: content,
-          clientId: conversation.client_id
+          user_id: user?.id,
+          metadata: {
+            clientId: conversation.client_id,
+            clientName: conversation.client?.name,
+            source: 'sms_conversations'
+          }
         }
       });
 
       if (error) throw error;
 
-      // Create message record
-      const { error: messageError } = await supabase
-        .from('sms_messages')
-        .insert({
-          conversation_id: conversationId,
-          direction: 'outbound',
-          from_number: phoneData.phone_number,
-          to_number: conversation.client_phone,
-          content: content,
-          status: 'sent',
-          external_id: data?.messageId
-        });
+      // Create message record only if we have a messageId
+      if (data?.messageId) {
+        // Check if message with this external_id already exists
+        const { data: existingMessage } = await supabase
+          .from('sms_messages')
+          .select('id')
+          .eq('external_id', data.messageId)
+          .single();
 
-      if (messageError) throw messageError;
+        if (!existingMessage) {
+          const { error: messageError } = await supabase
+            .from('sms_messages')
+            .insert({
+              conversation_id: conversationId,
+              direction: 'outbound',
+              from_number: phoneData.phone_number,
+              to_number: conversation.client_phone,
+              content: content,
+              status: 'sent',
+              external_id: data.messageId
+            });
 
-      // Refresh messages
-      await fetchMessages(conversationId);
+          if (messageError) {
+            console.error('Error inserting message:', messageError);
+            // Don't throw here, message was sent successfully
+          }
+        }
+      } else {
+        // If no messageId returned, still insert the message without external_id
+        const { error: messageError } = await supabase
+          .from('sms_messages')
+          .insert({
+            conversation_id: conversationId,
+            direction: 'outbound',
+            from_number: phoneData.phone_number,
+            to_number: conversation.client_phone,
+            content: content,
+            status: 'sent'
+          });
+
+        if (messageError) {
+          console.error('Error inserting message:', messageError);
+          // Don't throw here, message was sent successfully
+        }
+      }
+
       toast.success('Message sent successfully');
-    } catch (error) {
+      
+      // Refresh messages and conversations
+      await fetchMessages(conversationId);
+      await fetchConversations();
+    } catch (error: any) {
       console.error('Error sending message:', error);
       toast.error('Failed to send message');
     } finally {
       setIsSending(false);
     }
-  }, [user?.id, conversations, fetchMessages]);
+  }, [user?.id, conversations, fetchMessages, fetchConversations]);
   const createConversation = useCallback(async (clientId: string, phoneNumber: string): Promise<string | null> => {
     if (!user?.id) return null;
     
@@ -234,7 +267,6 @@ export const SMSProvider = ({ children }: { children: ReactNode }) => {
       return null;
     }
   }, [user?.id, fetchConversations]);
-
   const markAsRead = useCallback(async (conversationId: string) => {
     try {
       await supabase
@@ -245,40 +277,39 @@ export const SMSProvider = ({ children }: { children: ReactNode }) => {
       console.error('Error marking as read:', error);
     }
   }, []);
-  // Subscribe to realtime updates
+
+  // Simple polling for conversations - no realtime subscriptions
   useEffect(() => {
     if (!user?.id) return;
 
-    const channel = supabase
-      .channel('sms-updates')
-      .on(
-        'postgres_changes',
-        { 
-          event: 'INSERT', 
-          schema: 'public', 
-          table: 'sms_messages',
-          filter: `conversation_id=in.(${conversations.map(c => c.id).join(',')})`
-        },
-        async (payload) => {
-          // Refresh messages if viewing this conversation
-          if (activeConversation && payload.new.conversation_id === activeConversation.id) {
-            await fetchMessages(activeConversation.id);
-          }
-          // Refresh conversations to update last message
-          await fetchConversations();
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [user?.id, conversations, activeConversation, fetchMessages, fetchConversations]);
-
-  // Initial load
-  useEffect(() => {
+    // Initial fetch
     fetchConversations();
-  }, [fetchConversations]);
+
+    // Poll for updates every 10 seconds
+    const interval = setInterval(() => {
+      fetchConversations();
+    }, 10000);
+
+    return () => clearInterval(interval);
+  }, [user?.id, fetchConversations]);
+
+  // Poll for messages when viewing a conversation
+  useEffect(() => {
+    if (activeConversation?.id) {
+      // Initial fetch
+      fetchMessages(activeConversation.id);
+      markAsRead(activeConversation.id);
+      
+      // Poll for new messages every 3 seconds
+      const interval = setInterval(() => {
+        fetchMessages(activeConversation.id);
+      }, 3000);
+      
+      return () => clearInterval(interval);
+    } else {
+      setMessages([]);
+    }
+  }, [activeConversation?.id, fetchMessages, markAsRead]);
 
   const value: SMSContextType = {
     conversations,

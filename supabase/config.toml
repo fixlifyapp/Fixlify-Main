@@ -1,11 +1,11 @@
+# Supabase Edge Functions Configuration
 
-project_id = "mqppvcrlvsgrsqelglod"
+# Disable JWT verification for Telnyx webhook
+# This allows Telnyx to send webhooks without authentication
+[functions.telnyx-webhook]
+verify_jwt = false
 
-[functions.mailgun-email]
-verify_jwt = true
-
-[functions.portal-data]
-verify_jwt = true
-
-[functions.execute-automation]
-verify_jwt = true
+# Disable JWT verification for SMS webhook
+# This allows Telnyx to send webhooks without authentication
+[functions.sms-webhook]
+verify_jwt = false

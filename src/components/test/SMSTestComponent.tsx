@@ -37,6 +37,7 @@ export function SMSTestComponent() {
         body: {
           to: phoneNumber,
           message: message,
+          userId: user?.id,
           metadata: { 
             test: true,
             source: 'sms-test-component'

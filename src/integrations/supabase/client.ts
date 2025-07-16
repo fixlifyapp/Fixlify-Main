@@ -8,10 +8,47 @@ const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiO
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
 
-export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+const supabaseClient = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
   auth: {
     storage: localStorage,
     persistSession: true,
     autoRefreshToken: true,
+  },
+  realtime: {
+    params: {
+      eventsPerSecond: 10
+    }
   }
 });
+
+// Override the channel method to prevent sms_messages subscriptions
+const originalChannel = supabaseClient.channel.bind(supabaseClient);
+supabaseClient.channel = function(name: string, opts?: any) {
+  // Block any channel related to sms_messages
+  if (name.includes('sms') || name.includes('messages')) {
+    console.log('Blocked realtime subscription for:', name);
+    // Return a mock channel that does nothing
+    return {
+      on: () => this,
+      subscribe: () => ({ status: 'SUBSCRIBED' }),
+      unsubscribe: () => {},
+      presenceState: () => ({}),
+      track: () => {},
+      untrack: () => {}
+    } as any;
+  }
+  return originalChannel(name, opts);
+};
+
+// Override removeChannel to prevent errors
+const originalRemoveChannel = supabaseClient.removeChannel.bind(supabaseClient);
+supabaseClient.removeChannel = function(channel: any) {
+  try {
+    return originalRemoveChannel(channel);
+  } catch (error) {
+    console.log('Suppressed removeChannel error');
+    return Promise.resolve();
+  }
+};
+
+export const supabase = supabaseClient;

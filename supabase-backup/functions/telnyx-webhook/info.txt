@@ -1,0 +1,3 @@
+﻿Function: telnyx-webhook
+URL: https://mqppvcrlvsgrsqelglod.supabase.co/functions/v1/telnyx-webhook
+Status: Deployed
