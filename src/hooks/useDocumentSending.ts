@@ -58,68 +58,19 @@ export const useDocumentSending = () => {
         toast.success(`${documentType} sent via SMS successfully!`);
         return { success: true };
       } else {
-        // Email sending
-        // First get document details
-        const table = documentType === 'estimate' ? 'estimates' : 'invoices';
-        const { data: docData, error: docError } = await supabase
-          .from(table)
-          .select('*, jobs(*, clients(*))')
-          .eq('id', documentId)
-          .single();
-
-        if (docError) throw docError;
-
-        // Get company info
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('company_name, company_email')
-          .eq('id', (await supabase.auth.getUser()).data.user?.id)
-          .single();
-
-        // Prepare template variables
-        const templateName = documentType === 'estimate' ? 'estimate_ready_email' : 'invoice_ready_email';
-        const portalLink = `${window.location.origin}/portal/${documentType}/${documentId}`;
-        
-        const variables = {
-          client_name: contactInfo?.name || 'Valued Customer',
-          [`${documentType}_number`]: docData[`${documentType}_number`],
-          amount: `$${docData.total.toFixed(2)}`,
-          link: portalLink,
-          company_name: profile?.company_name || 'Our Company',
-          valid_until: documentType === 'estimate' ? 
-            new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString() : '',
-          due_date: documentType === 'invoice' && docData.due_date ? 
-            new Date(docData.due_date).toLocaleDateString() : ''
-        };
-
-        // Send email using our edge function
-        const { data, error } = await supabase.functions.invoke('send-email', {
+        // Email sending using specialized edge functions
+        const functionName = documentType === 'estimate' ? 'send-estimate' : 'send-invoice';
+        const { data, error } = await supabase.functions.invoke(functionName, {
           body: {
-            to: sendTo,
-            template: templateName,
-            variables: variables,
-            metadata: {
-              documentType,
-              documentId,
-              jobId: docData.job_id,
-              clientId: docData.jobs?.client_id
-            },
-            ...(customMessage && { 
-              html: customMessage.replace(/\n/g, '<br>'),
-              text: customMessage 
-            })
+            [`${documentType}Id`]: documentId,
+            recipientEmail: sendTo,
+            customMessage: customMessage
           }
         });
 
         if (error) throw error;
 
-        // Update document status
-        await supabase
-          .from(table)
-          .update({ status: 'sent' })
-          .eq('id', documentId);
-
-        toast.success(`${documentType} sent via email successfully!`);
+        toast.success(`${documentType.charAt(0).toUpperCase() + documentType.slice(1)} sent via email successfully!`);
         return { success: true };
       }
     } catch (error: any) {

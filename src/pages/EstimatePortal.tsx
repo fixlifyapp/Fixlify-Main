@@ -13,7 +13,7 @@ import {
 } from "@/components/documents/DocumentComponents";
 
 export default function EstimatePortal() {
-  const { estimateId } = useParams();
+  const { token } = useParams();
   const [loading, setLoading] = useState(true);
   const [estimate, setEstimate] = useState<any>(null);
   const [job, setJob] = useState<any>(null);
@@ -22,24 +22,24 @@ export default function EstimatePortal() {
   const { toast } = useToast();
 
   useEffect(() => {
-    if (estimateId) {
+    if (token) {
       loadEstimateData();
     }
-  }, [estimateId]);
+  }, [token]);
 
   const loadEstimateData = async () => {
     try {
       setLoading(true);
       
-      // Load estimate
+      // Load estimate by portal access token
       const { data: estimateData, error: estimateError } = await supabase
         .from("estimates")
         .select("*")
-        .eq("id", estimateId)
+        .eq("portal_access_token", token)
         .maybeSingle();
 
       if (estimateError || !estimateData) {
-        throw new Error("Estimate not found");
+        throw new Error("Estimate not found or invalid access token");
       }
 
       setEstimate(estimateData);
@@ -94,7 +94,7 @@ export default function EstimatePortal() {
       console.error("Error loading estimate:", error);
       toast({
         title: "Error",
-        description: "Failed to load estimate details",
+        description: "Failed to load estimate. Please check your link and try again.",
         variant: "destructive"
       });
     } finally {

@@ -110,12 +110,12 @@ function App() {
             } />
             
             {/* Estimate View */}
-            <Route path="/estimate/:estimateId" element={
+            <Route path="/portal/estimate/:token" element={
               <EstimatePortal />
             } />
             
             {/* Invoice View */}
-            <Route path="/invoice/:invoiceId" element={
+            <Route path="/portal/invoice/:token" element={
               <InvoicePortal />
             } />
             

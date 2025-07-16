@@ -10,6 +10,13 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS"
 };
 
+// Generate a secure random token
+const generateToken = () => {
+  const array = new Uint8Array(32);
+  crypto.getRandomValues(array);
+  return Array.from(array, byte => byte.toString(16).padStart(2, '0')).join('');
+};
+
 serve(async (req) => {
   // Handle CORS
   if (req.method === "OPTIONS") {
@@ -19,15 +26,14 @@ serve(async (req) => {
   try {
     // Get Supabase client
     const supabaseUrl = Deno.env.get("SUPABASE_URL");
-    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-    
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");    
     if (!supabaseUrl || !supabaseServiceKey) {
       throw new Error("Missing Supabase configuration");
     }
     
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
-    
-    // Get auth header and verify user    const authHeader = req.headers.get("Authorization");
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);    
+    // Get auth header and verify user
+    const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
       return new Response(
         JSON.stringify({ error: "No authorization header" }),
@@ -53,9 +59,9 @@ serve(async (req) => {
         JSON.stringify({ error: "Estimate ID is required" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
-    }
-    console.log("Sending estimate:", estimateId);
+    }    console.log("Sending estimate:", estimateId);
     // Get estimate details with job and client info
+    // Fixed: Removed line_items foreign key reference since items are stored in JSONB column
     const { data: estimate, error: estimateError } = await supabase
       .from("estimates")
       .select(`
@@ -63,8 +69,7 @@ serve(async (req) => {
         jobs!inner(
           *,
           clients!inner(*)
-        ),
-        line_items!line_items_parent_id_fkey(*)
+        )
       `)
       .eq("id", estimateId)
       .single();
@@ -77,6 +82,16 @@ serve(async (req) => {
       );
     }
     
+    // Generate or use existing portal access token
+    let portalToken = estimate.portal_access_token;
+    if (!portalToken) {
+      portalToken = generateToken();
+      // Update estimate with new token
+      await supabase
+        .from("estimates")
+        .update({ portal_access_token: portalToken })
+        .eq("id", estimateId);
+    }    
     // Get user profile for company info
     const { data: profile } = await supabase
       .from("profiles")
@@ -99,19 +114,18 @@ serve(async (req) => {
       );
     }
 
-    // Generate portal link
-    const portalLink = `${Deno.env.get("PUBLIC_SITE_URL") || "https://app.fixlify.com"}/portal/estimate/${estimateId}`;
-
-    // Format line items for email
-    const lineItemsHtml = estimate.line_items?.map(item => `
-      <tr>
-        <td style="padding: 12px; border-bottom: 1px solid #e5e7eb;">${item.description}</td>
-        <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: center;">${item.quantity}</td>
-        <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: right;">$${item.unit_price.toFixed(2)}</td>
-        <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: right;">$${(item.quantity * item.unit_price).toFixed(2)}</td>
-      </tr>
-    `).join("") || "";
-    // Create email content
+    // Generate portal link with token
+    const portalLink = `${Deno.env.get("PUBLIC_SITE_URL") || "https://hub.fixlify.app"}/portal/estimate/${estimateId}?token=${portalToken}`;    // Format line items for email - using JSONB items field
+    const lineItemsHtml = estimate.items && Array.isArray(estimate.items) && estimate.items.length > 0 
+      ? estimate.items.map(item => `
+        <tr>
+          <td style="padding: 12px; border-bottom: 1px solid #e5e7eb;">${item.description || item.name || 'Service'}</td>
+          <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: center;">${item.quantity || 1}</td>
+          <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: right;">$${(item.unit_price || item.rate || item.amount || 0).toFixed(2)}</td>
+          <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: right;">$${(item.total || ((item.quantity || 1) * (item.unit_price || item.rate || item.amount || 0))).toFixed(2)}</td>
+        </tr>
+      `).join("") 
+      : "";    // Create email content
     const emailHtml = `
       <!DOCTYPE html>
       <html>
@@ -147,25 +161,31 @@ serve(async (req) => {
             </div>
             
             <!-- Line Items -->
-            <table style="width: 100%; border-collapse: collapse; margin-bottom: 24px;">
-              <thead>
-                <tr style="background-color: #f9fafb;">
-                  <th style="padding: 12px; text-align: left; font-weight: 600; color: #374151; border-bottom: 2px solid #e5e7eb;">Description</th>
-                  <th style="padding: 12px; text-align: center; font-weight: 600; color: #374151; border-bottom: 2px solid #e5e7eb;">Qty</th>
-                  <th style="padding: 12px; text-align: right; font-weight: 600; color: #374151; border-bottom: 2px solid #e5e7eb;">Price</th>
-                  <th style="padding: 12px; text-align: right; font-weight: 600; color: #374151; border-bottom: 2px solid #e5e7eb;">Total</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${lineItemsHtml}
-              </tbody>
-              <tfoot>
-                <tr>
-                  <td colspan="3" style="padding: 12px; text-align: right; font-weight: 600; color: #111827;">Total:</td>
-                  <td style="padding: 12px; text-align: right; font-weight: 600; color: #111827; font-size: 18px;">$${estimate.total.toFixed(2)}</td>
-                </tr>
-              </tfoot>
-            </table>            
+            ${lineItemsHtml ? `
+              <table style="width: 100%; border-collapse: collapse; margin-bottom: 24px;">
+                <thead>
+                  <tr style="background-color: #f9fafb;">
+                    <th style="padding: 12px; text-align: left; font-weight: 600; color: #374151; border-bottom: 2px solid #e5e7eb;">Description</th>
+                    <th style="padding: 12px; text-align: center; font-weight: 600; color: #374151; border-bottom: 2px solid #e5e7eb;">Qty</th>
+                    <th style="padding: 12px; text-align: right; font-weight: 600; color: #374151; border-bottom: 2px solid #e5e7eb;">Price</th>
+                    <th style="padding: 12px; text-align: right; font-weight: 600; color: #374151; border-bottom: 2px solid #e5e7eb;">Total</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${lineItemsHtml}
+                </tbody>
+                <tfoot>
+                  <tr>
+                    <td colspan="3" style="padding: 12px; text-align: right; font-weight: 600; color: #111827;">Total:</td>
+                    <td style="padding: 12px; text-align: right; font-weight: 600; color: #111827; font-size: 18px;">$${estimate.total.toFixed(2)}</td>
+                  </tr>
+                </tfoot>
+              </table>
+            ` : `
+              <div style="background-color: #f9fafb; padding: 24px; border-radius: 8px; margin-bottom: 24px;">
+                <p style="margin: 0; color: #6b7280; text-align: center;">No line items added to this estimate</p>
+              </div>
+            `}            
             <!-- CTA Button -->
             <div style="text-align: center; margin: 32px 0;">
               <a href="${portalLink}" style="display: inline-block; background-color: ${brandColor}; color: white; padding: 12px 32px; text-decoration: none; border-radius: 6px; font-weight: 600;">View Estimate Online</a>
@@ -190,8 +210,7 @@ serve(async (req) => {
         </div>
       </body>
       </html>
-    `;
-    // Send email using Mailgun via our edge function
+    `;    // Send email using Mailgun via our edge function
     const mailgunResponse = await fetch(`${supabaseUrl}/functions/v1/mailgun-email`, {
       method: "POST",
       headers: {
@@ -217,8 +236,7 @@ serve(async (req) => {
       );
     }
 
-    const emailResult = await mailgunResponse.json();
-    // Update estimate status to sent
+    const emailResult = await mailgunResponse.json();    // Update estimate status to sent
     await supabase
       .from("estimates")
       .update({ status: "sent" })
@@ -244,14 +262,15 @@ serve(async (req) => {
           estimate_number: estimate.estimate_number,
           total: estimate.total,
           portal_link: portalLink,
+          portal_token: portalToken,
           mailgun_id: emailResult.mailgunId
         }
-      });
-    return new Response(
+      });    return new Response(
       JSON.stringify({ 
         success: true, 
         message: "Estimate sent successfully",
-        emailId: emailResult.mailgunId
+        emailId: emailResult.mailgunId,
+        portalLink: portalLink
       }),
       { 
         status: 200,

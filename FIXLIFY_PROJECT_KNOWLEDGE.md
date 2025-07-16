@@ -16,8 +16,10 @@ Complete two-way SMS conversation system integrated with Telnyx for SMS messagin
 ### Edge Functions
 - `send-sms` - Main SMS sending function with Telnyx integration and automatic phone number formatting
 - `sms-webhook` - Webhook handler for incoming SMS messages and status updates (handles unknown numbers)
-- `send-estimate` - Send estimates via email with portal links
-- `send-invoice` - Send invoices via email with payment links
+- `send-estimate` - Send estimates via email with portal links (now generates and uses portal_access_token)
+- `send-invoice` - Send invoices via email with payment links (now generates and uses portal_access_token)
+- `send-estimate-sms` - Send estimate links via SMS (now generates and uses portal_access_token)
+- `send-invoice-sms` - Send invoice links via SMS (now generates and uses portal_access_token)
 - `mailgun-email` - Email sending service (supports test mode when Mailgun not configured)
 - `generate-with-ai` - AI generation for business insights and analytics
 - `send-contact-email` - Handles contact form email submissions
@@ -41,6 +43,16 @@ Complete two-way SMS conversation system integrated with Telnyx for SMS messagin
 12. **Auto Client Creation**: New clients are created when messages arrive from unknown numbers
 13. **Email Sending**: Invoice and estimate sending via email with Mailgun integration
 14. **Test Mode**: Email functions work in test mode when Mailgun API keys not configured
+15. **Portal Token Security**: All estimate and invoice portals now use secure access tokens instead of direct IDs
+
+### Recent Updates (January 2025)
+- **IMPLEMENTED: Portal Token Security** (January 2025)
+  - All estimate and invoice links now use secure access tokens
+  - Tokens are generated automatically when sending emails/SMS
+  - Portal routes updated: `/portal/estimate/:token` and `/portal/invoice/:token`
+  - Edge functions updated: `send-estimate`, `send-invoice`, `send-estimate-sms`, `send-invoice-sms`
+  - Frontend components updated: `EstimatePortal` and `InvoicePortal` now look up documents by token
+  - Tokens are stored in `portal_access_token` field in estimates and invoices tables
 
 ### Testing
 - SMS conversations available in Connect Center at `/communications`
@@ -49,6 +61,7 @@ Complete two-way SMS conversation system integrated with Telnyx for SMS messagin
 - User must have a primary phone number configured in the database
 - Unknown numbers automatically create new client records
 - Email functions work in test mode without Mailgun configuration
+- Portal links now use secure tokens for access control
 
 ### Configuration Required
 1. Set `TELNYX_API_KEY` in Supabase edge function secrets
@@ -58,11 +71,10 @@ Complete two-way SMS conversation system integrated with Telnyx for SMS messagin
 4. Configure webhook URL in Telnyx portal: `https://[your-project].supabase.co/functions/v1/sms-webhook`
 
 ### Next Steps
-- Phase 4: Integrate SMS into estimate and invoice sending
-- Phase 5: Add Mailgun email support
-- Phase 6: Full integration across automations and client portal
 - Phase 7: Add SMS templates and quick replies
 - Phase 8: Implement message search and filtering
+- Phase 9: Add email template builder
+- Phase 10: Implement payment processing for invoice portals
 
 ### Recent Updates (January 2025)
 - Fixed incoming SMS from new numbers not appearing in Connect Center
@@ -111,6 +123,15 @@ Complete two-way SMS conversation system integrated with Telnyx for SMS messagin
     - Handle cases where no messageId is returned
     - Don't throw errors on message insert failures (SMS already sent)
   - Result: SMS messages send correctly without database errors
+- **FIXED: Estimate/Invoice Line Items Foreign Key Error** (July 2025)
+  - Root cause: Edge functions were trying to query line_items table with foreign key relationship that doesn't exist
+  - Estimates and invoices store items in JSONB column, not separate line_items table
+  - Solution:
+    - Updated send-estimate edge function to use JSONB items field
+    - Updated send-invoice edge function to use JSONB items field
+    - Added proper handling for different item field names (description/name, unit_price/rate/amount)
+    - Added "No line items" message when items array is empty
+  - Result: Estimate and invoice emails send successfully without database errors
 
 ### Technical Notes
 - Uses Supabase edge functions for secure API key handling
@@ -133,6 +154,12 @@ Complete two-way SMS conversation system integrated with Telnyx for SMS messagin
   - Notes field documents auto-creation with timestamp
   - Conversations link to new client ID for proper tracking
   - All messages are logged with client metadata
+- **Portal Token Security**:
+  - All portal links now use secure random tokens (64 hex characters)
+  - Tokens are generated using crypto.getRandomValues() for security
+  - Tokens are stored in portal_access_token field in estimates/invoices tables
+  - Portal routes validate token before displaying document
+  - No direct ID exposure in URLs anymore
 
 
 ## Supabase Backup System (January 2025)

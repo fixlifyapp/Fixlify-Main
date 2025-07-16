@@ -6,6 +6,13 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Generate a secure random token
+function generateToken(): string {
+  const array = new Uint8Array(32);
+  crypto.getRandomValues(array);
+  return Array.from(array, byte => byte.toString(16).padStart(2, '0')).join('');
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -31,6 +38,24 @@ serve(async (req) => {
 
     if (estimateError) throw estimateError;
     if (!estimate) throw new Error('Estimate not found');
+
+    // Check if estimate has a portal token, if not generate one
+    let portalToken = estimate.portal_access_token;
+    if (!portalToken) {
+      portalToken = generateToken();
+      
+      // Update estimate with the new token
+      const { error: updateError } = await supabase
+        .from('estimates')
+        .update({ portal_access_token: portalToken })
+        .eq('id', estimateId);
+        
+      if (updateError) {
+        console.error('Error updating estimate token:', updateError);
+        throw new Error('Failed to generate portal access token');
+      }
+    }
+
     // Fetch job details if job_id exists
     let job = null;
     if (estimate.job_id) {
@@ -54,14 +79,15 @@ serve(async (req) => {
       client = clientData;
     }
 
-    // Generate portal URL
+    // Generate portal URL with token
     const authorization = req.headers.get('authorization');
     const baseUrl = authorization?.includes('localhost') 
       ? 'http://localhost:8083' 
       : 'https://fixlify.app';
-    const portalUrl = `${baseUrl}/estimate/${estimateId}`;
+    const portalUrl = `${baseUrl}/portal/estimate/${portalToken}`;
 
-    // Create message    const messagePrefix = customMessage ? `${customMessage}\n\n` : '';
+    // Create message
+    const messagePrefix = customMessage ? `${customMessage}\n\n` : '';
     const defaultMessage = `Hi ${client?.name || 'there'},\n\nYour estimate #${estimate.estimate_number} for $${estimate.total_amount} is ready to view.\n\nView estimate: ${portalUrl}\n\n- Fixlify Team`;
     const fullMessage = messagePrefix + defaultMessage;
 
@@ -92,7 +118,8 @@ serve(async (req) => {
 
     if (!smsResponse.ok) {
       const error = await smsResponse.text();
-      throw new Error(`Failed to send SMS: ${error}`);    }
+      throw new Error(`Failed to send SMS: ${error}`);
+    }
 
     const smsResult = await smsResponse.json();
 

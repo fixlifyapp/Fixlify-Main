@@ -7,6 +7,13 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS"
 };
 
+// Generate a secure random token
+const generateToken = () => {
+  const array = new Uint8Array(32);
+  crypto.getRandomValues(array);
+  return Array.from(array, byte => byte.toString(16).padStart(2, '0')).join('');
+};
+
 serve(async (req) => {
   // Handle CORS
   if (req.method === "OPTIONS") {
@@ -55,6 +62,7 @@ serve(async (req) => {
     console.log("Sending invoice:", invoiceId);
 
     // Get invoice details with job and client info
+    // Fixed: Removed line_items foreign key reference since items are stored in JSONB column
     const { data: invoice, error: invoiceError } = await supabase
       .from("invoices")
       .select(`
@@ -62,8 +70,7 @@ serve(async (req) => {
         jobs!inner(
           *,
           clients!inner(*)
-        ),
-        line_items!line_items_parent_id_fkey(*)
+        )
       `)
       .eq("id", invoiceId)
       .single();
@@ -75,6 +82,18 @@ serve(async (req) => {
         { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
+    
+    // Generate or use existing portal access token
+    let portalToken = invoice.portal_access_token;
+    if (!portalToken) {
+      portalToken = generateToken();
+      // Update invoice with new token
+      await supabase
+        .from("invoices")
+        .update({ portal_access_token: portalToken })
+        .eq("id", invoiceId);
+    }
+    
     // Get user profile for company info
     const { data: profile } = await supabase
       .from("profiles")
@@ -98,19 +117,21 @@ serve(async (req) => {
       );
     }
 
-    // Generate portal link
-    const portalLink = `${Deno.env.get("PUBLIC_SITE_URL") || "https://app.fixlify.com"}/portal/invoice/${invoiceId}`;
-    const paymentLink = `${Deno.env.get("PUBLIC_SITE_URL") || "https://app.fixlify.com"}/portal/pay/${invoiceId}`;
+    // Generate portal links with token
+    const portalLink = `${Deno.env.get("PUBLIC_SITE_URL") || "https://hub.fixlify.app"}/portal/invoice/${invoiceId}?token=${portalToken}`;
+    const paymentLink = `${Deno.env.get("PUBLIC_SITE_URL") || "https://hub.fixlify.app"}/portal/pay/${invoiceId}?token=${portalToken}`;
 
-    // Format line items for email
-    const lineItemsHtml = invoice.line_items?.map(item => `
-      <tr>
-        <td style="padding: 12px; border-bottom: 1px solid #e5e7eb;">${item.description}</td>
-        <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: center;">${item.quantity}</td>
-        <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: right;">$${item.unit_price.toFixed(2)}</td>
-        <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: right;">$${(item.quantity * item.unit_price).toFixed(2)}</td>
-      </tr>
-    `).join("") || "";
+    // Format line items for email - using JSONB items field
+    const lineItemsHtml = invoice.items && Array.isArray(invoice.items) && invoice.items.length > 0 
+      ? invoice.items.map(item => `
+        <tr>
+          <td style="padding: 12px; border-bottom: 1px solid #e5e7eb;">${item.description || item.name || 'Service'}</td>
+          <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: center;">${item.quantity || 1}</td>
+          <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: right;">$${(item.unit_price || item.rate || item.amount || 0).toFixed(2)}</td>
+          <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: right;">$${(item.total || ((item.quantity || 1) * (item.unit_price || item.rate || item.amount || 0))).toFixed(2)}</td>
+        </tr>
+      `).join("") 
+      : "";
 
     // Calculate amount due
     const amountDue = invoice.total - (invoice.amount_paid || 0);
@@ -163,33 +184,34 @@ serve(async (req) => {
               ${invoice.jobs?.address ? `<p style="margin: 8px 0; color: #6b7280;"><strong>Service Location:</strong> ${invoice.jobs.address}</p>` : ""}
             </div>            
             <!-- Line Items -->
-            <table style="width: 100%; border-collapse: collapse; margin-bottom: 24px;">
-              <thead>
-                <tr style="background-color: #f9fafb;">
-                  <th style="padding: 12px; text-align: left; font-weight: 600; color: #374151; border-bottom: 2px solid #e5e7eb;">Description</th>
-                  <th style="padding: 12px; text-align: center; font-weight: 600; color: #374151; border-bottom: 2px solid #e5e7eb;">Qty</th>
-                  <th style="padding: 12px; text-align: right; font-weight: 600; color: #374151; border-bottom: 2px solid #e5e7eb;">Price</th>
-                  <th style="padding: 12px; text-align: right; font-weight: 600; color: #374151; border-bottom: 2px solid #e5e7eb;">Total</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${lineItemsHtml}
-              </tbody>
-              <tfoot>
-                <tr>
-                  <td colspan="3" style="padding: 12px; text-align: right; font-weight: 600; color: #111827;">Subtotal:</td>
-                  <td style="padding: 12px; text-align: right; color: #374151;">$${(invoice.subtotal || invoice.total).toFixed(2)}</td>
-                </tr>
-                ${invoice.tax_amount ? `
-                  <tr>
-                    <td colspan="3" style="padding: 12px; text-align: right; font-weight: 600; color: #111827;">Tax:</td>
-                    <td style="padding: 12px; text-align: right; color: #374151;">$${invoice.tax_amount.toFixed(2)}</td>
+            ${lineItemsHtml ? `
+              <table style="width: 100%; border-collapse: collapse; margin-bottom: 24px;">
+                <thead>
+                  <tr style="background-color: #f9fafb;">
+                    <th style="padding: 12px; text-align: left; font-weight: 600; color: #374151; border-bottom: 2px solid #e5e7eb;">Description</th>
+                    <th style="padding: 12px; text-align: center; font-weight: 600; color: #374151; border-bottom: 2px solid #e5e7eb;">Qty</th>
+                    <th style="padding: 12px; text-align: right; font-weight: 600; color: #374151; border-bottom: 2px solid #e5e7eb;">Price</th>
+                    <th style="padding: 12px; text-align: right; font-weight: 600; color: #374151; border-bottom: 2px solid #e5e7eb;">Total</th>
                   </tr>
-                ` : ""}
-                <tr>
-                  <td colspan="3" style="padding: 12px; text-align: right; font-weight: 600; color: #111827; font-size: 18px;">Total:</td>
-                  <td style="padding: 12px; text-align: right; font-weight: 600; color: #111827; font-size: 18px;">$${invoice.total.toFixed(2)}</td>
-                </tr>                ${invoice.amount_paid > 0 ? `
+                </thead>
+                <tbody>
+                  ${lineItemsHtml}
+                </tbody>
+                <tfoot>
+                  <tr>
+                    <td colspan="3" style="padding: 12px; text-align: right; font-weight: 600; color: #111827;">Subtotal:</td>
+                    <td style="padding: 12px; text-align: right; color: #374151;">$${(invoice.subtotal || invoice.total).toFixed(2)}</td>
+                  </tr>
+                  ${invoice.tax_amount ? `
+                    <tr>
+                      <td colspan="3" style="padding: 12px; text-align: right; font-weight: 600; color: #111827;">Tax:</td>
+                      <td style="padding: 12px; text-align: right; color: #374151;">$${invoice.tax_amount.toFixed(2)}</td>
+                    </tr>
+                  ` : ""}
+                  <tr>
+                    <td colspan="3" style="padding: 12px; text-align: right; font-weight: 600; color: #111827; font-size: 18px;">Total:</td>
+                    <td style="padding: 12px; text-align: right; font-weight: 600; color: #111827; font-size: 18px;">$${invoice.total.toFixed(2)}</td>
+                  </tr>                ${invoice.amount_paid > 0 ? `
                   <tr>
                     <td colspan="3" style="padding: 12px; text-align: right; font-weight: 600; color: #111827;">Paid:</td>
                     <td style="padding: 12px; text-align: right; color: #10b981;">-$${invoice.amount_paid.toFixed(2)}</td>
@@ -198,9 +220,19 @@ serve(async (req) => {
                     <td colspan="3" style="padding: 12px; text-align: right; font-weight: 600; color: #111827; font-size: 18px;">Amount Due:</td>
                     <td style="padding: 12px; text-align: right; font-weight: 600; color: #ef4444; font-size: 18px;">$${amountDue.toFixed(2)}</td>
                   </tr>
+                  ` : ""}
+                </tfoot>
+              </table>
+            ` : `
+              <div style="background-color: #f9fafb; padding: 24px; border-radius: 8px; margin-bottom: 24px;">
+                <p style="margin: 0; color: #6b7280; text-align: center;">No line items added to this invoice</p>
+                <p style="margin: 16px 0 0 0; color: #111827; text-align: center; font-size: 18px; font-weight: 600;">Total: $${invoice.total.toFixed(2)}</p>
+                ${invoice.amount_paid > 0 ? `
+                  <p style="margin: 8px 0 0 0; color: #10b981; text-align: center;">Paid: -$${invoice.amount_paid.toFixed(2)}</p>
+                  <p style="margin: 8px 0 0 0; color: #ef4444; text-align: center; font-size: 18px; font-weight: 600;">Amount Due: $${amountDue.toFixed(2)}</p>
                 ` : ""}
-              </tfoot>
-            </table>
+              </div>
+            `}
             
             <!-- CTA Buttons -->
             <div style="text-align: center; margin: 32px 0;">
@@ -285,6 +317,7 @@ serve(async (req) => {
           amount_due: amountDue,
           payment_status: invoice.payment_status,
           portal_link: portalLink,
+          portal_token: portalToken,
           payment_link: paymentLink,
           mailgun_id: emailResult.mailgunId
         }
@@ -294,7 +327,8 @@ serve(async (req) => {
       JSON.stringify({ 
         success: true, 
         message: "Invoice sent successfully",
-        emailId: emailResult.mailgunId
+        emailId: emailResult.mailgunId,
+        portalLink: portalLink
       }),
       { 
         status: 200,

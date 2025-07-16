@@ -15,7 +15,7 @@ import {
 } from "@/components/documents/DocumentComponents";
 
 export default function InvoicePortal() {
-  const { invoiceId } = useParams();
+  const { token } = useParams();
   const [loading, setLoading] = useState(true);
   const [invoice, setInvoice] = useState<any>(null);
   const [job, setJob] = useState<any>(null);
@@ -25,24 +25,24 @@ export default function InvoicePortal() {
   const { toast } = useToast();
 
   useEffect(() => {
-    if (invoiceId) {
+    if (token) {
       loadInvoiceData();
     }
-  }, [invoiceId]);
+  }, [token]);
 
   const loadInvoiceData = async () => {
     try {
       setLoading(true);
       
-      // Load invoice
+      // Load invoice by portal access token
       const { data: invoiceData, error: invoiceError } = await supabase
         .from("invoices")
         .select("*")
-        .eq("id", invoiceId)
+        .eq("portal_access_token", token)
         .maybeSingle();
 
       if (invoiceError || !invoiceData) {
-        throw new Error("Invoice not found");
+        throw new Error("Invoice not found or invalid access token");
       }
 
       setInvoice(invoiceData);
@@ -77,7 +77,7 @@ export default function InvoicePortal() {
       const { data: paymentsData } = await supabase
         .from("payments")
         .select("*")
-        .eq("invoice_id", invoiceId)
+        .eq("invoice_id", invoiceData.id)
         .order("payment_date", { ascending: false });
       
       if (paymentsData) {
@@ -108,7 +108,7 @@ export default function InvoicePortal() {
       console.error("Error loading invoice:", error);
       toast({
         title: "Error",
-        description: "Failed to load invoice details",
+        description: "Failed to load invoice. Please check your link and try again.",
         variant: "destructive"
       });
     } finally {

@@ -119,7 +119,7 @@ export const useEstimateActions = (
     try {
       console.log('Starting SMS send for estimate:', estimateId);
       
-      // Get estimate details
+      // Get estimate details including portal token
       const { data: estimateData, error: estimateError } = await supabase
         .from('estimates')
         .select('*')
@@ -128,6 +128,21 @@ export const useEstimateActions = (
 
       if (estimateError || !estimateData) {
         throw new Error('Failed to fetch estimate details');
+      }
+
+      // Generate token if it doesn't exist
+      let portalToken = estimateData.portal_access_token;
+      if (!portalToken) {
+        // Generate a secure token
+        const array = new Uint8Array(32);
+        crypto.getRandomValues(array);
+        portalToken = Array.from(array, byte => byte.toString(16).padStart(2, '0')).join('');
+        
+        // Update estimate with token
+        await supabase
+          .from('estimates')
+          .update({ portal_access_token: portalToken })
+          .eq('id', estimateId);
       }
 
       // Get job and client info
@@ -141,10 +156,10 @@ export const useEstimateActions = (
         console.warn('Could not fetch job/client data:', jobError);
       }
 
-      // Generate portal link (you might have a function for this)
-      const portalLink = `${window.location.origin}/portal/estimate/${estimateId}`;
+      // Generate portal link with token
+      const portalLink = `${window.location.origin}/portal/estimate/${estimateId}?token=${portalToken}`;
 
-      // Create SMS message
+      // Create SMS message with shortened link (for SMS character limit)
       const message = `Hi ${jobData?.clients?.name || 'there'}, your estimate ${estimateData.estimate_number} is ready! Total: $${estimateData.total.toFixed(2)}. View: ${portalLink}`;
 
       // Send SMS via edge function
