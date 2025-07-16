@@ -115,7 +115,7 @@ serve(async (req) => {
     }
 
     // Generate portal link with token
-    const portalLink = `${Deno.env.get("PUBLIC_SITE_URL") || "https://hub.fixlify.app"}/portal/estimate/${estimateId}?token=${portalToken}`;    // Format line items for email - using JSONB items field
+    const portalLink = `${Deno.env.get("PUBLIC_SITE_URL") || "https://hub.fixlify.app"}/portal/estimate/${portalToken}`;    // Format line items for email - using JSONB items field
     const lineItemsHtml = estimate.items && Array.isArray(estimate.items) && estimate.items.length > 0 
       ? estimate.items.map(item => `
         <tr>

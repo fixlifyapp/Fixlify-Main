@@ -83,7 +83,7 @@ serve(async (req) => {
     const authorization = req.headers.get('authorization');
     const baseUrl = authorization?.includes('localhost') 
       ? 'http://localhost:8083' 
-      : 'https://fixlify.app';
+      : 'https://hub.fixlify.app';
     const portalUrl = `${baseUrl}/portal/invoice/${portalToken}`;
 
     // Create message

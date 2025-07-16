@@ -118,8 +118,8 @@ serve(async (req) => {
     }
 
     // Generate portal links with token
-    const portalLink = `${Deno.env.get("PUBLIC_SITE_URL") || "https://hub.fixlify.app"}/portal/invoice/${invoiceId}?token=${portalToken}`;
-    const paymentLink = `${Deno.env.get("PUBLIC_SITE_URL") || "https://hub.fixlify.app"}/portal/pay/${invoiceId}?token=${portalToken}`;
+    const portalLink = `${Deno.env.get("PUBLIC_SITE_URL") || "https://hub.fixlify.app"}/portal/invoice/${portalToken}`;
+    const paymentLink = `${Deno.env.get("PUBLIC_SITE_URL") || "https://hub.fixlify.app"}/portal/pay/${portalToken}`;
 
     // Format line items for email - using JSONB items field
     const lineItemsHtml = invoice.items && Array.isArray(invoice.items) && invoice.items.length > 0 
