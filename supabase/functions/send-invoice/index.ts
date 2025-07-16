@@ -83,7 +83,7 @@ serve(async (req) => {
       .single();
 
     const companyName = profile?.company_name || "Your Service Company";
-    const companyEmail = profile?.company_email || "noreply@example.com";
+    const companyEmail = profile?.company_email || "noreply@fixlify.app";
     const companyPhone = profile?.company_phone || "";
     const companyAddress = profile?.company_address || "";
     const brandColor = profile?.brand_color || "#3b82f6";

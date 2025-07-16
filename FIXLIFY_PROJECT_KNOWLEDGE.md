@@ -3,7 +3,7 @@
 ## SMS/Email Communication System (Updated January 2025)
 
 ### Overview
-Complete two-way SMS conversation system integrated with Telnyx for SMS messaging. Email functionality pending implementation with Mailgun.
+Complete two-way SMS conversation system integrated with Telnyx for SMS messaging. Email functionality implemented with Mailgun (requires API key configuration).
 
 ### Database Schema
 - `phone_numbers` - Stores user phone numbers for SMS sending
@@ -18,6 +18,7 @@ Complete two-way SMS conversation system integrated with Telnyx for SMS messagin
 - `sms-webhook` - Webhook handler for incoming SMS messages and status updates (handles unknown numbers)
 - `send-estimate` - Send estimates via email with portal links
 - `send-invoice` - Send invoices via email with payment links
+- `mailgun-email` - Email sending service (supports test mode when Mailgun not configured)
 - `generate-with-ai` - AI generation for business insights and analytics
 - `send-contact-email` - Handles contact form email submissions
 - `automation-executor` - Executes automation workflows
@@ -38,6 +39,8 @@ Complete two-way SMS conversation system integrated with Telnyx for SMS messagin
 10. **Unread Counts**: Track unread messages per conversation
 11. **Unknown Number Handling**: Automatically creates temporary clients for unknown numbers
 12. **Auto Client Creation**: New clients are created when messages arrive from unknown numbers
+13. **Email Sending**: Invoice and estimate sending via email with Mailgun integration
+14. **Test Mode**: Email functions work in test mode when Mailgun API keys not configured
 
 ### Testing
 - SMS conversations available in Connect Center at `/communications`
@@ -45,9 +48,11 @@ Complete two-way SMS conversation system integrated with Telnyx for SMS messagin
 - Requires Telnyx API credentials in Supabase secrets
 - User must have a primary phone number configured in the database
 - Unknown numbers automatically create new client records
+- Email functions work in test mode without Mailgun configuration
 
 ### Configuration Required
 1. Set `TELNYX_API_KEY` in Supabase edge function secrets
+2. Set `MAILGUN_API_KEY`, `MAILGUN_DOMAIN`, and `MAILGUN_FROM_EMAIL` for production email sending
 2. Optionally set `TELNYX_MESSAGING_PROFILE_ID`
 3. Add user phone numbers to `phone_numbers` table and mark one as primary
 4. Configure webhook URL in Telnyx portal: `https://[your-project].supabase.co/functions/v1/sms-webhook`
@@ -97,6 +102,15 @@ Complete two-way SMS conversation system integrated with Telnyx for SMS messagin
     - Redeployed function with: `npx supabase functions deploy sms-webhook --no-verify-jwt`
   - Result: Webhook accepts requests from Telnyx without authentication headers
   - SMS functionality unchanged, only removed error logs in Telnyx debug console
+- **FIXED: SMS Duplicate external_id Error** (July 2025)
+  - Root cause: SMSContext was using wrong edge function name ('send-sms' instead of 'telnyx-sms')
+  - Also: Trying to insert duplicate messages with same external_id
+  - Solution:
+    - Updated function name to 'telnyx-sms' with correct parameters
+    - Added check for existing external_id before inserting
+    - Handle cases where no messageId is returned
+    - Don't throw errors on message insert failures (SMS already sent)
+  - Result: SMS messages send correctly without database errors
 
 ### Technical Notes
 - Uses Supabase edge functions for secure API key handling

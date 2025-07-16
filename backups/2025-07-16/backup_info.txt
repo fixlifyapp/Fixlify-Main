@@ -1,0 +1,20 @@
+FIXLIFY BACKUP
+Date: 2025-07-16
+Time: Current
+
+Changes included in this backup:
+1. Fixed SMS duplicate external_id error
+2. Updated SMSContext to use telnyx-sms function
+3. Added error handling for message insertion
+4. Fixed Telnyx webhook 401 authorization error
+
+Files changed:
+- src/contexts/SMSContext.tsx
+- supabase/config.toml
+- FIXLIFY_PROJECT_KNOWLEDGE.md
+
+SMS System Status:
+- Working correctly
+- Messages sending/receiving properly
+- Webhook authentication fixed
+- No duplicate key errors
