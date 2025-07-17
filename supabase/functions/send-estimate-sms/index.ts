@@ -80,10 +80,7 @@ serve(async (req) => {
     }
 
     // Generate portal URL with token
-    const authorization = req.headers.get('authorization');
-    const baseUrl = authorization?.includes('localhost') 
-      ? 'http://localhost:8083' 
-      : 'https://hub.fixlify.app';
+    const baseUrl = Deno.env.get('PUBLIC_SITE_URL') || 'https://hub.fixlify.app';
     const portalUrl = `${baseUrl}/portal/estimate/${portalToken}`;
 
     // Create message
