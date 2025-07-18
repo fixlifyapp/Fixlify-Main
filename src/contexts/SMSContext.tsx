@@ -56,24 +56,25 @@ const SMSContext = createContext<SMSContextType | undefined>(undefined);
 export const useSMS = () => {
   const context = useContext(SMSContext);
   if (!context) {
-    throw new Error('useSMS must be used within an SMSProvider');
+    throw new Error('useSMS must be used within SMSProvider');
   }
   return context;
 };
-export const SMSProvider = ({ children }: { children: ReactNode }) => {
+
+export const SMSProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+  const { user } = useAuth();
   const [conversations, setConversations] = useState<SMSConversation[]>([]);
   const [activeConversation, setActiveConversation] = useState<SMSConversation | null>(null);
   const [messages, setMessages] = useState<SMSMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isSending, setIsSending] = useState(false);
-  const { user } = useAuth();
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const prevMessageCountRef = useRef(0);
 
   const fetchConversations = useCallback(async () => {
     if (!user?.id) return;
     
     try {
-      setIsLoading(true);
-      
       const { data, error } = await supabase
         .from('sms_conversations')
         .select(`
@@ -84,19 +85,18 @@ export const SMSProvider = ({ children }: { children: ReactNode }) => {
         .eq('status', 'active')
         .order('last_message_at', { ascending: false, nullsFirst: false });
 
-      if (error) {
-        console.error('Error fetching conversations:', error);
-        return;
-      }
-
+      if (error) throw error;
+      
       setConversations(data || []);
-    } catch (error: any) {
-      console.error('Error:', error);
-    } finally {
-      setIsLoading(false);
+    } catch (error) {
+      console.error('Error fetching conversations:', error);
     }
   }, [user?.id]);
+
   const fetchMessages = useCallback(async (conversationId: string) => {
+    if (!conversationId) return;
+    
+    setIsLoading(true);
     try {
       const { data, error } = await supabase
         .from('sms_messages')
@@ -104,29 +104,26 @@ export const SMSProvider = ({ children }: { children: ReactNode }) => {
         .eq('conversation_id', conversationId)
         .order('created_at', { ascending: true });
 
-      if (error) {
-        console.error('Error fetching messages:', error);
-        return;
-      }
-
+      if (error) throw error;
+      
       setMessages(data || []);
-    } catch (error: any) {
-      console.error('Error:', error);
+      prevMessageCountRef.current = data?.length || 0;
+    } catch (error) {
+      console.error('Error fetching messages:', error);
+      toast.error('Failed to load messages');
+    } finally {
+      setIsLoading(false);
     }
   }, []);
 
   const sendMessage = useCallback(async (conversationId: string, content: string) => {
     if (!user?.id || !conversationId || !content.trim()) return;
     
+    setIsSending(true);
     try {
-      setIsSending(true);
-      
       // Get conversation details
       const conversation = conversations.find(c => c.id === conversationId);
-      if (!conversation) {
-        toast.error('Conversation not found');
-        return;
-      }
+      if (!conversation) throw new Error('Conversation not found');
 
       // Get user's phone number
       const { data: phoneData, error: phoneError } = await supabase
@@ -140,13 +137,15 @@ export const SMSProvider = ({ children }: { children: ReactNode }) => {
         toast.error('Please configure a primary phone number first');
         return;
       }
-      // Call the telnyx-sms edge function
+
+      // Send SMS using the correct edge function name
       const { data, error } = await supabase.functions.invoke('telnyx-sms', {
         body: {
-          recipientPhone: conversation.client_phone,
+          to: conversation.client_phone,
           message: content,
-          user_id: user?.id,
+          userId: user.id,
           metadata: {
+            conversationId: conversationId,
             clientId: conversation.client_id,
             clientName: conversation.client?.name,
             source: 'sms_conversations'
@@ -214,6 +213,7 @@ export const SMSProvider = ({ children }: { children: ReactNode }) => {
       setIsSending(false);
     }
   }, [user?.id, conversations, fetchMessages, fetchConversations]);
+
   const createConversation = useCallback(async (clientId: string, phoneNumber: string): Promise<string | null> => {
     if (!user?.id) return null;
     
@@ -267,6 +267,7 @@ export const SMSProvider = ({ children }: { children: ReactNode }) => {
       return null;
     }
   }, [user?.id, fetchConversations]);
+
   const markAsRead = useCallback(async (conversationId: string) => {
     try {
       await supabase
@@ -298,18 +299,25 @@ export const SMSProvider = ({ children }: { children: ReactNode }) => {
     if (activeConversation?.id) {
       // Initial fetch
       fetchMessages(activeConversation.id);
-      markAsRead(activeConversation.id);
-      
-      // Poll for new messages every 3 seconds
+
+      // Poll every 3 seconds when conversation is active
       const interval = setInterval(() => {
         fetchMessages(activeConversation.id);
       }, 3000);
-      
+
       return () => clearInterval(interval);
-    } else {
-      setMessages([]);
     }
-  }, [activeConversation?.id, fetchMessages, markAsRead]);
+  }, [activeConversation?.id, fetchMessages]);
+
+  // Auto-scroll behavior when new messages arrive
+  useEffect(() => {
+    if (messages.length > prevMessageCountRef.current) {
+      // New messages arrived, scroll to bottom
+      setTimeout(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+      }, 100);
+    }
+  }, [messages]);
 
   const value: SMSContextType = {
     conversations,
