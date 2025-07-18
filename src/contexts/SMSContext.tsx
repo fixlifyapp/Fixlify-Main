@@ -138,12 +138,12 @@ export const SMSProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         return;
       }
 
-      // Send SMS using the correct edge function name
+      // Send SMS using the correct parameter names
       const { data, error } = await supabase.functions.invoke('telnyx-sms', {
         body: {
-          to: conversation.client_phone,
+          recipientPhone: conversation.client_phone,
           message: content,
-          userId: user.id,
+          user_id: user.id,
           metadata: {
             conversationId: conversationId,
             clientId: conversation.client_id,
