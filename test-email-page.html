@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fixlify Email Test</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+    <h1>Fixlify Email Function Test</h1>
+    <div id="status">Initializing...</div>
+    <div id="results"></div>
+    
+    <script>
+        const SUPABASE_URL = 'https://mqppvcrlvsgrsqelglod.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1xcHB2Y3JsdnNncnNxZWxnbG9kIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc1OTE3MDUsImV4cCI6MjA2MzE2NzcwNX0.My-KiqG1bCMqzUru4m59d4v18N3WGxNoNtFPOFAmhzg';
+        
+        const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        const statusEl = document.getElementById('status');
+        const resultsEl = document.getElementById('results');
+        
+        function log(message, isError = false) {
+            const div = document.createElement('div');
+            div.style.color = isError ? 'red' : 'green';
+            div.textContent = new Date().toLocaleTimeString() + ' - ' + message;
+            resultsEl.appendChild(div);
+            console.log(message);
+        }
+        
+        async function runTests() {
+            statusEl.textContent = 'Running tests...';
+            
+            // Test 1: Check session
+            log('Checking session...');
+            const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+            
+            if (sessionError || !session) {
+                log('No active session. Attempting login...', true);
+                
+                // Try to login with test credentials
+                const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+                    email: 'test@example.com',
+                    password: 'test123'
+                });
+                
+                if (authError) {
+                    log('Login failed: ' + authError.message, true);
+                    statusEl.textContent = 'Tests failed - no authentication';
+                    return;
+                }
+                
+                log('Login successful!');
+            } else {
+                log('Session active: ' + session.user.email);
+            }
+            
+            // Test 2: Direct mailgun test
+            log('Testing mailgun-email function...');
+            try {
+                const { data, error } = await supabase.functions.invoke('mailgun-email', {
+                    body: {
+                        to: 'test@example.com',
+                        subject: 'Test Email from Fixlify',
+                        html: '<p>This is a test email sent at ' + new Date().toLocaleString() + '</p>',
+                        text: 'This is a test email sent at ' + new Date().toLocaleString()
+                    }
+                });
+                
+                if (error) {
+                    log('Mailgun test failed: ' + JSON.stringify(error), true);
+                } else {
+                    log('Mailgun test succeeded: ' + JSON.stringify(data));
+                }
+            } catch (err) {
+                log('Mailgun test error: ' + err.message, true);
+            }
+            
+            // Test 3: Get an estimate
+            log('Fetching estimates...');
+            const { data: estimates, error: estError } = await supabase
+                .from('estimates')
+                .select('*, jobs(*, clients(*))')
+                .limit(1);
+                
+            if (estError || !estimates?.length) {
+                log('No estimates found: ' + (estError?.message || 'empty result'), true);
+                statusEl.textContent = 'Tests completed with errors';
+                return;
+            }
+            
+            const estimate = estimates[0];
+            log('Found estimate: ' + estimate.estimate_number + ' (Total: $' + estimate.total + ')');
+            
+            // Test 4: Send estimate email
+            log('Testing send-estimate function...');
+            try {
+                const { data, error } = await supabase.functions.invoke('send-estimate', {
+                    body: {
+                        estimateId: estimate.id,
+                        recipientEmail: 'test@example.com',
+                        customMessage: 'This is an automated test email from Fixlify test suite.'
+                    }
+                });
+                
+                if (error) {
+                    log('Send estimate failed: ' + JSON.stringify(error), true);
+                } else {
+                    log('Send estimate succeeded: ' + JSON.stringify(data));
+                    if (data.portalLink) {
+                        log('Portal link: ' + data.portalLink);
+                    }
+                }
+            } catch (err) {
+                log('Send estimate error: ' + err.message, true);
+            }
+            
+            statusEl.textContent = 'Tests completed!';
+        }
+        
+        // Run tests when page loads
+        runTests();
+    </script>
+</body>
+</html>

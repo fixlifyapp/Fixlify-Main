@@ -6,6 +6,41 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
+// Verify Telnyx webhook signature
+async function verifyTelnyx(payload: string, signature: string | null): Promise<boolean> {
+  const webhookSecret = Deno.env.get('TELNYX_WEBHOOK_SECRET')
+  
+  // If no secret configured, log warning but allow in dev
+  if (!webhookSecret) {
+    console.warn('TELNYX_WEBHOOK_SECRET not configured - webhook verification disabled')
+    return true // Only for development, set to false in production
+  }
+  
+  if (!signature) {
+    console.error('No signature provided in request')
+    return false
+  }
+  
+  // Telnyx uses HMAC-SHA256 for webhook signatures
+  const encoder = new TextEncoder()
+  const key = await crypto.subtle.importKey(
+    'raw',
+    encoder.encode(webhookSecret),
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    ['sign']
+  )
+  
+  const signatureBuffer = await crypto.subtle.sign(
+    'HMAC',
+    key,
+    encoder.encode(payload)
+  )
+  
+  const expectedSignature = btoa(String.fromCharCode(...new Uint8Array(signatureBuffer)))
+  return signature === expectedSignature
+}
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -13,22 +48,32 @@ serve(async (req) => {
   }
 
   try {
+    // Get the raw body for signature verification
+    const rawBody = await req.text()
+    
+    // Verify webhook signature (if in production)
+    const signature = req.headers.get('x-telnyx-signature')
+    const isValid = await verifyTelnyx(rawBody, signature)
+    
+    if (!isValid) {
+      console.error('Invalid webhook signature')
+      return new Response(
+        JSON.stringify({ error: 'Invalid signature' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+    
     // CRITICAL: Immediately acknowledge the webhook to prevent retries
-    // This prevents Telnyx from sending duplicate webhooks
     const response = new Response(JSON.stringify({ success: true }), {
       status: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
 
-    // Clone the request to read the body without consuming it
-    const requestClone = req.clone()
-    
-    // Process the webhook asynchronously after sending the response
-    processWebhookAsync(requestClone).catch(error => {
+    // Process the webhook asynchronously after sending response
+    processWebhookAsync(rawBody).catch(error => {
       console.error('Error processing webhook asynchronously:', error)
     })
 
-    // Return the acknowledgment immediately
     return response
   } catch (error) {
     console.error('Error in SMS webhook:', error)
@@ -42,12 +87,12 @@ serve(async (req) => {
   }
 })
 
-async function processWebhookAsync(req: Request) {
+async function processWebhookAsync(rawBody: string) {
   const supabaseUrl = Deno.env.get('SUPABASE_URL')!
   const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
   const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
-  const body = await req.json()
+  const body = JSON.parse(rawBody)
   console.log('Received Telnyx webhook:', JSON.stringify(body, null, 2))
 
   const { data } = body

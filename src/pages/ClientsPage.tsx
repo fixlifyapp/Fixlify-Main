@@ -391,8 +391,8 @@ const ClientsPage = () => {
         )}
         
         <ClientsCreateModal
-          isOpen={isCreateModalOpen}
-          onClose={() => setIsCreateModalOpen(false)}
+          open={isCreateModalOpen}
+          onOpenChange={setIsCreateModalOpen}
           onSuccess={() => {
             setIsCreateModalOpen(false);
             refreshClients();

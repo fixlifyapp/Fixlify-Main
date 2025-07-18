@@ -1,0 +1,37 @@
+Push working version - Complete Email/SMS integration
+
+## Changes in this version:
+
+### Edge Functions (All deployed and working):
+- mailgun-email (v42) - Email sending via Mailgun
+- send-estimate (v8) - Estimate email notifications
+- send-estimate-sms (v7) - Estimate SMS notifications
+- send-invoice (v7) - Invoice email notifications
+- send-invoice-sms (v7) - Invoice SMS notifications
+- telnyx-sms (v10) - SMS sending via Telnyx
+- test-env (v5) - Environment testing
+
+### Database:
+- All migrations applied through 20250707105212
+- Communication logging tables configured
+- RLS policies updated
+
+### Features Working:
+- ✅ Email sending via Mailgun
+- ✅ SMS sending via Telnyx
+- ✅ Estimate notifications (email & SMS)
+- ✅ Invoice notifications (email & SMS)
+- ✅ Communication tracking and logging
+- ✅ Webhook handling
+
+### Recent Fixes:
+- Fixed email/SMS integration
+- Updated edge function configurations
+- Improved error handling
+- Added comprehensive logging
+
+### Backup:
+- Created full backup in backup_2025_07_08/
+- ZIP archive available: backup_2025_07_08_2025-07-08_13-04-24.zip
+
+This is a stable, working version with all communication features operational.

@@ -1,0 +1,34 @@
+/* Dark theme fixes for automations page */
+.automation-card-dark {
+  background: rgba(26, 31, 46, 0.95) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Fix input backgrounds */
+input.bg-gray-800\/80,
+textarea.bg-gray-800\/80 {
+  background-color: rgba(31, 41, 55, 0.8) !important;
+  color: white !important;
+}
+
+/* Fix contrast for AI builder section */
+.ai-builder-section {
+  background: linear-gradient(135deg, rgba(26, 31, 46, 0.98) 0%, rgba(45, 55, 72, 0.98) 100%) !important;
+}
+
+/* Tab fixes - Commented out to use component-specific styles
+[role="tablist"] button[data-state="active"] {
+  background-color: rgba(138, 77, 213, 0.2) !important;
+  color: white !important;
+} */
+
+/* Modal backgrounds */
+.dialog-content {
+  background-color: rgba(17, 24, 39, 0.98) !important;
+}
+
+/* Fix placeholder text visibility */
+input::placeholder,
+textarea::placeholder {
+  color: rgba(156, 163, 175, 0.8) !important;
+}

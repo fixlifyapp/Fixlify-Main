@@ -1,0 +1,27 @@
+fix: resolve automation system organization_id issues and foreign key constraints
+
+Fixed Issues:
+- Fixed foreign key constraint violations in automation_execution_logs
+- Resolved organization_id not found errors in automation workflows
+- Fixed non-existent column 'settings' errors in profiles table queries
+- Corrected organization_id usage throughout automation system
+
+Changes Made:
+1. Added useUserProfile hook to fetch user's organization_id
+2. Updated useOrganization to properly fetch organization data
+3. Modified useAutomations to use profile.organization_id instead of user.id
+4. Added organization validation in SimpleWorkflowBuilder
+5. Updated automation services to include organization_id
+6. Added AI automation builder with template support
+7. Implemented timezone-aware delivery windows
+8. Added delivery window configuration for automations
+9. Fixed all foreign key constraints
+
+New Features:
+- AI-powered automation builder with natural language input
+- Timezone-aware message scheduling
+- Delivery window configuration (business hours, allowed days)
+- Quick setup templates for common automations
+- Comprehensive error handling and validation
+
+Result: Automation creation and execution now works without errors

@@ -1,0 +1,8 @@
+// Updated section for portal URL configuration
+    // Check environment for portal URL configuration
+    const PORTAL_BASE_URL = Deno.env.get('PORTAL_BASE_URL') || 'https://hub.fixlify.app';
+    
+    // Use the configured portal URL
+    const portalLink = portalToken 
+      ? `${PORTAL_BASE_URL}/portal/${portalToken}`
+      : `${PORTAL_BASE_URL}/estimate/${estimate.id}`;

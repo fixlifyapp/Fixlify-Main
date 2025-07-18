@@ -18,7 +18,8 @@ import {
   Briefcase,
   MoreVertical,
   ExternalLink,
-  Link
+  Link,
+  MessageSquare
 } from "lucide-react";
 import { useClients } from "@/hooks/useClients";
 import { ClientContactActions } from "./ClientContactActions";
@@ -28,14 +29,16 @@ import { useClientStats } from "@/hooks/useClientStats";
 import { formatCurrency } from "@/lib/utils";
 import { DeleteConfirmDialog } from "@/components/jobs/dialogs/DeleteConfirmDialog";
 import { cn } from "@/lib/utils";
-import { usePortalLink } from "@/hooks/usePortalLink";
-import { format } from "date-fns";
+import { toast } from "sonner";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { usePortalLink } from "@/hooks/usePortalLink";
+import { format } from "date-fns";
 
 interface ClientsListProps {
   isGridView?: boolean;
@@ -421,19 +424,12 @@ const ClientCard = ({
           </div>
           
           {(client.email || client.phone) && (
-            <div className="space-y-2">
-              {client.email && (
-                <div className="flex items-center text-sm text-muted-foreground">
-                  <Mail className="h-4 w-4 mr-2" />
-                  <span className="truncate">{client.email}</span>
-                </div>
-              )}
-              {client.phone && (
-                <div className="flex items-center text-sm text-muted-foreground">
-                  <Phone className="h-4 w-4 mr-2" />
-                  <span>{client.phone}</span>
-                </div>
-              )}
+            <div className="py-2">
+              <ClientContactActions
+                client={client}
+                compact={true}
+                size="sm"
+              />
             </div>
           )}
           
@@ -606,6 +602,29 @@ const ClientRow = ({
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={(e) => {
+                e.stopPropagation();
+                if (client.phone) {
+                  navigate(`/connect?tab=sms&clientId=${client.id}&clientName=${encodeURIComponent(client.name)}&clientPhone=${encodeURIComponent(client.phone)}&autoOpen=true`);
+                } else {
+                  toast.error('No phone number available');
+                }
+              }}>
+                <MessageSquare className="h-4 w-4 mr-2" />
+                Message
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={(e) => {
+                e.stopPropagation();
+                if (client.email) {
+                  navigate(`/connect?tab=emails&clientId=${client.id}&clientName=${encodeURIComponent(client.name)}&clientEmail=${encodeURIComponent(client.email)}&autoOpen=true`);
+                } else {
+                  toast.error('No email address available');
+                }
+              }}>
+                <Mail className="h-4 w-4 mr-2" />
+                Email
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
               <DropdownMenuItem onClick={(e) => {
                 e.stopPropagation();
                 onDeleteClick(e, client);

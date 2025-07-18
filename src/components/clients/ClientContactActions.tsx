@@ -66,8 +66,8 @@ export const ClientContactActions = ({
       return;
     }
     
-    // Navigate to Connect Center with messages tab and auto-open message dialog
-    navigate(`/connect?tab=messages&clientId=${clientData.id}&clientName=${encodeURIComponent(clientData.name)}&clientPhone=${encodeURIComponent(clientData.phone)}&autoOpen=true`);
+    // Navigate to Connect Center with SMS tab and auto-open message dialog
+    navigate(`/connect?tab=sms&clientId=${clientData.id}&clientName=${encodeURIComponent(clientData.name)}&clientPhone=${encodeURIComponent(clientData.phone)}&autoOpen=true`);
   };
 
   const handleDirections = () => {

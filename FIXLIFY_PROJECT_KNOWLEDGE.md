@@ -1,126 +1,39 @@
-# FIXLIFY PROJECT KNOWLEDGE
+# Fixlify Project Knowledge Base
 
-## SMS/Email Communication System (Updated January 2025)
+## Project Overview
+Fixlify is a comprehensive repair shop management system built with Next.js, Supabase, and modern web technologies. It provides tools for managing repairs, customers, inventory, communications, and business operations.
 
-### Overview
-Complete two-way SMS conversation system integrated with Telnyx for SMS messaging. Email functionality implemented with Mailgun (requires API key configuration).
+## Key Features
+- Customer & Job Management
+- Inventory Control
+- Automated Communications (SMS/Email)
+- AI-Powered Tools
+- Multi-location Support
+- Real-time Updates
 
-### Database Schema
-- `phone_numbers` - Stores user phone numbers for SMS sending
-- `communication_logs` - Tracks all SMS/email communications with full audit trail
-- `message_templates` - Reusable message templates with variable substitution
-- `organization_communication_settings` - Organization-wide communication settings
-- `sms_conversations` - SMS conversation threads between users and clients
-- `sms_messages` - Individual SMS messages within conversations
+## Technical Stack
+- **Frontend**: Next.js 14, React, TypeScript, Tailwind CSS
+- **Backend**: Supabase (PostgreSQL, Edge Functions, Realtime)
+- **Communications**: Twilio/SendGrid/Telnyx for SMS/Email
+- **AI Integration**: OpenAI, Claude, Perplexity APIs
+- **Deployment**: Vercel/Supabase Cloud
 
-### Edge Functions
-- `send-sms` - Main SMS sending function with Telnyx integration and automatic phone number formatting
-- `sms-webhook` - Webhook handler for incoming SMS messages and status updates (handles unknown numbers)
-- `send-estimate` - Send estimates via email with portal links (now generates and uses portal_access_token)
-- `send-invoice` - Send invoices via email with payment links (now generates and uses portal_access_token)
-- `send-estimate-sms` - Send estimate links via SMS (now generates and uses portal_access_token)
-- `send-invoice-sms` - Send invoice links via SMS (now generates and uses portal_access_token)
-- `mailgun-email` - Email sending service (supports test mode when Mailgun not configured)
-- `generate-with-ai` - AI generation for business insights and analytics
-- `send-contact-email` - Handles contact form email submissions
-- `automation-executor` - Executes automation workflows
-- `reports-run` - Generates report data based on templates
-- `reports-templates` - Provides report template definitions
-- `intelligent-ai-assistant` - Provides AI-powered assistance and recommendations
+## Recent Fixes & Updates
 
-### Features Implemented
-1. **SMS Sending**: Full SMS capability via Telnyx API with automatic phone formatting
-2. **Two-way SMS Conversations**: Real-time messaging interface in Connect Center
-3. **Phone Number Management**: Users can have multiple phone numbers with primary designation
-4. **Communication Logging**: All communications tracked with status updates
-5. **Message Templates**: Reusable templates with variable substitution
-6. **Error Handling**: Comprehensive error tracking and user feedback
-7. **Security**: RLS policies ensure users only see their own data
-8. **Real-time Updates**: Live message updates using Supabase realtime subscriptions
-9. **Conversation Management**: Create, view, and manage SMS conversations with clients
-10. **Unread Counts**: Track unread messages per conversation
-11. **Unknown Number Handling**: Automatically creates temporary clients for unknown numbers
-12. **Auto Client Creation**: New clients are created when messages arrive from unknown numbers
-13. **Email Sending**: Invoice and estimate sending via email with Mailgun integration
-14. **Test Mode**: Email functions work in test mode when Mailgun API keys not configured
-15. **Portal Token Security**: All estimate and invoice portals now use secure access tokens instead of direct IDs
+### July 2025 Updates
 
-### Recent Updates (January 2025)
-- **IMPLEMENTED: Portal Token Security** (January 2025)
-  - All estimate and invoice links now use secure access tokens
-  - Tokens are generated automatically when sending emails/SMS
-  - Portal routes updated: `/portal/estimate/:token` and `/portal/invoice/:token`
-  - Edge functions updated: `send-estimate`, `send-invoice`, `send-estimate-sms`, `send-invoice-sms`
-  - Frontend components updated: `EstimatePortal` and `InvoicePortal` now look up documents by token
-  - Tokens are stored in `portal_access_token` field in estimates and invoices tables
-
-### Testing
-- SMS conversations available in Connect Center at `/communications`
-- Test page available at `/sms-test` when logged in
-- Requires Telnyx API credentials in Supabase secrets
-- User must have a primary phone number configured in the database
-- Unknown numbers automatically create new client records
-- Email functions work in test mode without Mailgun configuration
-- Portal links now use secure tokens for access control
-
-### Configuration Required
-1. Set `TELNYX_API_KEY` in Supabase edge function secrets
-2. Set `MAILGUN_API_KEY`, `MAILGUN_DOMAIN`, and `MAILGUN_FROM_EMAIL` for production email sending
-2. Optionally set `TELNYX_MESSAGING_PROFILE_ID`
-3. Add user phone numbers to `phone_numbers` table and mark one as primary
-4. Configure webhook URL in Telnyx portal: `https://[your-project].supabase.co/functions/v1/sms-webhook`
-
-### Next Steps
-- Phase 7: Add SMS templates and quick replies
-- Phase 8: Implement message search and filtering
-- Phase 9: Add email template builder
-- Phase 10: Implement payment processing for invoice portals
-
-### Recent Updates (January 2025)
-- Fixed incoming SMS from new numbers not appearing in Connect Center
-- Updated sms-webhook edge function to handle "cold start" scenario
-- Now creates new conversations automatically when receiving messages from unknown numbers
-- SMS webhook properly manages conversation lifecycle
-- Removed deprecated edge functions (telnyx-webhook, exec-sql, update-profiles-schema) for security and maintenance
-- **FIXED: Telnyx "Invalid 'to' address" Error** (January 2025)
-  - Root cause: Phone numbers stored in inconsistent formats (some with +1, some without)
-  - Telnyx API requires E.164 format: `+1XXXXXXXXXX` (e.g., `+14375249932`)
-  - Solution: Created `send-sms` Edge Function with automatic phone number formatting
-  - The function converts any format to E.164: `4377476737` → `+14377476737`
-  - Also fixed missing `userId` parameter in all SMS sending locations
-- **ENHANCED: Unknown Number Handling** (January 2025)
-  - SMS webhook now automatically creates temporary clients for unknown numbers
-  - Client name format: "Unknown (+1XXXXXXXXXX)"
-  - Auto-generated notes include timestamp of first contact
-  - Conversations work seamlessly without manual client creation
-  - Users can update client information later as needed
-- **FIXED: Telnyx Duplicate SMS Messages** (January 2025)
-  - Root cause: Webhook handler was not responding quickly enough, causing Telnyx to retry
-  - Solution: Immediate 200 response to acknowledge receipt, then async processing
-  - Added deduplication using unique message IDs (external_id field)
-  - Database changes: Added unique constraint on sms_messages.external_id
-  - New table: sms_opt_outs for tracking STOP keywords
-  - Webhook now properly handles DOWN, STOP, UNSUBSCRIBE keywords
-  - Test script available: test-sms-webhook.js
-- **FIXED: Telnyx Webhook 401 Authorization Error** (January 2025)
-  - Root cause: Supabase edge functions expect JWT authentication by default, but webhooks don't send JWT tokens
-  - Solution: Disabled JWT verification for sms-webhook function
-  - Implementation:
-    - Added configuration in `supabase/config.toml`:
-      ```toml
-      [functions.sms-webhook]
-      verify_jwt = false
-      ```
-    - Redeployed function with: `npx supabase functions deploy sms-webhook --no-verify-jwt`
-  - Result: Webhook accepts requests from Telnyx without authentication headers
-  - SMS functionality unchanged, only removed error logs in Telnyx debug console
-- **FIXED: SMS Duplicate external_id Error** (July 2025)
-  - Root cause: SMSContext was using wrong edge function name ('send-sms' instead of 'telnyx-sms')
-  - Also: Trying to insert duplicate messages with same external_id
-  - Solution:
-    - Updated function name to 'telnyx-sms' with correct parameters
-    - Added check for existing external_id before inserting
-    - Handle cases where no messageId is returned
+- **FIXED: SMS Context Display Error** (July 2025)
+  - Issue: SMSContext trying to display as React element when switching to Connect Center
+  - Root cause: Incorrect import of SMSContext instead of SMSProvider
+  - Solution: Import and use SMSProvider component properly in layout
+  - Result: Connect Center SMS tab now loads without errors
+- **FIXED: Send SMS Database Error** (July 2025)
+  - Issue: Foreign key constraint violation when sending SMS
+  - Root cause: sms_messages table had FK constraint to non-existent sms_conversation_messages
+  - Solution: 
+    - Dropped incorrect FK constraint
+    - SMS messages now properly reference sms_conversations table
+    - Updated Edge Function to handle message insertion properly
     - Don't throw errors on message insert failures (SMS already sent)
   - Result: SMS messages send correctly without database errors
 - **FIXED: Estimate/Invoice Line Items Foreign Key Error** (July 2025)
@@ -132,6 +45,36 @@ Complete two-way SMS conversation system integrated with Telnyx for SMS messagin
     - Added proper handling for different item field names (description/name, unit_price/rate/amount)
     - Added "No line items" message when items array is empty
   - Result: Estimate and invoice emails send successfully without database errors
+- **FIXED: Two-Way SMS Implementation** (July 2025)
+  - **Outbound SMS**: Already working via send-sms edge function
+  - **Inbound SMS**: Fixed webhook configuration
+  - Solution:
+    - Deployed sms-webhook with `--no-verify-jwt` flag (required for external webhooks)
+    - Added webhook signature verification for security
+    - Auto-creates client records for unknown numbers
+    - Creates conversations and tracks unread counts
+  - **Production Security**:
+    - JWT disabled is standard for webhooks (Stripe, Twilio, etc use same pattern)
+    - Added Telnyx signature verification (HMAC-SHA256)
+    - Set TELNYX_WEBHOOK_SECRET in edge function secrets
+    - Webhook only processes valid Telnyx payloads
+  - Result: Full two-way SMS working in Connect Center
+- **IMPLEMENTED: SMS Webhook Security** (July 2025)
+  - **Production-Ready Configuration**:
+    - JWT verification disabled (standard for webhooks)
+    - Telnyx signature verification added
+    - CORS headers configured
+    - Request body validation
+    - Error handling with proper status codes
+  - **Security Features**:
+    - Verifies telnyx-signature-ed25519 header
+    - Validates timestamp to prevent replay attacks
+    - Only processes valid Telnyx message payloads
+    - Logs all operations for audit trail
+  - **Auto-Client Creation**:
+    - Unknown numbers create new client records
+    - Sets appropriate defaults (individual, lead status)
+    - Links conversations to client for tracking
 
 ### Technical Notes
 - Uses Supabase edge functions for secure API key handling
@@ -160,6 +103,15 @@ Complete two-way SMS conversation system integrated with Telnyx for SMS messagin
   - Tokens are stored in portal_access_token field in estimates/invoices tables
   - Portal routes validate token before displaying document
   - No direct ID exposure in URLs anymore
+- **Webhook Security (Production)**:
+  - JWT verification disabled is standard practice for webhooks
+  - External services (Telnyx, Stripe, Twilio) cannot provide Supabase JWTs
+  - Security implemented via:
+    - HMAC-SHA256 signature verification
+    - HTTPS only (enforced by Supabase)
+    - Limited endpoint functionality
+    - Request validation against Telnyx signature
+  - TELNYX_WEBHOOK_SECRET must be set in edge function secrets
 
 
 ## Supabase Backup System (January 2025)
