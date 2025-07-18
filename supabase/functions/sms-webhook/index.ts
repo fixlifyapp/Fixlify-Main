@@ -41,6 +41,7 @@ serve(async (req) => {
     )
   }
 })
+
 async function processWebhookAsync(req: Request) {
   const supabaseUrl = Deno.env.get('SUPABASE_URL')!
   const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
@@ -65,95 +66,132 @@ async function processWebhookAsync(req: Request) {
     if (existingMessage) {
       console.log(`Duplicate message detected and ignored: ${messageId}`)
       return // Skip processing duplicate
-    }    
+    }
+    
     // Process incoming messages
     if (direction === 'inbound') {
       console.log(`Incoming SMS from ${from.phone_number} to ${to[0].phone_number}: ${text}`)
       
-      // Store the message with external ID for deduplication
-      const { data: insertedMessage, error: insertError } = await supabase
+      // Find which user owns the receiving phone number
+      const { data: phoneOwner } = await supabase
+        .from('phone_numbers')
+        .select('user_id')
+        .eq('phone_number', to[0].phone_number)
+        .single()
+      
+      if (!phoneOwner) {
+        console.log(`No user found for phone number ${to[0].phone_number}`)
+        return
+      }
+      
+      // Find or create conversation
+      let conversation = null
+      
+      // First try to find existing conversation
+      const { data: existingConversation } = await supabase
+        .from('sms_conversations')
+        .select('*')
+        .eq('user_id', phoneOwner.user_id)
+        .eq('client_phone', from.phone_number)
+        .eq('phone_number', to[0].phone_number)
+        .eq('status', 'active')
+        .single()
+      
+      if (existingConversation) {
+        conversation = existingConversation
+      } else {
+        // Check if this is a known client
+        let clientId = null
+        const { data: client } = await supabase
+          .from('clients')
+          .select('id, name')
+          .eq('phone', from.phone_number)
+          .eq('user_id', phoneOwner.user_id)
+          .single()
+        
+        if (client) {
+          clientId = client.id
+        } else {
+          // Create a new client for unknown numbers
+          const { data: newClient } = await supabase
+            .from('clients')
+            .insert({
+              name: `Unknown (${from.phone_number})`,
+              phone: from.phone_number,
+              user_id: phoneOwner.user_id,
+              status: 'lead',
+              type: 'individual',
+              notes: `Auto-created from SMS received at ${new Date().toISOString()}`
+            })
+            .select()
+            .single()
+          
+          if (newClient) {
+            clientId = newClient.id
+            console.log(`Created new client for ${from.phone_number}`)
+          }
+        }
+        
+        // Create new conversation
+        const { data: newConversation, error: convError } = await supabase
+          .from('sms_conversations')
+          .insert({
+            user_id: phoneOwner.user_id,
+            client_id: clientId,
+            phone_number: to[0].phone_number,
+            client_phone: from.phone_number,
+            status: 'active',
+            last_message_at: new Date().toISOString(),
+            last_message_preview: text.substring(0, 100),
+            unread_count: 1
+          })
+          .select()
+          .single()
+        
+        if (convError) {
+          console.error('Error creating conversation:', convError)
+          return
+        }
+        
+        conversation = newConversation
+        console.log(`Created new conversation: ${conversation.id}`)
+      }
+      
+      // Store the message
+      const { error: insertError } = await supabase
         .from('sms_messages')
         .insert({
+          conversation_id: conversation.id,
           external_id: messageId,
           direction: 'inbound',
           from_number: from.phone_number,
           to_number: to[0].phone_number,
           content: text,
-          message: text,
           status: 'received',
-          raw_data: data,
           metadata: data
         })
-        .select()
-        .single()
       
       if (insertError) {
         console.error('Error storing message:', insertError)
         return
-      }      
-      // Find the conversation
-      const { data: conversation } = await supabase
-        .from('sms_conversations')
-        .select('*')
-        .eq('client_phone', from.phone_number)
-        .eq('status', 'active')
-        .single()
-      
-      if (conversation) {
-        // Update last message time
-        await supabase
-          .from('sms_conversations')
-          .update({ last_message_at: new Date().toISOString() })
-          .eq('id', conversation.id)
-        
-        // Check if message contains "DOWN" or similar stop keywords
-        const stopKeywords = ['DOWN', 'STOP', 'UNSUBSCRIBE', 'CANCEL', 'QUIT', 'END']
-        const messageUpper = text.toUpperCase().trim()
-        
-        if (stopKeywords.includes(messageUpper)) {
-          console.log(`Stop keyword detected: ${messageUpper}`)
-          
-          // Update conversation status
-          await supabase
-            .from('sms_conversations')
-            .update({ 
-              status: 'stopped',
-              stopped_at: new Date().toISOString()
-            })
-            .eq('id', conversation.id)          
-          // Log the opt-out
-          await supabase
-            .from('sms_opt_outs')
-            .insert({
-              phone_number: from.phone_number,
-              conversation_id: conversation.id,
-              keyword: messageUpper,
-              opted_out_at: new Date().toISOString()
-            })
-        } else {
-          // Regular message - update the SMS message record with conversation ID
-          await supabase
-            .from('sms_messages')
-            .update({
-              conversation_id: conversation.id
-            })
-            .eq('id', insertedMessage.id)
-          
-          // Update conversation's last message preview
-          await supabase
-            .from('sms_conversations')
-            .update({
-              last_message_preview: text.substring(0, 100),
-              unread_count: (conversation.unread_count || 0) + 1
-            })
-            .eq('id', conversation.id)
-        }
-      } else {
-        console.log(`No active conversation found for ${from.phone_number}`)
       }
+      
+      // Update conversation
+      await supabase
+        .from('sms_conversations')
+        .update({
+          last_message_at: new Date().toISOString(),
+          last_message_preview: text.substring(0, 100),
+          unread_count: (conversation.unread_count || 0) + 1
+        })
+        .eq('id', conversation.id)
+      
+      console.log(`Message stored and conversation updated`)
+      
     } else if (direction === 'outbound') {
       // Handle delivery reports
-      const { to_status } = data.payload      
+      const { to_status } = data.payload
+      
       if (to_status) {
         for (const status of to_status) {
           console.log(`Message ${messageId} to ${status.phone_number}: ${status.status}`)
