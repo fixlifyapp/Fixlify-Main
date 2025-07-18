@@ -33,63 +33,39 @@ serve(async (req) => {
       throw new Error('Missing required fields: recipientPhone and message');
     }
 
-    // Get user's phone number
+    // Get user's phone number from phone_numbers table
     let fromPhone = null;
     if (user_id) {
-      const { data: phoneNumbers } = await supabase
-        .from('telnyx_phone_numbers')
+      const { data: phoneData } = await supabase
+        .from('phone_numbers')
         .select('phone_number')
         .eq('user_id', user_id)
-        .eq('status', 'active')
-        .limit(1)
+        .eq('is_primary', true)
         .single();
       
-      if (phoneNumbers) {
-        fromPhone = phoneNumbers.phone_number;
+      if (phoneData) {
+        fromPhone = phoneData.phone_number;
       }
     }
 
     if (!fromPhone) {
-      // Try to auto-assign an available phone number to this user
+      // If no primary phone, try to get any phone for this user
       if (user_id) {
-        console.log('Auto-assigning phone number to user:', user_id);
-        
-        // Find an unassigned active phone number
-        const { data: availablePhone } = await supabase
-          .from('telnyx_phone_numbers')
-          .select('id, phone_number')
-          .is('user_id', null)
-          .eq('status', 'active')          .limit(1)
+        const { data: anyUserPhone } = await supabase
+          .from('phone_numbers')
+          .select('phone_number')
+          .eq('user_id', user_id)
+          .limit(1)
           .single();
           
-        if (availablePhone) {
-          // Assign it to this user
-          const { error: assignError } = await supabase
-            .from('telnyx_phone_numbers')
-            .update({ user_id: user_id })
-            .eq('id', availablePhone.id);
-            
-          if (!assignError) {
-            fromPhone = availablePhone.phone_number;
-            console.log('Assigned phone number to user:', fromPhone);
-          }
+        if (anyUserPhone) {
+          fromPhone = anyUserPhone.phone_number;
         }
       }
       
-      // If still no phone, get any available phone number
+      // If still no phone, return error
       if (!fromPhone) {
-        const { data: anyPhone } = await supabase
-          .from('telnyx_phone_numbers')
-          .select('phone_number')
-          .eq('status', 'active')
-          .limit(1)
-          .single();
-        
-        if (anyPhone) {
-          fromPhone = anyPhone.phone_number;
-        } else {
-          // Return a more helpful error message
-          throw new Error('No active phone numbers available. Please add a phone number in Settings > Phone Numbers with status "active".');        }
+        throw new Error('No phone number configured. Please add a phone number in Settings.');
       }
     }
 
@@ -118,7 +94,8 @@ serve(async (req) => {
 
     if (!telnyxResponse.ok) {
       console.error('Telnyx error:', responseText);
-      throw new Error(`Telnyx API error: ${responseText}`);    }
+      throw new Error(`Telnyx API error: ${responseText}`);
+    }
 
     const telnyxResult = JSON.parse(responseText);
 
