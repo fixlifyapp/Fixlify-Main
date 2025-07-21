@@ -27,6 +27,7 @@ export interface Invoice {
 
 export interface LineItem {
   id: string;
-  name: string;
+  name?: string;
+  description?: string;
   [key: string]: any;
 }

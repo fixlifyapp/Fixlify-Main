@@ -309,11 +309,9 @@ export const TelnyxCallsList = () => {
                   
                   <CallButton
                     phoneNumber={getCallPhoneNumber(call)}
-                    clientId={call.clients?.id}
                     clientName={call.clients?.name}
                     variant="outline"
                     size="sm"
-                    showText={true}
                   />
                 </div>
               </div>

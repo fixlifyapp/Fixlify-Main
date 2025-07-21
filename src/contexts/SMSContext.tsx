@@ -209,9 +209,8 @@ export const SMSProvider = ({ children }: { children: React.ReactNode }) => {
           // Refresh conversations to update last message info
           refreshConversations();
         }
-      );
-
-    messagesChannel.subscribe();
+      )
+      .subscribe();
 
     // Subscribe to conversation updates
     const conversationsChannel = supabase
@@ -227,9 +226,8 @@ export const SMSProvider = ({ children }: { children: React.ReactNode }) => {
           console.log('SMS conversation updated:', payload);
           refreshConversations();
         }
-      );
-
-    conversationsChannel.subscribe();
+      )
+      .subscribe();
 
     return () => {
       console.log('Cleaning up SMS subscriptions');
