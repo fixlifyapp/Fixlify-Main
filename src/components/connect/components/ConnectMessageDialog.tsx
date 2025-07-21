@@ -63,7 +63,7 @@ export const ConnectMessageDialog = ({ isOpen, onClose, conversation }: ConnectM
   const handleSend = async () => {
     if (!messageText.trim() || isSending || !currentConversation) return;
     
-    await sendMessage(messageText);
+    await sendMessage(currentConversation.id, messageText);
     setMessageText("");
     // Scroll to bottom after sending message
     setTimeout(scrollToBottom, 100);

@@ -6,7 +6,7 @@ export function ModalExample() {
   const { openModal } = useModal();
 
   const handleOpenClientModal = () => {
-    openModal("clientSelection", {
+    openModal("newClient", {
       onSave: (client: string) => {
         console.log("Selected client:", client);
       }
@@ -14,7 +14,7 @@ export function ModalExample() {
   };
 
   const handleOpenDeleteConfirmation = () => {
-    openModal("deleteConfirm", {
+    openModal("newJob", {
       title: "Delete Item",
       description: "Are you sure you want to delete this item? This action cannot be undone.",
       onConfirm: () => {
