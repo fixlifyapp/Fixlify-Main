@@ -1,272 +1,276 @@
-import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
-
-// Verify Telnyx webhook signature
-async function verifyTelnyx(payload: string, signature: string | null): Promise<boolean> {
-  const webhookSecret = Deno.env.get('TELNYX_WEBHOOK_SECRET')
-  
-  // If no secret configured, log warning but allow in dev
-  if (!webhookSecret) {
-    console.warn('TELNYX_WEBHOOK_SECRET not configured - webhook verification disabled')
-    return true // Only for development, set to false in production
-  }
-  
-  if (!signature) {
-    console.error('No signature provided in request')
-    return false
-  }
-  
-  // Telnyx uses HMAC-SHA256 for webhook signatures
-  const encoder = new TextEncoder()
-  const key = await crypto.subtle.importKey(
-    'raw',
-    encoder.encode(webhookSecret),
-    { name: 'HMAC', hash: 'SHA-256' },
-    false,
-    ['sign']
-  )
-  
-  const signatureBuffer = await crypto.subtle.sign(
-    'HMAC',
-    key,
-    encoder.encode(payload)
-  )
-  
-  const expectedSignature = btoa(String.fromCharCode(...new Uint8Array(signatureBuffer)))
-  return signature === expectedSignature
-}
+};
 
 serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders })
+    return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    // Get the raw body for signature verification
-    const rawBody = await req.text()
-    
-    // Verify webhook signature (if in production)
-    const signature = req.headers.get('x-telnyx-signature')
-    const isValid = await verifyTelnyx(rawBody, signature)
-    
-    if (!isValid) {
-      console.error('Invalid webhook signature')
-      return new Response(
-        JSON.stringify({ error: 'Invalid signature' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    const body = await req.json();
+    console.log('SMS Webhook received:', JSON.stringify(body, null, 2));
+
+    // Log the webhook attempt
+    await supabase
+      .from('sms_webhook_logs')
+      .insert({
+        event_type: 'webhook_received',
+        payload: body,
+        created_at: new Date().toISOString()
+      });
+
+    // Check if this is a message event - Telnyx sends the payload directly in the body
+    if (body?.record_type !== 'message') {
+      console.log('Not a message event, skipping');
+      return new Response(JSON.stringify({ success: true, message: 'Not a message event' }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 200,
+      });
     }
-    
-    // CRITICAL: Immediately acknowledge the webhook to prevent retries
-    const response = new Response(JSON.stringify({ success: true }), {
-      status: 200,
+
+    // Extract message data directly from body (not from data.payload)
+    const { 
+      direction, 
+      from, 
+      to, 
+      text, 
+      id: messageId,
+      received_at,
+      messaging_profile_id 
+    } = body;
+
+    console.log('Processing message:', {
+      messageId,
+      direction,
+      from: from?.phone_number,
+      to: to?.[0]?.phone_number,
+      text,
+      received_at
+    });
+
+    // Only process inbound messages
+    if (direction !== 'inbound') {
+      console.log('Not an inbound message, skipping');
+      return new Response(JSON.stringify({ success: true, message: 'Not inbound' }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 200,
+      });
+    }
+
+    // Process the message asynchronously but return response immediately
+    processInboundMessage(supabase, {
+      messageId,
+      fromPhone: from?.phone_number,
+      toPhone: to?.[0]?.phone_number,
+      text,
+      receivedAt: received_at,
+      messagingProfileId: messaging_profile_id,
+      fullPayload: body
+    }).catch(error => {
+      console.error('Error processing inbound message:', error);
+    });
+
+    return new Response(JSON.stringify({ success: true }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    })
+      status: 200,
+    });
 
-    // Process the webhook asynchronously after sending response
-    processWebhookAsync(rawBody).catch(error => {
-      console.error('Error processing webhook asynchronously:', error)
-    })
-
-    return response
   } catch (error) {
-    console.error('Error in SMS webhook:', error)
+    console.error('SMS webhook error:', error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ 
+        error: error.message,
+        success: false 
+      }),
       { 
-        status: 500, 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 500,
       }
-    )
+    );
   }
-})
+});
 
-async function processWebhookAsync(rawBody: string) {
-  const supabaseUrl = Deno.env.get('SUPABASE_URL')!
-  const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-  const supabase = createClient(supabaseUrl, supabaseServiceKey)
+async function processInboundMessage(supabase: any, messageData: any) {
+  try {
+    console.log('Processing inbound message:', messageData);
 
-  const body = JSON.parse(rawBody)
-  console.log('Received Telnyx webhook:', JSON.stringify(body, null, 2))
+    const { messageId, fromPhone, toPhone, text, receivedAt, fullPayload } = messageData;
 
-  const { data } = body
-  
-  // Handle different event types
-  if (data?.record_type === 'message') {
-    const { direction, from, to, text, id: messageId } = data.payload
-    
-    // DEDUPLICATION: Check for duplicate messages using message ID
-    const { data: existingMessage } = await supabase
-      .from('sms_messages')
-      .select('id')
-      .eq('external_id', messageId)
-      .single()
-    
-    if (existingMessage) {
-      console.log(`Duplicate message detected and ignored: ${messageId}`)
-      return // Skip processing duplicate
+    if (!fromPhone || !toPhone || !text) {
+      console.error('Missing required message data:', { fromPhone, toPhone, text });
+      return;
     }
-    
-    // Process incoming messages
-    if (direction === 'inbound') {
-      console.log(`Incoming SMS from ${from.phone_number} to ${to[0].phone_number}: ${text}`)
-      
-      // Find which user owns the receiving phone number
-      const { data: phoneOwner } = await supabase
-        .from('phone_numbers')
-        .select('user_id')
-        .eq('phone_number', to[0].phone_number)
-        .single()
-      
-      if (!phoneOwner) {
-        console.log(`No user found for phone number ${to[0].phone_number}`)
-        return
-      }
-      
-      // Find or create conversation
-      let conversation = null
-      
-      // First try to find existing conversation
-      const { data: existingConversation } = await supabase
-        .from('sms_conversations')
-        .select('*')
-        .eq('user_id', phoneOwner.user_id)
-        .eq('client_phone', from.phone_number)
-        .eq('phone_number', to[0].phone_number)
-        .eq('status', 'active')
-        .single()
-      
-      if (existingConversation) {
-        conversation = existingConversation
-      } else {
-        // Check if this is a known client
-        let clientId = null
-        const { data: client } = await supabase
-          .from('clients')
-          .select('id, name')
-          .eq('phone', from.phone_number)
-          .eq('user_id', phoneOwner.user_id)
-          .single()
-        
-        if (client) {
-          clientId = client.id
-        } else {
-          // Create a new client for unknown numbers
-          console.log(`Creating new client for unknown number: ${from.phone_number}`)
-          const { data: newClient, error: clientError } = await supabase
-            .from('clients')
-            .insert({
-              name: `Unknown (${from.phone_number})`,
-              phone: from.phone_number,
-              user_id: phoneOwner.user_id,
-              status: 'lead',
-              type: 'individual',
-              notes: `Auto-created from SMS received at ${new Date().toISOString()}`
-            })
-            .select()
-            .single()
-          
-          if (clientError) {
-            console.error('Error creating client:', clientError)
-            // Continue without client_id
-          } else if (newClient) {
-            clientId = newClient.id
-            console.log(`Created new client for ${from.phone_number} with ID: ${clientId}`)
-          }
-        }
-        
-        // Create new conversation
-        const { data: newConversation, error: convError } = await supabase
-          .from('sms_conversations')
-          .insert({
-            user_id: phoneOwner.user_id,
-            client_id: clientId,
-            phone_number: to[0].phone_number,
-            client_phone: from.phone_number,
-            status: 'active',
-            last_message_at: new Date().toISOString(),
-            last_message_preview: text.substring(0, 100),
-            unread_count: 1
-          })
-          .select()
-          .single()
-        
-        if (convError) {
-          console.error('Error creating conversation:', convError)
-          return
-        }
-        
-        conversation = newConversation
-        console.log(`Created new conversation: ${conversation.id}`)
-      }
-      
-      // Store the message
-      const { data: storedMessage, error: insertError } = await supabase
-        .from('sms_messages')
+
+    // Find the phone number in our system
+    const { data: phoneNumber } = await supabase
+      .from('phone_numbers')
+      .select('*')
+      .eq('phone_number', toPhone)
+      .eq('is_active', true)
+      .single();
+
+    if (!phoneNumber) {
+      console.log(`Phone number ${toPhone} not found in system`);
+      return;
+    }
+
+    console.log('Found phone number:', phoneNumber);
+
+    // Find or create client
+    let clientId = null;
+    const { data: existingClient } = await supabase
+      .from('clients')
+      .select('id, name, phone')
+      .eq('phone', fromPhone)
+      .single();
+
+    if (existingClient) {
+      clientId = existingClient.id;
+      console.log(`Found existing client: ${existingClient.name} (${clientId})`);
+    } else {
+      // Create new client
+      console.log(`Creating new client for ${fromPhone}`);
+      const { data: newClient, error: clientError } = await supabase
+        .from('clients')
         .insert({
-          conversation_id: conversation.id,
-          external_id: messageId,
-          direction: 'inbound',
-          from_number: from.phone_number,
-          to_number: to[0].phone_number,
-          content: text,
-          status: 'received',
-          metadata: data
+          name: `Contact ${fromPhone}`,
+          phone: fromPhone,
+          user_id: phoneNumber.purchased_by || phoneNumber.assigned_to,
+          created_by: phoneNumber.purchased_by || phoneNumber.assigned_to,
+          status: 'active'
         })
         .select()
-        .single()
-      
-      if (insertError) {
-        console.error('Error storing message:', insertError)
-        // Log to webhook_logs table
-        await supabase
-          .from('sms_webhook_logs')
-          .insert({
-            event_type: 'message_insert_error',
-            payload: { messageId, conversationId: conversation.id, error: insertError.message },
-            error: insertError.message
-          })
-        return
-      }
-      
-      console.log(`Message stored with ID: ${storedMessage.id}`)
-      
-      // Update conversation
-      await supabase
-        .from('sms_conversations')
-        .update({
-          last_message_at: new Date().toISOString(),
-          last_message_preview: text.substring(0, 100),
-          unread_count: (conversation.unread_count || 0) + 1
-        })
-        .eq('id', conversation.id)
-      
-      console.log(`Message stored and conversation updated`)
-      
-    } else if (direction === 'outbound') {
-      // Handle delivery reports
-      const { to_status } = data.payload
-      
-      if (to_status) {
-        for (const status of to_status) {
-          console.log(`Message ${messageId} to ${status.phone_number}: ${status.status}`)
-          
-          // Update message status
-          await supabase
-            .from('sms_messages')
-            .update({
-              status: status.status,
-              updated_at: new Date().toISOString()
-            })
-            .eq('external_id', messageId)
-        }
+        .single();
+
+      if (clientError) {
+        console.error('Error creating client:', clientError);
+      } else if (newClient) {
+        clientId = newClient.id;
+        console.log(`Created new client: ${newClient.name} (${clientId})`);
       }
     }
+
+    // Find or create conversation
+    let conversation;
+    const { data: existingConversation } = await supabase
+      .from('sms_conversations')
+      .select('*')
+      .eq('phone_number_id', phoneNumber.id)
+      .eq('client_phone', fromPhone)
+      .single();
+
+    if (existingConversation) {
+      conversation = existingConversation;
+      console.log(`Found existing conversation: ${conversation.id}`);
+    } else {
+      // Create new conversation
+      console.log('Creating new conversation');
+      const { data: newConversation, error: convError } = await supabase
+        .from('sms_conversations')
+        .insert({
+          phone_number_id: phoneNumber.id,
+          client_id: clientId,
+          client_phone: fromPhone,
+          client_name: existingClient?.name || `Contact ${fromPhone}`,
+          last_message_at: receivedAt || new Date().toISOString(),
+          last_message_preview: text.substring(0, 100),
+          unread_count: 1,
+          status: 'active'
+        })
+        .select()
+        .single();
+
+      if (convError) {
+        console.error('Error creating conversation:', convError);
+        return;
+      }
+      
+      conversation = newConversation;
+      console.log(`Created new conversation: ${conversation.id}`);
+    }
+
+    // Store the message
+    const { data: storedMessage, error: insertError } = await supabase
+      .from('sms_messages')
+      .insert({
+        conversation_id: conversation.id,
+        phone_number_id: phoneNumber.id,
+        telnyx_message_id: messageId,
+        direction: 'inbound',
+        from_number: fromPhone,
+        to_number: toPhone,
+        content: text,
+        status: 'received',
+        received_at: receivedAt || new Date().toISOString(),
+        metadata: fullPayload
+      })
+      .select()
+      .single();
+
+    if (insertError) {
+      console.error('Error storing message:', insertError);
+      
+      // Log the error
+      await supabase
+        .from('sms_webhook_logs')
+        .insert({
+          event_type: 'message_insert_error',
+          payload: { messageId, conversationId: conversation.id, error: insertError.message },
+          error: insertError.message
+        });
+      return;
+    }
+
+    console.log(`Message stored successfully: ${storedMessage.id}`);
+
+    // Update conversation with latest message info
+    await supabase
+      .from('sms_conversations')
+      .update({
+        last_message_at: receivedAt || new Date().toISOString(),
+        last_message_preview: text.substring(0, 100),
+        unread_count: conversation.unread_count + 1,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', conversation.id);
+
+    console.log('Conversation updated successfully');
+
+    // Log successful processing
+    await supabase
+      .from('sms_webhook_logs')
+      .insert({
+        event_type: 'message_processed_success',
+        payload: { 
+          messageId, 
+          conversationId: conversation.id, 
+          storedMessageId: storedMessage.id,
+          fromPhone,
+          toPhone,
+          text: text.substring(0, 50) + '...'
+        }
+      });
+
+  } catch (error) {
+    console.error('Error in processInboundMessage:', error);
+    
+    // Log the processing error
+    await supabase
+      .from('sms_webhook_logs')
+      .insert({
+        event_type: 'processing_error',
+        payload: messageData,
+        error: error.message
+      });
   }
 }
