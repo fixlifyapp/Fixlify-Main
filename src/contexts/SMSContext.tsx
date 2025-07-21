@@ -1,7 +1,6 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 
 interface SMSMessage {
@@ -54,7 +53,7 @@ export const useSMS = () => {
 };
 
 export const SMSProvider = ({ children }: { children: React.ReactNode }) => {
-  const { user } = useAuth();
+  const [user, setUser] = useState<any>(null);
   const [conversations, setConversations] = useState<SMSConversation[]>([]);
   const [messages, setMessages] = useState<{ [conversationId: string]: SMSMessage[] }>({});
   const [loading, setLoading] = useState(true);
@@ -150,6 +149,15 @@ export const SMSProvider = ({ children }: { children: React.ReactNode }) => {
       toast.error('Failed to send message');
     }
   };
+
+  // Get current user
+  useEffect(() => {
+    const getCurrentUser = async () => {
+      const { data: { user: currentUser } } = await supabase.auth.getUser();
+      setUser(currentUser);
+    };
+    getCurrentUser();
+  }, []);
 
   useEffect(() => {
     if (user?.id) {
