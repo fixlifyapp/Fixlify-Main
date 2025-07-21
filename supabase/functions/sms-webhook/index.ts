@@ -158,7 +158,8 @@ async function processWebhookAsync(rawBody: string) {
           clientId = client.id
         } else {
           // Create a new client for unknown numbers
-          const { data: newClient } = await supabase
+          console.log(`Creating new client for unknown number: ${from.phone_number}`)
+          const { data: newClient, error: clientError } = await supabase
             .from('clients')
             .insert({
               name: `Unknown (${from.phone_number})`,
@@ -171,9 +172,12 @@ async function processWebhookAsync(rawBody: string) {
             .select()
             .single()
           
-          if (newClient) {
+          if (clientError) {
+            console.error('Error creating client:', clientError)
+            // Continue without client_id
+          } else if (newClient) {
             clientId = newClient.id
-            console.log(`Created new client for ${from.phone_number}`)
+            console.log(`Created new client for ${from.phone_number} with ID: ${clientId}`)
           }
         }
         
@@ -203,7 +207,7 @@ async function processWebhookAsync(rawBody: string) {
       }
       
       // Store the message
-      const { error: insertError } = await supabase
+      const { data: storedMessage, error: insertError } = await supabase
         .from('sms_messages')
         .insert({
           conversation_id: conversation.id,
@@ -215,11 +219,23 @@ async function processWebhookAsync(rawBody: string) {
           status: 'received',
           metadata: data
         })
+        .select()
+        .single()
       
       if (insertError) {
         console.error('Error storing message:', insertError)
+        // Log to webhook_logs table
+        await supabase
+          .from('sms_webhook_logs')
+          .insert({
+            event_type: 'message_insert_error',
+            payload: { messageId, conversationId: conversation.id, error: insertError.message },
+            error: insertError.message
+          })
         return
       }
+      
+      console.log(`Message stored with ID: ${storedMessage.id}`)
       
       // Update conversation
       await supabase
