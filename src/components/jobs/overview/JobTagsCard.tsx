@@ -52,7 +52,8 @@ export const JobTagsCard = ({ tags, jobId, editable = false, onUpdate }: JobTags
         <ModernCard variant="elevated" className="hover:shadow-lg transition-all duration-300">
           <ModernCardHeader className="pb-4">
             <div className="flex items-center justify-between">
-              <ModernCardTitle icon={Tag}>
+              <ModernCardTitle className="flex items-center gap-2">
+                <Tag className="h-5 w-5" />
                 Tags
               </ModernCardTitle>
               <Button
@@ -107,7 +108,8 @@ export const JobTagsCard = ({ tags, jobId, editable = false, onUpdate }: JobTags
       <ModernCard variant="elevated" className="hover:shadow-lg transition-all duration-300">
         <ModernCardHeader className="pb-4">
           <div className="flex items-center justify-between">
-            <ModernCardTitle icon={Tag}>
+            <ModernCardTitle className="flex items-center gap-2">
+              <Tag className="h-5 w-5" />
               Tags
             </ModernCardTitle>
             {editable && (
