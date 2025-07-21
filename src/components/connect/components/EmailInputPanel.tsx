@@ -36,7 +36,9 @@ export const EmailInputPanel = ({ selectedConversation, onEmailSent }: EmailInpu
   const [isAILoading, setIsAILoading] = useState(false);
   const isMobile = useIsMobile();
 
-  const handleSendEmail = () => { console.log("Email functionality not implemented"); }
+  const handleSendEmail = async () => {
+    if (!selectedConversation?.client?.email) {
+      toast.error("No client email address available");
       return;
     }
 

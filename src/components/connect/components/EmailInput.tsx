@@ -22,8 +22,7 @@ export const EmailInput = ({ recipientEmail = "", onSent }: EmailInputProps) => 
   const [message, setMessage] = useState("");
   const [isSending, setIsSending] = useState(false);
 
-  const handleSendEmail = () => { console.log("Email functionality not implemented"); }
-
+  const handleSendEmail = async () => {
     try {
       setIsSending(true);
       

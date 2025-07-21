@@ -29,8 +29,7 @@ export const EmailComposer = ({ recipient, onClose, onSent }: EmailComposerProps
     text: ''
   });
 
-  const sendEmail = () => { console.log("Email functionality not implemented"); }
-
+  const sendEmail = async () => {
     setLoading(true);
     try {
       const { data, error } = await supabase.functions.invoke('send-email', {
