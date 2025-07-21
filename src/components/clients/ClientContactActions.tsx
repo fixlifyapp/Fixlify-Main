@@ -87,11 +87,9 @@ export const ClientContactActions = ({
       <div className="flex items-center gap-1">
         <CallButton
           phoneNumber={clientData.phone}
-          clientId={clientData.id}
           clientName={clientData.name}
           variant="ghost"
           size="icon"
-          showText={false}
         />
         <Button
           variant="ghost"
@@ -128,7 +126,6 @@ export const ClientContactActions = ({
     <div className="grid grid-cols-2 sm:flex sm:flex-row gap-2">
       <CallButton
         phoneNumber={clientData.phone}
-        clientId={clientData.id}
         clientName={clientData.name}
         variant="outline"
         size={buttonSize}

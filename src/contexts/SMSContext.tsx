@@ -172,7 +172,7 @@ export const SMSProvider = ({ children }: { children: React.ReactNode }) => {
     console.log('Setting up real-time subscriptions for SMS');
 
     // Subscribe to new messages
-    const messagesSubscription = supabase
+    const messagesChannel = supabase
       .channel('sms_messages_changes')
       .on(
         'postgres_changes',
@@ -196,11 +196,12 @@ export const SMSProvider = ({ children }: { children: React.ReactNode }) => {
           // Refresh conversations to update last message info
           refreshConversations();
         }
-      )
-      .subscribe();
+      );
+
+    messagesChannel.subscribe();
 
     // Subscribe to conversation updates
-    const conversationsSubscription = supabase
+    const conversationsChannel = supabase
       .channel('sms_conversations_changes')
       .on(
         'postgres_changes',
@@ -213,13 +214,14 @@ export const SMSProvider = ({ children }: { children: React.ReactNode }) => {
           console.log('SMS conversation updated:', payload);
           refreshConversations();
         }
-      )
-      .subscribe();
+      );
+
+    conversationsChannel.subscribe();
 
     return () => {
       console.log('Cleaning up SMS subscriptions');
-      supabase.removeChannel(messagesSubscription);
-      supabase.removeChannel(conversationsSubscription);
+      supabase.removeChannel(messagesChannel);
+      supabase.removeChannel(conversationsChannel);
     };
   }, [user?.id]);
 
