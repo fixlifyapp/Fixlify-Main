@@ -12,6 +12,10 @@ export interface CommunicationTemplate {
   created_at?: string;
   updated_at?: string;
   preview_data?: any;
+  category?: CommunicationCategory;
+  subject_template?: string;
+  content_template?: string;
+  is_active?: boolean;
 }
 
 export interface CommunicationAutomation {

@@ -3,10 +3,16 @@
 
 export const useMessageContext = () => {
   return {
-    openMessageDialog: () => {},
+    openMessageDialog: (client?: any) => {},
     conversations: [],
     fetchConversations: () => Promise.resolve(),
     refreshMessages: () => {},
+    refreshConversations: () => Promise.resolve(),
+    isLoading: false,
+    restoreArchivedConversation: (id: string) => Promise.resolve(),
+    activeConversation: null,
+    sendMessage: (id: string, message: string) => Promise.resolve(),
+    isSending: false,
   };
 };
 

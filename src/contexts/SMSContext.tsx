@@ -52,7 +52,7 @@ interface SMSContextType {
   isSending?: boolean;
   setActiveConversation?: (id: string | null) => void;
   markAsRead?: (conversationId: string) => Promise<void>;
-  createConversation?: (clientPhone: string) => Promise<void>;
+  createConversation?: (clientId: string, clientPhone: string) => Promise<string | null>;
 }
 
 const SMSContext = createContext<SMSContextType | undefined>(undefined);
@@ -247,9 +247,10 @@ export const SMSProvider = ({ children }: { children: React.ReactNode }) => {
     console.log('Mark as read:', conversationId);
   };
 
-  const createConversation = async (clientPhone: string) => {
+  const createConversation = async (clientId: string, clientPhone: string): Promise<string | null> => {
     // Implementation placeholder
-    console.log('Create conversation:', clientPhone);
+    console.log('Create conversation:', clientId, clientPhone);
+    return null;
   };
 
   const value: SMSContextType = {
