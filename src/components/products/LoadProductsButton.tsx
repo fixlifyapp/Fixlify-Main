@@ -37,9 +37,10 @@ export const LoadProductsButton = ({ onProductsLoaded }: LoadProductsButtonProps
 
       setLoadResult(data);
 
-      if (data.success) {
+      const result = data as any;
+      if (result.success) {
         toast.success(
-          data.message || `Successfully loaded ${data.inserted_count || 0} products for ${data.business_niche}`
+          result.message || `Successfully loaded ${result.inserted_count || 0} products for ${result.business_niche}`
         );
         
         // Call callback if provided

@@ -56,7 +56,8 @@ export const EditableJobDescriptionCard = ({ description, jobId, onUpdate }: Edi
     <ModernCard variant="elevated" className="hover:shadow-lg transition-all duration-300">
       <ModernCardHeader className="pb-4">
         <div className="flex items-center justify-between">
-          <ModernCardTitle icon={FileText}>
+          <ModernCardTitle className="flex items-center gap-2">
+            <FileText className="h-5 w-5" />
             Job Description
             {isSaving && <Loader2 className="h-4 w-4 ml-2 animate-spin" />}
           </ModernCardTitle>

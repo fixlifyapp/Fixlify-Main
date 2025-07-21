@@ -127,9 +127,7 @@ export function Sidebar({
                       "w-full justify-start text-base font-medium transition-all duration-200 hover:scale-[1.02]", 
                       location.pathname === route.href 
                         ? "bg-gradient-primary text-white shadow-md hover:shadow-lg" 
-                        : "text-fixlyfy-text hover:bg-fixlyfy/10 hover:text-fixlyfy",
-                      route.indent ? "ml-6 text-sm" : "",
-                      route.isSection ? "font-semibold" : ""
+                        : "text-fixlyfy-text hover:bg-fixlyfy/10 hover:text-fixlyfy"
                     )} 
                     onClick={() => handleNavigation(route.href)}
                   >

@@ -68,7 +68,8 @@ export const EditableJobSummaryCard = ({ job, jobId }: EditableJobSummaryCardPro
       <ModernCard variant="elevated" className="hover:shadow-lg transition-all duration-300">
         <ModernCardHeader className="pb-4">
           <div className="flex items-center justify-between">
-            <ModernCardTitle icon={FileText}>
+            <ModernCardTitle className="flex items-center gap-2">
+              <FileText className="h-5 w-5" />
               Job Summary
             </ModernCardTitle>
             {!isEditing ? (
