@@ -52,7 +52,7 @@ export const useJobMessages = ({ jobId, message, setMessage }: UseJobMessagesPro
 
   const handleOpenMessageDialog = () => {
     if (client.id) {
-      openMessageDialog(client, jobId);
+      openMessageDialog(client);
     }
   };
 
