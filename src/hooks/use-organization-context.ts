@@ -1,36 +1,11 @@
-import { useEffect, useState } from 'react';
-import { useAuth } from '@/hooks/use-auth';
-import { useProfile } from '@/hooks/use-profiles';
-import { organizationContext } from '@/services/organizationContext';
+// Stub for organization context hook
 
-/**
- * Hook to provide organization context throughout the app
- */
 export const useOrganizationContext = () => {
-  const { user } = useAuth();
-  const { profile } = useProfile();
-  const [isInitialized, setIsInitialized] = useState(false);
-
-  useEffect(() => {
-    const initializeContext = async () => {
-      if (user?.id) {
-        await organizationContext.initialize(user.id);
-        setIsInitialized(true);
-      } else {
-        organizationContext.clear();
-        setIsInitialized(false);
-      }
-    };
-
-    initializeContext();
-  }, [user?.id, profile?.organization_id]);
-
   return {
-    organizationId: organizationContext.getOrganizationId(),
-    userId: organizationContext.getUserId(),
-    isInitialized,
-    getQueryFilter: () => organizationContext.getQueryFilter(),
-    getFilterObject: () => organizationContext.getFilterObject(),
-    applyToQuery: (query: any) => organizationContext.applyToQuery(query)
+    organization: { 
+      id: 'test-org', 
+      name: 'Test Organization' 
+    },
+    loading: false
   };
 };

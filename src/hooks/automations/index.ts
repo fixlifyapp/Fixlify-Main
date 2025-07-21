@@ -9,7 +9,9 @@ export { useAutomationAnalytics } from './useAutomationAnalytics';
 export type { 
   AutomationWorkflow, 
   AutomationTemplate, 
-  AutomationHistory
+  AutomationHistory,
+  AutomationRule,
+  TemplateCategory
 } from './automation-stubs';
 
 export type {
@@ -18,9 +20,6 @@ export type {
   WorkflowBuilder
 } from './useAutomationBuilder';
 
-export type {
-  TemplateCategory
-} from './useAutomationTemplates';
 
 export type {
   ExecutionStep,
