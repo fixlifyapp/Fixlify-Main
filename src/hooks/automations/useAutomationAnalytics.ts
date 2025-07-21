@@ -1,7 +1,22 @@
 // Simplified automation analytics stub
 
 import { useState } from 'react';
-import { AutomationMetrics, WorkflowPerformance, TimeSeriesData } from './automation-stubs';
+
+export interface AutomationMetrics {
+  totalExecutions: number;
+  successRate: number;
+  avgExecutionTime: number;
+}
+
+export interface WorkflowPerformance {
+  workflowId: string;
+  metrics: AutomationMetrics;
+}
+
+export interface TimeSeriesData {
+  date: string;
+  value: number;
+}
 
 export const useAutomationAnalytics = () => {
   const [metrics] = useState<AutomationMetrics>({
