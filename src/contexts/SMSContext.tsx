@@ -29,6 +29,12 @@ interface SMSConversation {
   phone_numbers?: {
     phone_number: string;
   };
+  client?: {
+    id: string;
+    name: string;
+    email?: string;
+    phone?: string;
+  };
 }
 
 interface SMSContextType {
@@ -40,6 +46,13 @@ interface SMSContextType {
   sendMessage: (conversationId: string, content: string) => Promise<void>;
   refreshConversations: () => Promise<void>;
   fetchMessages: (conversationId: string) => Promise<void>;
+  // Additional properties for compatibility
+  activeConversation?: string | null;
+  isLoading?: boolean;
+  isSending?: boolean;
+  setActiveConversation?: (id: string | null) => void;
+  markAsRead?: (conversationId: string) => Promise<void>;
+  createConversation?: (clientPhone: string) => Promise<void>;
 }
 
 const SMSContext = createContext<SMSContextType | undefined>(undefined);
@@ -229,6 +242,16 @@ export const SMSProvider = ({ children }: { children: React.ReactNode }) => {
     setLoading(false);
   }, [conversations]);
 
+  const markAsRead = async (conversationId: string) => {
+    // Implementation placeholder
+    console.log('Mark as read:', conversationId);
+  };
+
+  const createConversation = async (clientPhone: string) => {
+    // Implementation placeholder
+    console.log('Create conversation:', clientPhone);
+  };
+
   const value: SMSContextType = {
     conversations,
     messages,
@@ -237,7 +260,13 @@ export const SMSProvider = ({ children }: { children: React.ReactNode }) => {
     setSelectedConversation,
     sendMessage,
     refreshConversations,
-    fetchMessages
+    fetchMessages,
+    activeConversation: selectedConversation,
+    isLoading: loading,
+    isSending: false,
+    setActiveConversation: setSelectedConversation,
+    markAsRead,
+    createConversation
   };
 
   return (

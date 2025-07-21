@@ -605,7 +605,7 @@ const ClientRow = ({
               <DropdownMenuItem onClick={(e) => {
                 e.stopPropagation();
                 if (client.phone) {
-                  navigate(`/connect?tab=sms&clientId=${client.id}&clientName=${encodeURIComponent(client.name)}&clientPhone=${encodeURIComponent(client.phone)}&autoOpen=true`);
+                  window.location.href = `/connect?tab=sms&clientId=${client.id}&clientName=${encodeURIComponent(client.name)}&clientPhone=${encodeURIComponent(client.phone)}&autoOpen=true`;
                 } else {
                   toast.error('No phone number available');
                 }
@@ -616,7 +616,7 @@ const ClientRow = ({
               <DropdownMenuItem onClick={(e) => {
                 e.stopPropagation();
                 if (client.email) {
-                  navigate(`/connect?tab=emails&clientId=${client.id}&clientName=${encodeURIComponent(client.name)}&clientEmail=${encodeURIComponent(client.email)}&autoOpen=true`);
+                  window.location.href = `/connect?tab=emails&clientId=${client.id}&clientName=${encodeURIComponent(client.name)}&clientEmail=${encodeURIComponent(client.email)}&autoOpen=true`;
                 } else {
                   toast.error('No email address available');
                 }

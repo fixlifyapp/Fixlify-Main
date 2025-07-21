@@ -94,30 +94,46 @@ export function ConnectCenter() {
 
           <TabsContent value="analytics">
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-              <ModernCard 
-                title="Emails Sent" 
-                value="1,234"
-                icon={Mail}
-                description="+20.1% from last month"
-              />
-              <ModernCard 
-                title="SMS Sent" 
-                value="856"
-                icon={Phone}
-                description="+15.3% from last month"
-              />
-              <ModernCard 
-                title="Open Rate" 
-                value="68.5%"
-                icon={Activity}
-                description="+2.5% from last month"
-              />
-              <ModernCard 
-                title="Response Rate" 
-                value="24.8%"
-                icon={Users}
-                description="+4.1% from last month"
-              />
+              <ModernCard>
+                <div className="flex items-center justify-between p-6">
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">Emails Sent</p>
+                    <p className="text-2xl font-bold">1,234</p>
+                    <p className="text-xs text-muted-foreground">+20.1% from last month</p>
+                  </div>
+                  <Mail className="h-4 w-4 text-muted-foreground" />
+                </div>
+              </ModernCard>
+              <ModernCard>
+                <div className="flex items-center justify-between p-6">
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">SMS Sent</p>
+                    <p className="text-2xl font-bold">856</p>
+                    <p className="text-xs text-muted-foreground">+15.3% from last month</p>
+                  </div>
+                  <Phone className="h-4 w-4 text-muted-foreground" />
+                </div>
+              </ModernCard>
+              <ModernCard>
+                <div className="flex items-center justify-between p-6">
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">Open Rate</p>
+                    <p className="text-2xl font-bold">68.5%</p>
+                    <p className="text-xs text-muted-foreground">+2.5% from last month</p>
+                  </div>
+                  <Activity className="h-4 w-4 text-muted-foreground" />
+                </div>
+              </ModernCard>
+              <ModernCard>
+                <div className="flex items-center justify-between p-6">
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">Response Rate</p>
+                    <p className="text-2xl font-bold">24.8%</p>
+                    <p className="text-xs text-muted-foreground">+4.1% from last month</p>
+                  </div>
+                  <Users className="h-4 w-4 text-muted-foreground" />
+                </div>
+              </ModernCard>
             </div>
             
             <div className="grid gap-4 mt-6">
