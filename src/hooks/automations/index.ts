@@ -5,12 +5,12 @@ export { useAutomationTemplates } from './useAutomationTemplates';
 export { useAutomationExecution } from './useAutomationExecution';
 export { useAutomationAnalytics } from './useAutomationAnalytics';
 
-// Re-export types
-export type {
-  AutomationWorkflow,
-  AutomationTemplate,
+// Export types from stubs  
+export type { 
+  AutomationWorkflow, 
+  AutomationTemplate, 
   AutomationHistory
-} from './useAutomations';
+} from './automation-stubs';
 
 export type {
   WorkflowNode,
