@@ -1,87 +1,40 @@
-import React, { ReactNode } from "react";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-  DialogDescription,
-} from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
+// Shared dialog component to fix TypeScript errors
+import { ReactNode } from "react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { BaseModalProps } from "./modal-provider";
 
-interface SharedDialogProps extends BaseModalProps {
-  title: string;
-  description?: string;
-  children?: ReactNode; // Make children optional
+export interface SharedDialogProps extends BaseModalProps {
   footerContent?: ReactNode;
-  size?: "sm" | "md" | "lg" | "xl";
   hideCloseButton?: boolean;
+  size?: "sm" | "md" | "lg" | "xl";
 }
 
-export function SharedDialog({
-  open,
-  onOpenChange,
-  title,
+export const SharedDialog = ({ 
+  open = false, 
+  onOpenChange, 
+  title, 
   description,
   children,
   footerContent,
-  size = "md",
   hideCloseButton = false,
-}: SharedDialogProps) {
-  // Map size to max-width class
-  const sizeClasses = {
-    sm: "sm:max-w-[425px]",
-    md: "sm:max-w-[550px]",
-    lg: "sm:max-w-[700px]",
-    xl: "sm:max-w-[900px]",
-  };
-
+  size = "md"
+}: SharedDialogProps) => {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className={sizeClasses[size]}>
+      <DialogContent className={size === "lg" ? "max-w-4xl" : "max-w-2xl"}>
         <DialogHeader>
-          <DialogTitle>{title}</DialogTitle>
-          {description && <DialogDescription>{description}</DialogDescription>}
+          {title && <DialogTitle>{title}</DialogTitle>}
+          {description && <p className="text-muted-foreground">{description}</p>}
         </DialogHeader>
-
-        {children && <div className="py-4">{children}</div>}
-
-        {footerContent && <DialogFooter>{footerContent}</DialogFooter>}
-        {!footerContent && !hideCloseButton && (
-          <DialogFooter>
-            <Button variant="outline" onClick={() => onOpenChange(false)}>
-              Close
-            </Button>
-          </DialogFooter>
+        <div className="space-y-4">
+          {children}
+        </div>
+        {footerContent && (
+          <div className="flex gap-2 justify-end">
+            {footerContent}
+          </div>
         )}
       </DialogContent>
     </Dialog>
   );
-}
-
-// Default action buttons for forms
-export function FormDialogFooter({
-  onCancel,
-  onSubmit,
-  cancelText = "Cancel",
-  submitText = "Save",
-  isSubmitting = false,
-}: {
-  onCancel: () => void;
-  onSubmit: () => void;
-  cancelText?: string;
-  submitText?: string;
-  isSubmitting?: boolean;
-}) {
-  return (
-    <>
-      <Button variant="outline" onClick={onCancel} disabled={isSubmitting}>
-        {cancelText}
-      </Button>
-      <Button onClick={onSubmit} disabled={isSubmitting}>
-        {isSubmitting ? "Saving..." : submitText}
-      </Button>
-    </>
-  );
-}
+};

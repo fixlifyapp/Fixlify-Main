@@ -1,28 +1,25 @@
-
-import React, { ReactNode } from "react";
+// Stub for FormModal to fix TypeScript errors
+import { ReactNode } from "react";
 import { SharedDialog } from "@/components/ui/shared-dialog";
 import { BaseModalProps } from "@/components/ui/modal-provider";
 
 interface FormModalProps extends BaseModalProps {
-  title: string;
-  description?: string;
-  children: ReactNode;
   footerContent?: ReactNode;
   size?: "sm" | "md" | "lg" | "xl";
 }
 
-export function FormModal({
-  open,
-  onOpenChange,
-  title,
+export const FormModal = ({ 
+  open = false, 
+  onOpenChange, 
+  title = "Form", 
   description,
   children,
   footerContent,
   size = "md"
-}: FormModalProps) {
+}: FormModalProps) => {
   return (
-    <SharedDialog
-      open={open}
+    <SharedDialog 
+      open={open} 
       onOpenChange={onOpenChange}
       title={title}
       description={description}
@@ -32,4 +29,4 @@ export function FormModal({
       {children}
     </SharedDialog>
   );
-}
+};
