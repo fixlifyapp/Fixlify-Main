@@ -106,7 +106,7 @@ export const useAutomationTemplates = () => {
 
       if (error) throw error;
       
-      setTemplates(data || []);
+      setTemplates((data || []) as AutomationTemplate[]);
     } catch (error) {
       console.error('Error fetching templates:', error);
       toast.error('Failed to load automation templates');

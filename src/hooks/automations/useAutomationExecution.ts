@@ -1,8 +1,7 @@
 import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useOrganization } from '@/contexts/OrganizationContext';
-import { telnyxService } from '@/services/communications/TelnyxService';
-import { mailgunService } from '@/services/communications/MailgunService';
+import { telnyxService, mailgunService } from './automation-stubs';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { toZonedTime } from 'date-fns-tz';

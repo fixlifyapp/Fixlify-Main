@@ -18,7 +18,7 @@ interface SMSMessage {
 
 interface SMSConversation {
   id: string;
-  phone_number_id: string;
+  phone_number_id?: string;
   client_id?: string;
   client_name: string;
   client_phone: string;
@@ -76,20 +76,16 @@ export const SMSProvider = ({ children }: { children: React.ReactNode }) => {
     if (!user?.id) return;
 
     try {
-      console.log('Fetching SMS conversations for user:', user.id);
+      console.log('Fetching conversations for user:', user.id);
       
       const { data, error } = await supabase
-        .from('sms_conversations')
+        .from('conversations')
         .select(`
           *,
-          phone_numbers!inner(
-            phone_number,
-            purchased_by,
-            assigned_to
-          )
+          clients(name, email, phone)
         `)
-        .or(`phone_numbers.purchased_by.eq.${user.id},phone_numbers.assigned_to.eq.${user.id}`)
-        .order('last_message_at', { ascending: false });
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
 
       if (error) {
         console.error('Error fetching conversations:', error);
@@ -97,7 +93,19 @@ export const SMSProvider = ({ children }: { children: React.ReactNode }) => {
       }
 
       console.log('Fetched conversations:', data);
-      setConversations(data || []);
+      // Transform data to match SMS conversation format
+      const transformedData = (data || []).map((conv: any) => ({
+        id: conv.id,
+        client_id: conv.client_id,
+        client_name: conv.clients?.name || 'Unknown',
+        client_phone: conv.clients?.phone || '',
+        last_message_at: conv.created_at,
+        last_message_preview: '',
+        unread_count: 0,
+        status: 'active',
+        client: conv.clients
+      }));
+      setConversations(transformedData);
     } catch (error) {
       console.error('Error in refreshConversations:', error);
     }
@@ -108,7 +116,7 @@ export const SMSProvider = ({ children }: { children: React.ReactNode }) => {
       console.log('Fetching messages for conversation:', conversationId);
       
       const { data, error } = await supabase
-        .from('sms_messages')
+        .from('messages')
         .select('*')
         .eq('conversation_id', conversationId)
         .order('created_at', { ascending: true });
@@ -119,9 +127,21 @@ export const SMSProvider = ({ children }: { children: React.ReactNode }) => {
       }
 
       console.log('Fetched messages:', data);
+      // Transform data to match SMS message format
+      const transformedData = (data || []).map((msg: any) => ({
+        id: msg.id,
+        conversation_id: msg.conversation_id,
+        content: msg.content,
+        direction: msg.direction || 'outbound',
+        from_number: msg.sender || '',
+        to_number: msg.recipient || '',
+        status: msg.status || 'sent',
+        created_at: msg.created_at,
+        sent_at: msg.created_at
+      }));
       setMessages(prev => ({
         ...prev,
-        [conversationId]: data || []
+        [conversationId]: transformedData
       }));
     } catch (error) {
       console.error('Error in fetchMessages:', error);
@@ -186,23 +206,36 @@ export const SMSProvider = ({ children }: { children: React.ReactNode }) => {
 
     // Subscribe to new messages
     const messagesChannel = supabase
-      .channel('sms_messages_changes')
+      .channel('messages_changes')
       .on(
         'postgres_changes',
         {
           event: 'INSERT',
           schema: 'public',
-          table: 'sms_messages'
+          table: 'messages'
         },
         (payload) => {
-          console.log('New SMS message received:', payload);
-          const newMessage = payload.new as SMSMessage;
+          console.log('New message received:', payload);
+          const newMessage = payload.new as any;
+          
+          // Transform to SMS message format
+          const transformedMessage: SMSMessage = {
+            id: newMessage.id,
+            conversation_id: newMessage.conversation_id,
+            content: newMessage.content,
+            direction: newMessage.direction || 'inbound',
+            from_number: newMessage.sender || '',
+            to_number: newMessage.recipient || '',
+            status: newMessage.status || 'delivered',
+            created_at: newMessage.created_at,
+            sent_at: newMessage.created_at
+          };
           
           setMessages(prev => ({
             ...prev,
-            [newMessage.conversation_id]: [
-              ...(prev[newMessage.conversation_id] || []),
-              newMessage
+            [transformedMessage.conversation_id]: [
+              ...(prev[transformedMessage.conversation_id] || []),
+              transformedMessage
             ]
           }));
           
@@ -214,16 +247,16 @@ export const SMSProvider = ({ children }: { children: React.ReactNode }) => {
 
     // Subscribe to conversation updates
     const conversationsChannel = supabase
-      .channel('sms_conversations_changes')
+      .channel('conversations_changes')
       .on(
         'postgres_changes',
         {
           event: '*',
           schema: 'public',
-          table: 'sms_conversations'
+          table: 'conversations'
         },
         (payload) => {
-          console.log('SMS conversation updated:', payload);
+          console.log('Conversation updated:', payload);
           refreshConversations();
         }
       )
