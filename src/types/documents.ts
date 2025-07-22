@@ -1,73 +1,40 @@
+// LEGACY COMPATIBILITY FILE
+// Import from unified types for consistency
+export type {
+  UnifiedLineItem as LineItem,
+  UnifiedEstimate as Estimate,
+  UnifiedInvoice as Invoice,
+  UnifiedClient as Client,
+  UnifiedMessage as Message,
+  UnifiedConversation as MessageConversation,
+  UnifiedModalType as ModalType
+} from './unified';
 
-// Document types for estimates and invoices
-export interface LineItem {
+// Legacy email types for backward compatibility
+export interface Email {
   id: string;
-  name?: string;
-  description?: string;
-  quantity: number;
-  unit_price?: number;
-  unitPrice?: number; // For backward compatibility
-  taxable: boolean;
-  total: number;
-  discount?: number; // Add discount support
+  from: string;
+  to: string;
+  subject: string;
+  body: string;
+  timestamp: string;
+  thread_id?: string;
+  in_reply_to?: string;
+  message_id?: string;
+  status?: 'sent' | 'received' | 'draft';
+  conversation_id?: string;
 }
 
-export interface Estimate {
-  id: string;
-  job_id: string;
-  client_id?: string;
-  estimate_number: string;
-  number?: string; // For backward compatibility
-  total: number;
-  status: 'draft' | 'sent' | 'approved' | 'rejected' | 'expired' | 'converted';
-  items: LineItem[];
-  upsells?: LineItem[];
-  notes?: string;
-  valid_until?: string;
-  tax_rate?: number;
-  subtotal?: number;
-  tax_amount?: number; // Add missing tax_amount
-  created_at: string;
-  updated_at: string;
-  created_by: string;
-}
-
-export interface Invoice {
-  id: string;
-  job_id: string;
-  client_id?: string;
-  estimate_id?: string;
-  invoice_number: string;
-  total: number;
-  status: 'draft' | 'sent' | 'paid' | 'overdue' | 'cancelled';
-  balance_due: number;
-  paid_at?: string;
-  items: LineItem[];
-  notes?: string;
-  payment_status?: 'paid' | 'unpaid' | 'partial';
-  amount_paid?: number;
-  issue_date?: string;
-  due_date?: string;
-  tax_rate?: number;
-  subtotal?: number;
-  tax_amount?: number; // Add missing tax_amount
-  terms?: string; // Add missing terms
-  discount_amount?: number; // Add missing discount_amount
-  created_at: string;
-  updated_at: string;
-  created_by: string;
-}
-
-export interface DocumentSendParams {
-  documentType: 'estimate' | 'invoice';
-  documentId: string;
-  sendMethod: 'email' | 'sms';
-  sendTo: string;
-  customMessage?: string;
-  contactInfo?: any;
-}
-
-export interface DocumentSendResult {
-  success: boolean;
-  error?: string;
+export interface ConversationThreadProps {
+  conversation: {
+    id: string;
+    client_id: string;
+    client_name: string;
+    client_phone?: string;
+    client_email?: string;
+    last_message_at: string;
+    unread_count: number;
+    type: 'sms' | 'email' | 'call';
+  };
+  onBack: () => void;
 }
