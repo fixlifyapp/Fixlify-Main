@@ -36,8 +36,8 @@ interface Email {
 
 export function SimpleEmailInterface() {
   const { user } = useAuth();
-  const [emails, setEmails] = useState<Email[]>([]);
-  const [selectedEmail, setSelectedEmail] = useState<Email | null>(null);
+  const [emails, setEmails] = useState<any[]>([]);
+  const [selectedEmail, setSelectedEmail] = useState<any | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [isComposing, setIsComposing] = useState(false);
 

@@ -112,6 +112,8 @@ export const SimpleMessagesInterface = () => {
       <div className="lg:col-span-2">
         {selectedClient ? (
           <ConversationThread
+            messages={[]}
+            clientName={selectedClient?.name || ''}
             client={selectedClient}
             onArchive={() => handleArchiveConversation(selectedClient.id)}
           />

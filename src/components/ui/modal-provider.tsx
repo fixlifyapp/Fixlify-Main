@@ -18,7 +18,9 @@ export type ModalType =
   | "newExpenseCategory"
   | "messageClient"
   | "editJobDetails"
-  | "convertToInvoice";
+  | "convertToInvoice"
+  | "clientSelection"
+  | "deleteConfirm";
 
 // Base props that all modals will have
 interface BaseModalProps {

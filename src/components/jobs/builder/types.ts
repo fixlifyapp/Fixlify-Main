@@ -1,14 +1,15 @@
 
 export interface LineItem {
   id: string;
+  name?: string;
   description: string;
   quantity: number;
   unitPrice: number;
+  unit_price?: number; // For database compatibility
   ourPrice?: number;
   taxable: boolean;
   total: number;
   discount?: number;
-  name?: string;
   price?: number;
 }
 

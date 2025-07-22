@@ -1,5 +1,6 @@
 
 import { useState, useEffect } from "react";
+import { transformDatabaseResults } from "@/utils/data-transforms";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { PlusCircle, Edit, Trash, Eye } from "lucide-react";
@@ -36,30 +37,7 @@ export const JobInvoices = ({ jobId }: JobInvoicesProps) => {
         throw error;
       }
       
-      // Add compatibility properties and ensure required fields
-      const processedInvoices: Invoice[] = (data || []).map(invoice => ({
-        ...invoice,
-        status: (invoice.status as Invoice['status']) || 'draft',
-        payment_status: (invoice.payment_status as Invoice['payment_status']) || 'unpaid',
-        items: Array.isArray(invoice.items) ? 
-          (invoice.items as any[]).map((item: any) => ({
-            id: item.id || `item-${Math.random()}`,
-            description: item.description || '',
-            quantity: item.quantity || 1,
-            unitPrice: item.unitPrice || item.unit_price || 0,
-            taxable: item.taxable !== false,
-            total: (item.quantity || 1) * (item.unitPrice || item.unit_price || 0)
-          })) : [],
-        subtotal: invoice.subtotal || 0,
-        total: invoice.total || 0,
-        amount_paid: invoice.amount_paid || 0,
-        tax_rate: invoice.tax_rate || 0,
-        tax_amount: invoice.tax_amount || 0,
-        discount_amount: invoice.discount_amount || 0,
-        updated_at: invoice.updated_at || invoice.created_at,
-        balance_due: (invoice.total || 0) - (invoice.amount_paid || 0)
-      }));
-      
+      const processedInvoices = transformDatabaseResults.invoices(data || []);
       setInvoices(processedInvoices);
     } catch (error) {
       console.error("Error fetching invoices:", error);
