@@ -138,7 +138,7 @@ export const MessageProvider: React.FC<{ children: ReactNode }> = ({ children })
     
     setIsSending(true);
     try {
-      const { data, error } = await supabase.functions.invoke('send-email', {
+      const { data, error } = await supabase.functions.invoke('mailgun-email', {
         body: {
           to,
           subject,

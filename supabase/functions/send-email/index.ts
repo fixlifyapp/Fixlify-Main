@@ -1,8 +1,5 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { Resend } from "npm:resend@2.0.0";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-
-const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -48,30 +45,54 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log(`Sending email from ${fromEmail} to ${to}`);
 
-    // Send email via Resend
-    const emailResponse = await resend.emails.send({
-      from: `${fromName} <${fromEmail}>`,
-      to: [to],
-      subject: subject,
-      html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <div style="background: #f8f9fa; padding: 20px; border-radius: 8px;">
-            ${content.replace(/\n/g, '<br>')}
-          </div>
-          <div style="margin-top: 20px; padding: 20px; background: #f1f3f4; border-radius: 8px; text-align: center;">
-            <p style="margin: 0; color: #666; font-size: 14px;">
-              Sent via Fixlify Connect Center
-            </p>
-          </div>
-        </div>
-      `,
-    });
+    // Get Mailgun credentials
+    const mailgunApiKey = Deno.env.get('MAILGUN_API_KEY');
+    const mailgunDomain = Deno.env.get('MAILGUN_DOMAIN') || 'mg.fixlify.com';
 
-    if (emailResponse.error) {
-      throw new Error(`Resend error: ${emailResponse.error.message}`);
+    if (!mailgunApiKey) {
+      throw new Error('Mailgun API key not configured');
     }
 
-    console.log("Email sent successfully:", emailResponse);
+    // Prepare email content
+    const htmlContent = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <div style="background: #f8f9fa; padding: 20px; border-radius: 8px;">
+          ${content.replace(/\n/g, '<br>')}
+        </div>
+        <div style="margin-top: 20px; padding: 20px; background: #f1f3f4; border-radius: 8px; text-align: center;">
+          <p style="margin: 0; color: #666; font-size: 14px;">
+            Sent via Fixlify Connect Center
+          </p>
+        </div>
+      </div>
+    `;
+
+    // Prepare form data for Mailgun
+    const formData = new FormData();
+    formData.append('from', `${fromName} <${fromEmail}>`);
+    formData.append('to', to);
+    formData.append('subject', subject);
+    formData.append('html', htmlContent);
+    formData.append('text', content);
+
+    // Send email via Mailgun
+    const mailgunUrl = `https://api.mailgun.net/v3/${mailgunDomain}/messages`;
+    
+    const emailResponse = await fetch(mailgunUrl, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Basic ${btoa(`api:${mailgunApiKey}`)}`,
+      },
+      body: formData,
+    });
+
+    if (!emailResponse.ok) {
+      const errorText = await emailResponse.text();
+      throw new Error(`Mailgun error: ${errorText}`);
+    }
+
+    const mailgunResult = await emailResponse.json();
+    console.log("Email sent successfully:", mailgunResult);
 
     // Log to communication_logs table
     try {
@@ -85,10 +106,10 @@ const handler = async (req: Request): Promise<Response> => {
         subject: subject,
         content: content,
         status: 'sent',
-        external_id: emailResponse.data?.id,
+        external_id: mailgunResult.id,
         client_id: clientId,
         metadata: {
-          resend_id: emailResponse.data?.id,
+          mailgun_id: mailgunResult.id,
           from_name: fromName,
           ...metadata
         }
@@ -100,7 +121,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     return new Response(JSON.stringify({
       success: true,
-      messageId: emailResponse.data?.id,
+      messageId: mailgunResult.id,
       message: 'Email sent successfully'
     }), {
       status: 200,
