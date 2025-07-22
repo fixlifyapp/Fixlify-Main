@@ -7,7 +7,7 @@ import { useInvoices } from "@/hooks/useInvoices";
 import { useEstimates } from "@/hooks/useEstimates";
 import { SteppedInvoiceBuilder } from "../dialogs/SteppedInvoiceBuilder";
 import { UniversalSendDialog } from "../dialogs/shared/UniversalSendDialog";
-import { UnifiedDocumentViewer } from "../dialogs/UnifiedDocumentViewer";
+import { UnifiedDocumentViewer } from "../dialogs/unified/UnifiedDocumentViewer";
 import { formatCurrency } from "@/lib/utils";
 import { toast } from "sonner";
 import { useIsMobile } from "@/hooks/use-mobile";
