@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { MessageSquare, Search, Plus, Archive, Unarchive } from "lucide-react";
+import { MessageSquare, Search, Plus, Archive } from "lucide-react";
 import { useMessageContext } from "@/contexts/MessageContext";
 import { ConversationThread } from "./ConversationThread";
 import { ConnectMessageDialog } from "./ConnectMessageDialog";
@@ -16,12 +16,10 @@ export const SimpleMessagesInterface = () => {
   const { conversations } = useMessageContext();
 
   const filteredConversations = conversations.filter(conv => {
-    if (showArchived !== conv.archived) return false;
-    
     if (searchQuery) {
-      return conv.client.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-             (conv.client.phone && conv.client.phone.includes(searchQuery)) ||
-             (conv.client.email && conv.client.email.toLowerCase().includes(searchQuery.toLowerCase()));
+      return conv.client?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+             (conv.client?.phone && conv.client.phone.includes(searchQuery)) ||
+             (conv.client?.email && conv.client.email.toLowerCase().includes(searchQuery.toLowerCase()));
     }
     
     return true;
@@ -53,7 +51,7 @@ export const SimpleMessagesInterface = () => {
                 size="sm"
                 onClick={() => setShowArchived(!showArchived)}
               >
-                {showArchived ? <Unarchive className="h-4 w-4" /> : <Archive className="h-4 w-4" />}
+                <Archive className="h-4 w-4" />
               </Button>
               <Button
                 size="sm"

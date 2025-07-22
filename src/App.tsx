@@ -261,7 +261,17 @@ function App() {
             
             {/* Messages - Redirect to Connect Center */}
             <Route path="/messages" element={
-              <Navigate to="/communications?tab=messages" replace />
+              <Navigate to="/communications" replace />
+            } />
+            
+            {/* Email - Redirect to Connect Center */}
+            <Route path="/email" element={
+              <Navigate to="/communications" replace />
+            } />
+            
+            {/* Calls - Redirect to Connect Center */}
+            <Route path="/calls" element={
+              <Navigate to="/communications" replace />
             } />
             
             {/* AI Center */}

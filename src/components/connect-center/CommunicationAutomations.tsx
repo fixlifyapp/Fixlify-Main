@@ -40,7 +40,12 @@ export const CommunicationAutomations = () => {
 
       if (error) throw error;
 
-      setAutomations(data || []);
+      const automationsData = data?.map(automation => ({
+        ...automation,
+        actions: [],
+        run_count: automation.execution_count || 0
+      })) || [];
+      setAutomations(automationsData);
     } catch (error) {
       console.error('Error fetching automations:', error);
       toast.error('Failed to load automations');

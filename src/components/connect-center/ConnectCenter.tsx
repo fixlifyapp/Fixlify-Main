@@ -4,10 +4,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { MessageSquare, Mail, FileText, Bot, TrendingUp, Users, Phone } from "lucide-react";
 import { SimpleMessagesInterface } from "@/components/connect/components/SimpleMessagesInterface";
-import { MessagesList } from "@/components/connect/MessagesList";
+import { SimpleEmailInterface } from "@/components/connect/components/SimpleEmailInterface";
+import { CallsList } from "@/components/connect/CallsList";
 import { CommunicationTemplates } from "./CommunicationTemplates";
 import { CommunicationAutomations } from "./CommunicationAutomations";
-import { EmailInputPanel } from "@/components/connect/components/EmailInputPanel";
 
 interface ModernCardProps {
   title: string;
@@ -50,9 +50,9 @@ export const ConnectCenter = () => {
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="messages">Messages</TabsTrigger>
           <TabsTrigger value="email">Email</TabsTrigger>
+          <TabsTrigger value="calls">Calls</TabsTrigger>
           <TabsTrigger value="templates">Templates</TabsTrigger>
           <TabsTrigger value="automations">Automations</TabsTrigger>
-          <TabsTrigger value="analytics">Analytics</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="space-y-6">
@@ -165,22 +165,11 @@ export const ConnectCenter = () => {
         </TabsContent>
 
         <TabsContent value="email">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <EmailInputPanel />
-            <Card>
-              <CardHeader>
-                <CardTitle>Recent Emails</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="text-center py-8 text-gray-500">
-                    <Mail className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                    <p>Recent emails will appear here</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+          <SimpleEmailInterface />
+        </TabsContent>
+
+        <TabsContent value="calls">
+          <CallsList />
         </TabsContent>
 
         <TabsContent value="templates">
@@ -191,23 +180,6 @@ export const ConnectCenter = () => {
           <CommunicationAutomations />
         </TabsContent>
 
-        <TabsContent value="analytics">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <TrendingUp className="h-5 w-5" />
-                Communication Analytics
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-center py-8 text-gray-500">
-                <TrendingUp className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <p>Analytics dashboard coming soon</p>
-                <p className="text-sm">Track communication metrics and performance</p>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
       </Tabs>
     </div>
   );

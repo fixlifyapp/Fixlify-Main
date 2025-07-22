@@ -44,6 +44,7 @@ interface MessageContextType {
   fetchConversations: () => Promise<void>;
   refreshMessages: () => void;
   sendEmail: (to: string, subject: string, content: string, clientId?: string) => Promise<boolean>;
+  sendMessage: (params: { type: 'email' | 'sms'; to: string; content: string; subject?: string; clientId?: string }) => Promise<void>;
   markAsRead: (conversationId: string) => Promise<void>;
 }
 
@@ -209,6 +210,16 @@ export const MessageProvider: React.FC<{ children: ReactNode }> = ({ children })
     };
   }, [user?.id, fetchConversations]);
 
+  const sendMessage = useCallback(async (params: { type: 'email' | 'sms'; to: string; content: string; subject?: string; clientId?: string }) => {
+    if (params.type === 'email') {
+      await sendEmail(params.to, params.subject || 'No Subject', params.content, params.clientId);
+    } else {
+      // SMS sending would be implemented here
+      console.log('SMS sending not yet implemented:', params);
+      toast.error('SMS sending not yet implemented');
+    }
+  }, [sendEmail]);
+
   const value: MessageContextType = {
     conversations,
     emailMessages,
@@ -218,6 +229,7 @@ export const MessageProvider: React.FC<{ children: ReactNode }> = ({ children })
     fetchConversations,
     refreshMessages,
     sendEmail,
+    sendMessage,
     markAsRead
   };
 
