@@ -77,9 +77,11 @@ export const ConversationThread = ({ conversation }: ConversationThreadProps) =>
             
             <CallButton
               phoneNumber={conversation.client_phone}
+              clientId={conversation.client_id}
               clientName={conversation.client_name}
               variant="outline"
               size="sm"
+              showText={true}
             />
           </div>
         </div>

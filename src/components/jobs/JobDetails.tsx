@@ -189,7 +189,7 @@ export const JobDetails = ({ jobId }: JobDetailsProps) => {
         dialogSetters={dialogSetters}
         jobDetails={{
           ...jobDetails,
-          client_id: undefined
+          client_id: jobDetails.clientId
         }}
         appliances={appliances}
         onUpdateDescription={handleUpdateDescription}

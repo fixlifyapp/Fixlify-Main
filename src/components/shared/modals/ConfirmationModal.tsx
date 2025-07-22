@@ -1,34 +1,84 @@
-// Stub for ConfirmationModal to fix TypeScript errors
+
+import React from "react";
+import { SharedDialog } from "@/components/ui/shared-dialog";
 import { Button } from "@/components/ui/button";
-import { SharedDialog, SharedDialogProps } from "@/components/ui/shared-dialog";
+import { Trash2, AlertCircle, CheckCircle2 } from "lucide-react";
 import { BaseModalProps } from "@/components/ui/modal-provider";
 
 interface ConfirmationModalProps extends BaseModalProps {
-  onConfirm?: () => void;
-  onCancel?: () => void;
+  title: string;
+  description: string;
+  onConfirm: () => void;
+  isProcessing?: boolean;
+  variant?: "delete" | "warning" | "success";
+  confirmText?: string;
+  cancelText?: string;
 }
 
-export const ConfirmationModal = ({ 
-  open = false, 
-  onOpenChange, 
-  title = "Confirm Action", 
-  description = "Are you sure?",
+export function ConfirmationModal({
+  open,
+  onOpenChange,
+  title,
+  description,
   onConfirm,
-  onCancel 
-}: ConfirmationModalProps) => {
+  isProcessing = false,
+  variant = "delete",
+  confirmText,
+  cancelText = "Cancel"
+}: ConfirmationModalProps) {
+  // Determine button variant and icon based on the modal variant
+  const buttonVariants = {
+    delete: "destructive",
+    warning: "warning",
+    success: "default"
+  };
+  
+  const buttonIcons = {
+    delete: <Trash2 size={16} />,
+    warning: <AlertCircle size={16} />,
+    success: <CheckCircle2 size={16} />
+  };
+  
+  const defaultTexts = {
+    delete: "Delete",
+    warning: "Confirm",
+    success: "Confirm"
+  };
+  
+  const buttonVariant = buttonVariants[variant];
+  const buttonIcon = buttonIcons[variant];
+  const defaultConfirmText = defaultTexts[variant];
+
   return (
-    <SharedDialog 
-      open={open} 
+    <SharedDialog
+      open={open}
       onOpenChange={onOpenChange}
       title={title}
       description={description}
-      footerContent={
-        <>
-          <Button variant="outline" onClick={onCancel}>Cancel</Button>
-          <Button onClick={onConfirm}>Confirm</Button>
-        </>
-      }
       hideCloseButton={true}
-    />
+      footerContent={
+        <div className="flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2">
+          <Button 
+            variant="outline" 
+            onClick={() => onOpenChange(false)}
+            disabled={isProcessing}
+            className="mt-2 sm:mt-0"
+          >
+            {cancelText}
+          </Button>
+          <Button 
+            variant={buttonVariant as any}
+            onClick={onConfirm}
+            disabled={isProcessing}
+            className="gap-2"
+          >
+            {buttonIcon}
+            {isProcessing ? "Processing..." : (confirmText || defaultConfirmText)}
+          </Button>
+        </div>
+      }
+    >
+      {/* Empty children to satisfy type requirements */}
+    </SharedDialog>
   );
-};
+}

@@ -1,12 +1,26 @@
-// Automation scheduler stub component
+import { useEffect, useRef } from 'react';
+import { useAuth } from '@/hooks/use-auth';
+import { automationTrigger } from '@/services/automation-trigger';
 
-import React from 'react';
+export function AutomationScheduler() {
+  const { user } = useAuth();
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
-export const AutomationScheduler: React.FC = () => {
-  return (
-    <div className="p-4">
-      <h2 className="text-lg font-semibold mb-4">Automation Scheduler</h2>
-      <p className="text-muted-foreground">Automation scheduling functionality coming soon...</p>
-    </div>
-  );
-};
+  useEffect(() => {
+    if (!user) return;
+
+    // Schedule time-based triggers
+    automationTrigger.scheduleTimeTriggers();
+
+    // No need to set up additional interval as scheduleTimeTriggers handles its own intervals
+
+    // Cleanup on unmount
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+      }
+    };
+  }, [user]);
+
+  return null;
+}

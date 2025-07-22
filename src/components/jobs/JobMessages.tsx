@@ -62,7 +62,7 @@ export const JobMessages = ({ jobId }: JobMessagesProps) => {
 
   const handleOpenMessages = () => {
     if (client.id) {
-      openMessageDialog(client);
+      openMessageDialog(client, jobId);
     }
   };
 

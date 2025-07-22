@@ -5,14 +5,12 @@ export { useAutomationTemplates } from './useAutomationTemplates';
 export { useAutomationExecution } from './useAutomationExecution';
 export { useAutomationAnalytics } from './useAutomationAnalytics';
 
-// Export types from stubs  
-export type { 
-  AutomationWorkflow, 
-  AutomationTemplate, 
-  AutomationHistory,
-  AutomationRule,
-  TemplateCategory
-} from './automation-stubs';
+// Re-export types
+export type {
+  AutomationWorkflow,
+  AutomationTemplate,
+  AutomationHistory
+} from './useAutomations';
 
 export type {
   WorkflowNode,
@@ -20,6 +18,9 @@ export type {
   WorkflowBuilder
 } from './useAutomationBuilder';
 
+export type {
+  TemplateCategory
+} from './useAutomationTemplates';
 
 export type {
   ExecutionStep,

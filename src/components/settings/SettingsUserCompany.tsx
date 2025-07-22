@@ -16,8 +16,8 @@ import { useAuth } from "@/hooks/use-auth";
 
 export const SettingsUserCompany = () => {
   const { user } = useAuth();
-  const { companySettings, isLoading: companyLoading, updateCompanySettings } = useCompanySettings();
-  const { settings: userSettings, loading: userLoading, updateSettings: updateUserSettings } = useUserSettings() as any;
+  const { settings: companySettings, loading: companyLoading, updateSettings: updateCompanySettings } = useCompanySettings();
+  const { settings: userSettings, loading: userLoading, updateSettings: updateUserSettings } = useUserSettings();
   const [isSaving, setIsSaving] = useState(false);
   
   // Local state for pending changes

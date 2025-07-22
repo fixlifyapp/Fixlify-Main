@@ -13,12 +13,9 @@ interface UnifiedDocumentViewerProps {
   document: Estimate | Invoice;
   documentType: "estimate" | "invoice";
   jobId: string;
-  open?: boolean;
-  isOpen?: boolean;
-  onOpenChange?: (open: boolean) => void;
-  onClose?: () => void;
+  isOpen: boolean;
+  onClose: () => void;
   onUpdate?: () => void;
-  onDocumentUpdated?: () => void;
   onConvertToInvoice?: (estimate: Estimate) => void;
 }
 
@@ -26,24 +23,11 @@ export const UnifiedDocumentViewer = ({
   document,
   documentType,
   jobId,
-  open,
   isOpen,
-  onOpenChange,
   onClose,
   onUpdate,
-  onDocumentUpdated,
   onConvertToInvoice,
 }: UnifiedDocumentViewerProps) => {
-  // Handle both prop patterns
-  const dialogOpen = open ?? isOpen ?? false;
-  const handleClose = () => {
-    if (onClose) onClose();
-    if (onOpenChange) onOpenChange(false);
-  };
-  const handleUpdate = () => {
-    if (onUpdate) onUpdate();
-    if (onDocumentUpdated) onDocumentUpdated();
-  };
   const [isEditMode, setIsEditMode] = useState(false);
   const { convertEstimateToInvoice } = useEstimates(jobId);
   
@@ -73,7 +57,7 @@ export const UnifiedDocumentViewer = ({
     documentType,
     jobId,
     onConvertToInvoice,
-    onDocumentUpdated: handleUpdate
+    onDocumentUpdated: onUpdate
   });
 
   const handleConvert = async () => {
@@ -88,8 +72,10 @@ export const UnifiedDocumentViewer = ({
         if (onConvertToInvoice) {
           onConvertToInvoice(estimate);
         }
-        handleUpdate();
-        handleClose();
+        if (onUpdate) {
+          onUpdate();
+        }
+        onClose();
       }
     } catch (error) {
       console.error('Error converting estimate to invoice:', error);
@@ -99,7 +85,7 @@ export const UnifiedDocumentViewer = ({
 
   if (loading) {
     return (
-      <Dialog open={dialogOpen} onOpenChange={handleClose}>
+      <Dialog open={isOpen} onOpenChange={onClose}>
         <DialogContent className="max-w-4xl h-[90vh] flex flex-col">
           <div className="flex-1 flex items-center justify-center">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
@@ -135,7 +121,7 @@ export const UnifiedDocumentViewer = ({
 
   return (
     <>
-      <Dialog open={dialogOpen} onOpenChange={handleClose}>
+      <Dialog open={isOpen} onOpenChange={onClose}>
         <DialogContent className="max-w-6xl h-[90vh] flex flex-col">
           <UnifiedDocumentViewerHeader
             documentType={documentType}

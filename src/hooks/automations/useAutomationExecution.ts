@@ -1,7 +1,8 @@
 import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useOrganization } from '@/contexts/OrganizationContext';
-import { telnyxService, mailgunService } from './automation-stubs';
+import { telnyxService } from '@/services/communications/TelnyxService';
+import { mailgunService } from '@/services/communications/MailgunService';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { toZonedTime } from 'date-fns-tz';
@@ -33,7 +34,7 @@ export const useAutomationExecution = () => {
   const [executionContext, setExecutionContext] = useState<ExecutionContext | null>(null);
   const [executionHistory, setExecutionHistory] = useState<ExecutionContext[]>([]);
   const { organization } = useOrganization();
-  const { companySettings } = useCompanySettings();
+  const { timezone: userTimezone } = useCompanySettings();
 
   // Execute a workflow
   const executeWorkflow = useCallback(async (
@@ -83,9 +84,10 @@ export const useAutomationExecution = () => {
       // Process actions in sequence
       for (const action of workflow.actions || []) {
         // Apply delay if configured
-        const delayMinutes = (action as any).delay_minutes || 0;
-        if (delayMinutes > 0 && !testMode) {
-          await new Promise(resolve => setTimeout(resolve, delayMinutes * 60 * 1000));
+        if (action.delay_minutes && !testMode) {
+          await new Promise(resolve => 
+            setTimeout(resolve, action.delay_minutes * 60 * 1000)
+          );
         }
 
         const step = await processAction(action, context, testMode);
@@ -227,9 +229,13 @@ export const useAutomationExecution = () => {
       };
     }
 
-    const result = await telnyxService.sendSMS(to, message);
+    const result = await telnyxService.sendSMS({
+      to,
+      message,
+      from: config.from
+    });
 
-    return { messageId: result.id || 'test-id', status: 'sent' };
+    return { messageId: result.id, status: 'sent' };
   };
 
   // Execute Email action
@@ -248,9 +254,14 @@ export const useAutomationExecution = () => {
       };
     }
 
-    const result = await mailgunService.sendEmail(to, subject, html);
+    const result = await mailgunService.sendEmail({
+      to,
+      subject,
+      html,
+      text: config.text
+    });
 
-    return { messageId: result.id || 'test-id', status: 'sent' };
+    return { messageId: result.id, status: 'sent' };
   };
 
   // Execute Call action
@@ -266,8 +277,10 @@ export const useAutomationExecution = () => {
       };
     }
 
-    // Since telnyxService doesn't have makeCall, simulate it
-    const result = { call_control_id: 'test-call-id' };
+    const result = await telnyxService.makeCall({
+      to,
+      from: config.from
+    });
 
     return { callId: result.call_control_id, status: 'initiated' };
   };
@@ -446,27 +459,25 @@ export const useAutomationExecution = () => {
   };
 
   const interpolateVariables = (template: string, variables: Record<string, any>): string => {
-    const timezone = companySettings?.timezone || 'America/New_York';
-    
     return template.replace(/\{\{([^}]+)\}\}/g, (match, key) => {
       const trimmedKey = key.trim();
       
       // Handle special date/time variables with timezone
       if (trimmedKey === 'current_date') {
         const now = new Date();
-        const zonedDate = toZonedTime(now, timezone);
+        const zonedDate = toZonedTime(now, userTimezone || 'America/New_York');
         return format(zonedDate, 'EEE, MMM d, yyyy');
       }
       
       if (trimmedKey === 'current_time') {
         const now = new Date();
-        const zonedDate = toZonedTime(now, timezone);
+        const zonedDate = toZonedTime(now, userTimezone || 'America/New_York');
         return format(zonedDate, 'h:mm a');
       }
       
       if (trimmedKey === 'tomorrow_date') {
         const tomorrow = new Date(Date.now() + 86400000);
-        const zonedDate = toZonedTime(tomorrow, timezone);
+        const zonedDate = toZonedTime(tomorrow, userTimezone || 'America/New_York');
         return format(zonedDate, 'EEE, MMM d, yyyy');
       }
       
@@ -475,7 +486,7 @@ export const useAutomationExecution = () => {
         const scheduledDate = variables.job?.date || variables.scheduled_date;
         if (scheduledDate) {
           const date = new Date(scheduledDate);
-          const zonedDate = toZonedTime(date, timezone);
+          const zonedDate = toZonedTime(date, userTimezone || 'America/New_York');
           return format(zonedDate, 'EEE, MMM d, yyyy');
         }
       }
@@ -484,7 +495,7 @@ export const useAutomationExecution = () => {
         const scheduledDate = variables.job?.date || variables.scheduled_date;
         if (scheduledDate) {
           const date = new Date(scheduledDate);
-          const zonedDate = toZonedTime(date, timezone);
+          const zonedDate = toZonedTime(date, userTimezone || 'America/New_York');
           return format(zonedDate, 'h:mm a');
         }
       }

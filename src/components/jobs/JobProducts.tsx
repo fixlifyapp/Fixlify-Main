@@ -114,12 +114,11 @@ export const JobProducts = ({ jobId, onDeleteProduct }: JobProductsProps) => {
       
       if (error) throw error;
       
-      const result = data as any;
-      if (result.success) {
-        toast.success(`Successfully loaded ${result.inserted_count || 0} products for ${result.business_niche}`);
+      if (data.success) {
+        toast.success(`Successfully loaded ${data.inserted_count || 0} products for ${data.business_niche}`);
         refreshProducts();
-      } else if (result.message === 'Products already exist') {
-        toast.info(`You already have ${result.product_count} products for ${result.business_niche}`);
+      } else if (data.message === 'Products already exist') {
+        toast.info(`You already have ${data.product_count} products for ${data.business_niche}`);
       } else {
         toast.error("Failed to load products");
       }

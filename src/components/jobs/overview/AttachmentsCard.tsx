@@ -152,7 +152,7 @@ export const AttachmentsCard = ({ attachments = [], jobId, onAttachmentsUpdate }
         open={uploadDialogOpen}
         onOpenChange={setUploadDialogOpen}
         jobId={jobId}
-        onUploadSuccess={onAttachmentsUpdate}
+        onUploadComplete={onAttachmentsUpdate}
       />
     </>
   );

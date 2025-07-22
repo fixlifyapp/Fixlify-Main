@@ -2,7 +2,8 @@ import { useState, useCallback } from 'react';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { telnyxService, mailgunService } from './automation-stubs';
+import { telnyxService } from '@/services/communications/TelnyxService';
+import { mailgunService } from '@/services/communications/MailgunService';
 
 export interface WorkflowNode {
   id: string;

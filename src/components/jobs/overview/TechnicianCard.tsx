@@ -53,8 +53,7 @@ export const TechnicianCard = ({ job, jobId, editable = false, onUpdate }: Techn
     <ModernCard variant="elevated" className="hover:shadow-lg transition-all duration-300">
       <ModernCardHeader className="pb-4">
         <div className="flex items-center justify-between">
-          <ModernCardTitle className="flex items-center gap-2">
-            <User className="h-5 w-5" />
+          <ModernCardTitle icon={User}>
             Technician Assignment
           </ModernCardTitle>
           {editable && !isEditing ? (

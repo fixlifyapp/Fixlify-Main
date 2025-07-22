@@ -60,7 +60,7 @@ export const EstimateDebugPanel = () => {
       }
 
       // Check if PUBLIC_SITE_URL is being used correctly
-      results.secrets.publicSiteUrl = results.edgeFunction.response?.portalLink?.includes('hub.fixlify.app') ? '✅ Correct domain' : '❌ Wrong domain';
+      results.secrets.publicSiteUrl = sendResult?.portalLink?.includes('hub.fixlify.app') ? '✅ Correct domain' : '❌ Wrong domain';
 
     } catch (error) {
       results.error = error;

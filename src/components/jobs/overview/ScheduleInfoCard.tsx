@@ -45,8 +45,7 @@ export const ScheduleInfoCard = ({ job, jobId, editable = false, onUpdate }: Sch
       <ModernCard variant="elevated" className="hover:shadow-lg transition-all duration-300">
         <ModernCardHeader className="pb-4">
           <div className="flex items-center justify-between">
-            <ModernCardTitle className="flex items-center gap-2">
-              <Calendar className="h-5 w-5" />
+            <ModernCardTitle icon={Calendar}>
               Schedule
             </ModernCardTitle>
             {editable && (

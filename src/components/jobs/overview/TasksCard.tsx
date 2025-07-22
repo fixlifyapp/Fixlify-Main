@@ -20,8 +20,7 @@ export const TasksCard = ({ tasks, jobId, editable = false, onManageTasks, onUpd
     <ModernCard variant="elevated" className="hover:shadow-lg transition-all duration-300">
       <ModernCardHeader className="pb-4">
         <div className="flex items-center justify-between">
-          <ModernCardTitle className="flex items-center gap-2">
-            <ClipboardList className="h-5 w-5" />
+          <ModernCardTitle icon={ClipboardList}>
             Tasks
           </ModernCardTitle>
           {editable && onManageTasks && (

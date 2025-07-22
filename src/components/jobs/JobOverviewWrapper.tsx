@@ -1,6 +1,6 @@
 import React from 'react';
 import { useJob } from '@/hooks/useJob';
-import { JobOverview } from './JobOverview';
+import JobOverview from './JobOverview';
 import { Skeleton } from '@/components/ui/skeleton';
 
 interface JobOverviewWrapperProps {
@@ -8,7 +8,7 @@ interface JobOverviewWrapperProps {
 }
 
 const JobOverviewWrapper: React.FC<JobOverviewWrapperProps> = ({ jobId }) => {
-  const { job, loading, error } = useJob(jobId);
+  const { jobData, loading, error } = useJob(jobId);
 
   if (loading) {
     return (
@@ -20,7 +20,7 @@ const JobOverviewWrapper: React.FC<JobOverviewWrapperProps> = ({ jobId }) => {
     );
   }
 
-  if (error || !job) {
+  if (error || !jobData) {
     return (
       <div className="text-center py-8">
         <p className="text-red-600">Failed to load job details</p>
@@ -28,7 +28,7 @@ const JobOverviewWrapper: React.FC<JobOverviewWrapperProps> = ({ jobId }) => {
     );
   }
 
-  return <JobOverview job={job} />;
+  return <JobOverview job={jobData} />;
 };
 
 export default JobOverviewWrapper;
