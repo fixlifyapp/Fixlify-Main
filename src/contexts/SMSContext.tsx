@@ -301,8 +301,9 @@ export const SMSProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
           console.log('SMS conversation updated:', payload);
           fetchConversations();
         }
-      )
-      .subscribe();
+      );
+    
+    conversationsChannel.subscribe();
 
     return () => {
       supabase.removeChannel(conversationsChannel);
@@ -336,8 +337,9 @@ export const SMSProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
             fetchConversations();
           }
         }
-      )
-      .subscribe();
+      );
+
+    messagesChannel.subscribe();
 
     return () => {
       supabase.removeChannel(messagesChannel);
