@@ -12,6 +12,7 @@ import { SendCommunicationDialog } from './SendCommunicationDialog';
 import { CommunicationHistory } from './CommunicationHistory';
 import { CommunicationTemplates } from './CommunicationTemplates';
 import { CommunicationAutomations } from './CommunicationAutomations';
+import { EmailComposer } from '../connect/EmailComposer';
 import { useAuth } from '@/hooks/use-auth';
 
 export function ConnectCenter() {
@@ -31,9 +32,9 @@ export function ConnectCenter() {
       variant: "success" as const
     },
     {
-      text: "Email Coming Soon",
+      text: "Email Active",
       icon: Mail,
-      variant: "info" as const
+      variant: "success" as const
     }
   ];
 
@@ -53,10 +54,14 @@ export function ConnectCenter() {
 
       <AnimatedContainer>
         <Tabs defaultValue="sms" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-5">
+          <TabsList className="grid w-full grid-cols-6">
             <TabsTrigger value="sms">
               <MessageSquare className="h-4 w-4 mr-2" />
               SMS
+            </TabsTrigger>
+            <TabsTrigger value="email">
+              <Mail className="h-4 w-4 mr-2" />
+              Email
             </TabsTrigger>
             <TabsTrigger value="history">
               <History className="h-4 w-4 mr-2" />
@@ -78,6 +83,12 @@ export function ConnectCenter() {
 
           <TabsContent value="sms">
             <SMSConversations />
+          </TabsContent>
+
+          <TabsContent value="email">
+            <div className="space-y-6">
+              <EmailComposer />
+            </div>
           </TabsContent>
 
           <TabsContent value="history">

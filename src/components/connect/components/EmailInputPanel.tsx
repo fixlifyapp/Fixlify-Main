@@ -1,71 +1,80 @@
-
-import { useState } from "react";
+import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Send, Loader2, Sparkles, Bot } from "lucide-react";
-import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
-import { useIsMobile } from "@/hooks/use-mobile";
-import { cn } from "@/lib/utils";
-
-interface EmailConversation {
-  id: string;
-  subject: string;
-  last_message_at: string;
-  status: string;
-  client_id?: string;
-  client?: {
-    id: string;
-    name: string;
-    email: string;
-    phone?: string;
-  };
-  emails: any[];
-}
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Send, Sparkles, Loader2 } from "lucide-react";
+import { useAuth } from '@/hooks/use-auth';
+import { useMessageContext } from '@/contexts/MessageContext';
+import { toast } from 'sonner';
 
 interface EmailInputPanelProps {
-  selectedConversation: EmailConversation | null;
-  onEmailSent: () => void;
+  selectedConversation?: {
+    id: string;
+    client?: {
+      id: string;
+      name: string;
+      email?: string;
+    };
+    emails?: Array<{
+      id: string;
+      subject: string;
+      content: string;
+      created_at: string;
+      status: string;
+    }>;
+  };
+  onEmailSent?: () => void;
 }
 
-export const EmailInputPanel = ({ selectedConversation, onEmailSent }: EmailInputPanelProps) => {
+export const EmailInputPanel: React.FC<EmailInputPanelProps> = ({
+  selectedConversation,
+  onEmailSent
+}) => {
+  const { user } = useAuth();
+  const { sendEmail, isSending } = useMessageContext();
+  const [to, setTo] = useState(selectedConversation?.client?.email || "");
   const [subject, setSubject] = useState("");
-  const [message, setMessage] = useState("");
-  const [isSending, setIsSending] = useState(false);
-  const [isAILoading, setIsAILoading] = useState(false);
-  const isMobile = useIsMobile();
+  const [content, setContent] = useState("");
+  const [isGeneratingAI, setIsGeneratingAI] = useState(false);
 
-  const handleSendEmail = () => { console.log("Email functionality not implemented"); }
+  React.useEffect(() => {
+    if (selectedConversation?.client?.email) {
+      setTo(selectedConversation.client.email);
+    }
+  }, [selectedConversation?.client?.email]);
+
+  const handleSend = async () => {
+    if (!to || !subject || !content) {
+      toast.error('Please fill in all fields');
+      return;
+    }
+
+    if (!user?.id) {
+      toast.error('Please log in to send emails');
       return;
     }
 
     setIsSending(true);
     try {
-      console.log('Sending email via EmailInputPanel:', {
-        client: selectedConversation.client,
+      const success = await sendEmail(
+        to,
         subject,
-        message
-      });
+        content,
+        selectedConversation?.client?.id
+      );
 
-      const { data, error } = await supabase.functions.invoke('send-email', {
-        body: {
-          to: selectedConversation.client.email,
-          subject: subject || 'Message from Fixlyfy',
-          html: message.replace(/\n/g, '<br>'),
-          clientId: selectedConversation.client.id
-        }
-      });
-
-      if (error) throw error;
-
-      setSubject("");
-      setMessage("");
-      onEmailSent();
-      toast.success("Email sent successfully!");
+      if (success) {
+        // Reset form
+        setSubject("");
+        setContent("");
+        onEmailSent?.();
+        toast.success('Email sent successfully!');
+      }
     } catch (error) {
       console.error('Error sending email:', error);
-      toast.error("Failed to send email");
+      toast.error('Failed to send email');
     } finally {
       setIsSending(false);
     }
@@ -73,138 +82,146 @@ export const EmailInputPanel = ({ selectedConversation, onEmailSent }: EmailInpu
 
   const handleAISuggestion = async () => {
     if (!selectedConversation?.emails?.length) {
-      toast.error("No conversation history to generate response from");
+      toast.error('No email history to analyze');
       return;
     }
 
-    setIsAILoading(true);
+    setIsGeneratingAI(true);
     try {
+      // Simple AI suggestion based on previous emails
       const lastEmail = selectedConversation.emails[selectedConversation.emails.length - 1];
+      const suggestion = generateFollowUpSuggestion(lastEmail);
       
-      // Simple AI response generation (you might want to integrate with an actual AI service)
-      const response = `Thank you for your email. I understand your concern and will get back to you shortly with more information.
-
-Best regards,
-Fixlyfy Team`;
-
-      setMessage(response);
-      toast.success("AI response generated!");
+      setSubject(suggestion.subject);
+      setContent(suggestion.content);
+      toast.success('AI suggestion generated!');
     } catch (error) {
-      console.error('Error generating AI response:', error);
-      toast.error("Failed to generate AI response");
+      console.error('Error generating AI suggestion:', error);
+      toast.error('Failed to generate AI suggestion');
     } finally {
-      setIsAILoading(false);
+      setIsGeneratingAI(false);
     }
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
-      e.preventDefault();
-      handleSendEmail();
-    }
+  const generateFollowUpSuggestion = (lastEmail: any) => {
+    const isFollowUp = lastEmail.subject.toLowerCase().includes('follow');
+    
+    return {
+      subject: isFollowUp 
+        ? `Re: ${lastEmail.subject}` 
+        : `Follow-up: ${lastEmail.subject}`,
+      content: `Hi ${selectedConversation?.client?.name || 'there'},
+
+I wanted to follow up on our previous communication regarding ${lastEmail.subject.toLowerCase()}.
+
+${isFollowUp 
+  ? 'I hope this finds you well. Please let me know if you have any questions or need any additional information.'
+  : 'I wanted to check in and see if you need any further assistance or have any questions about our discussion.'
+}
+
+Looking forward to hearing from you.
+
+Best regards,
+${user?.user_metadata?.full_name || 'Your Fixlify Team'}`
+    };
   };
 
   if (!selectedConversation) {
     return (
-      <div className={`${isMobile ? 'p-3' : 'p-4'} text-center text-fixlyfy-text-secondary`}>
-        <p className={isMobile ? 'text-sm' : 'text-base'}>
-          Select a conversation to start composing an email
-        </p>
+      <div className="flex items-center justify-center h-full text-muted-foreground">
+        <div className="text-center">
+          <Send className="h-12 w-12 mx-auto mb-4 opacity-50" />
+          <h3 className="text-lg font-medium mb-2">No Conversation Selected</h3>
+          <p className="text-sm">
+            Select an email conversation to start composing a reply
+          </p>
+        </div>
       </div>
     );
   }
 
-  const shouldShowAISuggestion = selectedConversation.emails.length > 0;
-  const lastEmail = selectedConversation.emails[selectedConversation.emails.length - 1];
-  const showSuggest = shouldShowAISuggestion && lastEmail?.direction === 'inbound';
-
   return (
-    <div className={`${isMobile ? 'p-3' : 'p-4'} bg-gradient-to-r from-white to-fixlyfy-bg-interface`}>
-      {/* AI Suggest Response Button */}
-      {showSuggest && (
-        <div className="mb-3 flex justify-end">
-          <Button 
+    <Card className="h-full">
+      <CardHeader className="pb-4">
+        <CardTitle className="flex items-center justify-between">
+          <span className="flex items-center gap-2">
+            <Send className="h-5 w-5" />
+            Compose Email
+          </span>
+          <Button
             variant="outline"
             size="sm"
             onClick={handleAISuggestion}
-            disabled={isAILoading || isSending}
-            className={`gap-2 text-purple-600 border-purple-200 hover:bg-purple-50 ${isMobile ? 'min-h-[44px] text-sm' : ''}`}
+            disabled={isGeneratingAI || !selectedConversation?.emails?.length}
           >
-            {isAILoading ? (
-              <>
-                <Bot className="h-4 w-4 animate-pulse" />
-                Generating...
-              </>
+            {isGeneratingAI ? (
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
             ) : (
-              <>
-                <Sparkles className="h-4 w-4" />
-                AI Response
-              </>
+              <Sparkles className="h-4 w-4 mr-2" />
             )}
+            AI Suggest
           </Button>
-        </div>
-      )}
-
-      <div className="space-y-3">
-        {/* Subject Line */}
-        <div>
+        </CardTitle>
+        {selectedConversation.client && (
+          <p className="text-sm text-muted-foreground">
+            To: {selectedConversation.client.name} ({selectedConversation.client.email})
+          </p>
+        )}
+      </CardHeader>
+      
+      <CardContent className="space-y-4">
+        <div className="space-y-2">
+          <Label htmlFor="email-to">To</Label>
           <Input
-            placeholder="Email subject..."
-            value={subject}
-            onChange={(e) => setSubject(e.target.value)}
-            disabled={isSending}
-            className={cn(
-              "border-fixlyfy-border/50 focus:ring-2 focus:ring-fixlyfy/50 focus:border-fixlyfy",
-              isMobile ? "h-10 text-sm" : "h-10"
-            )}
+            id="email-to"
+            type="email"
+            value={to}
+            onChange={(e) => setTo(e.target.value)}
+            placeholder="recipient@example.com"
+            disabled={!!selectedConversation.client?.email}
           />
         </div>
 
-        {/* Message Body */}
-        <div className="flex gap-2 items-end">
-          <div className="flex-1">
-            <Textarea
-              placeholder="Type your email message..."
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
-              disabled={isSending}
-              onKeyDown={handleKeyDown}
-              className={cn(
-                "border-fixlyfy-border/50 focus:ring-2 focus:ring-fixlyfy/50 focus:border-fixlyfy focus:outline-none resize-none transition-all duration-200 bg-white shadow-sm",
-                isMobile ? "min-h-[80px] max-h-[120px] text-sm" : "min-h-[100px] max-h-[150px]"
-              )}
-              rows={isMobile ? 3 : 4}
-            />
-          </div>
-          
-          <Button 
-            onClick={handleSendEmail}
-            disabled={isSending || !message.trim()}
-            className={cn(
-              "bg-gradient-to-r from-fixlyfy to-fixlyfy-light hover:from-fixlyfy-light hover:to-fixlyfy text-white transition-all duration-200 shadow-sm hover:shadow-md flex-shrink-0",
-              isMobile ? "min-h-[44px] min-w-[44px] px-3" : "px-6 py-3"
-            )}
-          >
-            {isSending ? (
-              <div className="flex items-center gap-2">
-                <Loader2 className="w-4 h-4 animate-spin" />
-                {!isMobile && "Sending..."}
-              </div>
-            ) : (
-              <div className="flex items-center gap-2">
-                <Send className="h-4 w-4" />
-                {!isMobile && "Send"}
-              </div>
-            )}
-          </Button>
+        <div className="space-y-2">
+          <Label htmlFor="email-subject">Subject</Label>
+          <Input
+            id="email-subject"
+            value={subject}
+            onChange={(e) => setSubject(e.target.value)}
+            placeholder="Enter email subject"
+          />
         </div>
 
-        {/* Helper Text */}
-        <p className={`${isMobile ? 'text-xs' : 'text-sm'} text-fixlyfy-text-muted`}>
-          {isMobile ? 'Tap' : 'Press'} {isMobile ? 'send' : 'Ctrl+Enter'} to send email
-        </p>
-      </div>
-    </div>
+        <div className="space-y-2">
+          <Label htmlFor="email-content">Message</Label>
+          <Textarea
+            id="email-content"
+            value={content}
+            onChange={(e) => setContent(e.target.value)}
+            placeholder="Type your email message here..."
+            rows={8}
+            className="min-h-[200px] resize-none"
+          />
+        </div>
+
+        <Button
+          onClick={handleSend}
+          disabled={!to || !subject || !content || isSending}
+          className="w-full"
+        >
+          {isSending ? (
+            <>
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              Sending...
+            </>
+          ) : (
+            <>
+              <Send className="h-4 w-4 mr-2" />
+              Send Email
+            </>
+          )}
+        </Button>
+      </CardContent>
+    </Card>
   );
 };
-
