@@ -398,8 +398,8 @@ export const ModernJobInvoicesTab = ({ jobId }: ModernJobInvoicesTabProps) => {
 
           {/* Unified Document Viewer for Invoices */}
           <UnifiedDocumentViewer
-            open={showPreviewWindow}
-            onOpenChange={handleViewerClosed}
+            isOpen={showPreviewWindow}
+            onClose={handleViewerClosed}
             document={selectedInvoice}
             documentType="invoice"
             jobId={jobId}

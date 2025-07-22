@@ -52,15 +52,22 @@ const ModernCardHeader = React.forwardRef<
 ));
 ModernCardHeader.displayName = "ModernCardHeader";
 
+interface ModernCardTitleProps extends React.HTMLAttributes<HTMLHeadingElement> {
+  icon?: React.ComponentType<any>;
+}
+
 const ModernCardTitle = React.forwardRef<
-  HTMLParagraphElement,
-  React.HTMLAttributes<HTMLHeadingElement>
->(({ className, ...props }, ref) => (
+  HTMLHeadingElement,
+  ModernCardTitleProps
+>(({ className, icon: Icon, children, ...props }, ref) => (
   <h3
     ref={ref}
-    className={cn("text-2xl font-semibold leading-none tracking-tight", className)}
+    className={cn("text-2xl font-semibold leading-none tracking-tight flex items-center gap-2", className)}
     {...props}
-  />
+  >
+    {Icon && <Icon className="h-5 w-5" />}
+    {children}
+  </h3>
 ));
 ModernCardTitle.displayName = "ModernCardTitle";
 

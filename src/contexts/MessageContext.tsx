@@ -40,7 +40,7 @@ interface MessageContextType {
   emailMessages: EmailMessage[];
   isLoading: boolean;
   isSending: boolean;
-  openMessageDialog: () => void;
+  openMessageDialog: (client?: { name: string; phone?: string; id: string; email?: string; }) => void;
   fetchConversations: () => Promise<void>;
   refreshMessages: () => void;
   sendEmail: (to: string, subject: string, content: string, clientId?: string) => Promise<boolean>;
@@ -172,7 +172,7 @@ export const MessageProvider: React.FC<{ children: ReactNode }> = ({ children })
     console.log('Marking conversation as read:', conversationId);
   }, []);
 
-  const openMessageDialog = useCallback(() => {
+  const openMessageDialog = useCallback((client?: { name: string; phone?: string; id: string; email?: string; }) => {
     setDialogOpen(true);
   }, []);
 

@@ -1,4 +1,3 @@
-
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { MessageSquare, Bot, Sparkles } from "lucide-react";
@@ -92,7 +91,7 @@ export const JobMessages = ({ jobId }: JobMessagesProps) => {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={handleSuggestResponse}
+                onClick={() => handleSuggestResponse()}
                 disabled={isAILoading || isLoading || messages.length === 0}
                 className="gap-2 text-purple-600 border-purple-200 hover:bg-purple-50"
               >

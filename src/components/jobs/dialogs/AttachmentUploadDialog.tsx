@@ -19,6 +19,7 @@ interface AttachmentUploadDialogProps {
   onOpenChange: (open: boolean) => void;
   jobId: string;
   onUploadSuccess?: () => void;
+  onUploadComplete?: () => void;
 }
 
 export function AttachmentUploadDialog({
@@ -26,6 +27,7 @@ export function AttachmentUploadDialog({
   onOpenChange,
   jobId,
   onUploadSuccess,
+  onUploadComplete,
 }: AttachmentUploadDialogProps) {
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -76,6 +78,11 @@ export function AttachmentUploadDialog({
       if (onUploadSuccess) {
         console.log("Calling onUploadSuccess callback");
         onUploadSuccess();
+      }
+      
+      // Also call onUploadComplete for backward compatibility
+      if (onUploadComplete) {
+        onUploadComplete();
       }
       
       // Add a small delay to ensure the upload is processed

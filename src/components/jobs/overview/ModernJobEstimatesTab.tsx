@@ -334,8 +334,8 @@ export const ModernJobEstimatesTab = ({
 
       {previewEstimate && (
         <UnifiedDocumentViewer
-          open={showPreview}
-          onOpenChange={handlePreviewClose}
+          isOpen={showPreview}
+          onClose={handlePreviewClose}
           document={previewEstimate}
           documentType="estimate"
           jobId={jobId}

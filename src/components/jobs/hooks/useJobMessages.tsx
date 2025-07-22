@@ -1,4 +1,3 @@
-
 import { useMessageContext } from "@/contexts/MessageContext";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";

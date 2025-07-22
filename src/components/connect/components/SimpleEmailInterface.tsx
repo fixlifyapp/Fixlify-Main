@@ -47,7 +47,7 @@ export function SimpleEmailInterface() {
       try {
         // Example query (adjust to your table and columns)
         const { data, error } = await supabase
-          .from('emails')
+          .from('email_conversations' as any)
           .select('*')
           .eq('user_id', user?.id)
           .order('created_at', { ascending: false });
