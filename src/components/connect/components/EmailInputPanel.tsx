@@ -1,88 +1,116 @@
-
 import { useState } from "react";
-import { useAuth } from "@/hooks/useAuth";
-import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/hooks/use-auth";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Send, Loader2 } from "lucide-react";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
+import { Badge } from "@/components/ui/badge";
+import { Paperclip, Send, X, Plus } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
-export interface EmailInputPanelProps {
-  clientEmail: string;
-  clientName: string;
-  onEmailSent: () => void;
+interface EmailInputPanelProps {
+  onSend: (message: string) => void;
+  onCancel: () => void;
+  jobId?: string;
+  clientId?: string;
 }
 
-export const EmailInputPanel = ({ clientEmail, clientName, onEmailSent }: EmailInputPanelProps) => {
-  const { user } = useAuth();
+export const EmailInputPanel: React.FC<EmailInputPanelProps> = ({ onSend, onCancel, jobId, clientId }) => {
   const [subject, setSubject] = useState("");
-  const [content, setContent] = useState("");
-  const [isSending, setIsSending] = useState(false);
+  const [message, setMessage] = useState("");
+  const { user } = useAuth();
 
-  const handleSendEmail = async () => {
-    if (!user || !subject.trim() || !content.trim()) {
-      toast.error("Please fill in all fields");
+  const handleSend = async () => {
+    if (!message.trim()) {
+      toast.error("Message cannot be empty.");
+      return;
+    }
+
+    if (!user?.id || !clientId) {
+      toast.error("User or Client ID not found.");
       return;
     }
 
     try {
-      setIsSending(true);
+      const { data, error } = await supabase
+        .from('communication_logs')
+        .insert([
+          {
+            user_id: user.id,
+            client_id: clientId,
+            job_id: jobId || null,
+            type: 'email',
+            direction: 'outgoing',
+            subject: subject,
+            content: message,
+            status: 'pending',
+            from_address: user.email || '',
+            to_address: '', // To be updated with actual recipient
+          }
+        ])
+        .select()
 
-      // Call the send-email edge function
-      const { data, error } = await supabase.functions.invoke('send-email', {
-        body: {
-          to: clientEmail,
-          subject: subject,
-          content: content,
-          clientName: clientName
-        }
-      });
-
-      if (error) throw error;
-
-      toast.success("Email sent successfully!");
-      setSubject("");
-      setContent("");
-      onEmailSent();
+      if (error) {
+        console.error("Error sending email:", error);
+        toast.error("Failed to send email.");
+      } else {
+        console.log("Email saved to communication logs:", data);
+        toast.success("Email saved.");
+        onSend(message);
+      }
     } catch (error) {
-      console.error('Error sending email:', error);
-      toast.error("Failed to send email");
-    } finally {
-      setIsSending(false);
+      console.error("Unexpected error sending email:", error);
+      toast.error("Unexpected error occurred.");
     }
   };
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center gap-2">
-        <span className="text-sm font-medium">To:</span>
-        <span className="text-sm text-muted-foreground">{clientEmail} ({clientName})</span>
-      </div>
-
-      <Input
-        placeholder="Subject"
-        value={subject}
-        onChange={(e) => setSubject(e.target.value)}
-      />
-
-      <Textarea
-        placeholder="Write your email message..."
-        value={content}
-        onChange={(e) => setContent(e.target.value)}
-        rows={4}
-      />
-
-      <div className="flex justify-end">
-        <Button onClick={handleSendEmail} disabled={isSending}>
-          {isSending ? (
-            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-          ) : (
-            <Send className="h-4 w-4 mr-2" />
-          )}
-          Send Email
-        </Button>
-      </div>
-    </div>
+    <Card className="w-full">
+      <CardHeader>
+        <CardTitle>Compose Email</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div>
+          <Label htmlFor="subject">Subject</Label>
+          <Input
+            id="subject"
+            placeholder="Subject"
+            value={subject}
+            onChange={(e) => setSubject(e.target.value)}
+          />
+        </div>
+        <div>
+          <Label htmlFor="message">Message</Label>
+          <Textarea
+            id="message"
+            placeholder="Enter your message here"
+            value={message}
+            onChange={(e) => setMessage(e.target.value)}
+            className="min-h-[100px]"
+          />
+        </div>
+        <div className="flex items-center space-x-2">
+          <Button variant="outline" size="sm">
+            <Paperclip className="h-4 w-4 mr-2" />
+            Attach File
+          </Button>
+          <Badge variant="secondary">No files attached</Badge>
+        </div>
+        <Separator />
+        <div className="flex justify-end space-x-2">
+          <Button variant="ghost" onClick={onCancel}>
+            <X className="h-4 w-4 mr-2" />
+            Cancel
+          </Button>
+          <Button onClick={handleSend}>
+            Send
+            <Send className="h-4 w-4 ml-2" />
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
   );
 };
