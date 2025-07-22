@@ -6,6 +6,7 @@ export interface LineItem {
   description?: string;
   quantity: number;
   unit_price: number;
+  unitPrice?: number; // For backward compatibility
   taxable: boolean;
   total: number;
 }
@@ -15,11 +16,14 @@ export interface Estimate {
   job_id: string;
   client_id?: string;
   estimate_number: string;
+  number?: string; // For backward compatibility
   total: number;
   status: 'draft' | 'sent' | 'approved' | 'rejected' | 'expired';
   items: LineItem[];
   upsells?: LineItem[];
   notes?: string;
+  valid_until?: string;
+  tax_rate?: number;
   created_at: string;
   updated_at: string;
   created_by: string;
@@ -37,6 +41,11 @@ export interface Invoice {
   paid_at?: string;
   items: LineItem[];
   notes?: string;
+  payment_status?: 'paid' | 'unpaid' | 'partial';
+  amount_paid?: number;
+  issue_date?: string;
+  due_date?: string;
+  tax_rate?: number;
   created_at: string;
   updated_at: string;
   created_by: string;

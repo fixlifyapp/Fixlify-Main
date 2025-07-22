@@ -11,7 +11,7 @@ export interface Client {
   zip: string;
   state: string;
   type: string;
-  status: 'active' | 'inactive';
+  status: string; // Allow any string to match database
   notes?: string;
   tags?: string[];
   created_at?: string;

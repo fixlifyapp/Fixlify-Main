@@ -37,21 +37,21 @@ export const EmailInputPanel: React.FC<EmailInputPanelProps> = ({ onSend, onCanc
     try {
       const { data, error } = await supabase
         .from('communication_logs')
-        .insert([
-          {
-            user_id: user.id,
-            client_id: clientId,
-            job_id: jobId || null,
-            type: 'email',
-            direction: 'outgoing',
-            subject: subject,
-            content: message,
-            status: 'pending',
-            from_address: user.email || '',
-            to_address: '', // To be updated with actual recipient
-          }
-        ])
-        .select()
+        .insert({
+          user_id: user.id,
+          client_id: clientId || '',
+          job_id: jobId || '',
+          type: 'email',
+          direction: 'outgoing',
+          subject: subject,
+          content: message,
+          status: 'pending',
+          from_address: user.email || '',
+          to_address: '', // To be updated with actual recipient
+          provider: 'system',
+          recipient: ''
+        })
+        .select();
 
       if (error) {
         console.error("Error sending email:", error);

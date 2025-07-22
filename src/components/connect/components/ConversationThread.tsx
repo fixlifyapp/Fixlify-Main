@@ -17,6 +17,8 @@ interface Message {
 interface ConversationThreadProps {
   messages: Message[];
   clientName: string;
+  client?: any;
+  onArchive?: () => Promise<void>;
 }
 
 export const ConversationThread = ({ messages, clientName }: ConversationThreadProps) => {
