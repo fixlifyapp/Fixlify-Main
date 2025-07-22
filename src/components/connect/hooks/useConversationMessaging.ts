@@ -1,107 +1,86 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useMessageContext } from "@/contexts/MessageContext";
-import { sendClientMessage } from "@/components/jobs/hooks/messaging/messagingUtils";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
-interface UseConversationMessagingProps {
-  conversationId: string;
-  clientPhone?: string;
-  clientId?: string;
+interface Message {
+  id: string;
+  content: string;
+  timestamp: string;
+  type: 'sms' | 'email';
+  direction: 'inbound' | 'outbound';
+  status: 'sent' | 'delivered' | 'failed';
 }
 
-interface ConversationMessagingReturn {
-  messageText: string;
-  setMessageText: (text: string) => void;
-  handleSendMessage: () => Promise<void>;
-  handleKeyDown: (e: React.KeyboardEvent) => void;
-  isSending: boolean;
-}
+export const useConversationMessaging = (clientId?: string) => {
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const { sendMessage } = useMessageContext();
 
-export const useConversationMessaging = ({ 
-  conversationId, 
-  clientPhone,
-  clientId 
-}: UseConversationMessagingProps): ConversationMessagingReturn => {
-  const [messageText, setMessageText] = useState("");
-  const [isSending, setIsSending] = useState(false);
-  const { refreshConversations } = useMessageContext();
+  useEffect(() => {
+    if (clientId) {
+      fetchMessages();
+    }
+  }, [clientId]);
 
-  const handleSendMessage = async (): Promise<void> => {
-    console.log("handleSendMessage called", { 
-      messageText: messageText.substring(0, 50) + "...", 
-      isSending, 
-      clientPhone, 
-      clientId,
-      conversationId 
-    });
+  const fetchMessages = async () => {
+    if (!clientId) return;
     
-    if (!messageText.trim() || isSending) {
-      console.log("Message validation failed", { 
-        hasMessage: !!messageText.trim(), 
-        isSending 
-      });
-      return;
-    }
-
-    if (!clientPhone) {
-      console.error("No client phone available");
-      toast.error("No phone number available for this client");
-      return;
-    }
-
-    if (!clientId) {
-      console.error("No client ID available");
-      toast.error("Client information is missing");
-      return;
-    }
-
-    setIsSending(true);
-    console.log("Starting message send process...");
-
     try {
-      const result = await sendClientMessage({
-        content: messageText.trim(),
-        clientPhone,
-        jobId: "", // No job context in connect center
-        clientId,
-        existingConversationId: conversationId || null
-      });
+      setIsLoading(true);
+      
+      const { data: logs, error } = await supabase
+        .from('communication_logs')
+        .select('*')
+        .eq('client_id', clientId)
+        .order('created_at', { ascending: false })
+        .limit(50);
 
-      console.log("sendClientMessage result:", result);
+      if (error) throw error;
 
-      if (result.success) {
-        setMessageText("");
-        toast.success("Message sent successfully");
-        
-        console.log("Refreshing conversations...");
-        await refreshConversations();
-      } else {
-        console.error("Message sending failed:", result.error);
-        toast.error(`Failed to send message: ${result.error || 'Unknown error'}`);
-      }
+      const formattedMessages: Message[] = logs?.map(log => ({
+        id: log.id,
+        content: log.content || log.subject || 'No content',
+        timestamp: log.created_at,
+        type: log.communication_type as 'sms' | 'email',
+        direction: 'outbound', // Assuming all logged messages are outbound for now
+        status: log.status as 'sent' | 'delivered' | 'failed'
+      })) || [];
+
+      setMessages(formattedMessages);
     } catch (error) {
-      console.error("Error sending message:", error);
-      toast.error("Failed to send message. Please try again.");
+      console.error('Error fetching messages:', error);
+      toast.error('Failed to load messages');
     } finally {
-      setIsSending(false);
-      console.log("Message send process completed");
+      setIsLoading(false);
     }
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent): void => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      console.log("Enter key pressed, sending message...");
-      handleSendMessage();
+  const sendNewMessage = async (type: 'sms' | 'email', to: string, content: string, subject?: string) => {
+    try {
+      await sendMessage({
+        type,
+        to,
+        content,
+        subject,
+        clientId
+      });
+      
+      // Refresh messages after sending
+      await fetchMessages();
+      toast.success(`${type.toUpperCase()} sent successfully`);
+    } catch (error) {
+      console.error('Error sending message:', error);
+      toast.error('Failed to send message');
+      throw error;
     }
   };
 
   return {
-    messageText,
-    setMessageText,
-    handleSendMessage,
-    handleKeyDown,
-    isSending
+    messages,
+    isLoading,
+    sendNewMessage,
+    refreshMessages: fetchMessages
   };
 };

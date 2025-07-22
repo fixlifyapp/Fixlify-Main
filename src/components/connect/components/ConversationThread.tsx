@@ -1,91 +1,165 @@
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { CallButton } from "@/components/calling/CallButton";
-import { MessageSquare, Phone, User } from "lucide-react";
-import { format } from "date-fns";
-import { Badge } from "@/components/ui/badge";
-import { useMessageContext } from "@/contexts/MessageContext";
 
-interface ConversationThreadProps {
-  conversation: {
-    id: string;
-    client_name: string;
-    client_phone: string;
-    last_message: string;
-    last_message_time: string;
-    unread_count: number;
-    client_id?: string;
-  };
+import { useState, useEffect } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { MessageSquare, Phone, Mail, Archive } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { ConnectMessageDialog } from "./ConnectMessageDialog";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+
+interface Message {
+  id: string;
+  content: string;
+  timestamp: string;
+  type: 'sms' | 'email';
+  direction: 'inbound' | 'outbound';
+  status: 'sent' | 'delivered' | 'failed';
 }
 
-export const ConversationThread = ({ conversation }: ConversationThreadProps) => {
-  const { openMessageDialog } = useMessageContext();
+interface ConversationThreadProps {
+  client: {
+    id: string;
+    name: string;
+    phone?: string;
+    email?: string;
+  };
+  onArchive?: () => void;
+}
 
-  const formatTime = (dateString: string) => {
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffInHours = (now.getTime() - date.getTime()) / (1000 * 60 * 60);
-    
-    if (diffInHours < 24) {
-      return format(date, 'h:mm a');
+export const ConversationThread = ({ client, onArchive }: ConversationThreadProps) => {
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [showMessageDialog, setShowMessageDialog] = useState(false);
+
+  useEffect(() => {
+    fetchMessages();
+  }, [client.id]);
+
+  const fetchMessages = async () => {
+    try {
+      setIsLoading(true);
+      
+      const { data: logs, error } = await supabase
+        .from('communication_logs')
+        .select('*')
+        .eq('client_id', client.id)
+        .order('created_at', { ascending: false })
+        .limit(50);
+
+      if (error) throw error;
+
+      const formattedMessages: Message[] = logs?.map(log => ({
+        id: log.id,
+        content: log.content || log.subject || 'No content',
+        timestamp: log.created_at,
+        type: log.communication_type as 'sms' | 'email',
+        direction: 'outbound', // Assuming all logged messages are outbound for now
+        status: log.status as 'sent' | 'delivered' | 'failed'
+      })) || [];
+
+      setMessages(formattedMessages);
+    } catch (error) {
+      console.error('Error fetching messages:', error);
+      toast.error('Failed to load messages');
+    } finally {
+      setIsLoading(false);
     }
-    return format(date, 'MMM d');
   };
 
-  const handleMessageClick = () => {
-    openMessageDialog({
-      id: conversation.client_id || "",
-      name: conversation.client_name,
-      phone: conversation.client_phone
-    });
+  const getTypeIcon = (type: string) => {
+    return type === 'sms' ? <Phone className="h-4 w-4" /> : <Mail className="h-4 w-4" />;
   };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'sent': return 'bg-blue-100 text-blue-700';
+      case 'delivered': return 'bg-green-100 text-green-700';
+      case 'failed': return 'bg-red-100 text-red-700';
+      default: return 'bg-gray-100 text-gray-700';
+    }
+  };
+
+  if (isLoading) {
+    return <div className="flex justify-center p-8">Loading conversation...</div>;
+  }
 
   return (
-    <Card className="hover:shadow-md transition-shadow cursor-pointer">
-      <CardContent className="p-4">
-        <div className="flex items-start justify-between">
-          <div className="flex-1 min-w-0" onClick={handleMessageClick}>
-            <div className="flex items-center gap-2 mb-1">
-              <User className="h-4 w-4 text-gray-400" />
-              <h4 className="font-medium truncate">{conversation.client_name}</h4>
-              {conversation.unread_count > 0 && (
-                <Badge variant="default" className="ml-auto">
-                  {conversation.unread_count}
-                </Badge>
+    <>
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center gap-2">
+              <MessageSquare className="h-5 w-5" />
+              Conversation with {client.name}
+            </CardTitle>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowMessageDialog(true)}
+                className="flex items-center gap-2"
+              >
+                <MessageSquare className="h-4 w-4" />
+                Send Message
+              </Button>
+              {onArchive && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={onArchive}
+                  className="flex items-center gap-2"
+                >
+                  <Archive className="h-4 w-4" />
+                  Archive
+                </Button>
               )}
             </div>
-            
-            <p className="text-sm text-gray-600 mb-2">{conversation.client_phone}</p>
-            
-            <p className="text-sm text-gray-500 truncate">{conversation.last_message}</p>
-            
-            <p className="text-xs text-gray-400 mt-2">
-              {formatTime(conversation.last_message_time)}
-            </p>
           </div>
-          
-          <div className="flex flex-col gap-2 ml-4">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleMessageClick}
-              className="gap-1"
-            >
-              <MessageSquare className="h-3 w-3" />
-              Message
-            </Button>
-            
-            <CallButton
-              phoneNumber={conversation.client_phone}
-              clientId={conversation.client_id}
-              clientName={conversation.client_name}
-              variant="outline"
-              size="sm"
-              showText={true}
-            />
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4 max-h-96 overflow-y-auto">
+            {messages.length === 0 ? (
+              <div className="text-center py-8 text-gray-500">
+                No messages in this conversation
+              </div>
+            ) : (
+              messages.map((message) => (
+                <div
+                  key={message.id}
+                  className={`p-3 rounded-lg ${
+                    message.direction === 'outbound' 
+                      ? 'bg-blue-50 border-l-4 border-blue-500 ml-8' 
+                      : 'bg-gray-50 border-l-4 border-gray-300 mr-8'
+                  }`}
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      {getTypeIcon(message.type)}
+                      <span className="text-sm font-medium">
+                        {message.direction === 'outbound' ? 'You' : client.name}
+                      </span>
+                      <Badge className={`text-xs ${getStatusColor(message.status)}`}>
+                        {message.status}
+                      </Badge>
+                    </div>
+                    <span className="text-xs text-gray-500">
+                      {new Date(message.timestamp).toLocaleString()}
+                    </span>
+                  </div>
+                  <p className="text-sm text-gray-700">{message.content}</p>
+                </div>
+              ))
+            )}
           </div>
-        </div>
-      </CardContent>
-    </Card>
+        </CardContent>
+      </Card>
+
+      <ConnectMessageDialog
+        isOpen={showMessageDialog}
+        onClose={() => setShowMessageDialog(false)}
+        client={client}
+      />
+    </>
   );
 };
