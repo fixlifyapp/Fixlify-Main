@@ -57,8 +57,10 @@ export const useUnifiedDocumentViewer = ({
           // Transform database items to the expected format
           const transformedItems: LineItem[] = items?.map(item => ({
             id: item.id,
+            name: item.description || '',
             description: item.description || '',
             quantity: item.quantity || 1,
+            unit_price: Number(item.unit_price) || 0,
             unitPrice: Number(item.unit_price) || 0,
             taxable: item.taxable !== false,
             total: (item.quantity || 1) * (Number(item.unit_price) || 0),
@@ -84,11 +86,13 @@ export const useUnifiedDocumentViewer = ({
       const fallbackItems = Array.isArray(document.items) ? document.items : [];
       setLineItems(fallbackItems.map(item => ({
         id: item.id || `fallback-${Math.random()}`,
-        description: item.description || '',
+        name: item.description || item.name || '',
+        description: item.description || item.name || '',
         quantity: item.quantity || 1,
-        unitPrice: item.unitPrice || 0,
+        unit_price: item.unitPrice || item.unit_price || 0,
+        unitPrice: item.unitPrice || item.unit_price || 0,
         taxable: item.taxable !== false,
-        total: (item.quantity || 1) * (item.unitPrice || 0),
+        total: (item.quantity || 1) * (item.unitPrice || item.unit_price || 0),
         discount: item.discount || 0
       })));
     }

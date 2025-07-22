@@ -2,10 +2,10 @@
 // Document types for estimates and invoices
 export interface LineItem {
   id: string;
-  name: string;
+  name?: string;
   description?: string;
   quantity: number;
-  unit_price: number;
+  unit_price?: number;
   unitPrice?: number; // For backward compatibility
   taxable: boolean;
   total: number;

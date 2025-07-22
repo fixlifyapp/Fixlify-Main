@@ -36,7 +36,7 @@ export const useEstimateData = (estimateId?: string): EstimateDataHook => {
         subtotal: 0,
         tax_rate: 0,
         tax_amount: 0,
-        discount_amount: 0,
+        // discount_amount: 0, // Remove this line - not in Estimate interface
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       };

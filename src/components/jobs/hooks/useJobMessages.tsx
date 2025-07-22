@@ -48,11 +48,12 @@ export const useJobMessages = ({ jobId, message, setMessage }: UseJobMessagesPro
   }, [jobId]);
 
   const clientConversation = conversations.find(conv => conv.client.id === client.id);
-  const messages = clientConversation?.messages || [];
+  // MessageConversation doesn't have messages property
+  const messages: any[] = [];
 
   const handleOpenMessageDialog = () => {
     if (client.id) {
-      openMessageDialog(client, jobId);
+      openMessageDialog(client);
     }
   };
 

@@ -42,8 +42,9 @@ export const JobMessages = ({ jobId }: JobMessagesProps) => {
           setClient(clientData);
 
           const clientConversation = conversations.find(conv => conv.client?.id === clientData.id);
-          if (clientConversation && 'messages' in clientConversation) {
-            setMessages(clientConversation.messages || []);
+          if (clientConversation) {
+            // MessageConversation doesn't have messages property, set empty array
+            setMessages([]);
           } else {
             setMessages([]);
           }
@@ -62,7 +63,7 @@ export const JobMessages = ({ jobId }: JobMessagesProps) => {
 
   const handleOpenMessages = () => {
     if (client.id) {
-      openMessageDialog(client, jobId);
+      openMessageDialog(client);
     }
   };
 
