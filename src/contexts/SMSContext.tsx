@@ -286,27 +286,32 @@ export const SMSProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     // Initial fetch
     fetchConversations();
 
-    // Subscribe to SMS conversations changes
-    const conversationsChannel = supabase
-      .channel('sms-conversations')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'sms_conversations',
-          filter: `user_id=eq.${user.id}`
-        },
-        (payload) => {
-          console.log('SMS conversation updated:', payload);
-          fetchConversations();
-        }
-      )
-      .subscribe();
+    try {
+      // Subscribe to SMS conversations changes
+      const conversationsChannel = supabase
+        .channel('sms-conversations')
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'sms_conversations',
+            filter: `user_id=eq.${user.id}`
+          },
+          (payload) => {
+            console.log('SMS conversation updated:', payload);
+            fetchConversations();
+          }
+        )
+        .subscribe();
 
-    return () => {
-      supabase.removeChannel(conversationsChannel);
-    };
+      return () => {
+        supabase.removeChannel(conversationsChannel);
+      };
+    } catch (error) {
+      console.error('Error setting up SMS conversations subscription:', error);
+      // Continue without real-time updates
+    }
   }, [user?.id, fetchConversations]);
 
   // Set up realtime subscription for messages when viewing a conversation
@@ -316,32 +321,37 @@ export const SMSProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     // Initial fetch
     fetchMessages(activeConversation.id);
 
-    // Subscribe to SMS messages changes for this conversation
-    const messagesChannel = supabase
-      .channel(`sms-messages-${activeConversation.id}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'sms_messages',
-          filter: `conversation_id=eq.${activeConversation.id}`
-        },
-        (payload) => {
-          console.log('SMS message updated:', payload);
-          fetchMessages(activeConversation.id);
-          
-          // If it's a new inbound message, mark conversation as having unread messages
-          if (payload.eventType === 'INSERT' && payload.new.direction === 'inbound') {
-            fetchConversations();
+    try {
+      // Subscribe to SMS messages changes for this conversation
+      const messagesChannel = supabase
+        .channel(`sms-messages-${activeConversation.id}`)
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'sms_messages',
+            filter: `conversation_id=eq.${activeConversation.id}`
+          },
+          (payload) => {
+            console.log('SMS message updated:', payload);
+            fetchMessages(activeConversation.id);
+            
+            // If it's a new inbound message, mark conversation as having unread messages
+            if (payload.eventType === 'INSERT' && payload.new.direction === 'inbound') {
+              fetchConversations();
+            }
           }
-        }
-      )
-      .subscribe();
+        )
+        .subscribe();
 
-    return () => {
-      supabase.removeChannel(messagesChannel);
-    };
+      return () => {
+        supabase.removeChannel(messagesChannel);
+      };
+    } catch (error) {
+      console.error('Error setting up SMS messages subscription:', error);
+      // Continue without real-time updates
+    }
   }, [activeConversation?.id, fetchMessages, fetchConversations]);
 
   // Auto-scroll behavior when new messages arrive
