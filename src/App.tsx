@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -10,47 +10,63 @@ import { setupAuthErrorHandler } from "@/utils/auth-fix";
 import { suppressSMSErrors } from "@/utils/suppressSMSErrors";
 import authMonitor from "@/utils/auth-monitor.js?raw";
 
-// Pages
+// Loading component
+const PageLoader = () => (
+  <div className="flex items-center justify-center min-h-screen">
+    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+  </div>
+);
+
+// Critical pages (loaded immediately)
 import AuthPage from "@/pages/AuthPage";
 import Dashboard from "@/pages/Dashboard";
-import TestDashboard from "@/pages/TestDashboard";
-import TestPage from "@/pages/TestPage";
-import JobsPageOptimized from "@/pages/JobsPageOptimized";
-import JobDetailsPage from "@/pages/JobDetailsPage";
-import ClientsPage from "@/pages/ClientsPage";
-import ClientDetailPage from "@/pages/ClientDetailPage";
-import SchedulePage from "@/pages/SchedulePage";
-import FinancePage from "@/pages/FinancePage";
-import ConnectCenterPageOptimized from "@/pages/ConnectCenterPageOptimized";
-import AiCenterPage from "@/pages/AiCenterPage";
-import AutomationsPage from "@/pages/AutomationsPage";
-import AnalyticsPage from "@/pages/AnalyticsPage";
-import TeamManagementPage from "@/pages/TeamManagementPage";
-import TasksPage from "@/pages/TasksPage";
-import SettingsPage from "@/pages/SettingsPage";
-import ProfileCompanyPage from "@/pages/ProfileCompanyPage";
-import ConfigurationPage from "@/pages/ConfigurationPage";
-import ProductsPage from "@/pages/ProductsPage";
-import IntegrationsPage from "@/pages/IntegrationsPage";
-import PhoneNumbersPage from "@/pages/PhoneNumbersPage";
-import PhoneNumbersSettingsPage from "@/pages/settings/PhoneNumbersSettingsPage";
-import PhoneManagementPage from "@/pages/PhoneManagementPage";
-import EstimatesPage from "@/pages/EstimatesPage";
-import InvoicesPage from "@/pages/InvoicesPage";
-import ReportsPage from "@/pages/ReportsPage";
-import DocumentsPage from "@/pages/DocumentsPage";
-import InventoryPage from "@/pages/InventoryPage";
-import AdminRolesPage from "@/pages/AdminRolesPage";
-import TeamMemberProfilePage from "@/pages/TeamMemberProfilePage";
-import AcceptInvitationPage from "@/pages/AcceptInvitationPage";
-import ClientPortal from "@/pages/ClientPortal";
-import TestPortalAccessPage from "@/pages/TestPortalAccessPage";
-import EstimatePortal from "@/pages/EstimatePortal";
-import InvoicePortal from "@/pages/InvoicePortal";
+
+// Lazy load all other pages
+const TestDashboard = lazy(() => import("@/pages/TestDashboard"));
+const TestPage = lazy(() => import("@/pages/TestPage"));
+const JobsPageOptimized = lazy(() => import("@/pages/JobsPageOptimized"));
+const JobDetailsPage = lazy(() => import("@/pages/JobDetailsPage"));
+const ClientsPage = lazy(() => import("@/pages/ClientsPage"));
+const ClientDetailPage = lazy(() => import("@/pages/ClientDetailPage"));
+const SchedulePage = lazy(() => import("@/pages/SchedulePage"));
+const FinancePage = lazy(() => import("@/pages/FinancePage"));
+const ConnectCenterPageOptimized = lazy(() => import("@/pages/ConnectCenterPageOptimized"));
+const AiCenterPage = lazy(() => import("@/pages/AiCenterPage"));
+const AutomationsPage = lazy(() => import("@/pages/AutomationsPage"));
+const AnalyticsPage = lazy(() => import("@/pages/AnalyticsPage"));
+const TeamManagementPage = lazy(() => import("@/pages/TeamManagementPage"));
+const TasksPage = lazy(() => import("@/pages/TasksPage"));
+const SettingsPage = lazy(() => import("@/pages/SettingsPage"));
+const ProfileCompanyPage = lazy(() => import("@/pages/ProfileCompanyPage"));
+const ConfigurationPage = lazy(() => import("@/pages/ConfigurationPage"));
+const ProductsPage = lazy(() => import("@/pages/ProductsPage"));
+const IntegrationsPage = lazy(() => import("@/pages/IntegrationsPage"));
+const PhoneNumbersPage = lazy(() => import("@/pages/PhoneNumbersPage"));
+const PhoneNumbersSettingsPage = lazy(() => import("@/pages/settings/PhoneNumbersSettingsPage"));
+const PhoneManagementPage = lazy(() => import("@/pages/PhoneManagementPage"));
+const EstimatesPage = lazy(() => import("@/pages/EstimatesPage"));
+const InvoicesPage = lazy(() => import("@/pages/InvoicesPage"));
+const ReportsPage = lazy(() => import("@/pages/ReportsPage"));
+const DocumentsPage = lazy(() => import("@/pages/DocumentsPage"));
+const InventoryPage = lazy(() => import("@/pages/InventoryPage"));
+const AdminRolesPage = lazy(() => import("@/pages/AdminRolesPage"));
+const TeamMemberProfilePage = lazy(() => import("@/pages/TeamMemberProfilePage"));
+const AcceptInvitationPage = lazy(() => import("@/pages/AcceptInvitationPage"));
+const ClientPortal = lazy(() => import("@/pages/ClientPortal"));
+const TestPortalAccessPage = lazy(() => import("@/pages/TestPortalAccessPage"));
+const EstimatePortal = lazy(() => import("@/pages/EstimatePortal"));
+const InvoicePortal = lazy(() => import("@/pages/InvoicePortal"));
 
 import EdgeFunctionsPage from "@/pages/EdgeFunctionsPage";
 import SMSTestPage from "@/pages/SMSTestPage"
 import EmailTestPage from "@/pages/EmailTestPage";
+
+// Helper component for lazy loaded routes
+const LazyRoute = ({ children }: { children: React.ReactNode }) => (
+  <Suspense fallback={<PageLoader />}>
+    {children}
+  </Suspense>
+);
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -186,7 +202,9 @@ function App() {
             <Route path="/jobs" element={
               <AuthProvider>
                 <ProtectedRouteWithProviders>
-                  <JobsPageOptimized />
+                  <LazyRoute>
+                    <JobsPageOptimized />
+                  </LazyRoute>
                 </ProtectedRouteWithProviders>
               </AuthProvider>
             } />
@@ -194,7 +212,9 @@ function App() {
             <Route path="/jobs/:jobId" element={
               <AuthProvider>
                 <ProtectedRouteWithProviders>
-                  <JobDetailsPage />
+                  <LazyRoute>
+                    <JobDetailsPage />
+                  </LazyRoute>
                 </ProtectedRouteWithProviders>
               </AuthProvider>
             } />
