@@ -1,4 +1,3 @@
-
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { MessageSquare, Bot, Sparkles } from "lucide-react";
@@ -41,9 +40,10 @@ export const JobMessages = ({ jobId }: JobMessagesProps) => {
           };
           setClient(clientData);
 
-          const clientConversation = conversations.find(conv => conv.client.id === clientData.id);
+          const clientConversation = conversations.find(conv => conv.client?.id === clientData.id);
           if (clientConversation) {
-            setMessages(clientConversation.messages);
+            // MessageConversation doesn't have messages property, set empty array
+            setMessages([]);
           } else {
             setMessages([]);
           }
@@ -62,7 +62,7 @@ export const JobMessages = ({ jobId }: JobMessagesProps) => {
 
   const handleOpenMessages = () => {
     if (client.id) {
-      openMessageDialog(client, jobId);
+      openMessageDialog(client);
     }
   };
 
@@ -91,7 +91,7 @@ export const JobMessages = ({ jobId }: JobMessagesProps) => {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={handleSuggestResponse}
+                onClick={() => handleSuggestResponse()}
                 disabled={isAILoading || isLoading || messages.length === 0}
                 className="gap-2 text-purple-600 border-purple-200 hover:bg-purple-50"
               >

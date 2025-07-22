@@ -1,23 +1,21 @@
-import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Zap, Edit, MessageSquare, FileText } from 'lucide-react';
-import type { Job } from '@/types/job.types';
-import { JobStatus } from '@/types/job.types';
+
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { MessageSquare, Phone, Mail, FileText, DollarSign, Zap } from "lucide-react";
 
 interface QuickActionsCardProps {
-  job: Job;
-  onEdit?: () => void;
-  onStatusChange?: (status: JobStatus) => void;
-  onSendCommunication?: (type: 'email' | 'sms', recipient: any) => void;
+  jobId: string;
 }
 
-const QuickActionsCard: React.FC<QuickActionsCardProps> = ({ 
-  job, 
-  onEdit,
-  onStatusChange,
-  onSendCommunication 
-}) => {
+export const QuickActionsCard = ({ jobId }: QuickActionsCardProps) => {
+  const actions = [
+    { icon: MessageSquare, label: "Send Message", action: () => console.log('Send message') },
+    { icon: Phone, label: "Make Call", action: () => console.log('Make call') },
+    { icon: Mail, label: "Send Email", action: () => console.log('Send email') },
+    { icon: FileText, label: "Create Estimate", action: () => console.log('Create estimate') },
+    { icon: DollarSign, label: "Create Invoice", action: () => console.log('Create invoice') },
+  ];
+
   return (
     <Card>
       <CardHeader>
@@ -26,36 +24,21 @@ const QuickActionsCard: React.FC<QuickActionsCardProps> = ({
           Quick Actions
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-2">
-        <Button 
-          variant="outline" 
-          className="w-full justify-start"
-          onClick={onEdit}
-        >
-          <Edit className="h-4 w-4 mr-2" />
-          Edit Job
-        </Button>
-        
-        <Button 
-          variant="outline" 
-          className="w-full justify-start"
-          onClick={() => onSendCommunication?.('sms', job.customer)}
-        >
-          <MessageSquare className="h-4 w-4 mr-2" />
-          Send SMS
-        </Button>
-        
-        <Button 
-          variant="outline" 
-          className="w-full justify-start"
-          onClick={() => onSendCommunication?.('email', job.customer)}
-        >
-          <FileText className="h-4 w-4 mr-2" />
-          Send Email
-        </Button>
+      <CardContent>
+        <div className="grid grid-cols-1 gap-2">
+          {actions.map((action, index) => (
+            <Button
+              key={index}
+              variant="outline"
+              className="justify-start"
+              onClick={action.action}
+            >
+              <action.icon className="h-4 w-4 mr-2" />
+              {action.label}
+            </Button>
+          ))}
+        </div>
       </CardContent>
     </Card>
   );
 };
-
-export default QuickActionsCard;

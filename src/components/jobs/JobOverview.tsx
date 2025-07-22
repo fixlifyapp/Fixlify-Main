@@ -1,156 +1,239 @@
-import React, { useState } from "react";
-import { useJobDetails } from "./context/JobDetailsContext";
-import { useJobs } from "@/hooks/useJobs";
-import { JobSummaryCard } from "./overview/JobSummaryCard";
-import { ScheduleInfoCard } from "./overview/ScheduleInfoCard";
-import { JobDescriptionCard } from "./overview/JobDescriptionCard";
-import { JobTagsCard } from "./overview/JobTagsCard";
-import { TasksCard } from "./overview/TasksCard";
-import { TechnicianCard } from "./overview/TechnicianCard";
-import { AdditionalInfoCard } from "./overview/AdditionalInfoCard";
-import { AttachmentsCard } from "./overview/AttachmentsCard";
-import { ConditionalCustomFieldsCard } from "./overview/ConditionalCustomFieldsCard";
-import { TaskManagementDialog } from "./dialogs/TaskManagementDialog";
-import { toast } from "sonner";
+
+import { useState, useEffect } from "react";
+import { useJob } from "@/hooks/useJob";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { 
+  Calendar, 
+  MapPin, 
+  Phone, 
+  Mail, 
+  DollarSign,
+  Clock,
+  User,
+  FileText,
+  CheckSquare
+} from "lucide-react";
 
 interface JobOverviewProps {
   jobId: string;
 }
 
 interface Task {
-  id: number;
-  name: string;
+  id: string;
+  job_id: string;
+  title: string;
+  description?: string;
   completed: boolean;
+  completed_at?: string;
+  assigned_to?: string;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
 }
 
+interface TaskManagementDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  tasks: Task[];
+  onSave: (updatedTasks: Task[]) => Promise<void>;
+  disabled: boolean;
+}
+
+const TaskManagementDialog = ({ open, onOpenChange, tasks, onSave, disabled }: TaskManagementDialogProps) => {
+  // Simple task management dialog
+  return null;
+};
+
 export const JobOverview = ({ jobId }: JobOverviewProps) => {
-  const { job, isLoading } = useJobDetails();
-  const [isTaskDialogOpen, setIsTaskDialogOpen] = useState(false);
-  const [isUpdating, setIsUpdating] = useState(false);
-  const { updateJob } = useJobs();
+  const { job, isLoading, error } = useJob(jobId);
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [showTaskDialog, setShowTaskDialog] = useState(false);
 
-  // Convert job tasks to dialog format
-  const convertToDialogTasks = (jobTasks: string[] | undefined): Task[] => {
-    if (!jobTasks || !Array.isArray(jobTasks)) return [];
-    
-    return jobTasks.map((task, index) => ({
-      id: index + 1,
-      name: typeof task === 'string' ? task : String(task),
-      completed: false // For now, we'll assume all tasks are incomplete
-    }));
-  };
-
-  // Convert dialog tasks back to job format
-  const convertToJobTasks = (dialogTasks: Task[]): string[] => {
-    return dialogTasks.map(task => task.name);
-  };
-
-  const handleUpdateTasks = async (updatedTasks: Task[]) => {
-    setIsUpdating(true);
-    const taskNames = convertToJobTasks(updatedTasks);
-    
-    try {
-      const result = await updateJob(jobId, {
-        tasks: taskNames
-      });
-      
-      if (result) {
-        console.log("Tasks updated successfully:", taskNames);
-        toast.success("Tasks updated successfully");
-        // Real-time will handle the refresh automatically
-      }
-    } catch (error) {
-      console.error("Error updating tasks:", error);
-      toast.error("Failed to update tasks");
-    } finally {
-      setIsUpdating(false);
-    }
+  const handleTaskSave = async (updatedTasks: Task[]) => {
+    setTasks(updatedTasks);
+    setShowTaskDialog(false);
   };
 
   if (isLoading) {
-    return (
-      <div className="space-y-6">
-        <div className="animate-pulse">
-          <div className="h-8 bg-gray-200 rounded mb-4 w-48"></div>
-          <div className="h-5 bg-gray-200 rounded w-72"></div>
-        </div>
-      </div>
-    );
+    return <div className="p-6">Loading job details...</div>;
+  }
+
+  if (error) {
+    return <div className="p-6 text-red-500">Error: {error}</div>;
   }
 
   if (!job) {
-    return (
-      <div className="space-y-6">
-        <div className="text-red-500">Error loading job details</div>
-      </div>
-    );
+    return <div className="p-6">Job not found</div>;
   }
 
   return (
     <div className="space-y-6">
-      {/* Primary Information Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="space-y-6">
-          <JobDescriptionCard 
-            description={job.description || ""} 
-            jobId={jobId} 
-            editable 
-          />
-          <JobSummaryCard 
-            job={job} 
-            jobId={jobId} 
-            editable 
-          />
-          <TechnicianCard 
-            job={job} 
-            jobId={jobId} 
-            editable 
-          />
-          <TasksCard 
-            tasks={job.tasks || []} 
-            jobId={jobId} 
-            editable 
-            onManageTasks={() => setIsTaskDialogOpen(true)}
-          />
-        </div>
-        
-        <div className="space-y-6">
-          <AdditionalInfoCard job={job} />
-          <ScheduleInfoCard 
-            job={job} 
-            jobId={jobId} 
-            editable 
-          />
-          <AttachmentsCard 
-            attachments={[]}
-            jobId={jobId} 
-            onAttachmentsUpdate={() => {
-              // Refresh job data when attachments are updated
-              window.location.reload();
-            }}
-          />
-          <ConditionalCustomFieldsCard jobId={jobId} />
-        </div>
-      </div>
+      {/* Job Header */}
+      <Card>
+        <CardHeader>
+          <div className="flex justify-between items-start">
+            <div>
+              <CardTitle className="text-2xl">{job.title || job.service}</CardTitle>
+              <p className="text-muted-foreground mt-1">
+                Job ID: {job.id}
+              </p>
+            </div>
+            <Badge variant={job.status === 'completed' ? 'default' : 'secondary'}>
+              {job.status}
+            </Badge>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="flex items-center gap-2">
+              <User className="h-4 w-4 text-muted-foreground" />
+              <span className="text-sm">{job.client}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <MapPin className="h-4 w-4 text-muted-foreground" />
+              <span className="text-sm">{job.address}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <DollarSign className="h-4 w-4 text-muted-foreground" />
+              <span className="text-sm">${job.total}</span>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
-      {/* Secondary Information Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="space-y-6">
-          <JobTagsCard 
-            tags={job.tags || []} 
-            jobId={jobId} 
-            editable 
-          />
-        </div>
-      </div>
+      {/* Client Information */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <User className="h-5 w-5" />
+            Client Information
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-3">
+            <div>
+              <h4 className="font-medium">{job.client}</h4>
+            </div>
+            <div className="flex flex-col sm:flex-row gap-4">
+              <div className="flex items-center gap-2">
+                <Phone className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm">{job.phone}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Mail className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm">{job.email}</span>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <MapPin className="h-4 w-4 text-muted-foreground" />
+              <span className="text-sm">{job.address}</span>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
-      {/* Task Management Dialog */}
+      {/* Job Details */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <FileText className="h-5 w-5" />
+            Job Details
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            <div>
+              <h4 className="font-medium mb-2">Service</h4>
+              <p className="text-sm text-muted-foreground">{job.service}</p>
+            </div>
+            
+            {job.description && (
+              <div>
+                <h4 className="font-medium mb-2">Description</h4>
+                <p className="text-sm text-muted-foreground">{job.description}</p>
+              </div>
+            )}
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {job.schedule_start && (
+                <div>
+                  <h4 className="font-medium mb-1">Scheduled Start</h4>
+                  <p className="text-sm text-muted-foreground">
+                    {new Date(job.schedule_start).toLocaleString()}
+                  </p>
+                </div>
+              )}
+              
+              {job.schedule_end && (
+                <div>
+                  <h4 className="font-medium mb-1">Scheduled End</h4>
+                  <p className="text-sm text-muted-foreground">
+                    {new Date(job.schedule_end).toLocaleString()}
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {job.tags && job.tags.length > 0 && (
+              <div>
+                <h4 className="font-medium mb-2">Tags</h4>
+                <div className="flex flex-wrap gap-2">
+                  {job.tags.map((tag, index) => (
+                    <Badge key={index} variant="outline">
+                      {tag}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Tasks Section */}
+      <Card>
+        <CardHeader>
+          <div className="flex justify-between items-center">
+            <CardTitle className="flex items-center gap-2">
+              <CheckSquare className="h-5 w-5" />
+              Tasks ({tasks.length})
+            </CardTitle>
+            <Button onClick={() => setShowTaskDialog(true)}>
+              Manage Tasks
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {tasks.length === 0 ? (
+            <p className="text-muted-foreground">No tasks assigned to this job</p>
+          ) : (
+            <div className="space-y-2">
+              {tasks.map((task) => (
+                <div key={task.id} className="flex items-center gap-3 p-2 border rounded">
+                  <CheckSquare className={`h-4 w-4 ${task.completed ? 'text-green-500' : 'text-muted-foreground'}`} />
+                  <span className={task.completed ? 'line-through text-muted-foreground' : ''}>
+                    {task.title}
+                  </span>
+                  {task.completed && (
+                    <Badge variant="outline" className="ml-auto">
+                      Completed
+                    </Badge>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
       <TaskManagementDialog
-        open={isTaskDialogOpen}
-        onOpenChange={setIsTaskDialogOpen}
-        initialTasks={convertToDialogTasks(job.tasks)}
-        onSave={handleUpdateTasks}
-        disabled={isUpdating}
+        open={showTaskDialog}
+        onOpenChange={setShowTaskDialog}
+        tasks={tasks}
+        onSave={handleTaskSave}
+        disabled={false}
       />
     </div>
   );

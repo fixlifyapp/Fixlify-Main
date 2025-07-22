@@ -1,96 +1,83 @@
-
-import { useState } from "react";
+import React, { useState } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { useCompanySettings } from "@/hooks/useCompanySettings";
-import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
-import { Mail, Send } from "lucide-react";
+import { Send, Loader2 } from "lucide-react";
+import { useAuth } from '@/hooks/use-auth';
+import { useMessageContext } from '@/contexts/MessageContext';
+import { toast } from 'sonner';
 
 interface EmailInputProps {
-  recipientEmail?: string;
+  conversation?: {
+    client?: {
+      id: string;
+      name: string;
+      email?: string;
+    };
+  };
   onSent?: () => void;
 }
 
-export const EmailInput = ({ recipientEmail = "", onSent }: EmailInputProps) => {
-  const { companySettings, isLoading } = useCompanySettings();
-  const [to, setTo] = useState(recipientEmail);
+export const EmailInput: React.FC<EmailInputProps> = ({ conversation, onSent }) => {
+  const { user } = useAuth();
+  const { sendEmail, isSending } = useMessageContext();
+  const [to, setTo] = useState(conversation?.client?.email || "");
   const [subject, setSubject] = useState("");
-  const [message, setMessage] = useState("");
-  const [isSending, setIsSending] = useState(false);
+  const [content, setContent] = useState("");
 
-  const handleSendEmail = () => { console.log("Email functionality not implemented"); }
+  const handleSend = async () => {
+    if (!to || !subject || !content) {
+      toast.error('Please fill in all fields');
+      return;
+    }
+
+    if (!user?.id) {
+      toast.error('Please log in to send emails');
+      return;
+    }
 
     try {
-      setIsSending(true);
+      const success = await sendEmail(
+        to, 
+        subject, 
+        content, 
+        conversation?.client?.id
+      );
       
-      const { data, error } = await supabase.functions.invoke('mailgun-email', {
-        body: {
-          to: to.trim(),
-          subject: subject.trim(),
-          html: `<p>${message.replace(/\n/g, '<br>')}</p>`,
-          text: message.trim(),
-          userId: (await supabase.auth.getUser()).data.user?.id,
-        }
-      });
-
-      if (error) throw error;
-
-      if (data?.success) {
-        toast.success("Email sent successfully!");
-        setTo("");
+      if (success) {
+        // Reset form
+        setTo(conversation?.client?.email || "");
         setSubject("");
-        setMessage("");
+        setContent("");
         onSent?.();
-      } else {
-        throw new Error(data?.error || "Failed to send email");
       }
     } catch (error) {
-      console.error("Error sending email:", error);
-      toast.error("Failed to send email");
-    } finally {
-      setIsSending(false);
+      console.error('Error sending email:', error);
     }
   };
 
-  if (isLoading) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Mail className="h-5 w-5" />
-            Send Email
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex justify-center py-8">
-            <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full"></div>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
-
   return (
-    <Card>
+    <Card className="w-full">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Mail className="h-5 w-5" />
-          Send Email
-        </CardTitle>
+        <CardTitle className="text-lg">Send Email</CardTitle>
+        {conversation?.client?.name && (
+          <p className="text-sm text-muted-foreground">
+            To: {conversation.client.name}
+          </p>
+        )}
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="space-y-2">
-          <Label htmlFor="email-to">To</Label>
+          <Label htmlFor="email-to">Email Address</Label>
           <Input
             id="email-to"
             type="email"
+            placeholder="recipient@example.com"
             value={to}
             onChange={(e) => setTo(e.target.value)}
-            placeholder="recipient@example.com"
+            disabled={!!conversation?.client?.email}
           />
         </div>
 
@@ -98,40 +85,42 @@ export const EmailInput = ({ recipientEmail = "", onSent }: EmailInputProps) => 
           <Label htmlFor="email-subject">Subject</Label>
           <Input
             id="email-subject"
+            placeholder="Enter email subject"
             value={subject}
             onChange={(e) => setSubject(e.target.value)}
-            placeholder="Email subject"
           />
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="email-message">Message</Label>
+          <Label htmlFor="email-content">Message</Label>
           <Textarea
-            id="email-message"
-            value={message}
-            onChange={(e) => setMessage(e.target.value)}
-            placeholder="Email message"
+            id="email-content"
+            placeholder="Type your email message here..."
+            value={content}
+            onChange={(e) => setContent(e.target.value)}
             rows={6}
+            className="min-h-[120px]"
           />
-        </div>
-
-        <div className="space-y-2">
-          <Label>From</Label>
-          <div className="text-sm text-gray-600">
-            <p>{companySettings?.company_name || 'Your Company'} &lt;{companySettings?.company_email || 'noreply@fixlify.com'}&gt;</p>
-          </div>
         </div>
 
         <Button 
-          onClick={handleSendEmail} 
-          disabled={isSending}
+          onClick={handleSend}
+          disabled={!to || !subject || !content || isSending}
           className="w-full"
         >
-          <Send className="h-4 w-4 mr-2" />
-          {isSending ? 'Sending...' : 'Send Email'}
+          {isSending ? (
+            <>
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              Sending...
+            </>
+          ) : (
+            <>
+              <Send className="h-4 w-4 mr-2" />
+              Send Email
+            </>
+          )}
         </Button>
       </CardContent>
     </Card>
   );
 };
-

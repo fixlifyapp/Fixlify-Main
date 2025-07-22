@@ -1,205 +1,169 @@
 
-import React from "react";
-import { useNavigate } from "react-router-dom";
-import { toast } from "sonner";
-import { useJobDetailsState } from "./hooks/useJobDetailsState";
-import { ClientInformationSection } from "./sections/ClientInformationSection";
-import { JobDetailsSection } from "./sections/JobDetailsSection";
-import { ScheduleSection } from "./sections/ScheduleSection";
-import { TasksSection } from "./sections/TasksSection";
-import { TagsAttachmentsSection } from "./sections/TagsAttachmentsSection";
-import { JobDetailsDialogs } from "./sections/JobDetailsDialogs";
+import { useState } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Edit2, Save, X } from "lucide-react";
 
 interface JobDetailsProps {
   jobId: string;
 }
 
+interface JobFormData {
+  description: string;
+  scheduleDate: string;
+  scheduleTime: string;
+  type: string;
+  tags: string[];
+  team: string;
+  source: string;
+  clientId?: string;
+}
+
 export const JobDetails = ({ jobId }: JobDetailsProps) => {
-  const navigate = useNavigate();
-  const {
-    job,
-    isLoading,
-    clientInfo,
-    setClientInfo,
-    jobDetails,
-    setJobDetails,
-    appliances,
-    setAppliances,
-    additionalJobTypes,
-    setAdditionalJobTypes,
-    additionalSources,
-    setAdditionalSources,
-    attachments,
-    setAttachments,
-    dialogStates,
-    setDialogStates,
-    getTagColor,
-    getTeamColor
-  } = useJobDetailsState();
+  const [isEditing, setIsEditing] = useState(false);
+  const [formData, setFormData] = useState<JobFormData>({
+    description: "",
+    scheduleDate: "",
+    scheduleTime: "",
+    type: "",
+    tags: [],
+    team: "",
+    source: ""
+  });
 
-  // Dialog setters
-  const dialogSetters = {
-    setIsDescriptionDialogOpen: (open: boolean) => 
-      setDialogStates(prev => ({ ...prev, isDescriptionDialogOpen: open })),
-    setIsTypeDialogOpen: (open: boolean) => 
-      setDialogStates(prev => ({ ...prev, isTypeDialogOpen: open })),
-    setIsTeamDialogOpen: (open: boolean) => 
-      setDialogStates(prev => ({ ...prev, isTeamDialogOpen: open })),
-    setIsSourceDialogOpen: (open: boolean) => 
-      setDialogStates(prev => ({ ...prev, isSourceDialogOpen: open })),
-    setIsScheduleDialogOpen: (open: boolean) => 
-      setDialogStates(prev => ({ ...prev, isScheduleDialogOpen: open })),
-    setIsTagsDialogOpen: (open: boolean) => 
-      setDialogStates(prev => ({ ...prev, isTagsDialogOpen: open })),
-    setIsTasksDialogOpen: (open: boolean) => 
-      setDialogStates(prev => ({ ...prev, isTasksDialogOpen: open })),
-    setIsAttachmentsDialogOpen: (open: boolean) => 
-      setDialogStates(prev => ({ ...prev, isAttachmentsDialogOpen: open })),
-    setIsApplianceDialogOpen: (open: boolean) => 
-      setDialogStates(prev => ({ ...prev, isApplianceDialogOpen: open }))
+  const handleSave = async () => {
+    // Save logic here
+    console.log('Saving job details:', { jobId, ...formData });
+    setIsEditing(false);
   };
 
-  // Update handlers
-  const handleUpdateDescription = (description: string) => {
-    setJobDetails(prev => ({ ...prev, description }));
+  const handleCancel = () => {
+    setIsEditing(false);
+    // Reset form data
   };
-
-  const handleUpdateType = (type: string) => {
-    setJobDetails(prev => ({ ...prev, type }));
-  };
-
-  const handleUpdateTeam = (team: string) => {
-    setJobDetails(prev => ({ ...prev, team }));
-  };
-
-  const handleUpdateSource = (source: string) => {
-    setJobDetails(prev => ({ ...prev, source }));
-  };
-
-  const handleUpdateSchedule = (date: string, timeWindow: string) => {
-    setJobDetails(prev => ({ 
-      ...prev, 
-      scheduleDate: date,
-      scheduleTime: timeWindow
-    }));
-  };
-
-  const handleUpdateTags = (tags: string[]) => {
-    setJobDetails(prev => ({ ...prev, tags }));
-  };
-
-  const handleUpdateAttachments = (updatedAttachments: typeof attachments) => {
-    setAttachments(updatedAttachments);
-  };
-
-  const handleUpdateAppliances = (updatedAppliances: typeof appliances) => {
-    setAppliances(updatedAppliances);
-  };
-
-  const handleAddJobType = (type: string) => {
-    if (type && !additionalJobTypes.includes(type)) {
-      setAdditionalJobTypes([...additionalJobTypes, type]);
-    }
-  };
-
-  const handleRemoveJobType = (index: number) => {
-    const newTypes = [...additionalJobTypes];
-    newTypes.splice(index, 1);
-    setAdditionalJobTypes(newTypes);
-  };
-
-  const handleAddSource = (source: string) => {
-    if (source && !additionalSources.includes(source)) {
-      setAdditionalSources([...additionalSources, source]);
-    }
-  };
-
-  const handleRemoveSource = (index: number) => {
-    const newSources = [...additionalSources];
-    newSources.splice(index, 1);
-    setAdditionalSources(newSources);
-  };
-
-  if (isLoading) {
-    return (
-      <div className="space-y-6">
-        <div className="animate-pulse">
-          <div className="h-8 bg-gray-200 rounded mb-4 w-48"></div>
-          <div className="h-5 bg-gray-200 rounded w-72"></div>
-        </div>
-      </div>
-    );
-  }
-
-  if (!job) {
-    return (
-      <div className="space-y-6">
-        <div className="text-red-500">Error loading job details</div>
-      </div>
-    );
-  }
 
   return (
-    <div className="space-y-6">
-      {/* Client Information Section */}
-      <ClientInformationSection
-        clientInfo={clientInfo}
-        onClientInfoUpdate={setClientInfo}
-        clientId={job.clientId}
-      />
-      
-      {/* Job Details Section */}
-      <JobDetailsSection
-        jobDetails={jobDetails}
-        onTypeClick={() => dialogSetters.setIsTypeDialogOpen(true)}
-        onDescriptionClick={() => dialogSetters.setIsDescriptionDialogOpen(true)}
-      />
-      
-      {/* Schedule Section */}
-      <ScheduleSection
-        scheduleInfo={{
-          scheduleDate: jobDetails.scheduleDate,
-          scheduleTime: jobDetails.scheduleTime,
-          team: jobDetails.team
-        }}
-        onScheduleEdit={() => dialogSetters.setIsScheduleDialogOpen(true)}
-        onTeamEdit={() => dialogSetters.setIsTeamDialogOpen(true)}
-        getTeamColor={getTeamColor}
-      />
-      
-      {/* Tasks Section */}
-      <TasksSection
-        jobId={jobId}
-        onTasksEdit={() => dialogSetters.setIsTasksDialogOpen(true)}
-      />
-      
-      {/* Tags & Attachments Section */}
-      <TagsAttachmentsSection
-        tags={jobDetails.tags}
-        attachments={attachments}
-        onTagsEdit={() => dialogSetters.setIsTagsDialogOpen(true)}
-        onAttachmentsEdit={() => dialogSetters.setIsAttachmentsDialogOpen(true)}
-        getTagColor={getTagColor}
-      />
-      
-      {/* All Dialogs */}
-      <JobDetailsDialogs
-        jobId={jobId}
-        dialogStates={dialogStates}
-        dialogSetters={dialogSetters}
-        jobDetails={{
-          ...jobDetails,
-          client_id: jobDetails.clientId
-        }}
-        appliances={appliances}
-        onUpdateDescription={handleUpdateDescription}
-        onUpdateType={handleUpdateType}
-        onUpdateTeam={handleUpdateTeam}
-        onUpdateSource={handleUpdateSource}
-        onUpdateSchedule={handleUpdateSchedule}
-        onUpdateTags={handleUpdateTags}
-        onUpdateAppliances={handleUpdateAppliances}
-      />
-    </div>
+    <Card>
+      <CardHeader>
+        <div className="flex justify-between items-center">
+          <CardTitle>Job Details</CardTitle>
+          {!isEditing ? (
+            <Button variant="outline" size="sm" onClick={() => setIsEditing(true)}>
+              <Edit2 className="h-4 w-4 mr-2" />
+              Edit
+            </Button>
+          ) : (
+            <div className="flex gap-2">
+              <Button size="sm" onClick={handleSave}>
+                <Save className="h-4 w-4 mr-2" />
+                Save
+              </Button>
+              <Button variant="outline" size="sm" onClick={handleCancel}>
+                <X className="h-4 w-4 mr-2" />
+                Cancel
+              </Button>
+            </div>
+          )}
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {isEditing ? (
+          <>
+            <div>
+              <label className="text-sm font-medium mb-2 block">Description</label>
+              <Textarea
+                value={formData.description}
+                onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                placeholder="Job description..."
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="text-sm font-medium mb-2 block">Schedule Date</label>
+                <Input
+                  type="date"
+                  value={formData.scheduleDate}
+                  onChange={(e) => setFormData(prev => ({ ...prev, scheduleDate: e.target.value }))}
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium mb-2 block">Schedule Time</label>
+                <Input
+                  type="time"
+                  value={formData.scheduleTime}
+                  onChange={(e) => setFormData(prev => ({ ...prev, scheduleTime: e.target.value }))}
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="text-sm font-medium mb-2 block">Job Type</label>
+              <Select value={formData.type} onValueChange={(value) => setFormData(prev => ({ ...prev, type: value }))}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select job type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="repair">Repair</SelectItem>
+                  <SelectItem value="maintenance">Maintenance</SelectItem>
+                  <SelectItem value="installation">Installation</SelectItem>
+                  <SelectItem value="consultation">Consultation</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </>
+        ) : (
+          <div className="space-y-4">
+            <div>
+              <h4 className="text-sm font-medium mb-1">Description</h4>
+              <p className="text-sm text-muted-foreground">
+                {formData.description || "No description provided"}
+              </p>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <h4 className="text-sm font-medium mb-1">Scheduled Date</h4>
+                <p className="text-sm text-muted-foreground">
+                  {formData.scheduleDate || "Not scheduled"}
+                </p>
+              </div>
+              <div>
+                <h4 className="text-sm font-medium mb-1">Scheduled Time</h4>
+                <p className="text-sm text-muted-foreground">
+                  {formData.scheduleTime || "Not scheduled"}
+                </p>
+              </div>
+            </div>
+
+            <div>
+              <h4 className="text-sm font-medium mb-1">Job Type</h4>
+              {formData.type ? (
+                <Badge variant="outline">{formData.type}</Badge>
+              ) : (
+                <p className="text-sm text-muted-foreground">No type selected</p>
+              )}
+            </div>
+
+            {formData.tags.length > 0 && (
+              <div>
+                <h4 className="text-sm font-medium mb-2">Tags</h4>
+                <div className="flex flex-wrap gap-2">
+                  {formData.tags.map((tag, index) => (
+                    <Badge key={index} variant="secondary">
+                      {tag}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 };

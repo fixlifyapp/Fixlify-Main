@@ -1,186 +1,134 @@
 
+import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Send, Bot, Sparkles } from "lucide-react";
-import { useState, useEffect, useRef } from "react";
+import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { useMessageContext } from "@/contexts/MessageContext";
-import { UnifiedMessageList } from "@/components/messages/UnifiedMessageList";
-import { useMessageAI } from "@/components/jobs/hooks/messaging/useMessageAI";
-import { MessageTextEnhancer } from "./MessageTextEnhancer";
+import { MessageSquare, Phone, Mail } from "lucide-react";
+import { toast } from "sonner";
 
 interface ConnectMessageDialogProps {
   isOpen: boolean;
   onClose: () => void;
-  conversation: any;
+  client?: {
+    id: string;
+    name: string;
+    phone?: string;
+    email?: string;
+  };
 }
 
-export const ConnectMessageDialog = ({ isOpen, onClose, conversation }: ConnectMessageDialogProps) => {
-  const { activeConversation, sendMessage, isSending } = useMessageContext();
-  const [messageText, setMessageText] = useState("");
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-  const scrollContainerRef = useRef<HTMLDivElement>(null);
+export const ConnectMessageDialog = ({ isOpen, onClose, client }: ConnectMessageDialogProps) => {
+  const [messageType, setMessageType] = useState<'sms' | 'email'>('sms');
+  const [subject, setSubject] = useState("");
+  const [message, setMessage] = useState("");
+  const [isSending, setIsSending] = useState(false);
+  const { sendMessage } = useMessageContext();
 
-  // Use activeConversation from context if available, otherwise fall back to prop
-  const currentConversation = activeConversation || conversation;
-
-  const handleUseSuggestion = (content: string) => {
-    setMessageText(content);
-  };
-
-  const { isAILoading, handleSuggestResponse } = useMessageAI({
-    messages: currentConversation?.messages || [],
-    client: currentConversation?.client || { name: "", id: "" },
-    jobId: '',
-    onUseSuggestion: handleUseSuggestion
-  });
-
-  // Improved scroll to bottom function
-  const scrollToBottom = () => {
-    if (scrollContainerRef.current) {
-      scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight;
+  const handleSendMessage = async () => {
+    if (!client || !message.trim()) {
+      toast.error('Please enter a message');
+      return;
     }
-    // Fallback to the ref method
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
 
-  // Auto-scroll to bottom when dialog opens or messages change
-  useEffect(() => {
-    if (isOpen) {
-      // Multiple attempts to ensure scrolling works
-      setTimeout(scrollToBottom, 50);
-      setTimeout(scrollToBottom, 150);
-      setTimeout(scrollToBottom, 300);
+    if (messageType === 'sms' && !client.phone) {
+      toast.error('Client has no phone number');
+      return;
     }
-  }, [isOpen]);
 
-  // Scroll when messages change
-  useEffect(() => {
-    if (isOpen && currentConversation?.messages?.length > 0) {
-      setTimeout(scrollToBottom, 100);
+    if (messageType === 'email' && !client.email) {
+      toast.error('Client has no email address');
+      return;
     }
-  }, [currentConversation?.messages?.length, isOpen]);
 
-  const handleSend = async () => {
-    if (!messageText.trim() || isSending || !currentConversation) return;
-    
-    await sendMessage(messageText);
-    setMessageText("");
-    // Scroll to bottom after sending message
-    setTimeout(scrollToBottom, 100);
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSend();
+    try {
+      setIsSending(true);
+      await sendMessage({
+        type: messageType,
+        to: messageType === 'sms' ? client.phone! : client.email!,
+        content: message,
+        subject: messageType === 'email' ? subject : undefined,
+        clientId: client.id
+      });
+      
+      toast.success(`${messageType.toUpperCase()} sent successfully`);
+      setMessage("");
+      setSubject("");
+      onClose();
+    } catch (error) {
+      console.error('Error sending message:', error);
+      toast.error('Failed to send message');
+    } finally {
+      setIsSending(false);
     }
   };
-
-  // Convert messages to the format expected by UnifiedMessageList
-  const convertMessagesToUnified = (messages: any[]) => {
-    if (!messages) return [];
-    
-    // Check if messages are already in the correct format (from MessageContext)
-    if (messages.length > 0 && messages[0].body !== undefined) {
-      return messages;
-    }
-    
-    // Convert from connect center format to unified format
-    return messages.map(msg => ({
-      id: msg.id,
-      body: msg.text || msg.body,
-      direction: msg.isClient ? 'inbound' as const : 'outbound' as const,
-      created_at: msg.timestamp || msg.created_at,
-      sender: msg.sender,
-      recipient: undefined
-    }));
-  };
-
-  if (!currentConversation) return null;
-
-  const unifiedMessages = convertMessagesToUnified(currentConversation.messages || []);
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[85vh] flex flex-col">
+      <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>
-            Message {currentConversation.client.name}
-            {currentConversation.client.phone && (
-              <span className="text-sm font-normal text-muted-foreground ml-2">
-                ({currentConversation.client.phone})
-              </span>
-            )}
+          <DialogTitle className="flex items-center gap-2">
+            <MessageSquare className="h-5 w-5" />
+            Send Message to {client?.name}
           </DialogTitle>
         </DialogHeader>
-        
-        <div className="flex-1 overflow-hidden flex flex-col gap-4">
-          <div 
-            ref={scrollContainerRef}
-            className="flex-1 overflow-y-auto"
-          >
-            <UnifiedMessageList 
-              messages={unifiedMessages}
-              isLoading={false}
-              clientName={currentConversation.client.name}
-              clientInfo={currentConversation.client}
-            />
-            {/* Invisible element to scroll to */}
-            <div ref={messagesEndRef} />
+
+        <div className="space-y-4">
+          <div className="flex gap-2">
+            <Button
+              variant={messageType === 'sms' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setMessageType('sms')}
+              disabled={!client?.phone}
+              className="flex items-center gap-2"
+            >
+              <Phone className="h-4 w-4" />
+              SMS
+            </Button>
+            <Button
+              variant={messageType === 'email' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setMessageType('email')}
+              disabled={!client?.email}
+              className="flex items-center gap-2"
+            >
+              <Mail className="h-4 w-4" />
+              Email
+            </Button>
           </div>
-          
-          <div className="flex-shrink-0 space-y-3">
-            <div className="flex justify-between items-center">
-              <Button 
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={handleSuggestResponse}
-                disabled={isAILoading || isSending}
-                className="gap-2 text-purple-600 border-purple-200 hover:bg-purple-50"
-              >
-                {isAILoading ? (
-                  <>
-                    <Bot className="h-4 w-4 animate-pulse" />
-                    Generating Response...
-                  </>
-                ) : (
-                  <>
-                    <Sparkles className="h-4 w-4" />
-                    AI Response
-                  </>
-                )}
-              </Button>
-              
-              <Button 
-                onClick={handleSend} 
-                disabled={isSending || !messageText.trim()}
-                size="sm"
-                className="px-4"
-              >
-                <Send size={16} />
-              </Button>
+
+          {messageType === 'email' && (
+            <div>
+              <Label htmlFor="subject">Subject</Label>
+              <Input
+                id="subject"
+                value={subject}
+                onChange={(e) => setSubject(e.target.value)}
+                placeholder="Email subject"
+              />
             </div>
-            
-            <div className="flex gap-2">
-              <div className="flex-1 relative">
-                <textarea 
-                  className="w-full p-4 pr-12 border-2 border-purple-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 focus:outline-none resize-y min-h-[120px] text-base" 
-                  placeholder="Type your message... (Press Shift+Enter for new line, Enter to send)"
-                  value={messageText}
-                  onChange={(e) => setMessageText(e.target.value)}
-                  disabled={isSending}
-                  onKeyDown={handleKeyDown}
-                />
-                <div className="absolute right-3 top-3">
-                  <MessageTextEnhancer 
-                    messageText={messageText}
-                    setMessageText={setMessageText}
-                    disabled={isSending}
-                  />
-                </div>
-              </div>
-            </div>
+          )}
+
+          <div>
+            <Label htmlFor="message">Message</Label>
+            <Textarea
+              id="message"
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              placeholder={`Type your ${messageType} message here...`}
+              rows={4}
+            />
+          </div>
+
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={onClose}>
+              Cancel
+            </Button>
+            <Button onClick={handleSendMessage} disabled={isSending}>
+              {isSending ? 'Sending...' : `Send ${messageType.toUpperCase()}`}
+            </Button>
           </div>
         </div>
       </DialogContent>

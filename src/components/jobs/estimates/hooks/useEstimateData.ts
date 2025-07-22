@@ -1,62 +1,61 @@
-
 import { useState, useEffect } from 'react';
-import { Estimate } from '@/types/documents';
+import { transformToUnifiedEstimate } from '@/utils/unified-transforms';
+import type { Estimate } from '@/types/documents';
 
-export interface EstimateDataHook {
-  estimate: Estimate | null;
-  isLoading: boolean;
-  error: string | null;
-  refetch: () => Promise<void>;
+interface UseEstimateDataProps {
+  estimateId?: string;
+  jobId?: string;
 }
 
-// Re-export Estimate type for convenience
-export type { Estimate };
-
-export const useEstimateData = (estimateId?: string): EstimateDataHook => {
+export const useEstimateData = ({ estimateId, jobId }: UseEstimateDataProps) => {
   const [estimate, setEstimate] = useState<Estimate | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const refetch = async () => {
-    if (!estimateId) return;
-    
-    setIsLoading(true);
-    setError(null);
-    
-    try {
-      // Mock data for now - in a real app this would fetch from the API
-      const mockEstimate: Estimate = {
-        id: estimateId,
-        job_id: 'mock-job',
-        estimate_number: 'EST-001',
-        status: 'draft',
-        total: 0,
-        notes: '',
-        items: [],
-        subtotal: 0,
-        tax_rate: 0,
-        tax_amount: 0,
-        discount_amount: 0,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      };
-      
-      setEstimate(mockEstimate);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to fetch estimate');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   useEffect(() => {
-    refetch();
-  }, [estimateId]);
+    const fetchEstimate = async () => {
+      setLoading(true);
+      setError(null);
+      
+      try {
+        // Create a mock estimate with all required fields
+        const mockEstimateData = {
+          id: `est-${Date.now()}`,
+          job_id: jobId || '',
+          estimate_number: `EST-${Date.now()}`,
+          status: 'draft' as const,
+          total: 0,
+          notes: '',
+          items: [],
+          subtotal: 0,
+          tax_rate: 0,
+          tax_amount: 0,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          created_by: 'system'
+        };
+        
+        const transformedEstimate = transformToUnifiedEstimate(mockEstimateData);
+        setEstimate(transformedEstimate);
+      } catch (err) {
+        console.error('Error fetching estimate:', err);
+        setError('Failed to fetch estimate');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (estimateId || jobId) {
+      fetchEstimate();
+    }
+  }, [estimateId, jobId]);
 
   return {
     estimate,
-    isLoading,
+    loading,
     error,
-    refetch
+    refetch: () => {
+      // Refetch logic here
+    }
   };
 };

@@ -10,7 +10,7 @@ interface ClientInfoCardProps {
   };
 }
 
-export export const ClientInfoCard = ({ client }: ClientInfoCardProps) => {
+export const ClientInfoCard = ({ client }: ClientInfoCardProps) => {
   return (
     <Card className="mb-6 sm:mb-8">
       <CardHeader className="pb-4">

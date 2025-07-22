@@ -1,39 +1,36 @@
 
 import { useEffect } from "react";
 import { useMessageContext } from "@/contexts/MessageContext";
+import { supabase } from "@/integrations/supabase/client";
 
-interface UseRealTimeMessagingProps {
-  onNewMessage?: () => void;
-  enabled?: boolean;
-}
+export const useRealTimeMessaging = () => {
+  const { conversations, fetchConversations } = useMessageContext();
 
-export const useRealTimeMessaging = ({ 
-  onNewMessage,
-  enabled = true
-}: UseRealTimeMessagingProps = {}) => {
-  
-  const { refreshConversations } = useMessageContext();
-  
-  // Use the centralized real-time system from MessageContext
   useEffect(() => {
-    if (!enabled) return;
+    // Set up real-time subscription for communication logs
+    const channel = supabase
+      .channel('communication_logs_changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'communication_logs'
+        },
+        (payload) => {
+          console.log('Communication log change:', payload);
+          // Refresh conversations when there's a change
+          fetchConversations();
+        }
+      )
+      .subscribe();
 
-    // Since MessageContext already handles real-time updates,
-    // we just need to call the callback when conversations change
-    if (onNewMessage) {
-      // Create a simple interval to check for updates
-      // This is a fallback mechanism since the main real-time is in MessageContext
-      const checkInterval = setInterval(() => {
-        // This will be called when MessageContext updates conversations
-        onNewMessage();
-      }, 2000);
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [fetchConversations]);
 
-      return () => {
-        clearInterval(checkInterval);
-      };
-    }
-  }, [onNewMessage, enabled]);
-
-  // Note: The main real-time functionality is now centralized in MessageContext
-  // This hook serves as a bridge for components that need update callbacks
+  return {
+    conversations
+  };
 };

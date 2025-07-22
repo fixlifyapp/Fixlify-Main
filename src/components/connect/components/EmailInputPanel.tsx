@@ -1,210 +1,116 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/hooks/use-auth";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Send, Loader2, Sparkles, Bot } from "lucide-react";
-import { toast } from "sonner";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
+import { Badge } from "@/components/ui/badge";
+import { Paperclip, Send, X, Plus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { useIsMobile } from "@/hooks/use-mobile";
-import { cn } from "@/lib/utils";
-
-interface EmailConversation {
-  id: string;
-  subject: string;
-  last_message_at: string;
-  status: string;
-  client_id?: string;
-  client?: {
-    id: string;
-    name: string;
-    email: string;
-    phone?: string;
-  };
-  emails: any[];
-}
+import { toast } from "sonner";
 
 interface EmailInputPanelProps {
-  selectedConversation: EmailConversation | null;
-  onEmailSent: () => void;
+  onSend: (message: string) => void;
+  onCancel: () => void;
+  jobId?: string;
+  clientId?: string;
 }
 
-export const EmailInputPanel = ({ selectedConversation, onEmailSent }: EmailInputPanelProps) => {
+export const EmailInputPanel: React.FC<EmailInputPanelProps> = ({ onSend, onCancel, jobId, clientId }) => {
   const [subject, setSubject] = useState("");
   const [message, setMessage] = useState("");
-  const [isSending, setIsSending] = useState(false);
-  const [isAILoading, setIsAILoading] = useState(false);
-  const isMobile = useIsMobile();
+  const { user } = useAuth();
 
-  const handleSendEmail = () => { console.log("Email functionality not implemented"); }
+  const handleSend = async () => {
+    if (!message.trim()) {
+      toast.error("Message cannot be empty.");
       return;
     }
 
-    setIsSending(true);
-    try {
-      console.log('Sending email via EmailInputPanel:', {
-        client: selectedConversation.client,
-        subject,
-        message
-      });
-
-      const { data, error } = await supabase.functions.invoke('send-email', {
-        body: {
-          to: selectedConversation.client.email,
-          subject: subject || 'Message from Fixlyfy',
-          html: message.replace(/\n/g, '<br>'),
-          clientId: selectedConversation.client.id
-        }
-      });
-
-      if (error) throw error;
-
-      setSubject("");
-      setMessage("");
-      onEmailSent();
-      toast.success("Email sent successfully!");
-    } catch (error) {
-      console.error('Error sending email:', error);
-      toast.error("Failed to send email");
-    } finally {
-      setIsSending(false);
-    }
-  };
-
-  const handleAISuggestion = async () => {
-    if (!selectedConversation?.emails?.length) {
-      toast.error("No conversation history to generate response from");
+    if (!user?.id || !clientId) {
+      toast.error("User or Client ID not found.");
       return;
     }
 
-    setIsAILoading(true);
     try {
-      const lastEmail = selectedConversation.emails[selectedConversation.emails.length - 1];
-      
-      // Simple AI response generation (you might want to integrate with an actual AI service)
-      const response = `Thank you for your email. I understand your concern and will get back to you shortly with more information.
+      const { data, error } = await supabase
+        .from('communication_logs')
+        .insert({
+          user_id: user.id,
+          client_id: clientId || '',
+          job_id: jobId || '',
+          type: 'email',
+          direction: 'outgoing',
+          subject: subject,
+          content: message,
+          status: 'pending',
+          from_address: user.email || '',
+          to_address: '', // To be updated with actual recipient
+          provider: 'system',
+          recipient: ''
+        })
+        .select();
 
-Best regards,
-Fixlyfy Team`;
-
-      setMessage(response);
-      toast.success("AI response generated!");
+      if (error) {
+        console.error("Error sending email:", error);
+        toast.error("Failed to send email.");
+      } else {
+        console.log("Email saved to communication logs:", data);
+        toast.success("Email saved.");
+        onSend(message);
+      }
     } catch (error) {
-      console.error('Error generating AI response:', error);
-      toast.error("Failed to generate AI response");
-    } finally {
-      setIsAILoading(false);
+      console.error("Unexpected error sending email:", error);
+      toast.error("Unexpected error occurred.");
     }
   };
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
-      e.preventDefault();
-      handleSendEmail();
-    }
-  };
-
-  if (!selectedConversation) {
-    return (
-      <div className={`${isMobile ? 'p-3' : 'p-4'} text-center text-fixlyfy-text-secondary`}>
-        <p className={isMobile ? 'text-sm' : 'text-base'}>
-          Select a conversation to start composing an email
-        </p>
-      </div>
-    );
-  }
-
-  const shouldShowAISuggestion = selectedConversation.emails.length > 0;
-  const lastEmail = selectedConversation.emails[selectedConversation.emails.length - 1];
-  const showSuggest = shouldShowAISuggestion && lastEmail?.direction === 'inbound';
 
   return (
-    <div className={`${isMobile ? 'p-3' : 'p-4'} bg-gradient-to-r from-white to-fixlyfy-bg-interface`}>
-      {/* AI Suggest Response Button */}
-      {showSuggest && (
-        <div className="mb-3 flex justify-end">
-          <Button 
-            variant="outline"
-            size="sm"
-            onClick={handleAISuggestion}
-            disabled={isAILoading || isSending}
-            className={`gap-2 text-purple-600 border-purple-200 hover:bg-purple-50 ${isMobile ? 'min-h-[44px] text-sm' : ''}`}
-          >
-            {isAILoading ? (
-              <>
-                <Bot className="h-4 w-4 animate-pulse" />
-                Generating...
-              </>
-            ) : (
-              <>
-                <Sparkles className="h-4 w-4" />
-                AI Response
-              </>
-            )}
-          </Button>
-        </div>
-      )}
-
-      <div className="space-y-3">
-        {/* Subject Line */}
+    <Card className="w-full">
+      <CardHeader>
+        <CardTitle>Compose Email</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
         <div>
+          <Label htmlFor="subject">Subject</Label>
           <Input
-            placeholder="Email subject..."
+            id="subject"
+            placeholder="Subject"
             value={subject}
             onChange={(e) => setSubject(e.target.value)}
-            disabled={isSending}
-            className={cn(
-              "border-fixlyfy-border/50 focus:ring-2 focus:ring-fixlyfy/50 focus:border-fixlyfy",
-              isMobile ? "h-10 text-sm" : "h-10"
-            )}
           />
         </div>
-
-        {/* Message Body */}
-        <div className="flex gap-2 items-end">
-          <div className="flex-1">
-            <Textarea
-              placeholder="Type your email message..."
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
-              disabled={isSending}
-              onKeyDown={handleKeyDown}
-              className={cn(
-                "border-fixlyfy-border/50 focus:ring-2 focus:ring-fixlyfy/50 focus:border-fixlyfy focus:outline-none resize-none transition-all duration-200 bg-white shadow-sm",
-                isMobile ? "min-h-[80px] max-h-[120px] text-sm" : "min-h-[100px] max-h-[150px]"
-              )}
-              rows={isMobile ? 3 : 4}
-            />
-          </div>
-          
-          <Button 
-            onClick={handleSendEmail}
-            disabled={isSending || !message.trim()}
-            className={cn(
-              "bg-gradient-to-r from-fixlyfy to-fixlyfy-light hover:from-fixlyfy-light hover:to-fixlyfy text-white transition-all duration-200 shadow-sm hover:shadow-md flex-shrink-0",
-              isMobile ? "min-h-[44px] min-w-[44px] px-3" : "px-6 py-3"
-            )}
-          >
-            {isSending ? (
-              <div className="flex items-center gap-2">
-                <Loader2 className="w-4 h-4 animate-spin" />
-                {!isMobile && "Sending..."}
-              </div>
-            ) : (
-              <div className="flex items-center gap-2">
-                <Send className="h-4 w-4" />
-                {!isMobile && "Send"}
-              </div>
-            )}
+        <div>
+          <Label htmlFor="message">Message</Label>
+          <Textarea
+            id="message"
+            placeholder="Enter your message here"
+            value={message}
+            onChange={(e) => setMessage(e.target.value)}
+            className="min-h-[100px]"
+          />
+        </div>
+        <div className="flex items-center space-x-2">
+          <Button variant="outline" size="sm">
+            <Paperclip className="h-4 w-4 mr-2" />
+            Attach File
+          </Button>
+          <Badge variant="secondary">No files attached</Badge>
+        </div>
+        <Separator />
+        <div className="flex justify-end space-x-2">
+          <Button variant="ghost" onClick={onCancel}>
+            <X className="h-4 w-4 mr-2" />
+            Cancel
+          </Button>
+          <Button onClick={handleSend}>
+            Send
+            <Send className="h-4 w-4 ml-2" />
           </Button>
         </div>
-
-        {/* Helper Text */}
-        <p className={`${isMobile ? 'text-xs' : 'text-sm'} text-fixlyfy-text-muted`}>
-          {isMobile ? 'Tap' : 'Press'} {isMobile ? 'send' : 'Ctrl+Enter'} to send email
-        </p>
-      </div>
-    </div>
+      </CardContent>
+    </Card>
   );
 };
-

@@ -1,16 +1,10 @@
 
-export interface LineItem {
-  id: string;
-  description: string;
-  quantity: number;
-  unitPrice: number;
-  ourPrice?: number;
-  taxable: boolean;
-  total: number;
-  discount?: number;
-  name?: string;
-  price?: number;
-}
+// LEGACY COMPATIBILITY FILE
+// Import from unified types for consistency
+export type {
+  UnifiedLineItem as LineItem,
+  UnifiedClient as Client
+} from '@/types/unified';
 
 export interface Product {
   id: string;
@@ -28,11 +22,4 @@ export interface Product {
   tags?: string[]; // Add tags support
 }
 
-export interface EstimateLineItem extends LineItem {
-  discount: number;
-  ourPrice: number;
-}
-
-export interface InvoiceLineItem extends LineItem {
-  invoiceId?: string;
-}
+// Remove these problematic interfaces - use UnifiedLineItem directly

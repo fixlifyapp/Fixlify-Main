@@ -129,7 +129,6 @@ export const useInvoicePersistence = (
       const successMessage = formData.invoiceId ? "Invoice updated successfully" : "Invoice created successfully";
       toast.success(successMessage);
       
-      // Return standardized invoice object - only include properties that exist in Invoice interface
       const standardizedInvoice: Invoice = {
         id: invoice.id,
         job_id: invoice.job_id,
@@ -147,9 +146,9 @@ export const useInvoicePersistence = (
         items: invoice.items || [],
         tax_rate: invoice.tax_rate || taxRate,
         tax_amount: invoice.tax_amount || taxAmount,
-        discount_amount: invoice.discount_amount || 0,
         created_at: invoice.created_at,
-        updated_at: invoice.updated_at || invoice.created_at
+        updated_at: invoice.updated_at || invoice.created_at,
+        created_by: invoice.created_by || 'unknown' // Add required created_by field
       };
       
       console.log('✅ Invoice save process completed successfully');
