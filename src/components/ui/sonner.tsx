@@ -1,6 +1,5 @@
-
 import { useTheme } from "next-themes"
-import { Toaster as Sonner } from "sonner"
+import { Toaster as Sonner, toast as sonnerToast } from "sonner"
 import { lazy, Suspense } from "react"
 
 type ToasterProps = React.ComponentProps<typeof Sonner>
@@ -102,23 +101,22 @@ class NotificationBatcher {
   }
 
   private showNotification(type: string, message: string, options?: any) {
-    import('sonner').then(({ toast }) => {
-      switch (type) {
-        case 'success':
-          toast.success(message, options);
-          break;
-        case 'error':
-          toast.error(message, options);
-          break;
-        case 'warning':
-          toast.warning(message, options);
-          break;
-        case 'info':
-        default:
-          toast.info(message, options);
-          break;
-      }
-    });
+    // Use the statically imported toast instead of dynamic import
+    switch (type) {
+      case 'success':
+        sonnerToast.success(message, options);
+        break;
+      case 'error':
+        sonnerToast.error(message, options);
+        break;
+      case 'warning':
+        sonnerToast.warning(message, options);
+        break;
+      case 'info':
+      default:
+        sonnerToast.info(message, options);
+        break;
+    }
   }
 }
 

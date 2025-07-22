@@ -1,3 +1,5 @@
+import { toast } from '@/components/ui/sonner';
+
 interface RetryOptions {
   maxRetries: number;
   baseDelay: number;
@@ -107,28 +109,26 @@ export const withRetry = async <T>(
 export const handleJobsError = (error: any, context: string) => {
   console.error(`${context} error:`, error);
   
-  // Import toast dynamically to avoid circular dependencies
-  import('@/components/ui/sonner').then(({ toast }) => {
-    const errorMessage = error?.message || 'Unknown error occurred';
-    
-    if (errorMessage.includes('network') || errorMessage.includes('fetch')) {
-      // Network connection error toast disabled - too annoying for users
-      console.warn('Network connection issue detected but toast disabled');
-      /*
-      toast.error('Network connection issue. Please check your internet connection.', {
-        action: {
-          label: 'Retry',
-          onClick: () => window.location.reload()
-        }
-      });
-      */
-    } else if (errorMessage.includes('permission') || errorMessage.includes('unauthorized')) {
-      toast.error('Access denied. Please check your permissions.', {
-        action: {
-          label: 'Contact Support',
-          onClick: () => console.log('Contact support clicked')
-        }
-      });
+  const errorMessage = error?.message || 'Unknown error occurred';
+  
+  if (errorMessage.includes('network') || errorMessage.includes('fetch')) {
+    // Network connection error toast disabled - too annoying for users
+    console.warn('Network connection issue detected but toast disabled');
+    /*
+    toast.error('Network connection issue. Please check your internet connection.', {
+      action: {
+        label: 'Retry',
+        onClick: () => window.location.reload()
+      }
+    });
+    */
+  } else if (errorMessage.includes('permission') || errorMessage.includes('unauthorized')) {
+    toast.error('Access denied. Please check your permissions.', {
+      action: {
+        label: 'Contact Support',
+        onClick: () => console.log('Contact support clicked')
+      }
+    });
     } else if (errorMessage.includes('not authenticated') || errorMessage.includes('User not authenticated')) {
       toast.error('Please log in to view jobs.', {
         action: {
@@ -170,5 +170,4 @@ export const handleJobsError = (error: any, context: string) => {
         }
       });
     }
-  });
 };
