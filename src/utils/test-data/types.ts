@@ -11,7 +11,7 @@ export interface Client {
   zip: string;
   state: string;
   type: string;
-  status: string;
+  status: 'active' | 'inactive';
   notes?: string;
   tags?: string[];
   created_at?: string;

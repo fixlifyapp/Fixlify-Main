@@ -1,86 +1,74 @@
 
 import { useState, useEffect } from "react";
-import { useMessageContext } from "@/contexts/MessageContext";
+import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
 
 interface Message {
   id: string;
+  type: string;
+  direction: string;
   content: string;
-  timestamp: string;
-  type: 'sms' | 'email';
-  direction: 'inbound' | 'outbound';
-  status: 'sent' | 'delivered' | 'failed';
+  status: string;
+  created_at: string;
+  client_id: string;
+  from_address: string;
+  to_address: string;
 }
 
-export const useConversationMessaging = (clientId?: string) => {
+export const useConversationMessaging = (clientId: string) => {
+  const { user } = useAuth();
   const [messages, setMessages] = useState<Message[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const { sendMessage } = useMessageContext();
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    if (clientId) {
-      fetchMessages();
-    }
-  }, [clientId]);
+    if (!user || !clientId) return;
+    
+    fetchMessages();
+  }, [user, clientId]);
 
   const fetchMessages = async () => {
-    if (!clientId) return;
-    
+    if (!user || !clientId) return;
+
     try {
       setIsLoading(true);
-      
-      const { data: logs, error } = await supabase
+      const { data, error } = await supabase
         .from('communication_logs')
         .select('*')
+        .eq('user_id', user.id)
         .eq('client_id', clientId)
-        .order('created_at', { ascending: false })
-        .limit(50);
+        .order('created_at', { ascending: true });
 
       if (error) throw error;
 
-      const formattedMessages: Message[] = logs?.map(log => ({
-        id: log.id,
-        content: log.content || log.subject || 'No content',
-        timestamp: log.created_at,
-        type: log.communication_type as 'sms' | 'email',
-        direction: 'outbound', // Assuming all logged messages are outbound for now
-        status: log.status as 'sent' | 'delivered' | 'failed'
-      })) || [];
+      const formattedMessages: Message[] = (data || []).map(msg => ({
+        id: msg.id,
+        type: msg.type,
+        direction: msg.direction,
+        content: msg.content,
+        status: msg.status,
+        created_at: msg.created_at,
+        client_id: msg.client_id,
+        from_address: msg.from_address,
+        to_address: msg.to_address
+      }));
 
       setMessages(formattedMessages);
     } catch (error) {
       console.error('Error fetching messages:', error);
-      toast.error('Failed to load messages');
     } finally {
       setIsLoading(false);
     }
   };
 
-  const sendNewMessage = async (type: 'sms' | 'email', to: string, content: string, subject?: string) => {
-    try {
-      await sendMessage({
-        type,
-        to,
-        content,
-        subject,
-        clientId
-      });
-      
-      // Refresh messages after sending
-      await fetchMessages();
-      toast.success(`${type.toUpperCase()} sent successfully`);
-    } catch (error) {
-      console.error('Error sending message:', error);
-      toast.error('Failed to send message');
-      throw error;
-    }
+  const sendMessage = async (content: string, type: 'sms' | 'email') => {
+    // Implementation for sending messages
+    console.log('Sending message:', { content, type, clientId });
   };
 
   return {
     messages,
     isLoading,
-    sendNewMessage,
+    sendMessage,
     refreshMessages: fetchMessages
   };
 };

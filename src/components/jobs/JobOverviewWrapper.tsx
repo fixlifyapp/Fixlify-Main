@@ -1,34 +1,15 @@
-import React from 'react';
-import { useJob } from '@/hooks/useJob';
-import JobOverview from './JobOverview';
-import { Skeleton } from '@/components/ui/skeleton';
 
-interface JobOverviewWrapperProps {
-  jobId: string;
-}
+import { useParams } from "react-router-dom";
+import { JobOverview } from "./JobOverview";
 
-const JobOverviewWrapper: React.FC<JobOverviewWrapperProps> = ({ jobId }) => {
-  const { jobData, loading, error } = useJob(jobId);
-
-  if (loading) {
-    return (
-      <div className="space-y-4">
-        <Skeleton className="h-32 w-full" />
-        <Skeleton className="h-48 w-full" />
-        <Skeleton className="h-64 w-full" />
-      </div>
-    );
+export const JobOverviewWrapper = () => {
+  const { id } = useParams<{ id: string }>();
+  
+  if (!id) {
+    return <div>Job ID not found</div>;
   }
 
-  if (error || !jobData) {
-    return (
-      <div className="text-center py-8">
-        <p className="text-red-600">Failed to load job details</p>
-      </div>
-    );
-  }
-
-  return <JobOverview job={jobData} />;
+  return <JobOverview jobId={id} />;
 };
 
 export default JobOverviewWrapper;

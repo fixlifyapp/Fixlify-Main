@@ -1,313 +1,150 @@
 
-import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { PlusCircle, Pencil, Search, X, Trash, Download } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Dialog } from "@/components/ui/dialog";
-import { ProductEditDialog } from "./dialogs/ProductEditDialog";
-import { DeleteConfirmDialog } from "./dialogs/DeleteConfirmDialog";
-import { useProducts, Product } from "@/hooks/useProducts";
-import { Skeleton } from "@/components/ui/skeleton";
+import { useState, useEffect } from "react";
+import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Plus, Package } from "lucide-react";
 import { toast } from "sonner";
-import { useAuth } from "@/hooks/use-auth";
-import { LoadProductsButton } from "@/components/products/LoadProductsButton";
 
 interface JobProductsProps {
   jobId: string;
-  onDeleteProduct?: (productId: string) => void;
 }
 
-export const JobProducts = ({ jobId, onDeleteProduct }: JobProductsProps) => {
-  const [searchQuery, setSearchQuery] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
-  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
-  const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
-  const [productToDelete, setProductToDelete] = useState<string | null>(null);
-  const [isLoadingProducts, setIsLoadingProducts] = useState(false);
-  
+interface ProductInsertResult {
+  success: boolean;
+  inserted_count?: number;
+  business_niche?: string;
+  message?: string;
+  product_count?: number;
+}
+
+export const JobProducts = ({ jobId }: JobProductsProps) => {
   const { user } = useAuth();
-  
-  const { 
-    products, 
-    categories, 
-    isLoading, 
-    isDeleting,
-    createProduct, 
-    updateProduct, 
-    deleteProduct,
-    refreshProducts 
-  } = useProducts();
-  
-  const filteredProducts = products.filter(product => {
-    const matchesSearch = !searchQuery || 
-      product.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-      (product.description?.toLowerCase().includes(searchQuery.toLowerCase()) || false) ||
-      (product.tags && product.tags.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase())));
-    
-    const matchesCategory = !selectedCategory || product.category === selectedCategory;
-    
-    return matchesSearch && matchesCategory;
-  });
+  const [products, setProducts] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingNiche, setIsLoadingNiche] = useState(false);
 
-  const handleEditProduct = (product: Product) => {
-    setSelectedProduct(product);
-    setIsEditDialogOpen(true);
-  };
+  useEffect(() => {
+    fetchProducts();
+  }, [user]);
 
-  const handleCreateProduct = () => {
-    setSelectedProduct(null);
-    setIsCreateDialogOpen(true);
-  };
+  const fetchProducts = async () => {
+    if (!user) return;
 
-  const handleSaveProduct = async (product: any) => {
-    if (selectedProduct) {
-      // Editing existing product
-      await updateProduct(product.id, product);
-    } else {
-      // Creating new product
-      // Make sure cost has a default value for new products
-      const newProduct = {
-        ...product,
-        cost: product.cost ?? 0
-      };
-      await createProduct(newProduct);
-    }
-    setIsEditDialogOpen(false);
-    setIsCreateDialogOpen(false);
-  };
+    try {
+      setIsLoading(true);
+      const { data, error } = await supabase
+        .from('products')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('name');
 
-  const handleDeleteProduct = (productId: string) => {
-    if (onDeleteProduct) {
-      onDeleteProduct(productId);
-    } else {
-      setProductToDelete(productId);
-      setIsDeleteConfirmOpen(true);
-    }
-  };
-
-  const confirmDeleteProduct = async () => {
-    if (productToDelete) {
-      const success = await deleteProduct(productToDelete);
-      if (success) {
-        setIsDeleteConfirmOpen(false);
-        setProductToDelete(null);
-      }
+      if (error) throw error;
+      setProducts(data || []);
+    } catch (error) {
+      console.error('Error fetching products:', error);
+      toast.error('Failed to load products');
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const loadNicheProducts = async () => {
-    if (!user) {
-      toast.error("Please login to load products");
-      return;
-    }
+    if (!user) return;
 
-    setIsLoadingProducts(true);
     try {
+      setIsLoadingNiche(true);
+      
+      // Call the RPC function to load niche-specific products
       const { data, error } = await supabase.rpc('load_my_niche_products');
-      
+
       if (error) throw error;
+
+      // Type assertion with proper checking
+      const result = data as unknown;
       
-      if (data.success) {
-        toast.success(`Successfully loaded ${data.inserted_count || 0} products for ${data.business_niche}`);
-        refreshProducts();
-      } else if (data.message === 'Products already exist') {
-        toast.info(`You already have ${data.product_count} products for ${data.business_niche}`);
+      if (typeof result === 'object' && result !== null) {
+        const typedResult = result as ProductInsertResult;
+        
+        if (typedResult.success && typedResult.inserted_count) {
+          toast.success(`Added ${typedResult.inserted_count} products for ${typedResult.business_niche}`);
+        } else if (typedResult.message && typedResult.product_count !== undefined) {
+          toast.info(`${typedResult.message} (${typedResult.product_count} products for ${typedResult.business_niche})`);
+        } else {
+          toast.success('Products updated successfully');
+        }
       } else {
-        toast.error("Failed to load products");
+        toast.success('Products loaded successfully');
       }
-    } catch (error: any) {
+
+      // Refresh the products list
+      fetchProducts();
+    } catch (error) {
       console.error('Error loading niche products:', error);
-      toast.error(`Failed to load products: ${error.message}`);
+      toast.error('Failed to load niche products');
     } finally {
-      setIsLoadingProducts(false);
+      setIsLoadingNiche(false);
     }
   };
 
-  const getMarginPercentage = (product: Product) => {
-    const margin = product.price - (product.ourPrice || 0);
-    return margin > 0 ? ((margin / product.price) * 100).toFixed(0) : "0";
-  };
-
-  const getMarginColor = (percentage: number) => {
-    if (percentage < 20) return "text-red-500";
-    if (percentage < 40) return "text-orange-500";
-    return "text-green-500";
-  };
+  if (isLoading) {
+    return <div className="p-6">Loading products...</div>;
+  }
 
   return (
-    <Card className="border-fixlyfy-border shadow-sm">
-      <CardContent className="p-6">
-        <div className="flex justify-between items-center mb-6">
-          <h3 className="text-lg font-medium">Product Catalog</h3>
+    <Card>
+      <CardHeader>
+        <div className="flex justify-between items-center">
+          <CardTitle className="flex items-center gap-2">
+            <Package className="h-5 w-5" />
+            Products & Services
+          </CardTitle>
           <div className="flex gap-2">
-            {products.length === 0 && !isLoading && (
-              <Button 
-                onClick={loadNicheProducts} 
-                className="gap-2"
-                variant="outline"
-                disabled={isLoadingProducts}
-              >
-                <Download size={16} />
-                {isLoadingProducts ? "Loading..." : "Load Products for My Niche"}
-              </Button>
-            )}
-            <Button onClick={handleCreateProduct} className="gap-2">
-              <PlusCircle size={16} />
-              New Product
-            </Button>
-          </div>
-        </div>
-
-        <div className="space-y-4 mb-6">
-          <div>
-            <Label htmlFor="search-products" className="sr-only">Search Products</Label>
-            <div className="relative">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                id="search-products"
-                placeholder="Search products..."
-                className="pl-8"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-            </div>
-          </div>
-
-          <div className="flex flex-wrap gap-2">
-            <Button
-              variant={selectedCategory === null ? "default" : "outline"}
-              size="sm"
-              onClick={() => setSelectedCategory(null)}
-              className="text-xs h-7 px-2"
+            <Button 
+              variant="outline" 
+              onClick={loadNicheProducts}
+              disabled={isLoadingNiche}
             >
-              All
+              {isLoadingNiche ? 'Loading...' : 'Load Niche Products'}
             </Button>
-            {categories.map(category => (
-              <Button
-                key={category}
-                variant={selectedCategory === category ? "default" : "outline"}
-                size="sm"
-                onClick={() => setSelectedCategory(category)}
-                className="text-xs h-7 px-2"
-              >
-                {category}
-              </Button>
-            ))}
+            <Button>
+              <Plus className="h-4 w-4 mr-2" />
+              Add Product
+            </Button>
           </div>
         </div>
-
-        {isLoading ? (
-          <div className="space-y-3">
-            {[1, 2, 3].map(i => (
-              <Skeleton key={i} className="w-full h-16" />
-            ))}
+      </CardHeader>
+      <CardContent>
+        {products.length === 0 ? (
+          <div className="text-center py-8 text-muted-foreground">
+            <Package className="h-12 w-12 mx-auto mb-4 opacity-50" />
+            <p>No products added yet</p>
+            <p className="text-sm">Add products to use in estimates and invoices</p>
           </div>
-        ) : filteredProducts.length > 0 ? (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Product</TableHead>
-                <TableHead>Category</TableHead>
-                <TableHead className="text-right">Price</TableHead>
-                <TableHead className="text-right">Our Price</TableHead>
-                <TableHead className="text-right">Margin</TableHead>
-                <TableHead>Taxable</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredProducts.map((product) => (
-                <TableRow key={product.id}>
-                  <TableCell>
-                    <div>
-                      <p className="font-medium">{product.name}</p>
-                      <p className="text-sm text-muted-foreground">{product.description}</p>
-                      <div className="flex flex-wrap gap-1 mt-1">
-                        {product.tags && product.tags.map((tag, index) => (
-                          <Badge 
-                            key={index} 
-                            variant="outline" 
-                            className="text-[10px] py-0 h-5 bg-muted/50"
-                          >
-                            {tag}
-                          </Badge>
-                        ))}
-                      </div>
-                    </div>
-                  </TableCell>
-                  <TableCell>{product.category}</TableCell>
-                  <TableCell className="text-right">${product.price.toFixed(2)}</TableCell>
-                  <TableCell className="text-right">${(product.ourPrice || 0).toFixed(2)}</TableCell>
-                  <TableCell className="text-right">
-                    <span className={getMarginColor(parseInt(getMarginPercentage(product)))}>
-                      {getMarginPercentage(product)}%
-                    </span>
-                  </TableCell>
-                  <TableCell>
-                    {product.taxable ? "Yes" : "No"}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex justify-end gap-1">
-                      <Button 
-                        variant="ghost" 
-                        size="sm"
-                        onClick={() => handleEditProduct(product)}
-                      >
-                        <Pencil size={16} />
-                      </Button>
-                      <Button 
-                        variant="ghost" 
-                        size="sm"
-                        onClick={() => handleDeleteProduct(product.id)}
-                      >
-                        <Trash size={16} />
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
         ) : (
-          <div className="space-y-4">
-            <div className="text-center py-8 text-muted-foreground">
-              <p>No products found. Try adjusting your search or filters.</p>
-            </div>
-            {/* Show Load Products button if there are no products at all */}
-            {products.length === 0 && !isLoading && (
-              <LoadProductsButton onProductsLoaded={refreshProducts} />
-            )}
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {products.map((product) => (
+              <Card key={product.id} className="hover:shadow-sm transition-shadow">
+                <CardContent className="p-4">
+                  <div className="space-y-2">
+                    <h4 className="font-medium">{product.name}</h4>
+                    {product.description && (
+                      <p className="text-sm text-muted-foreground line-clamp-2">
+                        {product.description}
+                      </p>
+                    )}
+                    <div className="flex justify-between items-center">
+                      <Badge variant="outline">{product.category}</Badge>
+                      <span className="font-medium">${product.price}</span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
           </div>
         )}
-        
-        <ProductEditDialog
-          open={isEditDialogOpen || isCreateDialogOpen}
-          onOpenChange={(open) => {
-            setIsEditDialogOpen(open);
-            setIsCreateDialogOpen(open);
-          }}
-          product={selectedProduct}
-          onSave={handleSaveProduct}
-          categories={categories}
-        />
-
-        {/* Delete Confirmation Dialog */}
-        <Dialog open={isDeleteConfirmOpen} onOpenChange={setIsDeleteConfirmOpen}>
-          <DeleteConfirmDialog 
-            title="Delete Product"
-            description="Are you sure you want to delete this product? This action cannot be undone."
-            onOpenChange={setIsDeleteConfirmOpen}
-            onConfirm={confirmDeleteProduct}
-            isDeleting={isDeleting}
-          />
-        </Dialog>
       </CardContent>
     </Card>
   );

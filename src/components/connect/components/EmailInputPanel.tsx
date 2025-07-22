@@ -1,111 +1,88 @@
 
 import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
-import { Mail, Send } from "lucide-react";
-import { useMessageContext } from "@/contexts/MessageContext";
+import { Send, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
-interface EmailInputPanelProps {
-  clientId?: string;
-  recipientEmail?: string;
-  onEmailSent?: () => void;
+export interface EmailInputPanelProps {
+  clientEmail: string;
+  clientName: string;
+  onEmailSent: () => void;
 }
 
-export const EmailInputPanel = ({ clientId, recipientEmail, onEmailSent }: EmailInputPanelProps) => {
-  const [to, setTo] = useState(recipientEmail || "");
+export const EmailInputPanel = ({ clientEmail, clientName, onEmailSent }: EmailInputPanelProps) => {
+  const { user } = useAuth();
   const [subject, setSubject] = useState("");
   const [content, setContent] = useState("");
   const [isSending, setIsSending] = useState(false);
-  const { sendMessage } = useMessageContext();
 
   const handleSendEmail = async () => {
-    if (!to.trim() || !subject.trim() || !content.trim()) {
-      toast.error('Please fill in all fields');
+    if (!user || !subject.trim() || !content.trim()) {
+      toast.error("Please fill in all fields");
       return;
     }
 
     try {
       setIsSending(true);
-      await sendMessage({
-        type: 'email',
-        to: to.trim(),
-        subject: subject.trim(),
-        content: content.trim(),
-        clientId: clientId
+
+      // Call the send-email edge function
+      const { data, error } = await supabase.functions.invoke('send-email', {
+        body: {
+          to: clientEmail,
+          subject: subject,
+          content: content,
+          clientName: clientName
+        }
       });
-      
-      toast.success('Email sent successfully');
-      
-      // Clear form
-      setTo(recipientEmail || "");
+
+      if (error) throw error;
+
+      toast.success("Email sent successfully!");
       setSubject("");
       setContent("");
-      
-      if (onEmailSent) {
-        onEmailSent();
-      }
+      onEmailSent();
     } catch (error) {
       console.error('Error sending email:', error);
-      toast.error('Failed to send email');
+      toast.error("Failed to send email");
     } finally {
       setIsSending(false);
     }
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Mail className="h-5 w-5" />
+    <div className="space-y-4">
+      <div className="flex items-center gap-2">
+        <span className="text-sm font-medium">To:</span>
+        <span className="text-sm text-muted-foreground">{clientEmail} ({clientName})</span>
+      </div>
+
+      <Input
+        placeholder="Subject"
+        value={subject}
+        onChange={(e) => setSubject(e.target.value)}
+      />
+
+      <Textarea
+        placeholder="Write your email message..."
+        value={content}
+        onChange={(e) => setContent(e.target.value)}
+        rows={4}
+      />
+
+      <div className="flex justify-end">
+        <Button onClick={handleSendEmail} disabled={isSending}>
+          {isSending ? (
+            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+          ) : (
+            <Send className="h-4 w-4 mr-2" />
+          )}
           Send Email
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div>
-          <Label htmlFor="email-to">To</Label>
-          <Input
-            id="email-to"
-            type="email"
-            value={to}
-            onChange={(e) => setTo(e.target.value)}
-            placeholder="recipient@example.com"
-          />
-        </div>
-        
-        <div>
-          <Label htmlFor="email-subject">Subject</Label>
-          <Input
-            id="email-subject"
-            value={subject}
-            onChange={(e) => setSubject(e.target.value)}
-            placeholder="Email subject"
-          />
-        </div>
-        
-        <div>
-          <Label htmlFor="email-content">Message</Label>
-          <Textarea
-            id="email-content"
-            value={content}
-            onChange={(e) => setContent(e.target.value)}
-            placeholder="Type your email message here..."
-            rows={6}
-          />
-        </div>
-        
-        <Button 
-          onClick={handleSendEmail} 
-          disabled={isSending}
-          className="w-full"
-        >
-          <Send className="h-4 w-4 mr-2" />
-          {isSending ? 'Sending...' : 'Send Email'}
         </Button>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 };

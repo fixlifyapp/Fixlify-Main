@@ -41,9 +41,9 @@ export const JobMessages = ({ jobId }: JobMessagesProps) => {
           };
           setClient(clientData);
 
-          const clientConversation = conversations.find(conv => conv.client.id === clientData.id);
-          if (clientConversation) {
-            setMessages(clientConversation.messages);
+          const clientConversation = conversations.find(conv => conv.client?.id === clientData.id);
+          if (clientConversation && 'messages' in clientConversation) {
+            setMessages(clientConversation.messages || []);
           } else {
             setMessages([]);
           }

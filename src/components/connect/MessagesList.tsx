@@ -1,224 +1,201 @@
 
 import { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { MessageSquare, Search, Trash2, Archive, Phone, Mail } from "lucide-react";
-import { useMessageContext } from "@/contexts/MessageContext";
+import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Search, Filter, MessageSquare, Mail, Phone } from "lucide-react";
+import { formatDistanceToNow } from "date-fns";
 
-interface Message {
+interface MessageWithClient {
   id: string;
-  sender: string;
+  type: string;
+  direction: string;
   content: string;
-  timestamp: string;
-  type: 'sms' | 'email';
-  status: 'sent' | 'delivered' | 'failed';
+  status: string;
+  created_at: string;
+  client_id: string;
   client_name?: string;
-  phone_number?: string;
-  email?: string;
+  client_phone?: string;
+  client_email?: string;
 }
 
 export const MessagesList = () => {
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [filteredMessages, setFilteredMessages] = useState<Message[]>([]);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [selectedType, setSelectedType] = useState<'all' | 'sms' | 'email'>('all');
+  const { user } = useAuth();
+  const [messages, setMessages] = useState<MessageWithClient[]>([]);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [typeFilter, setTypeFilter] = useState<string>("all");
   const [isLoading, setIsLoading] = useState(true);
-  const { conversations } = useMessageContext();
 
   useEffect(() => {
     fetchMessages();
-  }, []);
-
-  useEffect(() => {
-    filterMessages();
-  }, [searchQuery, selectedType, messages]);
+  }, [user]);
 
   const fetchMessages = async () => {
+    if (!user) return;
+
     try {
       setIsLoading(true);
       
-      // Fetch communication logs
-      const { data: logs, error } = await supabase
+      // First get messages
+      const { data: messagesData, error: messagesError } = await supabase
         .from('communication_logs')
-        .select(`
-          *,
-          clients(name, phone, email)
-        `)
+        .select('*')
+        .eq('user_id', user.id)
         .order('created_at', { ascending: false })
-        .limit(100);
+        .limit(50);
 
-      if (error) throw error;
+      if (messagesError) throw messagesError;
 
-      const formattedMessages: Message[] = logs?.map(log => ({
-        id: log.id,
-        sender: log.clients?.name || 'Unknown',
-        content: log.content || log.subject || 'No content',
-        timestamp: log.created_at,
-        type: log.communication_type as 'sms' | 'email',
-        status: log.status as 'sent' | 'delivered' | 'failed',
-        client_name: log.clients?.name,
-        phone_number: log.clients?.phone,
-        email: log.clients?.email
-      })) || [];
+      // Then get client data for each message
+      const messagesWithClients: MessageWithClient[] = [];
+      
+      for (const message of messagesData || []) {
+        let clientData = null;
+        
+        if (message.client_id) {
+          const { data: client } = await supabase
+            .from('clients')
+            .select('name, phone, email')
+            .eq('id', message.client_id)
+            .single();
+          
+          clientData = client;
+        }
 
-      setMessages(formattedMessages);
+        messagesWithClients.push({
+          id: message.id,
+          type: message.type,
+          direction: message.direction,
+          content: message.content,
+          status: message.status,
+          created_at: message.created_at,
+          client_id: message.client_id,
+          client_name: clientData?.name,
+          client_phone: clientData?.phone,
+          client_email: clientData?.email
+        });
+      }
+
+      setMessages(messagesWithClients);
     } catch (error) {
       console.error('Error fetching messages:', error);
-      toast.error('Failed to load messages');
     } finally {
       setIsLoading(false);
     }
   };
 
-  const filterMessages = () => {
-    let filtered = messages;
+  const filteredMessages = messages.filter(message => {
+    const matchesSearch = message.content.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         (message.client_name?.toLowerCase().includes(searchTerm.toLowerCase())) ||
+                         (message.client_phone?.includes(searchTerm));
+    const matchesType = typeFilter === "all" || message.type === typeFilter;
+    
+    return matchesSearch && matchesType;
+  });
 
-    if (selectedType !== 'all') {
-      filtered = filtered.filter(msg => msg.type === selectedType);
-    }
-
-    if (searchQuery) {
-      filtered = filtered.filter(msg =>
-        msg.sender.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        msg.content.toLowerCase().includes(searchQuery.toLowerCase())
-      );
-    }
-
-    setFilteredMessages(filtered);
-  };
-
-  const handleArchiveMessage = async (messageId: string) => {
-    try {
-      const { error } = await supabase
-        .from('communication_logs')
-        .update({ status: 'archived' })
-        .eq('id', messageId);
-
-      if (error) throw error;
-
-      setMessages(prev => prev.filter(msg => msg.id !== messageId));
-      toast.success('Message archived');
-    } catch (error) {
-      console.error('Error archiving message:', error);
-      toast.error('Failed to archive message');
+  const getMessageIcon = (type: string) => {
+    switch (type) {
+      case 'email': return <Mail className="h-4 w-4" />;
+      case 'sms': return <MessageSquare className="h-4 w-4" />;
+      case 'call': return <Phone className="h-4 w-4" />;
+      default: return <MessageSquare className="h-4 w-4" />;
     }
   };
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'sent': return 'bg-blue-100 text-blue-700';
-      case 'delivered': return 'bg-green-100 text-green-700';
-      case 'failed': return 'bg-red-100 text-red-700';
-      default: return 'bg-gray-100 text-gray-700';
+      case 'delivered': return 'default';
+      case 'failed': return 'destructive';
+      case 'pending': return 'secondary';
+      default: return 'secondary';
     }
   };
 
-  const getTypeIcon = (type: string) => {
-    return type === 'sms' ? <Phone className="h-4 w-4" /> : <Mail className="h-4 w-4" />;
-  };
-
   if (isLoading) {
-    return <div className="flex justify-center p-8">Loading messages...</div>;
+    return <div className="p-6">Loading messages...</div>;
   }
 
   return (
-    <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <MessageSquare className="h-5 w-5" />
-            Recent Messages
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex gap-4 mb-6">
-            <div className="flex-1">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                <Input
-                  placeholder="Search messages..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
-            </div>
-            <div className="flex gap-2">
-              <Button
-                variant={selectedType === 'all' ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setSelectedType('all')}
-              >
-                All
-              </Button>
-              <Button
-                variant={selectedType === 'sms' ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setSelectedType('sms')}
-              >
-                SMS
-              </Button>
-              <Button
-                variant={selectedType === 'email' ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setSelectedType('email')}
-              >
-                Email
-              </Button>
-            </div>
-          </div>
+    <div className="space-y-4">
+      <div className="flex justify-between items-center">
+        <h2 className="text-xl font-semibold">Messages</h2>
+        <Button>
+          <MessageSquare className="h-4 w-4 mr-2" />
+          New Message
+        </Button>
+      </div>
 
-          <div className="space-y-4">
-            {filteredMessages.length === 0 ? (
-              <div className="text-center py-8 text-gray-500">
-                No messages found
-              </div>
-            ) : (
-              filteredMessages.map((message) => (
-                <div
-                  key={message.id}
-                  className="border rounded-lg p-4 hover:bg-gray-50 transition-colors"
-                >
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-2">
-                        {getTypeIcon(message.type)}
-                        <span className="font-medium">{message.sender}</span>
-                        <Badge className={`text-xs ${getStatusColor(message.status)}`}>
-                          {message.status}
-                        </Badge>
-                        <span className="text-sm text-gray-500">
-                          {new Date(message.timestamp).toLocaleString()}
-                        </span>
-                      </div>
-                      <p className="text-gray-700 mb-2">{message.content}</p>
-                      {message.phone_number && (
-                        <p className="text-sm text-gray-500">Phone: {message.phone_number}</p>
-                      )}
-                      {message.email && (
-                        <p className="text-sm text-gray-500">Email: {message.email}</p>
-                      )}
+      <div className="flex gap-4 items-center">
+        <div className="relative flex-1 max-w-md">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search messages..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-10"
+          />
+        </div>
+        
+        <select
+          value={typeFilter}
+          onChange={(e) => setTypeFilter(e.target.value)}
+          className="px-3 py-2 border rounded-md"
+        >
+          <option value="all">All Types</option>
+          <option value="sms">SMS</option>
+          <option value="email">Email</option>
+          <option value="call">Call</option>
+        </select>
+      </div>
+
+      <div className="space-y-3">
+        {filteredMessages.map((message) => (
+          <Card key={message.id} className="hover:shadow-sm transition-shadow">
+            <CardContent className="p-4">
+              <div className="flex items-start justify-between">
+                <div className="flex items-start gap-3 flex-1">
+                  <div className="mt-1">
+                    {getMessageIcon(message.type)}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="font-medium text-sm">
+                        {message.client_name || 'Unknown Client'}
+                      </span>
+                      <Badge variant={getStatusColor(message.status)} className="text-xs">
+                        {message.status}
+                      </Badge>
+                      <Badge variant="outline" className="text-xs">
+                        {message.direction}
+                      </Badge>
                     </div>
-                    <div className="flex gap-2">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleArchiveMessage(message.id)}
-                      >
-                        <Archive className="h-4 w-4" />
-                      </Button>
-                    </div>
+                    <p className="text-sm text-muted-foreground mb-1">
+                      {message.client_phone || message.client_email}
+                    </p>
+                    <p className="text-sm line-clamp-2">
+                      {message.content}
+                    </p>
                   </div>
                 </div>
-              ))
-            )}
-          </div>
-        </CardContent>
-      </Card>
+                <div className="text-xs text-muted-foreground ml-4">
+                  {formatDistanceToNow(new Date(message.created_at), { addSuffix: true })}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      {filteredMessages.length === 0 && (
+        <div className="text-center py-8 text-muted-foreground">
+          {searchTerm || typeFilter !== "all" 
+            ? "No messages found matching your criteria"
+            : "No messages yet"}
+        </div>
+      )}
     </div>
   );
 };

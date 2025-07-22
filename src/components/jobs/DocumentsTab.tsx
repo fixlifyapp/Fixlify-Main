@@ -1,28 +1,34 @@
-import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { FileText } from 'lucide-react';
-import type { Job } from '@/types/job.types';
+
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { FileText, Plus, Download, Share } from "lucide-react";
 
 interface DocumentsTabProps {
-  job: Job;
+  jobId: string;
 }
 
-const DocumentsTab: React.FC<DocumentsTabProps> = ({ job }) => {
+export const DocumentsTab = ({ jobId }: DocumentsTabProps) => {
   return (
-    <div className="space-y-6">
-      <Card>
-        <CardHeader>
+    <Card>
+      <CardHeader>
+        <div className="flex justify-between items-center">
           <CardTitle className="flex items-center gap-2">
             <FileText className="h-5 w-5" />
             Documents
           </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-muted-foreground">No documents uploaded yet.</p>
-        </CardContent>
-      </Card>
-    </div>
+          <Button>
+            <Plus className="h-4 w-4 mr-2" />
+            Add Document
+          </Button>
+        </div>
+      </CardHeader>
+      <CardContent>
+        <div className="text-center py-8 text-muted-foreground">
+          <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
+          <p>No documents uploaded yet</p>
+          <p className="text-sm">Upload contracts, photos, or other job-related files</p>
+        </div>
+      </CardContent>
+    </Card>
   );
 };
-
-export default DocumentsTab;

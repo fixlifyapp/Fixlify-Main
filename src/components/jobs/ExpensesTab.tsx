@@ -1,28 +1,34 @@
-import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { DollarSign } from 'lucide-react';
-import type { Job } from '@/types/job.types';
+
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { DollarSign, Plus } from "lucide-react";
 
 interface ExpensesTabProps {
-  job: Job;
+  jobId: string;
 }
 
-const ExpensesTab: React.FC<ExpensesTabProps> = ({ job }) => {
+export const ExpensesTab = ({ jobId }: ExpensesTabProps) => {
   return (
-    <div className="space-y-6">
-      <Card>
-        <CardHeader>
+    <Card>
+      <CardHeader>
+        <div className="flex justify-between items-center">
           <CardTitle className="flex items-center gap-2">
             <DollarSign className="h-5 w-5" />
             Expenses
           </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-muted-foreground">No expenses recorded yet.</p>
-        </CardContent>
-      </Card>
-    </div>
+          <Button>
+            <Plus className="h-4 w-4 mr-2" />
+            Add Expense
+          </Button>
+        </div>
+      </CardHeader>
+      <CardContent>
+        <div className="text-center py-8 text-muted-foreground">
+          <DollarSign className="h-12 w-12 mx-auto mb-4 opacity-50" />
+          <p>No expenses recorded yet</p>
+          <p className="text-sm">Track materials, labor, and other job costs</p>
+        </div>
+      </CardContent>
+    </Card>
   );
 };
-
-export default ExpensesTab;
