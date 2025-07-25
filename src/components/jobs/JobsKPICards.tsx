@@ -1,7 +1,5 @@
-import { useEffect, useState } from "react";
+import { useMemo } from "react";
 import { useJobs } from "@/hooks/useJobs";
-import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/hooks/use-auth";
 import { Briefcase, CheckCircle, Clock, TrendingUp } from "lucide-react";
 
 interface JobsKPICardsProps {
@@ -10,114 +8,62 @@ interface JobsKPICardsProps {
 
 export const JobsKPICards = ({ className }: JobsKPICardsProps) => {
   const { jobs, isLoading: jobsLoading } = useJobs();
-  const { user } = useAuth();
-  const [stats, setStats] = useState({
-    totalJobs: 0,
-    activeJobs: 0,
-    completedThisMonth: 0,
-    completionRate: 0
-  });
-  const [isLoadingStats, setIsLoadingStats] = useState(true);
 
-  useEffect(() => {
-    if (!user?.id || jobsLoading) return;
-    fetchStats();
-  }, [user?.id, jobs, jobsLoading]);
-
-  const fetchStats = async () => {
-    if (!user?.id) return;
-
-    setIsLoadingStats(true);
-    try {
-      console.log('Fetching job stats for user:', user.id);
-      console.log('Current jobs:', jobs);
-      
-      // Total jobs
-      const totalJobs = jobs.length;
-
-      // Log all unique statuses to debug
-      const uniqueStatuses = [...new Set(jobs.map(job => job.status))];
-      console.log('Unique job statuses in data:', uniqueStatuses);
-
-      // Active jobs (in-progress, scheduled, not-started)
-      const activeJobs = jobs.filter(job => {
-        const isActive = ['in-progress', 'scheduled', 'not-started', 'pending'].includes(job.status?.toLowerCase() || '');
-        console.log(`Job ${job.id} status: ${job.status}, isActive: ${isActive}`);
-        return isActive;
-      }).length;
-
-      // Completed this month
-      const now = new Date();
-      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-      const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
-      
-      console.log('Date range for this month:', {
-        start: startOfMonth.toISOString(),
-        end: endOfMonth.toISOString()
-      });
-
-      const { count: completedThisMonth, error: completedError } = await supabase
-        .from('jobs')
-        .select('*', { count: 'exact', head: true })
-        .eq('user_id', user.id)
-        .ilike('status', 'completed')
-        .gte('updated_at', startOfMonth.toISOString());
-
-      if (completedError) {
-        console.error('Error fetching completed jobs:', completedError);
-      }
-
-      // Completion rate (last 30 days)
-      const thirtyDaysAgo = new Date();
-      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-
-      const { count: totalLast30, error: totalError } = await supabase
-        .from('jobs')
-        .select('*', { count: 'exact', head: true })
-        .eq('user_id', user.id)
-        .gte('created_at', thirtyDaysAgo.toISOString());
-
-      if (totalError) {
-        console.error('Error fetching total jobs last 30 days:', totalError);
-      }
-
-      const { count: completedLast30, error: completedLast30Error } = await supabase
-        .from('jobs')
-        .select('*', { count: 'exact', head: true })
-        .eq('user_id', user.id)
-        .ilike('status', 'completed')
-        .gte('created_at', thirtyDaysAgo.toISOString());
-
-      if (completedLast30Error) {
-        console.error('Error fetching completed jobs last 30 days:', completedLast30Error);
-      }
-
-      const completionRate = totalLast30 > 0 
-        ? Math.round((completedLast30 || 0) / totalLast30 * 100)
-        : 0;
-
-      // If no jobs exist, show demo data for visualization
-      const finalStats = totalJobs === 0 ? {
+  // Calculate stats directly from jobs data using useMemo for performance
+  const stats = useMemo(() => {
+    if (!jobs || jobs.length === 0 || jobsLoading) {
+      return {
         totalJobs: 0,
         activeJobs: 0,
         completedThisMonth: 0,
         completionRate: 0
-      } : {
-        totalJobs,
-        activeJobs,
-        completedThisMonth: completedThisMonth || 0,
-        completionRate
       };
-
-      console.log('Stats calculated:', finalStats);
-
-      setStats(finalStats);
-    } catch (error) {
-      console.error('Error fetching job stats:', error);
-    } finally {
-      setIsLoadingStats(false);
     }
-  };
+
+    // Total jobs
+    const totalJobs = jobs.length;
+
+    // Active jobs (not completed or cancelled)
+    const activeJobs = jobs.filter(job => {
+      const status = job.status?.toLowerCase() || '';
+      return !['completed', 'cancelled', 'closed'].includes(status);
+    }).length;
+
+    // Completed this month - calculate from existing jobs data
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    
+    const completedThisMonth = jobs.filter(job => {
+      const status = job.status?.toLowerCase() || '';
+      const updatedAt = job.updated_at ? new Date(job.updated_at) : null;
+      return status === 'completed' && updatedAt && updatedAt >= startOfMonth;
+    }).length;
+
+    // Completion rate (last 30 days) - calculate from existing jobs data
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    
+    const jobsLast30Days = jobs.filter(job => {
+      const createdAt = job.created_at ? new Date(job.created_at) : null;
+      return createdAt && createdAt >= thirtyDaysAgo;
+    });
+
+    const completedLast30Days = jobsLast30Days.filter(job => {
+      const status = job.status?.toLowerCase() || '';
+      return status === 'completed';
+    }).length;
+
+    const completionRate = jobsLast30Days.length > 0 
+      ? Math.round((completedLast30Days / jobsLast30Days.length) * 100)
+      : 0;
+
+    return {
+      totalJobs,
+      activeJobs,
+      completedThisMonth,
+      completionRate
+    };
+  }, [jobs, jobsLoading]);
 
   const kpiCards = [
     {
@@ -158,7 +104,7 @@ export const JobsKPICards = ({ className }: JobsKPICardsProps) => {
     }
   ];
 
-  if (isLoadingStats || jobsLoading) {
+  if (jobsLoading) {
     return (
       <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 ${className}`}>
         {[...Array(4)].map((_, index) => (
