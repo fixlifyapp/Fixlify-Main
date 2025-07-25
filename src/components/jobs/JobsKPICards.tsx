@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { useJobs } from "@/hooks/useJobs";
+import { useJobs } from "@/hooks/use-jobs";
 import { Briefcase, CheckCircle, Clock, TrendingUp } from "lucide-react";
 
 interface JobsKPICardsProps {
