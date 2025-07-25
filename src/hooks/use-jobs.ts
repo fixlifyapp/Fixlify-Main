@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { useOrganization } from './use-organization';
+import { useAuth } from './use-auth';
 
 export interface Job {
   id: string;
@@ -14,30 +14,23 @@ export interface Job {
 }
 
 export const useJobs = () => {
-  const { organization } = useOrganization();
+  const { user, isAuthenticated } = useAuth();
 
   return useQuery({
-    queryKey: ['jobs', organization?.id],
+    queryKey: ['jobs', user?.id],
     queryFn: async () => {
-      // Get user's profile first to match the organization
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('user_id')
-        .eq('organization_id', organization?.id)
-        .single();
-
-      if (!profile?.user_id) return [];
+      if (!isAuthenticated || !user?.id) return [];
 
       const { data, error } = await supabase
         .from('jobs')
         .select('*')
-        .eq('user_id', profile.user_id)
+        .or(`user_id.eq.${user.id},created_by.eq.${user.id}`)
         .order('created_at', { ascending: false })
-        .limit(100); // Limit to recent jobs for performance
+        .limit(100);
 
       if (error) throw error;
       return data as Job[];
     },
-    enabled: !!organization?.id,
+    enabled: !!isAuthenticated && !!user?.id,
   });
 };
