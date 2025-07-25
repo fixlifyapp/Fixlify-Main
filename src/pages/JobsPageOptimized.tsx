@@ -19,6 +19,7 @@ import { JobsList } from "@/components/jobs/JobsList";
 import { JobsFilters } from "@/components/jobs/JobsFilters";
 import { BulkActionsBar } from "@/components/jobs/BulkActionsBar";
 import { ScheduleJobModal } from "@/components/schedule/ScheduleJobModal";
+import { JobsKPICards } from "@/components/jobs/JobsKPICards";
 import { useJobsConsolidated } from "@/hooks/useJobsConsolidated";
 import { useJobs } from "@/hooks/useJobs";
 import { toast } from "sonner";
@@ -208,6 +209,10 @@ const JobsPageOptimized = () => {
             onClick: () => setIsCreateJobModalOpen(true)
           }}
         />
+      </AnimatedContainer>
+      
+      <AnimatedContainer animation="fade-in" delay={150}>
+        <JobsKPICards className="mb-6" />
       </AnimatedContainer>
       
       <AnimatedContainer animation="fade-in" delay={200}>

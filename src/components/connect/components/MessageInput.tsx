@@ -1,77 +1,78 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Send } from "lucide-react";
-import { useMessageContext } from "@/contexts/MessageContext";
-import { toast } from "sonner";
+import { Send, Paperclip } from "lucide-react";
 
 interface MessageInputProps {
-  clientId: string;
-  clientPhone?: string;
-  clientEmail?: string;
-  messageType: 'sms' | 'email';
-  onMessageSent?: () => void;
+  onSend: (message: string) => Promise<void>;
+  disabled?: boolean;
+  placeholder?: string;
 }
 
 export const MessageInput = ({ 
-  clientId, 
-  clientPhone, 
-  clientEmail, 
-  messageType, 
-  onMessageSent 
+  onSend, 
+  disabled = false,
+  placeholder = "Type your message..."
 }: MessageInputProps) => {
   const [message, setMessage] = useState("");
   const [isSending, setIsSending] = useState(false);
-  const { sendMessage } = useMessageContext();
 
-  const handleSendMessage = async () => {
-    if (!message.trim()) {
-      toast.error('Please enter a message');
-      return;
-    }
-
-    const recipient = messageType === 'sms' ? clientPhone : clientEmail;
-    if (!recipient) {
-      toast.error(`Client has no ${messageType === 'sms' ? 'phone number' : 'email address'}`);
-      return;
-    }
+  const handleSend = async () => {
+    if (!message.trim() || isSending) return;
 
     try {
       setIsSending(true);
-      await sendMessage({
-        type: messageType,
-        to: recipient,
-        content: message.trim(),
-        clientId: clientId
-      });
-      
-      toast.success(`${messageType.toUpperCase()} sent successfully`);
+      await onSend(message.trim());
       setMessage("");
-      
-      if (onMessageSent) {
-        onMessageSent();
-      }
-    } catch (error) {
-      console.error('Error sending message:', error);
-      toast.error('Failed to send message');
     } finally {
       setIsSending(false);
     }
   };
 
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSend();
+    }
+  };
+
   return (
-    <div className="flex gap-2">
-      <Textarea
-        value={message}
-        onChange={(e) => setMessage(e.target.value)}
-        placeholder={`Type your ${messageType} message here...`}
-        rows={2}
-        className="flex-1"
-      />
-      <Button onClick={handleSendMessage} disabled={isSending || !message.trim()}>
-        <Send className="h-4 w-4" />
-      </Button>
+    <div className="flex gap-2 items-end">
+      <div className="flex-1">
+        <Textarea
+          value={message}
+          onChange={(e) => setMessage(e.target.value)}
+          onKeyDown={handleKeyDown}
+          placeholder={placeholder}
+          rows={1}
+          disabled={disabled || isSending}
+          className="min-h-[40px] max-h-[120px] resize-none"
+        />
+      </div>
+      <div className="flex gap-2">
+        <Button
+          size="icon"
+          variant="ghost"
+          disabled={disabled}
+          className="h-10 w-10"
+        >
+          <Paperclip className="h-4 w-4" />
+        </Button>
+        <Button
+          size="icon"
+          onClick={handleSend}
+          disabled={disabled || isSending || !message.trim()}
+          className={`
+            h-10 w-10
+            ${!message.trim() || disabled || isSending
+              ? ''
+              : 'bg-gradient-to-r from-violet-600 to-purple-600 text-white hover:from-violet-700 hover:to-purple-700'
+            }
+          `}
+        >
+          <Send className="h-4 w-4" />
+        </Button>
+      </div>
     </div>
   );
 };

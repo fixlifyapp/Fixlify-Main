@@ -24,18 +24,19 @@ const supabaseClient = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE
 // Override the channel method to prevent sms_messages subscriptions
 const originalChannel = supabaseClient.channel.bind(supabaseClient);
 supabaseClient.channel = function(name: string, opts?: any) {
-  // Block any channel related to sms_messages
-  if (name.includes('sms') || name.includes('messages')) {
-    console.log('Blocked realtime subscription for:', name);
+  // Only block SMS-specific channels, not all messages
+  if (name.includes('sms') && !name.includes('email')) {
+    console.log('Blocked SMS realtime subscription for:', name);
     // Return a mock channel that does nothing
-    return {
-      on: () => this,
+    const mockChannel = {
+      on: () => mockChannel,
       subscribe: () => ({ status: 'SUBSCRIBED' }),
       unsubscribe: () => {},
       presenceState: () => ({}),
       track: () => {},
       untrack: () => {}
     } as any;
+    return mockChannel;
   }
   return originalChannel(name, opts);
 };

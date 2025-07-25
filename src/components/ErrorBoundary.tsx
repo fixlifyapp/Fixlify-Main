@@ -1,55 +1,42 @@
-import React, { Component, ErrorInfo, ReactNode } from 'react';
-import { Button } from '@/components/ui/button';
-import { AlertTriangle } from 'lucide-react';
+import React from 'react';
 
-interface Props {
-  children: ReactNode;
-}
-
-interface State {
+interface ErrorBoundaryState {
   hasError: boolean;
-  error: Error | null;
+  error?: Error;
 }
 
-export class ErrorBoundary extends Component<Props, State> {
-  public state: State = {
-    hasError: false,
-    error: null
-  };
+export class ErrorBoundary extends React.Component<
+  { children: React.ReactNode },
+  ErrorBoundaryState
+> {
+  constructor(props: { children: React.ReactNode }) {
+    super(props);
+    this.state = { hasError: false };
+  }
 
-  public static getDerivedStateFromError(error: Error): State {
+  static getDerivedStateFromError(error: Error): ErrorBoundaryState {
     return { hasError: true, error };
   }
 
-  public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    console.error('Uncaught error:', error, errorInfo);
+  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+    console.error('Error caught by boundary:', error, errorInfo);
   }
 
-  private handleReset = () => {
-    this.setState({ hasError: false, error: null });
-    window.location.reload();
-  };
-
-  public render() {
+  render() {
     if (this.state.hasError) {
       return (
-        <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
-          <div className="max-w-md w-full p-6 bg-white dark:bg-gray-800 rounded-lg shadow-lg">
-            <div className="flex items-center justify-center w-12 h-12 mx-auto bg-red-100 dark:bg-red-900/20 rounded-full mb-4">
-              <AlertTriangle className="w-6 h-6 text-red-600 dark:text-red-400" />
-            </div>
-            <h2 className="text-xl font-semibold text-center text-gray-900 dark:text-white mb-2">
-              Something went wrong
-            </h2>
-            <p className="text-sm text-gray-600 dark:text-gray-400 text-center mb-4">
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="text-center p-8">
+            <h1 className="text-2xl font-bold mb-4">Something went wrong</h1>
+            <p className="text-gray-600 mb-4">
               {this.state.error?.message || 'An unexpected error occurred'}
             </p>
-            <Button 
-              onClick={this.handleReset}
-              className="w-full"
+            <button
+              onClick={() => window.location.href = '/dashboard'}
+              className="px-4 py-2 bg-primary text-white rounded hover:bg-primary/90"
             >
-              Reload Page
-            </Button>
+              Go to Dashboard
+            </button>
           </div>
         </div>
       );

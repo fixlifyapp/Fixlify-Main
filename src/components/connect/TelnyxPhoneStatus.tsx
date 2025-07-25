@@ -13,21 +13,29 @@ export function TelnyxPhoneStatus() {
   const { user } = useAuth();
   const [showPurchase, setShowPurchase] = useState(false);
 
-  // Get user's phone numbers
+  // Get user's phone numbers from the existing phone_numbers table
   const { data: userNumbers = [], isLoading } = useQuery({
-    queryKey: ['user-telnyx-numbers', user?.id],
+    queryKey: ['user-phone-numbers', user?.id],
     queryFn: async () => {
       if (!user?.id) return [];
       
-      const { data, error } = await supabase
-        .from('telnyx_phone_numbers')
-        .select('*')
-        .eq('user_id', user.id)
-        .eq('status', 'active')
-        .order('purchased_at', { ascending: false });
+      try {
+        const { data, error } = await supabase
+          .from('phone_numbers')
+          .select('*')
+          .eq('user_id', user.id)
+          .eq('status', 'purchased')
+          .order('purchased_at', { ascending: false });
 
-      if (error) throw error;
-      return data || [];
+        if (error) {
+          console.log('Error fetching phone numbers:', error);
+          return [];
+        }
+        return data || [];
+      } catch (error) {
+        console.log('Phone numbers query failed:', error);
+        return [];
+      }
     },
     enabled: !!user?.id
   });

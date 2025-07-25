@@ -1,7 +1,5 @@
-import { ConnectCenter } from "@/components/connect-center/ConnectCenter";
+// This file has been replaced by ConnectCenterPage.tsx
+// Please use ConnectCenterPage instead
+import ConnectCenterPage from "./ConnectCenterPage";
 
-const ConnectCenterPageOptimized = () => {
-  return <ConnectCenter />;
-};
-
-export default ConnectCenterPageOptimized;
+export default ConnectCenterPage;

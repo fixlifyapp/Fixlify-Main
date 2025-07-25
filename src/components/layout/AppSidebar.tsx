@@ -53,9 +53,9 @@ export function AppSidebar() {
     href: '/finance',
     color: "text-fixlyfy"
   }, {
-    label: 'Connect Center',
+    label: 'Connect',
     icon: MessageSquare,
-    href: '/communications',
+    href: '/connect',
     color: "text-fixlyfy"
   }, {
     label: 'AI Center',

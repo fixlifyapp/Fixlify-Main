@@ -124,7 +124,23 @@ serve(async (req) => {
       .single();
       
     const companyName = profile?.company_name || "Your Service Company";
-    const companyEmail = profile?.company_email || "noreply@fixlify.app";
+    
+    // Generate dynamic company email if not set
+    let companyEmail = profile?.company_email;
+    if (!companyEmail && profile?.company_name) {
+      const formattedName = profile.company_name
+        .toLowerCase()
+        .trim()
+        .replace(/[\s\-&+.,()]+/g, '_')
+        .replace(/[^a-z0-9_]/g, '')
+        .replace(/_+/g, '_')
+        .replace(/^_+|_+$/g, '')
+        .substring(0, 30) || 'support';
+      companyEmail = `${formattedName}@fixlify.app`;
+    } else if (!companyEmail) {
+      companyEmail = "noreply@fixlify.app";
+    }
+    
     const toEmail = recipientEmail || estimate.jobs?.clients?.email;
     
     if (!toEmail) {

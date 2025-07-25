@@ -35,9 +35,9 @@ export const ConnectTestStatus = () => {
 
       const databaseStatus = !dbError;
 
-      // Test Telnyx phone numbers
+      // Test phone numbers from the existing phone_numbers table
       const { data: phoneNumbers, error: phoneError } = await supabase
-        .from('telnyx_phone_numbers')
+        .from('phone_numbers')
         .select('*')
         .eq('status', 'purchased');
 

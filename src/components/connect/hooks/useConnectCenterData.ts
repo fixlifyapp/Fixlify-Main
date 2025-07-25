@@ -25,22 +25,24 @@ export const useConnectCenterData = () => {
 
   const loadUnreadCounts = async () => {
     try {
-      // Get unread messages count
+      // Get unread SMS messages count
       const { data: messagesData } = await supabase
-        .from('messages')
+        .from('sms_messages')
         .select('id')
+        .eq('direction', 'inbound')
         .is('read_at', null);
 
       // Get unread emails count
       const { data: emailsData } = await supabase
-        .from('emails')
+        .from('email_messages')
         .select('id')
+        .eq('direction', 'inbound')
         .eq('is_read', false);
 
-      // Get new calls count (calls from today)
+      // Get new calls count from call_logs table
       const today = new Date().toISOString().split('T')[0];
       const { data: callsData } = await supabase
-        .from('telnyx_calls')
+        .from('call_logs')
         .select('id')
         .gte('created_at', today);
 
@@ -51,20 +53,26 @@ export const useConnectCenterData = () => {
       });
     } catch (error) {
       console.error('Error loading unread counts:', error);
+      setUnreadCounts({ messages: 0, calls: 0, emails: 0 });
     }
   };
 
   const loadOwnedNumbers = async () => {
     try {
       const { data, error } = await supabase
-        .from('telnyx_phone_numbers')
+        .from('phone_numbers')
         .select('id, phone_number, status')
-        .eq('status', 'owned');
+        .eq('status', 'purchased');
 
-      if (error) throw error;
+      if (error) {
+        console.log('Error loading phone numbers:', error);
+        setOwnedNumbers([]);
+        return;
+      }
       setOwnedNumbers(data || []);
     } catch (error) {
       console.error('Error loading phone numbers:', error);
+      setOwnedNumbers([]);
     }
   };
 

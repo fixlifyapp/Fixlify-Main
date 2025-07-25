@@ -49,7 +49,7 @@ export function Sidebar({
     href: '/finance',
     color: "text-fixlyfy"
   }, {
-    label: 'Connect Center',
+    label: 'Connect',
     icon: MessageSquare,
     href: '/connect',
     color: "text-fixlyfy"

@@ -33,10 +33,8 @@ serve(async (req) => {
     const emailRequest: EmailRequest = await req.json();
     console.log('Received email request for:', emailRequest.to);
     
-    // Get Mailgun credentials from environment variables
+    // Get Mailgun API key (the only global setting we need)
     const mailgunApiKey = Deno.env.get('MAILGUN_API_KEY');
-    const mailgunDomain = Deno.env.get('MAILGUN_DOMAIN') || 'fixlify.app';
-    const mailgunFrom = Deno.env.get('MAILGUN_FROM_EMAIL') || 'noreply@fixlify.app';
     
     // For testing purposes, if Mailgun is not configured, we'll simulate the email
     const isTestMode = !mailgunApiKey;
@@ -45,18 +43,52 @@ serve(async (req) => {
       console.log('WARNING: Mailgun not configured, running in test mode');
     }
     
-    // Initialize Supabase client for logging
+    // Initialize Supabase client for user data and logging
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
     let supabase = null;
     
     if (supabaseUrl && supabaseServiceKey) {
       supabase = createClient(supabaseUrl, supabaseServiceKey);
+    }
+    
+    // Get user-specific email settings
+    let userEmailDomain = 'fixlify.app';
+    let fromEmail = emailRequest.from || 'noreply@fixlify.app';
+    
+    if (supabase && emailRequest.userId) {
+      try {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('company_name, company_email')
+          .eq('id', emailRequest.userId)
+          .single();
+          
+        if (profile?.company_name) {
+          // Generate dynamic email based on company name
+          const formattedCompanyName = profile.company_name
+            .toLowerCase()
+            .trim()
+            .replace(/[\s\-&+.,()]+/g, '_')
+            .replace(/[^a-z0-9_]/g, '')
+            .replace(/_+/g, '_')
+            .replace(/^_+|_+$/g, '')
+            .substring(0, 30) || 'support';
+          
+          fromEmail = emailRequest.from || `${formattedCompanyName}@fixlify.app`;
+        }
+        
+        // Use company_email if they have one set
+        if (profile?.company_email && !emailRequest.from) {
+          fromEmail = profile.company_email;
+        }
+      } catch (error) {
+        console.log('Could not fetch user profile, using default email');
+      }
     }    
-    // Build email data
-    const from = emailRequest.from || mailgunFrom;
+    // Build email data with dynamic from address
     const formData = new FormData();
-    formData.append('from', from);
+    formData.append('from', fromEmail);
     formData.append('to', emailRequest.to);
     formData.append('subject', emailRequest.subject);
     
@@ -96,7 +128,7 @@ serve(async (req) => {
       // Simulate successful email send in test mode
       console.log('TEST MODE: Simulating email send to:', emailRequest.to);
       console.log('Subject:', emailRequest.subject);
-      console.log('From:', from);
+      console.log('From:', fromEmail);
       
       mailgunResult = {
         id: `test-${Date.now()}@fixlify.com`,
@@ -126,8 +158,8 @@ serve(async (req) => {
         }
       }
     } else {
-      // Real Mailgun API call
-      const mailgunUrl = `https://api.mailgun.net/v3/${mailgunDomain}/messages`;
+      // Real Mailgun API call using fixlify.app domain
+      const mailgunUrl = `https://api.mailgun.net/v3/fixlify.app/messages`;
       
       const mailgunResponse = await fetch(mailgunUrl, {
         method: 'POST',

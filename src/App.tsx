@@ -9,6 +9,7 @@ import { AppProviders } from "@/components/ui/AppProviders";
 import { setupAuthErrorHandler } from "@/utils/auth-fix";
 import { suppressSMSErrors } from "@/utils/suppressSMSErrors";
 import authMonitor from "@/utils/auth-monitor.js?raw";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 // Loading component
 const PageLoader = () => (
@@ -30,7 +31,8 @@ const ClientsPage = lazy(() => import("@/pages/ClientsPage"));
 const ClientDetailPage = lazy(() => import("@/pages/ClientDetailPage"));
 const SchedulePage = lazy(() => import("@/pages/SchedulePage"));
 const FinancePage = lazy(() => import("@/pages/FinancePage"));
-const ConnectCenterPageOptimized = lazy(() => import("@/pages/ConnectCenterPageOptimized"));
+const ConnectCenterPage = lazy(() => import("@/pages/ConnectCenterPage"));
+const ConnectPage = lazy(() => import("@/pages/ConnectPage"));
 const AiCenterPage = lazy(() => import("@/pages/AiCenterPage"));
 const AutomationsPage = lazy(() => import("@/pages/AutomationsPage"));
 const AnalyticsPage = lazy(() => import("@/pages/AnalyticsPage"));
@@ -101,11 +103,13 @@ function App() {
   }, []);
   
   return (
-    <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <Toaster />
-        <BrowserRouter>
-          <Routes>
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <TooltipProvider>
+          <Toaster />
+          <BrowserRouter>
+            <Suspense fallback={<PageLoader />}>
+              <Routes>
             {/* Authentication */}
             <Route path="/auth" element={
               <AuthProvider>
@@ -184,7 +188,9 @@ function App() {
             <Route path="/test" element={
               <AuthProvider>
                 <ProtectedRouteWithProviders>
-                  <TestPage />
+                  <LazyRoute>
+                    <TestPage />
+                  </LazyRoute>
                 </ProtectedRouteWithProviders>
               </AuthProvider>
             } />
@@ -223,7 +229,9 @@ function App() {
             <Route path="/clients" element={
               <AuthProvider>
                 <ProtectedRouteWithProviders>
-                  <ClientsPage />
+                  <LazyRoute>
+                    <ClientsPage />
+                  </LazyRoute>
                 </ProtectedRouteWithProviders>
               </AuthProvider>
             } />
@@ -231,7 +239,9 @@ function App() {
             <Route path="/clients/:clientId" element={
               <AuthProvider>
                 <ProtectedRouteWithProviders>
-                  <ClientDetailPage />
+                  <LazyRoute>
+                    <ClientDetailPage />
+                  </LazyRoute>
                 </ProtectedRouteWithProviders>
               </AuthProvider>
             } />
@@ -240,7 +250,9 @@ function App() {
             <Route path="/schedule" element={
               <AuthProvider>
                 <ProtectedRouteWithProviders>
-                  <SchedulePage />
+                  <LazyRoute>
+                    <SchedulePage />
+                  </LazyRoute>
                 </ProtectedRouteWithProviders>
               </AuthProvider>
             } />
@@ -249,7 +261,9 @@ function App() {
             <Route path="/finance" element={
               <AuthProvider>
                 <ProtectedRouteWithProviders>
-                  <FinancePage />
+                  <LazyRoute>
+                    <FinancePage />
+                  </LazyRoute>
                 </ProtectedRouteWithProviders>
               </AuthProvider>
             } />
@@ -257,7 +271,9 @@ function App() {
             <Route path="/estimates" element={
               <AuthProvider>
                 <ProtectedRouteWithProviders>
-                  <EstimatesPage />
+                  <LazyRoute>
+                    <EstimatesPage />
+                  </LazyRoute>
                 </ProtectedRouteWithProviders>
               </AuthProvider>
             } />
@@ -265,33 +281,42 @@ function App() {
             <Route path="/invoices" element={
               <AuthProvider>
                 <ProtectedRouteWithProviders>
-                  <InvoicesPage />
+                  <LazyRoute>
+                    <InvoicesPage />
+                  </LazyRoute>
                 </ProtectedRouteWithProviders>
               </AuthProvider>
             } />
             
-            {/* Communication */}
-            <Route path="/communications" element={
+            {/* Connect - Main communication hub */}
+            <Route path="/connect" element={
               <AuthProvider>
                 <ProtectedRouteWithProviders>
-                  <ConnectCenterPageOptimized />
+                  <LazyRoute>
+                    <ConnectPage />
+                  </LazyRoute>
                 </ProtectedRouteWithProviders>
               </AuthProvider>
             } />
             
-            {/* Messages - Redirect to Connect Center */}
+            {/* Communication - Legacy route, redirect to Connect */}
+            <Route path="/communications" element={
+              <Navigate to="/connect" replace />
+            } />
+            
+            {/* Messages - Redirect to Connect */}
             <Route path="/messages" element={
-              <Navigate to="/communications" replace />
+              <Navigate to="/connect" replace />
             } />
             
-            {/* Email - Redirect to Connect Center */}
+            {/* Email - Redirect to Connect */}
             <Route path="/email" element={
-              <Navigate to="/communications" replace />
+              <Navigate to="/connect" replace />
             } />
             
-            {/* Calls - Redirect to Connect Center */}
+            {/* Calls - Redirect to Connect */}
             <Route path="/calls" element={
-              <Navigate to="/communications" replace />
+              <Navigate to="/connect" replace />
             } />
             
             {/* AI Center */}
@@ -492,9 +517,11 @@ function App() {
               </div>
             } />
           </Routes>
+          </Suspense>
         </BrowserRouter>
       </TooltipProvider>
     </QueryClientProvider>
+    </ErrorBoundary>
   );
 }
 
