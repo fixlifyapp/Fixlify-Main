@@ -1,7 +1,6 @@
 import { useState, useRef } from "react";
 import { toast } from "sonner";
 import { FormData } from "./useScheduleJobForm";
-import { supabase } from "@/integrations/supabase/client";
 
 interface UseScheduleJobSubmitProps {
   formData: FormData;
@@ -90,6 +89,8 @@ export const useScheduleJobSubmit = ({
           // Save custom field values if any
           if (Object.keys(formData.customFields).length > 0) {
             try {
+              const { supabase } = await import("@/integrations/supabase/client");
+              
               const customFieldPromises = Object.entries(formData.customFields).map(
                 ([fieldId, value]) => {
                   if (value.trim()) {

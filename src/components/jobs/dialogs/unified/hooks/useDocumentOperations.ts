@@ -3,7 +3,6 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Estimate, Invoice, LineItem } from "@/types/documents";
 import { DocumentType } from "../../UnifiedDocumentBuilder";
-import { generateNextId } from "@/utils/idGeneration";
 
 interface DocumentFormData {
   documentId?: string;
@@ -82,6 +81,7 @@ export const useDocumentOperations = ({
       if (!formData.documentId && !documentNumber) {
         // For new documents, always generate a proper ID using the ID generation system
         console.log('🔢 Generating new document number...');
+        const { generateNextId } = await import('@/utils/idGeneration');
         documentNumber = await generateNextId(documentType);
         console.log('📄 Generated document number:', documentNumber);
       } else if (!documentNumber) {
