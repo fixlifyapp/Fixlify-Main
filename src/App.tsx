@@ -207,9 +207,7 @@ function App() {
             <Route path="/clients" element={
               <AuthProvider>
                 <ProtectedRouteWithProviders>
-                  <LazyRoute>
-                    <ClientsPage />
-                  </LazyRoute>
+                  <ClientsPage />
                 </ProtectedRouteWithProviders>
               </AuthProvider>
             } />
@@ -217,9 +215,7 @@ function App() {
             <Route path="/clients/:clientId" element={
               <AuthProvider>
                 <ProtectedRouteWithProviders>
-                  <LazyRoute>
-                    <ClientDetailPage />
-                  </LazyRoute>
+                  <ClientDetailPage />
                 </ProtectedRouteWithProviders>
               </AuthProvider>
             } />
@@ -228,9 +224,7 @@ function App() {
             <Route path="/schedule" element={
               <AuthProvider>
                 <ProtectedRouteWithProviders>
-                  <LazyRoute>
-                    <SchedulePage />
-                  </LazyRoute>
+                  <SchedulePage />
                 </ProtectedRouteWithProviders>
               </AuthProvider>
             } />
@@ -239,9 +233,7 @@ function App() {
             <Route path="/finance" element={
               <AuthProvider>
                 <ProtectedRouteWithProviders>
-                  <LazyRoute>
-                    <FinancePage />
-                  </LazyRoute>
+                  <FinancePage />
                 </ProtectedRouteWithProviders>
               </AuthProvider>
             } />
@@ -249,9 +241,7 @@ function App() {
             <Route path="/estimates" element={
               <AuthProvider>
                 <ProtectedRouteWithProviders>
-                  <LazyRoute>
-                    <EstimatesPage />
-                  </LazyRoute>
+                  <EstimatesPage />
                 </ProtectedRouteWithProviders>
               </AuthProvider>
             } />
@@ -259,9 +249,7 @@ function App() {
             <Route path="/invoices" element={
               <AuthProvider>
                 <ProtectedRouteWithProviders>
-                  <LazyRoute>
-                    <InvoicesPage />
-                  </LazyRoute>
+                  <InvoicesPage />
                 </ProtectedRouteWithProviders>
               </AuthProvider>
             } />
@@ -270,9 +258,7 @@ function App() {
             <Route path="/connect" element={
               <AuthProvider>
                 <ProtectedRouteWithProviders>
-                  <LazyRoute>
-                    <ConnectPage />
-                  </LazyRoute>
+                  <ConnectPage />
                 </ProtectedRouteWithProviders>
               </AuthProvider>
             } />
