@@ -28,18 +28,19 @@ export const CallsList = () => {
     
     try {
       const { data, error } = await supabase
-        .from('telnyx_calls')
+        .from('call_logs')
         .select('*')
+        .eq('user_id', user.id)
         .order('created_at', { ascending: false })
         .limit(20);
 
       if (error) throw error;
       const callsData = data?.map(call => ({
         id: call.id,
-        from_number: call.from_number || 'Unknown',
-        to_number: call.to_number || 'Unknown', 
-        duration: call.call_duration || 0,
-        status: call.call_status || 'unknown',
+        from_number: call.phone_number || 'Unknown',
+        to_number: call.phone_number || 'Unknown', 
+        duration: call.duration || 0,
+        status: call.status || 'unknown',
         created_at: call.created_at
       })) || [];
       setCalls(callsData);

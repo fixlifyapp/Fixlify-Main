@@ -14,14 +14,18 @@ interface Email {
   client_id: string | null;
   email_address: string;
   subject: string;
-  body: string | null;
-  direction: "incoming" | "outgoing";
-  status: string | null;
-  is_read: boolean | null;
-  is_starred: boolean | null;
-  thread_id: string | null;
+  body?: string | null;
+  status?: string | null;
+  is_read?: boolean | null;
+  is_starred?: boolean | null;
+  thread_id?: string | null;
   created_at: string;
   updated_at: string;
+  client_name?: string;
+  last_message_preview?: string;
+  unread_count?: number;
+  is_archived?: boolean;
+  user_id?: string;
   clients?: {
     id: string;
     name: string;
@@ -39,7 +43,13 @@ export const EmailsList = () => {
   };
 
   const { isAILoading, handleSuggestResponse } = useEmailAI({
-    email: selectedEmail,
+    email: selectedEmail ? {
+      id: selectedEmail.id,
+      subject: selectedEmail.subject || '',
+      body: selectedEmail.body || '',
+      email_address: selectedEmail.email_address,
+      clients: selectedEmail.clients ? { name: selectedEmail.clients.name } : undefined
+    } : null,
     onUseSuggestion: handleUseSuggestion
   });
 
@@ -47,7 +57,7 @@ export const EmailsList = () => {
     try {
       setIsLoading(true);
       const { data, error } = await supabase
-        .from('emails')
+        .from('email_conversations')
         .select(`
           *,
           clients:client_id(id, name)
@@ -57,10 +67,11 @@ export const EmailsList = () => {
 
       if (error) throw error;
       
-      // Type assertion to ensure direction field matches expected type
+      // Map email conversations to Email interface
       const typedEmails = (data || []).map(email => ({
         ...email,
-        direction: email.direction as "incoming" | "outgoing"
+        body: email.last_message_preview || 'No preview available',
+        status: 'active'
       }));
       
       setEmails(typedEmails);
@@ -84,11 +95,11 @@ export const EmailsList = () => {
   });
 
   const handleMarkAsRead = async (email: Email) => {
-    if (!email.is_read) {
+    if (email.unread_count && email.unread_count > 0) {
       try {
         const { error } = await supabase
-          .from('emails')
-          .update({ is_read: true })
+          .from('email_conversations')
+          .update({ unread_count: 0 })
           .eq('id', email.id);
 
         if (error) throw error;
@@ -152,7 +163,7 @@ export const EmailsList = () => {
               {emails.map((email) => (
                 <div 
                   key={email.id} 
-                  className={`flex items-start p-4 border-b border-fixlyfy-border hover:bg-fixlyfy-bg-hover cursor-pointer ${!email.is_read ? 'bg-fixlyfy-bg-hover' : ''}`}
+                  className={`flex items-start p-4 border-b border-fixlyfy-border hover:bg-fixlyfy-bg-hover cursor-pointer ${(email.unread_count || 0) > 0 ? 'bg-fixlyfy-bg-hover' : ''}`}
                   onClick={() => handleMarkAsRead(email)}
                 >
                   <div className="mr-3">
@@ -167,7 +178,7 @@ export const EmailsList = () => {
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between">
-                      <h3 className={`font-medium ${!email.is_read ? 'font-semibold' : ''}`}>
+                      <h3 className={`font-medium ${(email.unread_count || 0) > 0 ? 'font-semibold' : ''}`}>
                         {email.clients?.name || email.email_address}
                       </h3>
                       <div className="flex items-center">

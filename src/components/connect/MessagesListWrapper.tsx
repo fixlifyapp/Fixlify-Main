@@ -143,12 +143,12 @@ export const MessagesListWrapper = () => {
 
             <ConversationThread 
               messages={messages}
-              isLoading={isLoading}
-              currentUserPhone={activeConversation.phone_number}
+              clientName={activeConversation.client?.name || activeConversation.client_phone || "Unknown"}
+              client={activeConversation.client}
             />
 
             <MessageInput
-              onSendMessage={handleSendMessage}
+              onSend={handleSendMessage}
               disabled={isSending}
               placeholder="Type a message..."
             />

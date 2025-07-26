@@ -23,7 +23,7 @@ export const PhoneNumbersManagement = () => {
   const fetchPhoneNumbers = async () => {
     try {
       const { data, error } = await supabase
-        .from('telnyx_phone_numbers')
+        .from('phone_numbers')
         .select('*')
         .order('created_at', { ascending: false });
 

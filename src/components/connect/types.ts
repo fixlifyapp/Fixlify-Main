@@ -25,5 +25,11 @@ export interface ConversationThreadProps {
   messages: any[];
   clientName: string;
   client?: any; // Added for backward compatibility
-  onArchive?: () => Promise<void>;
+  onArchive?: () => void;
+}
+
+export interface MessageInputProps {
+  onSend: (message: string) => Promise<void>;
+  disabled?: boolean;
+  placeholder?: string;
 }

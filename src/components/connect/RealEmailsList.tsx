@@ -39,7 +39,7 @@ export const RealEmailsList = () => {
         {
           event: '*',
           schema: 'public',
-          table: 'emails'
+          table: 'email_conversations'
         },
         () => {
           loadEmails();
@@ -55,10 +55,10 @@ export const RealEmailsList = () => {
   const loadEmails = async () => {
     try {
       const { data, error } = await supabase
-        .from('emails')
+        .from('email_conversations')
         .select(`
           *,
-          clients:client_id(name, email)
+          clients:client_id(name, phone, email)
         `)
         .order('created_at', { ascending: false })
         .limit(50);
@@ -67,10 +67,15 @@ export const RealEmailsList = () => {
       
       const transformedEmails = (data || []).map(email => ({
         ...email,
-        direction: email.direction as "inbound" | "outbound",
+        direction: email.unread_count > 0 ? "inbound" as const : "outbound" as const,
+        subject: email.subject || 'No subject',
+        body: email.last_message_preview || 'No preview',
+        is_read: (email.unread_count || 0) === 0,
+        is_starred: email.is_starred || false,
+        status: 'active',
         client: email.clients ? {
-          name: email.clients.name,
-          email: email.clients.email
+          name: email.clients.name || 'Unknown',
+          email: email.clients.email || email.email_address
         } : undefined
       }));
       
@@ -85,8 +90,8 @@ export const RealEmailsList = () => {
   const markAsRead = async (emailId: string) => {
     try {
       await supabase
-        .from('emails')
-        .update({ is_read: true })
+        .from('email_conversations')
+        .update({ unread_count: 0 })
         .eq('id', emailId);
       
       setEmails(emails.map(email => 
@@ -100,7 +105,7 @@ export const RealEmailsList = () => {
   const toggleStar = async (emailId: string, isStarred: boolean) => {
     try {
       await supabase
-        .from('emails')
+        .from('email_conversations')
         .update({ is_starred: !isStarred })
         .eq('id', emailId);
       

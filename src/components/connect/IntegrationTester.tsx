@@ -41,7 +41,7 @@ export const IntegrationTester = () => {
     
     // Test 1: Database Connectivity
     try {
-      const { data, error } = await supabase.from('conversations').select('count').limit(1);
+      const { data, error } = await supabase.from('sms_conversations').select('count').limit(1);
       if (error) throw error;
       updateResult('Database Connection', 'success', 'Successfully connected to database');
     } catch (error) {

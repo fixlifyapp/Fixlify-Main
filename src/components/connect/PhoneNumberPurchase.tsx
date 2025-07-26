@@ -40,10 +40,10 @@ export function PhoneNumberPurchase() {
     queryKey: ['claimable-phone-numbers'],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('telnyx_phone_numbers')
+        .from('phone_numbers')
         .select('*')
-        .is('user_id', null)
-        .or('status.eq.available,status.eq.active')
+        .is('assigned_to', null)
+        .eq('is_active', true)
         .order('phone_number');
 
       if (error) throw error;
@@ -58,11 +58,11 @@ export function PhoneNumberPurchase() {
       if (!user?.id) return [];
       
       const { data, error } = await supabase
-        .from('telnyx_phone_numbers')
+        .from('phone_numbers')
         .select('*')
-        .eq('user_id', user.id)
-        .eq('status', 'active')
-        .order('purchased_at', { ascending: false });
+        .eq('assigned_to', user.id)
+        .eq('is_active', true)
+        .order('created_at', { ascending: false });
 
       if (error) throw error;
       return data || [];
@@ -113,16 +113,18 @@ export function PhoneNumberPurchase() {
         throw new Error('You must be logged in to claim a phone number');
       }
 
-      const { data, error } = await supabase.rpc('claim_phone_number', {
-        p_phone_number: phoneNumber,
-        p_user_id: user.id
-      });
+      const { data, error } = await supabase
+        .from('phone_numbers')
+        .update({ assigned_to: user.id })
+        .eq('phone_number', phoneNumber)
+        .select()
+        .single();
 
       if (error) throw error;
       return data;
     },
-    onSuccess: (data) => {
-      toast.success(`Successfully claimed ${formatPhoneForDisplay(data.phone_number)}`);
+    onSuccess: (data, phoneNumber) => {
+      toast.success(`Successfully claimed ${formatPhoneForDisplay(data?.phone_number || phoneNumber)}`);
       queryClient.invalidateQueries({ queryKey: ['claimable-phone-numbers'] });
       queryClient.invalidateQueries({ queryKey: ['user-phone-numbers'] });
     },
@@ -192,7 +194,7 @@ export function PhoneNumberPurchase() {
                     <Phone className="h-4 w-4 text-muted-foreground" />
                     <span className="font-mono">{formatPhoneForDisplay(number.phone_number)}</span>
                     <Badge variant="outline" className="text-xs">
-                      {number.area_code}
+                      {number.phone_number.slice(2, 5)}
                     </Badge>
                     {number.ai_dispatcher_enabled && (
                       <Badge className="text-xs">AI Enabled</Badge>
@@ -228,7 +230,7 @@ export function PhoneNumberPurchase() {
                         <Phone className="h-4 w-4 text-muted-foreground" />
                         <span className="font-mono">{formatPhoneForDisplay(number.phone_number)}</span>
                         <Badge variant="outline" className="text-xs">
-                          {number.area_code}
+                          {number.phone_number.slice(2, 5)}
                         </Badge>
                       </div>
                       <Button
