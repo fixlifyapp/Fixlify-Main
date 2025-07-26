@@ -6,6 +6,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { JobCustomFieldsDisplay } from "./JobCustomFieldsDisplay";
+import { EditableJobDescriptionCard } from "./overview/EditableJobDescriptionCard";
+import { TechnicianCard } from "./overview/TechnicianCard";
+import { JobTagsCard } from "./overview/JobTagsCard";
 import { 
   Calendar, 
   MapPin, 
@@ -76,6 +79,29 @@ export const JobOverview = ({ jobId }: JobOverviewProps) => {
 
   return (
     <div className="space-y-6">
+      {/* Editable Job Description */}
+      <EditableJobDescriptionCard 
+        description={job.description || ""} 
+        jobId={jobId} 
+        editable={true}
+        onUpdate={() => {}}
+      />
+
+      {/* Editable Technician Assignment */}
+      <TechnicianCard 
+        job={job} 
+        jobId={jobId} 
+        editable={true}
+        onUpdate={() => {}}
+      />
+
+      {/* Editable Tags */}
+      <JobTagsCard 
+        tags={job.tags || []} 
+        jobId={jobId} 
+        editable={true}
+        onUpdate={() => {}}
+      />
 
       {/* Job Details */}
       <Card>
@@ -91,13 +117,6 @@ export const JobOverview = ({ jobId }: JobOverviewProps) => {
               <h4 className="font-medium mb-2">Service</h4>
               <p className="text-sm text-muted-foreground">{job.service}</p>
             </div>
-            
-            {job.description && (
-              <div>
-                <h4 className="font-medium mb-2">Description</h4>
-                <p className="text-sm text-muted-foreground">{job.description}</p>
-              </div>
-            )}
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {job.schedule_start && (
@@ -118,19 +137,6 @@ export const JobOverview = ({ jobId }: JobOverviewProps) => {
                 </div>
               )}
             </div>
-
-            {job.tags && job.tags.length > 0 && (
-              <div>
-                <h4 className="font-medium mb-2">Tags</h4>
-                <div className="flex flex-wrap gap-2">
-                  {job.tags.map((tag, index) => (
-                    <Badge key={index} variant="outline">
-                      {tag}
-                    </Badge>
-                  ))}
-                </div>
-              </div>
-            )}
           </div>
         </CardContent>
       </Card>

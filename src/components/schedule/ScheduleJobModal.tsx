@@ -17,7 +17,7 @@ import { JobInformationSection } from "./modal/JobInformationSection";
 import { ScheduleSection } from "./modal/ScheduleSection";
 import { TagsTasksSection } from "./modal/TagsTasksSection";
 import { CustomFieldsSection } from "./modal/CustomFieldsSection";
-import { PropertySection } from "./modal/PropertySection";
+
 
 interface ScheduleJobModalProps {
   open: boolean;
@@ -128,12 +128,6 @@ export const ScheduleJobModal = ({
               handleSelectChange={handleSelectChange}
             />
 
-            {/* Property Information */}
-            <PropertySection
-              formData={formData}
-              handleChange={handleChange}
-              handleSelectChange={handleSelectChange}
-            />
 
             {/* Tags and Tasks */}
             <TagsTasksSection
