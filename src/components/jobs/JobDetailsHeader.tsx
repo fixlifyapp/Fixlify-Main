@@ -95,7 +95,7 @@ export const JobDetailsHeader = () => {
             }
           }}
           clientName={job.client || 'Unknown Client'}
-          jobType={job.description || job.service || 'Service Job'}
+          jobType={job.description || 'Service Job'}
         />
       </div>
     </>

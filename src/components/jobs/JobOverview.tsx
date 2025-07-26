@@ -105,9 +105,8 @@ export const JobOverview = ({ jobId }: JobOverviewProps) => {
         onUpdate={() => {}}
       />
 
-      {/* Editable Job Details */}
+      {/* Editable Schedule Details */}
       <EditableJobDetailsCard 
-        service={job.service || ""} 
         scheduleStart={job.schedule_start}
         scheduleEnd={job.schedule_end}
         jobId={jobId} 

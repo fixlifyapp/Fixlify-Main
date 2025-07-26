@@ -8,7 +8,6 @@ import { useJobs } from "@/hooks/useJobs";
 import { toast } from "sonner";
 
 interface EditableJobDetailsCardProps {
-  service: string;
   scheduleStart?: string;
   scheduleEnd?: string;
   jobId: string;
@@ -16,7 +15,6 @@ interface EditableJobDetailsCardProps {
 }
 
 export const EditableJobDetailsCard = ({ 
-  service, 
   scheduleStart, 
   scheduleEnd, 
   jobId, 
@@ -25,12 +23,10 @@ export const EditableJobDetailsCard = ({
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [editValues, setEditValues] = useState({
-    service: service || "",
     schedule_start: scheduleStart ? scheduleStart.slice(0, 16) : "",
     schedule_end: scheduleEnd ? scheduleEnd.slice(0, 16) : "",
   });
   const [optimisticValues, setOptimisticValues] = useState({
-    service: service || "",
     schedule_start: scheduleStart || "",
     schedule_end: scheduleEnd || "",
   });
@@ -41,7 +37,6 @@ export const EditableJobDetailsCard = ({
     
     // Optimistic update
     setOptimisticValues({
-      service: editValues.service,
       schedule_start: editValues.schedule_start,
       schedule_end: editValues.schedule_end,
     });
@@ -49,7 +44,6 @@ export const EditableJobDetailsCard = ({
     
     try {
       const result = await updateJob(jobId, {
-        service: editValues.service,
         schedule_start: editValues.schedule_start || null,
         schedule_end: editValues.schedule_end || null,
       });
@@ -60,12 +54,10 @@ export const EditableJobDetailsCard = ({
     } catch (error) {
       // Revert optimistic update on error
       setOptimisticValues({
-        service: service || "",
         schedule_start: scheduleStart || "",
         schedule_end: scheduleEnd || "",
       });
       setEditValues({
-        service: service || "",
         schedule_start: scheduleStart ? scheduleStart.slice(0, 16) : "",
         schedule_end: scheduleEnd ? scheduleEnd.slice(0, 16) : "",
       });
@@ -78,7 +70,6 @@ export const EditableJobDetailsCard = ({
 
   const handleCancel = () => {
     setEditValues({
-      service: service || "",
       schedule_start: scheduleStart ? scheduleStart.slice(0, 16) : "",
       schedule_end: scheduleEnd ? scheduleEnd.slice(0, 16) : "",
     });
@@ -90,7 +81,7 @@ export const EditableJobDetailsCard = ({
       <ModernCardHeader className="pb-4">
         <div className="flex items-center justify-between">
           <ModernCardTitle icon={FileText}>
-            Job Details
+            Schedule Details
             {isSaving && <Loader2 className="h-4 w-4 ml-2 animate-spin" />}
           </ModernCardTitle>
           {!isEditing ? (
@@ -130,69 +121,55 @@ export const EditableJobDetailsCard = ({
       <ModernCardContent>
         <div className={`space-y-4 ${isSaving ? "opacity-70" : ""}`}>
           {isEditing ? (
-            <>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="service">Service</Label>
+                <Label htmlFor="schedule_start">Scheduled Start</Label>
                 <Input
-                  id="service"
-                  value={editValues.service}
-                  onChange={(e) => setEditValues(prev => ({ ...prev, service: e.target.value }))}
-                  placeholder="Enter service description..."
+                  id="schedule_start"
+                  type="datetime-local"
+                  value={editValues.schedule_start}
+                  onChange={(e) => setEditValues(prev => ({ ...prev, schedule_start: e.target.value }))}
                   disabled={isSaving}
                 />
               </div>
               
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="schedule_start">Scheduled Start</Label>
-                  <Input
-                    id="schedule_start"
-                    type="datetime-local"
-                    value={editValues.schedule_start}
-                    onChange={(e) => setEditValues(prev => ({ ...prev, schedule_start: e.target.value }))}
-                    disabled={isSaving}
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="schedule_end">Scheduled End</Label>
-                  <Input
-                    id="schedule_end"
-                    type="datetime-local"
-                    value={editValues.schedule_end}
-                    onChange={(e) => setEditValues(prev => ({ ...prev, schedule_end: e.target.value }))}
-                    disabled={isSaving}
-                  />
-                </div>
+              <div className="space-y-2">
+                <Label htmlFor="schedule_end">Scheduled End</Label>
+                <Input
+                  id="schedule_end"
+                  type="datetime-local"
+                  value={editValues.schedule_end}
+                  onChange={(e) => setEditValues(prev => ({ ...prev, schedule_end: e.target.value }))}
+                  disabled={isSaving}
+                />
               </div>
-            </>
+            </div>
           ) : (
-            <>
-              <div>
-                <h4 className="font-medium mb-2">Service</h4>
-                <p className="text-sm text-muted-foreground">{optimisticValues.service || "No service specified"}</p>
-              </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {optimisticValues.schedule_start && (
+                <div>
+                  <h4 className="font-medium mb-1">Scheduled Start</h4>
+                  <p className="text-sm text-muted-foreground">
+                    {new Date(optimisticValues.schedule_start).toLocaleString()}
+                  </p>
+                </div>
+              )}
               
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {optimisticValues.schedule_start && (
-                  <div>
-                    <h4 className="font-medium mb-1">Scheduled Start</h4>
-                    <p className="text-sm text-muted-foreground">
-                      {new Date(optimisticValues.schedule_start).toLocaleString()}
-                    </p>
-                  </div>
-                )}
-                
-                {optimisticValues.schedule_end && (
-                  <div>
-                    <h4 className="font-medium mb-1">Scheduled End</h4>
-                    <p className="text-sm text-muted-foreground">
-                      {new Date(optimisticValues.schedule_end).toLocaleString()}
-                    </p>
-                  </div>
-                )}
-              </div>
-            </>
+              {optimisticValues.schedule_end && (
+                <div>
+                  <h4 className="font-medium mb-1">Scheduled End</h4>
+                  <p className="text-sm text-muted-foreground">
+                    {new Date(optimisticValues.schedule_end).toLocaleString()}
+                  </p>
+                </div>
+              )}
+              
+              {!optimisticValues.schedule_start && !optimisticValues.schedule_end && (
+                <div className="col-span-2">
+                  <p className="text-sm text-muted-foreground">No schedule set</p>
+                </div>
+              )}
+            </div>
           )}
         </div>
       </ModernCardContent>

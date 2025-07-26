@@ -52,7 +52,7 @@ export const transformJobData = (jobData: any, paymentsData: any[] | null) => {
     clientId: client.id || jobData.client_id || "",
     client: clientName,
     clients: client, // Include the full client object
-    service: jobData.service || jobData.job_type || "General Service",
+    service: jobData.job_type || "General Service",
     address: formattedAddress || jobData.address || "",
     phone: client.phone || "",
     email: client.email || "",
@@ -63,7 +63,7 @@ export const transformJobData = (jobData: any, paymentsData: any[] | null) => {
     technician_id: jobData.technician_id,
     schedule_start: jobData.schedule_start,
     schedule_end: jobData.schedule_end,
-    job_type: jobData.job_type || jobData.service,
+    job_type: jobData.job_type,
     lead_source: jobData.lead_source,
     tasks: tasksArray,
     title: jobData.title

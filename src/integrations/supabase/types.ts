@@ -2699,7 +2699,6 @@ export type Database = {
           revenue: number | null
           schedule_end: string | null
           schedule_start: string | null
-          service: string | null
           status: string | null
           tags: string[] | null
           tasks: Json | null
@@ -2726,7 +2725,6 @@ export type Database = {
           revenue?: number | null
           schedule_end?: string | null
           schedule_start?: string | null
-          service?: string | null
           status?: string | null
           tags?: string[] | null
           tasks?: Json | null
@@ -2753,7 +2751,6 @@ export type Database = {
           revenue?: number | null
           schedule_end?: string | null
           schedule_start?: string | null
-          service?: string | null
           status?: string | null
           tags?: string[] | null
           tasks?: Json | null
