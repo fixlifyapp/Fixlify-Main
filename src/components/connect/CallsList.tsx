@@ -1,9 +1,11 @@
 
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Phone, Clock, User } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Phone, Clock, User, PhoneCall } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
+import { UnifiedCallManager } from "@/components/calling/UnifiedCallManager";
 
 interface Call {
   id: string;
@@ -27,23 +29,46 @@ export const CallsList = () => {
     if (!user?.id) return;
     
     try {
-      const { data, error } = await supabase
-        .from('call_logs')
+      // Fetch from telnyx_calls table first, fallback to call_logs
+      const { data: telnyxCalls, error: telnyxError } = await supabase
+        .from('telnyx_calls')
         .select('*')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false })
         .limit(20);
 
-      if (error) throw error;
-      const callsData = data?.map(call => ({
-        id: call.id,
-        from_number: call.phone_number || 'Unknown',
-        to_number: call.phone_number || 'Unknown', 
-        duration: call.duration || 0,
-        status: call.status || 'unknown',
-        created_at: call.created_at
-      })) || [];
-      setCalls(callsData);
+      if (telnyxError) {
+        console.warn('Telnyx calls table error, falling back to call_logs:', telnyxError);
+        
+        const { data: legacyCalls, error: legacyError } = await supabase
+          .from('call_logs')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false })
+          .limit(20);
+
+        if (legacyError) throw legacyError;
+        
+        const callsData = legacyCalls?.map(call => ({
+          id: call.id,
+          from_number: call.phone_number || 'Unknown',
+          to_number: call.phone_number || 'Unknown', 
+          duration: call.duration || 0,
+          status: call.status || 'unknown',
+          created_at: call.created_at
+        })) || [];
+        setCalls(callsData);
+      } else {
+        const callsData = telnyxCalls?.map((call: any) => ({
+          id: call.id,
+          from_number: call.caller_phone || 'Unknown',
+          to_number: call.direction === 'outbound' ? 'Outbound Call' : call.caller_phone || 'Unknown',
+          duration: call.duration || 0,
+          status: call.call_status || 'unknown',
+          created_at: call.created_at
+        })) || [];
+        setCalls(callsData);
+      }
     } catch (error) {
       console.error('Error fetching calls:', error);
     } finally {
@@ -70,9 +95,12 @@ export const CallsList = () => {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Phone className="h-5 w-5" />
-          Recent Calls
+        <CardTitle className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Phone className="h-5 w-5" />
+            Recent Calls
+          </div>
+          <UnifiedCallManager showDialButton={true} />
         </CardTitle>
       </CardHeader>
       <CardContent>
