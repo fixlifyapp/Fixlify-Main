@@ -41,7 +41,7 @@ export const useMessageAI = ({ messages, client, jobId, onUseSuggestion }: UseMe
       // Get job details for context
       const { data: job } = await supabase
         .from('jobs')
-        .select('title, service, description, status')
+        .select('title, description, status, job_type')
         .eq('id', jobId)
         .single();
 
@@ -54,7 +54,7 @@ You are ${userName} from ${companyNiche} company responding to ${clientName}.
 
 Job Context:
 - Job Title: ${job?.title || 'Service Call'}
-- Service Type: ${job?.service || 'General Service'}
+- Service Type: ${job?.job_type || 'General Service'}
 - Job Status: ${job?.status || 'In Progress'}
 - Description: ${job?.description || 'Service job'}
 

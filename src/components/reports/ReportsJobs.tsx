@@ -40,7 +40,7 @@ export const ReportsJobs = ({ period, isLoading: externalLoading }: ReportsJobsP
         // Fetch completed jobs from Supabase
         const { data: jobsData, error: jobsError } = await supabase
           .from('jobs')
-          .select('id, title, service, date, schedule_start, schedule_end, revenue, client_id, technician_id, status')
+          .select('id, title, job_type, date, schedule_start, schedule_end, revenue, client_id, technician_id, status')
           .eq('status', 'completed')
           .order('date', { ascending: false })
           .limit(10);
@@ -136,7 +136,7 @@ export const ReportsJobs = ({ period, isLoading: externalLoading }: ReportsJobsP
           return {
             id: job.id,
             client: job.client_id ? (clientMap.get(job.client_id) || 'Unknown Client') : 'Unknown Client',
-            service: job.service || 'General Service',
+            service: job.job_type || 'General Service',
             technician: job.technician_id ? (technicianMap.get(job.technician_id) || 'Unassigned') : 'Unassigned',
             date: new Date(job.date),
             duration: durationMinutes,

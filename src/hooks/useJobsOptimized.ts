@@ -102,7 +102,6 @@ export const useJobsOptimized = (options: UseJobsOptimizedOptions = {}) => {
               client_id,
               status,
               job_type,
-              service,
               date,
               schedule_start,
               revenue,
@@ -134,7 +133,7 @@ export const useJobsOptimized = (options: UseJobsOptimizedOptions = {}) => {
           const processedJobs = (data || []).map(job => ({
             ...job,
             tags: Array.isArray(job.tags) ? job.tags : [],
-            title: job.title || `${job.client?.name || 'Service'} - ${job.job_type || job.service || 'General Service'}`
+            title: job.title || `${job.client?.name || 'Service'} - ${job.job_type || 'General Service'}`
           }));
           
           const result: JobsResult = {
