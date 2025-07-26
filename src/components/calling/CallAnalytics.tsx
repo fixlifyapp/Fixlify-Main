@@ -29,7 +29,7 @@ interface CallRecord {
   call_control_id: string;
   from_number: string;
   to_number: string;
-  direction: 'inbound' | 'outbound';
+  direction: string;
   status: string;
   duration: number;
   started_at: string;
