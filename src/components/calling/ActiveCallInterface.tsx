@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { 
@@ -10,10 +10,14 @@ import {
   VolumeX,
   Pause,
   Play,
-  Circle
+  Circle,
+  Settings,
+  Users,
+  MoreHorizontal
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { WebRTCAudioBridge, AudioDeviceManager } from '@/utils/WebRTCAudioBridge';
 
 interface ActiveCall {
   callControlId: string;
@@ -36,7 +40,28 @@ export const ActiveCallInterface = ({
   const [isMuted, setIsMuted] = useState(false);
   const [isOnHold, setIsOnHold] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
+  const [volume, setVolume] = useState(1);
+  const [connectionState, setConnectionState] = useState<RTCPeerConnectionState>('new');
+  const [showAdvancedControls, setShowAdvancedControls] = useState(false);
+  
+  const webRTCBridge = useRef<WebRTCAudioBridge | null>(null);
+  const audioDeviceManager = useRef<AudioDeviceManager>(AudioDeviceManager.getInstance());
 
+  // Initialize WebRTC when call becomes active
+  useEffect(() => {
+    if (call && call.status === 'active' && !webRTCBridge.current) {
+      initializeWebRTC();
+    }
+    
+    return () => {
+      if (webRTCBridge.current) {
+        webRTCBridge.current.disconnect();
+        webRTCBridge.current = null;
+      }
+    };
+  }, [call]);
+
+  // Duration timer
   useEffect(() => {
     if (!call || call.status !== 'active') return;
 
@@ -49,6 +74,23 @@ export const ActiveCallInterface = ({
 
     return () => clearInterval(interval);
   }, [call]);
+
+  const initializeWebRTC = async () => {
+    if (!call) return;
+
+    try {
+      webRTCBridge.current = new WebRTCAudioBridge(
+        (state) => setConnectionState(state),
+        (stream) => console.log('Remote stream received:', stream)
+      );
+
+      await webRTCBridge.current.initializeCall(call.callControlId);
+      toast.success('Audio connection established');
+    } catch (error) {
+      console.error('WebRTC initialization failed:', error);
+      toast.error('Failed to establish audio connection');
+    }
+  };
 
   const formatDuration = (seconds: number) => {
     const minutes = Math.floor(seconds / 60);
@@ -118,6 +160,9 @@ export const ActiveCallInterface = ({
   };
 
   const toggleMute = () => {
+    if (webRTCBridge.current) {
+      webRTCBridge.current.setMuted(!isMuted);
+    }
     handleCallAction(isMuted ? 'unmute' : 'mute');
   };
 
@@ -129,7 +174,18 @@ export const ActiveCallInterface = ({
     handleCallAction(isRecording ? 'record_stop' : 'record_start');
   };
 
+  const handleVolumeChange = (newVolume: number) => {
+    setVolume(newVolume);
+    if (webRTCBridge.current) {
+      webRTCBridge.current.setVolume(newVolume);
+    }
+  };
+
   const endCall = () => {
+    if (webRTCBridge.current) {
+      webRTCBridge.current.disconnect();
+      webRTCBridge.current = null;
+    }
     handleCallAction('hangup');
   };
 
