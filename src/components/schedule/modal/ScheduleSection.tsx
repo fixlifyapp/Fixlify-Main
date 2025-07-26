@@ -33,6 +33,8 @@ export const ScheduleSection = ({
   handleSelectChange,
 }: ScheduleSectionProps) => {
   const [showAISuggestion, setShowAISuggestion] = useState(false);
+  const [startDateOpen, setStartDateOpen] = useState(false);
+  const [endDateOpen, setEndDateOpen] = useState(false);
 
   const handleSuggestTechnician = () => {
     setShowAISuggestion(true);
@@ -57,6 +59,9 @@ export const ScheduleSection = ({
         schedule_start: dateTime.toISOString(),
         schedule_end: !formData.schedule_end ? endDateTime.toISOString() : formData.schedule_end
       });
+      
+      // Close the popover after selection
+      setStartDateOpen(false);
     }
   };
 
@@ -76,6 +81,9 @@ export const ScheduleSection = ({
         ...formData,
         schedule_end: dateTime.toISOString()
       });
+      
+      // Close the popover after selection
+      setEndDateOpen(false);
     }
   };
 
@@ -124,7 +132,7 @@ export const ScheduleSection = ({
           <Label className="text-sm font-medium">Start Date & Time</Label>
           <div className="space-y-2">
             {/* Date Picker */}
-            <Popover>
+            <Popover open={startDateOpen} onOpenChange={setStartDateOpen}>
               <PopoverTrigger asChild>
                 <Button
                   variant="outline"
@@ -186,7 +194,7 @@ export const ScheduleSection = ({
           <Label className="text-sm font-medium">End Date & Time</Label>
           <div className="space-y-2">
             {/* Date Picker */}
-            <Popover>
+            <Popover open={endDateOpen} onOpenChange={setEndDateOpen}>
               <PopoverTrigger asChild>
                 <Button
                   variant="outline"
