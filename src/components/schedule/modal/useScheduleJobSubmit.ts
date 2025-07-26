@@ -86,11 +86,37 @@ export const useScheduleJobSubmit = ({
         if (createdJob) {
           console.log("Job created successfully:", createdJob);
           
+          // Import supabase client once
+          const { supabase } = await import("@/integrations/supabase/client");
+          
+          // Create job overview entry with lead source and property information
+          try {
+            const selectedClient = clients.find(c => c.id === formData.client_id);
+            
+            const overviewData = {
+              job_id: createdJob.id,
+              property_type: formData.property_type || selectedClient?.type || 'Residential',
+              property_age: formData.property_age || undefined,
+              property_size: formData.property_size || undefined,
+              previous_service_date: formData.previous_service_date || undefined,
+              lead_source: formData.lead_source || 'Direct',
+              emergency_contact: {},
+              billing_contact: {},
+              warranty_info: {},
+            };
+            
+            await supabase
+              .from('job_overview')
+              .upsert(overviewData, { onConflict: 'job_id' });
+              
+            console.log("Job overview created successfully");
+          } catch (error) {
+            console.warn("Failed to create job overview:", error);
+          }
+          
           // Save custom field values if any
           if (Object.keys(formData.customFields).length > 0) {
             try {
-              const { supabase } = await import("@/integrations/supabase/client");
-              
               const customFieldPromises = Object.entries(formData.customFields).map(
                 ([fieldId, value]) => {
                   if (value.trim()) {

@@ -1,9 +1,11 @@
 
 import { useState, useEffect } from "react";
 import { useJob } from "@/hooks/useJob";
+import { useJobOverview } from "@/hooks/useJobOverview";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { JobCustomFieldsDisplay } from "./JobCustomFieldsDisplay";
 import { 
   Calendar, 
   MapPin, 
@@ -13,7 +15,10 @@ import {
   Clock,
   User,
   FileText,
-  CheckSquare
+  CheckSquare,
+  Info,
+  Building,
+  Shield
 } from "lucide-react";
 
 interface JobOverviewProps {
@@ -48,6 +53,7 @@ const TaskManagementDialog = ({ open, onOpenChange, tasks, onSave, disabled }: T
 
 export const JobOverview = ({ jobId }: JobOverviewProps) => {
   const { job, isLoading, error } = useJob(jobId);
+  const { overview, isLoading: overviewLoading, saveOverview } = useJobOverview(jobId);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [showTaskDialog, setShowTaskDialog] = useState(false);
 
@@ -56,7 +62,7 @@ export const JobOverview = ({ jobId }: JobOverviewProps) => {
     setShowTaskDialog(false);
   };
 
-  if (isLoading) {
+  if (isLoading || overviewLoading) {
     return <div className="p-6">Loading job details...</div>;
   }
 
@@ -189,6 +195,75 @@ export const JobOverview = ({ jobId }: JobOverviewProps) => {
               </div>
             )}
           </div>
+        </CardContent>
+      </Card>
+
+      {/* Job Overview Information */}
+      {overview && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Info className="h-5 w-5" />
+              Job Overview
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-4">
+                <div>
+                  <h4 className="font-medium mb-1">Property Type</h4>
+                  <p className="text-sm text-muted-foreground">
+                    {overview.property_type || 'Not specified'}
+                  </p>
+                </div>
+                
+                {overview.property_age && (
+                  <div>
+                    <h4 className="font-medium mb-1">Property Age</h4>
+                    <p className="text-sm text-muted-foreground">{overview.property_age}</p>
+                  </div>
+                )}
+                
+                {overview.property_size && (
+                  <div>
+                    <h4 className="font-medium mb-1">Property Size</h4>
+                    <p className="text-sm text-muted-foreground">{overview.property_size}</p>
+                  </div>
+                )}
+              </div>
+              
+              <div className="space-y-4">
+                <div>
+                  <h4 className="font-medium mb-1">Lead Source</h4>
+                  <p className="text-sm text-muted-foreground">
+                    {overview.lead_source || 'Not specified'}
+                  </p>
+                </div>
+                
+                {overview.previous_service_date && (
+                  <div>
+                    <h4 className="font-medium mb-1">Previous Service Date</h4>
+                    <p className="text-sm text-muted-foreground">
+                      {new Date(overview.previous_service_date).toLocaleDateString()}
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Custom Fields */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Building className="h-5 w-5" />
+            Additional Information
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <JobCustomFieldsDisplay jobId={jobId} />
         </CardContent>
       </Card>
 

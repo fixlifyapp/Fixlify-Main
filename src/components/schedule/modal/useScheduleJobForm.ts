@@ -18,6 +18,10 @@ export interface FormData {
   tags: string[];
   tasks: string[];
   customFields: Record<string, string>;
+  property_type?: string;
+  property_age?: string;
+  property_size?: string;
+  previous_service_date?: string;
 }
 
 interface UseScheduleJobFormProps {
@@ -38,6 +42,10 @@ export const useScheduleJobForm = ({ preselectedClientId }: UseScheduleJobFormPr
     tags: [],
     tasks: [],
     customFields: {},
+    property_type: "",
+    property_age: "",
+    property_size: "",
+    previous_service_date: "",
   });
   
   const [formErrors, setFormErrors] = useState<string[]>([]);
@@ -112,6 +120,10 @@ export const useScheduleJobForm = ({ preselectedClientId }: UseScheduleJobFormPr
       tags: [],
       tasks: [],
       customFields: {},
+      property_type: "",
+      property_age: "",
+      property_size: "",
+      previous_service_date: "",
     });
     setNewTask("");
     setFormErrors([]);
