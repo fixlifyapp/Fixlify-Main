@@ -28,7 +28,7 @@ export function PhoneNumberManager() {
     setLoading(true);
     try {
       const { data, error } = await supabase
-        .from('telnyx_phone_numbers')
+        .from('phone_numbers')
         .select('*')
         .order('created_at', { ascending: false });
 
@@ -48,8 +48,8 @@ export function PhoneNumberManager() {
     setAssigning(true);
     try {
       const { error } = await supabase
-        .from('telnyx_phone_numbers')
-        .update({ user_id: session.user.id })
+        .from('phone_numbers')
+        .update({ assigned_to: session.user.id })
         .eq('id', phoneId);
 
       if (error) throw error;
@@ -68,8 +68,8 @@ export function PhoneNumberManager() {
     setAssigning(true);
     try {
       const { error } = await supabase
-        .from('telnyx_phone_numbers')
-        .update({ user_id: null })
+        .from('phone_numbers')
+        .update({ assigned_to: null })
         .eq('id', phoneId);
 
       if (error) throw error;
@@ -88,8 +88,8 @@ export function PhoneNumberManager() {
     fetchPhoneNumbers();
   }, [session?.user?.id]);
 
-  const myPhones = phoneNumbers.filter(p => p.user_id === session?.user?.id);
-  const availablePhones = phoneNumbers.filter(p => !p.user_id && p.status === 'active');
+  const myPhones = phoneNumbers.filter(p => (p as any).assigned_to === session?.user?.id);
+  const availablePhones = phoneNumbers.filter(p => !(p as any).assigned_to && p.status === 'active');
 
   return (
     <Card>

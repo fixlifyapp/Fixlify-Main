@@ -18,29 +18,31 @@ export const useRealTimeMessages = ({
   useEffect(() => {
     if (!jobId) return;
 
-    // First, find the conversation ID for the current job if not provided
-    const setupRealTimeListener = async () => {
+    const setupChannel = () => {
       let channelConversationId = conversationId;
       
       if (!channelConversationId) {
-        try {
-        const { data: conversation } = await supabase
-          .from('sms_conversations')
-          .select('id')
-          .eq('job_id', jobId)
-          .single();
+        // If no conversation ID provided, listen to all messages for this job
+        const channel = supabase
+          .channel('job-messages')
+          .on(
+            'postgres_changes',
+            {
+              event: 'INSERT',
+              schema: 'public',
+              table: 'messages'
+            },
+            () => {
+              onNewMessage();
+            }
+          )
+          .subscribe();
 
-        if (conversation) {
-          channelConversationId = conversation.id.toString();
-        }
-        } catch (error) {
-          console.error("Error finding conversation:", error);
-          return null; // Return null if there's an error
-        }
-      }
-
-      if (channelConversationId) {
-        // Set up real-time listener for this conversation
+        return () => {
+          supabase.removeChannel(channel);
+        };
+      } else {
+        // Listen to specific conversation
         const channel = supabase
           .channel('job-messages')
           .on(
@@ -52,7 +54,7 @@ export const useRealTimeMessages = ({
               filter: `conversation_id=eq.${channelConversationId}`
             },
             () => {
-              onNewMessage(); // Call the callback to refresh messages
+              onNewMessage();
             }
           )
           .subscribe();
@@ -61,23 +63,9 @@ export const useRealTimeMessages = ({
           supabase.removeChannel(channel);
         };
       }
-      
-      return null; // Return null if no conversation ID was found
     };
 
-    // Create a variable to store the cleanup function
-    let cleanupFunction: (() => void) | null = null;
-
-    // Call the async function and store the cleanup function when the promise resolves
-    setupRealTimeListener().then(cleanup => {
-      cleanupFunction = cleanup;
-    });
-
-    // Return a cleanup function for the effect
-    return () => {
-      if (cleanupFunction) {
-        cleanupFunction();
-      }
-    };
+    const cleanup = setupChannel();
+    return cleanup;
   }, [jobId, conversationId, onNewMessage]);
 };

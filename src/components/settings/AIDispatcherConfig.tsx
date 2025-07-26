@@ -65,7 +65,20 @@ export const AIDispatcherConfig: React.FC = () => {
       }
 
       if (data) {
-        setSettings(data.settings);
+        setSettings({
+          business_name: data.business_name || '',
+          business_hours: 'Monday-Friday 9AM-5PM',
+          greeting_message: data.business_greeting || '',
+          appointment_booking_enabled: data.emergency_detection_enabled || false,
+          custom_prompt: '',
+          voice_settings: {
+            voice_id: 'rachel',
+            language: 'en-US',
+            speaking_rate: 1.0
+          },
+          sms_auto_response_enabled: true,
+          sms_response_template: "Thanks for your message! We'll get back to you shortly."
+        });
       }
     } catch (error) {
       console.error('Error loading AI dispatcher settings:', error);
@@ -83,11 +96,18 @@ export const AIDispatcherConfig: React.FC = () => {
       const { error } = await supabase
         .from('ai_dispatcher_configs')
         .upsert({
-          user_id: user.id,
-          settings: settings,
+          phone_number_id: 'temp-id',
+          business_name: settings.business_name,
+          business_type: 'General Service',
+          business_greeting: settings.greeting_message,
+          voice_selection: 'alloy',
+          emergency_detection_enabled: settings.appointment_booking_enabled,
+          diagnostic_fee: 75,
+          emergency_surcharge: 50,
+          hourly_rate: 100,
           updated_at: new Date().toISOString()
         }, {
-          onConflict: 'user_id'
+          onConflict: 'phone_number_id'
         });
 
       if (error) throw error;

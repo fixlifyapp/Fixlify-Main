@@ -148,11 +148,7 @@ export function AppSidebar() {
                   <SidebarMenuButton 
                     asChild
                     isActive={location.pathname === route.href}
-                    className={cn(
-                      "w-full justify-start text-base font-medium transition-all duration-200 hover:scale-[1.02] data-[active=true]:bg-gradient-primary data-[active=true]:text-white data-[active=true]:shadow-md hover:data-[active=true]:shadow-lg",
-                      route.indent ? "ml-6 text-sm" : "",
-                      route.isSection ? "font-semibold" : ""
-                    )}
+                    className="w-full justify-start text-base font-medium transition-all duration-200 hover:scale-[1.02] data-[active=true]:bg-gradient-primary data-[active=true]:text-white data-[active=true]:shadow-md hover:data-[active=true]:shadow-lg"
                     tooltip={route.label}
                   >
                     <Button 

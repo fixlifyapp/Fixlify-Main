@@ -223,7 +223,7 @@ export const ScheduleSection = ({
                     // Don't allow end date before start date
                     const startDate = formData.schedule_start ? new Date(formData.schedule_start) : today;
                     startDate.setHours(0, 0, 0, 0);
-                    return date < Math.max(today.getTime(), startDate.getTime());
+                    return date.getTime() < Math.max(today.getTime(), startDate.getTime());
                   }}
                   initialFocus
                   className="p-3 pointer-events-auto"
