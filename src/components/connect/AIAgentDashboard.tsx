@@ -35,26 +35,26 @@ export const AIAgentDashboard = () => {
     try {
       setIsLoading(true);
       
-      // Get total calls from Telnyx calls table using correct column names
+      // Get total calls from ai_call_logs table using correct column names
       const { data: totalCallsData } = await supabase
-        .from('telnyx_calls')
-        .select('id, call_duration, call_status, created_at, to_number')
+        .from('ai_call_logs')
+        .select('id, duration, ended_at, started_at, phone_number')
         .order('created_at', { ascending: false });
 
       if (totalCallsData) {
         const totalCalls = totalCallsData.length;
-        const completedCalls = totalCallsData.filter(call => call.call_status === 'completed');
+        const completedCalls = totalCallsData.filter(call => call.ended_at);
         const averageCallDuration = completedCalls.length > 0 
-          ? completedCalls.reduce((sum, call) => sum + (call.call_duration || 0), 0) / completedCalls.length
+          ? completedCalls.reduce((sum, call) => sum + (call.duration || 0), 0) / completedCalls.length
           : 0;
         
         const today = new Date().toISOString().split('T')[0];
         const todaysCalls = totalCallsData.filter(call => 
-          call.created_at.startsWith(today)
+          call.started_at?.startsWith(today)
         ).length;
         
         const activeCalls = totalCallsData.filter(call => 
-          ['initiated', 'ringing', 'streaming'].includes(call.call_status)
+          call.started_at && !call.ended_at
         ).length;
         
         // For now, set appointments to 0 since we don't have that field in telnyx_calls
@@ -281,15 +281,15 @@ export const AIAgentDashboard = () => {
                       <Phone className="h-3 w-3 text-blue-600" />
                     </div>
                     <div>
-                      <p className="font-medium">{call.to_number || 'Unknown'}</p>
+                      <p className="font-medium">{call.phone_number || 'Unknown'}</p>
                       <p className="text-xs text-gray-500">
-                        {new Date(call.created_at).toLocaleString()}
+                        {new Date(call.started_at || call.created_at).toLocaleString()}
                       </p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Badge className={getStatusColor(call.call_status)}>
-                      {call.call_status}
+                    <Badge className={getStatusColor(call.ended_at ? 'completed' : 'active')}>
+                      {call.ended_at ? 'completed' : 'active'}
                     </Badge>
                   </div>
                 </div>

@@ -55,7 +55,7 @@ export const ConnectCenterKPICards = ({ className }: ConnectCenterKPICardsProps)
 
       // Active automations
       const { count: automationCount } = await supabase
-        .from('communication_automations')
+        .from('automation_workflows')
         .select('*', { count: 'exact', head: true })
         .eq('user_id', user.id)
         .eq('status', 'active');

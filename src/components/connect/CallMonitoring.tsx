@@ -8,15 +8,15 @@ import { toast } from "@/components/ui/sonner";
 
 interface CallLog {
   id: string;
-  call_control_id: string;
-  to_number: string;
-  from_number?: string;
-  call_status: string;  // Use call_status instead of status
+  phone_number: string;
+  user_id?: string;
+  status: string;
   created_at: string;
   started_at?: string;
   ended_at?: string;
-  call_duration?: number;
+  duration?: number;
   direction?: string;
+  notes?: string;
 }
 
 export const CallMonitoring = () => {
@@ -30,7 +30,7 @@ export const CallMonitoring = () => {
     const channel = supabase
       .channel('call-monitoring')
       .on('postgres_changes', 
-        { event: '*', schema: 'public', table: 'telnyx_calls' }, 
+        { event: '*', schema: 'public', table: 'call_logs' }, 
         (payload) => {
           console.log('New call event:', payload);
           loadCallLogs();
@@ -46,7 +46,7 @@ export const CallMonitoring = () => {
   const loadCallLogs = async () => {
     try {
       const { data, error } = await supabase
-        .from('telnyx_calls')
+        .from('call_logs')
         .select('*')
         .order('created_at', { ascending: false })
         .limit(10);
@@ -122,26 +122,24 @@ export const CallMonitoring = () => {
                     <Phone className="h-4 w-4 text-blue-600" />
                   </div>
                   <div>
-                    <div className="font-medium">{call.to_number}</div>
+                    <div className="font-medium">{call.phone_number}</div>
                     <div className="text-sm text-gray-500">
                       {new Date(call.created_at).toLocaleString()}
                     </div>
-                    {call.call_control_id && (
-                      <div className="text-xs text-gray-400">
-                        Call ID: {call.call_control_id}
-                      </div>
-                    )}
+                    <div className="text-xs text-gray-400">
+                      Call ID: {call.id}
+                    </div>
                   </div>
                 </div>
                 
                 <div className="flex items-center gap-3">
                   <div className="text-right">
-                    <Badge className={getStatusColor(call.call_status)}>
-                      {call.call_status}
+                    <Badge className={getStatusColor(call.status)}>
+                      {call.status}
                     </Badge>
                     <div className="flex items-center gap-1 text-sm text-gray-500 mt-1">
                       <Clock className="h-3 w-3" />
-                      {formatDuration(call.call_duration)}
+                      {formatDuration(call.duration)}
                     </div>
                     {call.direction && (
                       <div className="text-xs text-gray-400">

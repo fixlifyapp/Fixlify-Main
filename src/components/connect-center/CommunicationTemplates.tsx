@@ -63,12 +63,12 @@ export const CommunicationTemplates = () => {
 
       const formattedTemplates: Template[] = data?.map(template => ({
         id: template.id,
-        name: template.template_name,
-        type: template.template_type as 'email' | 'sms',
-        category: 'general',
-        subject: '',
-        content: template.message_content,
-        variables: [],
+        name: template.name,
+        type: template.type as 'email' | 'sms',
+        category: template.category || 'general',
+        subject: template.subject || '',
+        content: template.content,
+        variables: Array.isArray(template.variables) ? template.variables : [],
         is_active: template.is_active !== false,
         created_at: template.created_at
       })) || [];
@@ -97,10 +97,13 @@ export const CommunicationTemplates = () => {
       const { data, error } = await supabase
         .from('message_templates')
         .insert({
-          template_name: formData.name,
-          template_type: formData.type,
-          message_content: formData.content,
-          user_id: '',
+          name: formData.name,
+          type: formData.type,
+          content: formData.content,
+          category: formData.category,
+          subject: formData.subject || null,
+          variables: formData.variables,
+          user_id: (await supabase.auth.getUser()).data.user?.id || '',
           is_active: true
         })
         .select()
