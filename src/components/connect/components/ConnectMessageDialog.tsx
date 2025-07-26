@@ -38,20 +38,31 @@ export const ConnectMessageDialog = ({ isOpen, onClose, client: preselectedClien
   // Search clients
   useEffect(() => {
     const searchClients = async () => {
-      if (!searchQuery.trim()) {
+      if (!searchQuery || !searchQuery.trim()) {
         setClients([]);
         return;
       }
 
-      const { data, error } = await supabase
-        .from('clients')
-        .select('id, name, phone, email')
-        .or(`name.ilike.%${searchQuery}%,phone.ilike.%${searchQuery}%,email.ilike.%${searchQuery}%`)
-        .limit(10);
+      try {
+        const { data, error } = await supabase
+          .from('clients')
+          .select('id, name, phone, email')
+          .or(`name.ilike.%${searchQuery}%,phone.ilike.%${searchQuery}%,email.ilike.%${searchQuery}%`)
+          .limit(10);
 
-      if (!error && data) {
-        setClients(Array.isArray(data) ? data : []);
-      } else {
+        if (error) {
+          console.error('Error searching clients:', error);
+          setClients([]);
+          return;
+        }
+
+        if (data && Array.isArray(data)) {
+          setClients(data);
+        } else {
+          setClients([]);
+        }
+      } catch (error) {
+        console.error('Error in searchClients:', error);
         setClients([]);
       }
     };
@@ -184,20 +195,24 @@ export const ConnectMessageDialog = ({ isOpen, onClose, client: preselectedClien
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-full p-0" align="start">
-                    <Command>
-                      <CommandInput 
+                    <div className="p-2">
+                      <Input 
                         placeholder="Search by name, phone, or email..." 
                         value={searchQuery}
-                        onValueChange={setSearchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="mb-2"
                       />
-                      <CommandEmpty>No clients found.</CommandEmpty>
-                      <CommandGroup>
-                        <ScrollArea className="h-[200px]">
-                          {Array.isArray(clients) && clients.map((client) => (
-                            <CommandItem
+                      <ScrollArea className="h-[200px]">
+                        {clients.length === 0 && searchQuery ? (
+                          <div className="p-3 text-center text-sm text-muted-foreground">
+                            No clients found.
+                          </div>
+                        ) : (
+                          clients.map((client) => (
+                            <div
                               key={client.id}
-                              onSelect={() => handleSelectClient(client)}
-                              className="cursor-pointer"
+                              onClick={() => handleSelectClient(client)}
+                              className="p-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0"
                             >
                               <div className="flex flex-col">
                                 <span className="font-medium">{client.name}</span>
@@ -208,11 +223,11 @@ export const ConnectMessageDialog = ({ isOpen, onClose, client: preselectedClien
                                   </span>
                                 )}
                               </div>
-                            </CommandItem>
-                          ))}
-                        </ScrollArea>
-                      </CommandGroup>
-                    </Command>
+                            </div>
+                          ))
+                        )}
+                      </ScrollArea>
+                    </div>
                   </PopoverContent>
                 </Popover>
               </div>
