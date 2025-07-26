@@ -47,13 +47,15 @@ export const ConferenceCall = ({ conferenceId, onEndConference }: ConferenceCall
 
     setIsAddingParticipant(true);
     try {
+      const { data: userData } = await supabase.auth.getUser();
+      
       // Call the edge function to add participant to conference
       const { data, error } = await supabase.functions.invoke('telnyx-conference-control', {
         body: {
           action: 'add_participant',
           conferenceId,
           phoneNumber: newParticipantNumber.trim(),
-          userId: (await supabase.auth.getUser()).data.user?.id
+          userId: userData.user?.id
         }
       });
 
