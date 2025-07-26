@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Edit, Tag, Plus } from "lucide-react";
 import { useJobs } from "@/hooks/useJobs";
 import { useTags } from "@/hooks/useConfigItems";
-import { UnifiedTagsSelector } from "@/components/shared/UnifiedTagsSelector";
+// import { UnifiedTagsSelector } from "@/components/shared/UnifiedTagsSelector";
 import { useUnifiedJobData } from "@/hooks/useUnifiedJobData";
 import { toast } from "sonner";
 import { TagSelectionDialog } from "../dialogs/TagSelectionDialog";

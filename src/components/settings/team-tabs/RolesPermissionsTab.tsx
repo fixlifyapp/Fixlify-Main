@@ -100,7 +100,7 @@ export const RolesPermissionsTab = () => {
                   {role.id === 'manager' && 'Manage teams, jobs, and reports'}
                   {role.id === 'dispatcher' && 'Schedule jobs and coordinate teams'}
                   {role.id === 'technician' && 'View assigned jobs and update status'}
-                  {role.isCustom && (role.description || 'Custom role with specific permissions')}
+                  {role.isCustom && (('description' in role ? role.description : null) || 'Custom role with specific permissions')}
                 </p>
               </div>
             ))}

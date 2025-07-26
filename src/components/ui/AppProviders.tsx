@@ -7,7 +7,7 @@ import { MessageProvider } from '@/contexts/MessageContext';
 import { GlobalRealtimeProvider } from '@/contexts/GlobalRealtimeProvider';
 import { ModalProvider } from '@/components/ui/modal-provider';
 import { OrganizationProvider } from '@/contexts/OrganizationContext';
-import { AutomationScheduler } from '@/components/automations/AutomationScheduler';
+// import { AutomationScheduler } from '@/components/automations/AutomationScheduler';
 
 interface AppProvidersProps {
   children: ReactNode;
@@ -22,7 +22,7 @@ export const AppProviders = ({ children }: AppProvidersProps) => {
             <SMSProvider>
               <EmailProvider>
                 <ModalProvider>
-                  <AutomationScheduler />
+                  {/* <AutomationScheduler /> */}
                   {children}
                 </ModalProvider>
               </EmailProvider>

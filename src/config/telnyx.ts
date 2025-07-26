@@ -30,13 +30,13 @@ export const getUserPhoneNumber = async (userId: string) => {
   const { supabase } = await import('@/integrations/supabase/client');
   
   const { data, error } = await supabase
-    .from('telnyx_phone_numbers')
+    .from('phone_numbers')
     .select('phone_number')
-    .eq('user_id', userId)
-    .eq('status', 'active')
+    .eq('purchased_by', userId)
+    .eq('is_active', true)
     .order('purchased_at', { ascending: false })
     .limit(1)
-    .single();
+    .maybeSingle();
     
   if (error || !data) {
     throw new Error('No active phone number found for user. Please purchase a phone number first.');

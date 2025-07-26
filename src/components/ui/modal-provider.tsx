@@ -23,7 +23,7 @@ export type ModalType =
   | "deleteConfirm";
 
 // Base props that all modals will have
-interface BaseModalProps {
+export interface BaseModalProps {
   onClose?: () => void;
   [key: string]: any;
 }
