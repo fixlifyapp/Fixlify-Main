@@ -4387,12 +4387,14 @@ export type Database = {
           direction: string | null
           duration: number | null
           ended_at: string | null
+          from_number: string | null
           id: string
           metadata: Json | null
           phone_number: string | null
           recording_url: string | null
           started_at: string | null
           status: string | null
+          to_number: string | null
           updated_at: string | null
           user_id: string | null
         }
@@ -4405,12 +4407,14 @@ export type Database = {
           direction?: string | null
           duration?: number | null
           ended_at?: string | null
+          from_number?: string | null
           id?: string
           metadata?: Json | null
           phone_number?: string | null
           recording_url?: string | null
           started_at?: string | null
           status?: string | null
+          to_number?: string | null
           updated_at?: string | null
           user_id?: string | null
         }
@@ -4423,12 +4427,14 @@ export type Database = {
           direction?: string | null
           duration?: number | null
           ended_at?: string | null
+          from_number?: string | null
           id?: string
           metadata?: Json | null
           phone_number?: string | null
           recording_url?: string | null
           started_at?: string | null
           status?: string | null
+          to_number?: string | null
           updated_at?: string | null
           user_id?: string | null
         }
