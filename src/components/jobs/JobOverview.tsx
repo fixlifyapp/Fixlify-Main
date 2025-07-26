@@ -9,6 +9,8 @@ import { JobCustomFieldsDisplay } from "./JobCustomFieldsDisplay";
 import { EditableJobDescriptionCard } from "./overview/EditableJobDescriptionCard";
 import { TechnicianCard } from "./overview/TechnicianCard";
 import { JobTagsCard } from "./overview/JobTagsCard";
+import { EditableJobDetailsCard } from "./overview/EditableJobDetailsCard";
+import { EditableJobOverviewCard } from "./overview/EditableJobOverviewCard";
 import { 
   Calendar, 
   MapPin, 
@@ -103,101 +105,24 @@ export const JobOverview = ({ jobId }: JobOverviewProps) => {
         onUpdate={() => {}}
       />
 
-      {/* Job Details */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <FileText className="h-5 w-5" />
-            Job Details
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            <div>
-              <h4 className="font-medium mb-2">Service</h4>
-              <p className="text-sm text-muted-foreground">{job.service}</p>
-            </div>
+      {/* Editable Job Details */}
+      <EditableJobDetailsCard 
+        service={job.service || ""} 
+        scheduleStart={job.schedule_start}
+        scheduleEnd={job.schedule_end}
+        jobId={jobId} 
+        onUpdate={() => {}}
+      />
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {job.schedule_start && (
-                <div>
-                  <h4 className="font-medium mb-1">Scheduled Start</h4>
-                  <p className="text-sm text-muted-foreground">
-                    {new Date(job.schedule_start).toLocaleString()}
-                  </p>
-                </div>
-              )}
-              
-              {job.schedule_end && (
-                <div>
-                  <h4 className="font-medium mb-1">Scheduled End</h4>
-                  <p className="text-sm text-muted-foreground">
-                    {new Date(job.schedule_end).toLocaleString()}
-                  </p>
-                </div>
-              )}
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      {/* Editable Job Overview Information */}
+      <EditableJobOverviewCard 
+        overview={overview} 
+        jobId={jobId} 
+        onUpdate={() => {}}
+      />
 
-      {/* Job Overview Information */}
-      {overview && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Info className="h-5 w-5" />
-              Job Overview
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-4">
-                <div>
-                  <h4 className="font-medium mb-1">Property Type</h4>
-                  <p className="text-sm text-muted-foreground">
-                    {overview.property_type || 'Not specified'}
-                  </p>
-                </div>
-                
-                {overview.property_age && (
-                  <div>
-                    <h4 className="font-medium mb-1">Property Age</h4>
-                    <p className="text-sm text-muted-foreground">{overview.property_age}</p>
-                  </div>
-                )}
-                
-                {overview.property_size && (
-                  <div>
-                    <h4 className="font-medium mb-1">Property Size</h4>
-                    <p className="text-sm text-muted-foreground">{overview.property_size}</p>
-                  </div>
-                )}
-              </div>
-              
-              <div className="space-y-4">
-                <div>
-                  <h4 className="font-medium mb-1">Lead Source</h4>
-                  <p className="text-sm text-muted-foreground">
-                    {overview.lead_source || 'Not specified'}
-                  </p>
-                </div>
-                
-                {overview.previous_service_date && (
-                  <div>
-                    <h4 className="font-medium mb-1">Previous Service Date</h4>
-                    <p className="text-sm text-muted-foreground">
-                      {new Date(overview.previous_service_date).toLocaleDateString()}
-                    </p>
-                  </div>
-                )}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
 
-      {/* Custom Fields */}
+      {/* Additional Information (Read-only) */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
