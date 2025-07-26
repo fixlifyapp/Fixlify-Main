@@ -265,6 +265,65 @@ export type Database = {
         }
         Relationships: []
       }
+      ai_call_logs: {
+        Row: {
+          action_taken: string | null
+          ai_agent: string | null
+          client_id: string | null
+          created_at: string | null
+          duration: number | null
+          ended_at: string | null
+          id: string
+          metadata: Json | null
+          phone_number: string | null
+          sentiment: string | null
+          started_at: string | null
+          success: boolean | null
+          transcript: string | null
+          user_id: string | null
+        }
+        Insert: {
+          action_taken?: string | null
+          ai_agent?: string | null
+          client_id?: string | null
+          created_at?: string | null
+          duration?: number | null
+          ended_at?: string | null
+          id?: string
+          metadata?: Json | null
+          phone_number?: string | null
+          sentiment?: string | null
+          started_at?: string | null
+          success?: boolean | null
+          transcript?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          action_taken?: string | null
+          ai_agent?: string | null
+          client_id?: string | null
+          created_at?: string | null
+          duration?: number | null
+          ended_at?: string | null
+          id?: string
+          metadata?: Json | null
+          phone_number?: string | null
+          sentiment?: string | null
+          started_at?: string | null
+          success?: boolean | null
+          transcript?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_call_logs_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ai_dispatcher_call_logs: {
         Row: {
           ai_transcript: string | null
@@ -340,6 +399,13 @@ export type Database = {
             foreignKeyName: "ai_dispatcher_call_logs_phone_number_id_fkey"
             columns: ["phone_number_id"]
             isOneToOne: false
+            referencedRelation: "available_phone_numbers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_dispatcher_call_logs_phone_number_id_fkey"
+            columns: ["phone_number_id"]
+            isOneToOne: false
             referencedRelation: "phone_numbers"
             referencedColumns: ["id"]
           },
@@ -392,6 +458,13 @@ export type Database = {
           voice_selection?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "ai_dispatcher_configs_phone_number_id_fkey"
+            columns: ["phone_number_id"]
+            isOneToOne: true
+            referencedRelation: "available_phone_numbers"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "ai_dispatcher_configs_phone_number_id_fkey"
             columns: ["phone_number_id"]
@@ -504,115 +577,6 @@ export type Database = {
             columns: ["automation_id"]
             isOneToOne: false
             referencedRelation: "automations"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      automation_communication_logs: {
-        Row: {
-          automation_id: string | null
-          communication_type: string | null
-          content: string | null
-          cost: number | null
-          created_at: string | null
-          created_by_automation: string | null
-          direction: string | null
-          error_details: Json | null
-          external_id: string | null
-          from_email: string | null
-          from_number: string | null
-          id: string
-          metadata: Json | null
-          provider: string | null
-          provider_response: Json | null
-          recipient: string | null
-          response_received: boolean | null
-          response_received_at: string | null
-          status: string | null
-          subject: string | null
-          to_email: string | null
-          to_number: string | null
-          type: string | null
-          updated_at: string | null
-          user_id: string
-          workflow_id: string | null
-        }
-        Insert: {
-          automation_id?: string | null
-          communication_type?: string | null
-          content?: string | null
-          cost?: number | null
-          created_at?: string | null
-          created_by_automation?: string | null
-          direction?: string | null
-          error_details?: Json | null
-          external_id?: string | null
-          from_email?: string | null
-          from_number?: string | null
-          id?: string
-          metadata?: Json | null
-          provider?: string | null
-          provider_response?: Json | null
-          recipient?: string | null
-          response_received?: boolean | null
-          response_received_at?: string | null
-          status?: string | null
-          subject?: string | null
-          to_email?: string | null
-          to_number?: string | null
-          type?: string | null
-          updated_at?: string | null
-          user_id: string
-          workflow_id?: string | null
-        }
-        Update: {
-          automation_id?: string | null
-          communication_type?: string | null
-          content?: string | null
-          cost?: number | null
-          created_at?: string | null
-          created_by_automation?: string | null
-          direction?: string | null
-          error_details?: Json | null
-          external_id?: string | null
-          from_email?: string | null
-          from_number?: string | null
-          id?: string
-          metadata?: Json | null
-          provider?: string | null
-          provider_response?: Json | null
-          recipient?: string | null
-          response_received?: boolean | null
-          response_received_at?: string | null
-          status?: string | null
-          subject?: string | null
-          to_email?: string | null
-          to_number?: string | null
-          type?: string | null
-          updated_at?: string | null
-          user_id?: string
-          workflow_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "automation_communication_logs_automation_id_fkey"
-            columns: ["automation_id"]
-            isOneToOne: false
-            referencedRelation: "automation_workflows"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "automation_communication_logs_created_by_automation_fkey"
-            columns: ["created_by_automation"]
-            isOneToOne: false
-            referencedRelation: "automation_workflows"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "automation_communication_logs_workflow_id_fkey"
-            columns: ["workflow_id"]
-            isOneToOne: false
-            referencedRelation: "automation_workflows"
             referencedColumns: ["id"]
           },
         ]
@@ -771,218 +735,6 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "automation_history_workflow_id_fkey"
-            columns: ["workflow_id"]
-            isOneToOne: false
-            referencedRelation: "automation_workflows"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      automation_message_queue: {
-        Row: {
-          content: Json
-          created_at: string | null
-          delivery_window: Json | null
-          error_message: string | null
-          id: string
-          message_type: string
-          metadata: Json | null
-          organization_id: string | null
-          recipient: string
-          retry_count: number | null
-          scheduled_at: string
-          sent_at: string | null
-          status: string
-          step_id: string
-          updated_at: string | null
-          user_id: string | null
-          workflow_id: string | null
-        }
-        Insert: {
-          content: Json
-          created_at?: string | null
-          delivery_window?: Json | null
-          error_message?: string | null
-          id?: string
-          message_type: string
-          metadata?: Json | null
-          organization_id?: string | null
-          recipient: string
-          retry_count?: number | null
-          scheduled_at: string
-          sent_at?: string | null
-          status?: string
-          step_id: string
-          updated_at?: string | null
-          user_id?: string | null
-          workflow_id?: string | null
-        }
-        Update: {
-          content?: Json
-          created_at?: string | null
-          delivery_window?: Json | null
-          error_message?: string | null
-          id?: string
-          message_type?: string
-          metadata?: Json | null
-          organization_id?: string | null
-          recipient?: string
-          retry_count?: number | null
-          scheduled_at?: string
-          sent_at?: string | null
-          status?: string
-          step_id?: string
-          updated_at?: string | null
-          user_id?: string | null
-          workflow_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "automation_message_queue_organization_id_fkey"
-            columns: ["organization_id"]
-            isOneToOne: false
-            referencedRelation: "organizations"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "automation_message_queue_workflow_id_fkey"
-            columns: ["workflow_id"]
-            isOneToOne: false
-            referencedRelation: "automation_workflows"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      automation_message_templates: {
-        Row: {
-          category: string | null
-          content: string
-          created_at: string
-          description: string | null
-          id: string
-          is_default: boolean | null
-          last_used_at: string | null
-          marketing_formula: string | null
-          name: string
-          preview_text: string | null
-          subject: string | null
-          tone: string | null
-          type: string
-          updated_at: string
-          use_count: number | null
-          variables: Json | null
-        }
-        Insert: {
-          category?: string | null
-          content: string
-          created_at?: string
-          description?: string | null
-          id?: string
-          is_default?: boolean | null
-          last_used_at?: string | null
-          marketing_formula?: string | null
-          name: string
-          preview_text?: string | null
-          subject?: string | null
-          tone?: string | null
-          type: string
-          updated_at?: string
-          use_count?: number | null
-          variables?: Json | null
-        }
-        Update: {
-          category?: string | null
-          content?: string
-          created_at?: string
-          description?: string | null
-          id?: string
-          is_default?: boolean | null
-          last_used_at?: string | null
-          marketing_formula?: string | null
-          name?: string
-          preview_text?: string | null
-          subject?: string | null
-          tone?: string | null
-          type?: string
-          updated_at?: string
-          use_count?: number | null
-          variables?: Json | null
-        }
-        Relationships: []
-      }
-      automation_messages: {
-        Row: {
-          client_id: string | null
-          cost: number | null
-          created_at: string | null
-          error_message: string | null
-          fallback_channel: string | null
-          fallback_sent_at: string | null
-          fallback_status: string | null
-          id: string
-          job_id: string | null
-          message_content: string
-          message_type: string
-          metadata: Json | null
-          organization_id: string
-          primary_status: string | null
-          recipient: string
-          replied_at: string | null
-          reply_content: string | null
-          sender: string
-          sent_at: string | null
-          subject: string | null
-          workflow_id: string | null
-        }
-        Insert: {
-          client_id?: string | null
-          cost?: number | null
-          created_at?: string | null
-          error_message?: string | null
-          fallback_channel?: string | null
-          fallback_sent_at?: string | null
-          fallback_status?: string | null
-          id?: string
-          job_id?: string | null
-          message_content: string
-          message_type: string
-          metadata?: Json | null
-          organization_id: string
-          primary_status?: string | null
-          recipient: string
-          replied_at?: string | null
-          reply_content?: string | null
-          sender: string
-          sent_at?: string | null
-          subject?: string | null
-          workflow_id?: string | null
-        }
-        Update: {
-          client_id?: string | null
-          cost?: number | null
-          created_at?: string | null
-          error_message?: string | null
-          fallback_channel?: string | null
-          fallback_sent_at?: string | null
-          fallback_status?: string | null
-          id?: string
-          job_id?: string | null
-          message_content?: string
-          message_type?: string
-          metadata?: Json | null
-          organization_id?: string
-          primary_status?: string | null
-          recipient?: string
-          replied_at?: string | null
-          reply_content?: string | null
-          sender?: string
-          sent_at?: string | null
-          subject?: string | null
-          workflow_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "automation_messages_workflow_id_fkey"
             columns: ["workflow_id"]
             isOneToOne: false
             referencedRelation: "automation_workflows"
@@ -1436,6 +1188,62 @@ export type Database = {
           },
         ]
       }
+      call_logs: {
+        Row: {
+          client_id: string | null
+          created_at: string | null
+          direction: string | null
+          duration: number | null
+          ended_at: string | null
+          id: string
+          notes: string | null
+          phone_number: string | null
+          recording_url: string | null
+          started_at: string | null
+          status: string | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          client_id?: string | null
+          created_at?: string | null
+          direction?: string | null
+          duration?: number | null
+          ended_at?: string | null
+          id?: string
+          notes?: string | null
+          phone_number?: string | null
+          recording_url?: string | null
+          started_at?: string | null
+          status?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          client_id?: string | null
+          created_at?: string | null
+          direction?: string | null
+          duration?: number | null
+          ended_at?: string | null
+          id?: string
+          notes?: string | null
+          phone_number?: string | null
+          recording_url?: string | null
+          started_at?: string | null
+          status?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "call_logs_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       call_routing_logs: {
         Row: {
           ai_enabled: boolean
@@ -1714,305 +1522,106 @@ export type Database = {
         }
         Relationships: []
       }
-      communication_automations: {
-        Row: {
-          created_at: string | null
-          delay_minutes: number | null
-          id: string
-          is_active: boolean | null
-          name: string
-          organization_id: string
-          template_id: string
-          trigger_conditions: Json | null
-          trigger_type: string
-          updated_at: string | null
-        }
-        Insert: {
-          created_at?: string | null
-          delay_minutes?: number | null
-          id?: string
-          is_active?: boolean | null
-          name: string
-          organization_id: string
-          template_id: string
-          trigger_conditions?: Json | null
-          trigger_type: string
-          updated_at?: string | null
-        }
-        Update: {
-          created_at?: string | null
-          delay_minutes?: number | null
-          id?: string
-          is_active?: boolean | null
-          name?: string
-          organization_id?: string
-          template_id?: string
-          trigger_conditions?: Json | null
-          trigger_type?: string
-          updated_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "communication_automations_template_id_fkey"
-            columns: ["template_id"]
-            isOneToOne: false
-            referencedRelation: "communication_templates"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       communication_logs: {
         Row: {
-          clicked_at: string | null
-          client_id: string
+          client_id: string | null
+          communication_type: string | null
           content: string | null
-          created_at: string
+          created_at: string | null
           delivered_at: string | null
-          direction: string | null
+          direction: string
+          document_id: string | null
+          document_type: string | null
           error_message: string | null
           external_id: string | null
-          from_address: string | null
+          failed_at: string | null
+          from_address: string
+          from_number: string | null
           id: string
           job_id: string | null
           metadata: Json | null
-          opened_at: string | null
-          provider: string
-          recipient: string
-          sent_at: string | null
-          status: string | null
-          subject: string | null
-          to_address: string | null
-          type: string
-          updated_at: string | null
-          user_id: string | null
-        }
-        Insert: {
-          clicked_at?: string | null
-          client_id: string
-          content?: string | null
-          created_at?: string
-          delivered_at?: string | null
-          direction?: string | null
-          error_message?: string | null
-          external_id?: string | null
-          from_address?: string | null
-          id?: string
-          job_id?: string | null
-          metadata?: Json | null
-          opened_at?: string | null
-          provider: string
-          recipient: string
-          sent_at?: string | null
-          status?: string | null
-          subject?: string | null
-          to_address?: string | null
-          type: string
-          updated_at?: string | null
-          user_id?: string | null
-        }
-        Update: {
-          clicked_at?: string | null
-          client_id?: string
-          content?: string | null
-          created_at?: string
-          delivered_at?: string | null
-          direction?: string | null
-          error_message?: string | null
-          external_id?: string | null
-          from_address?: string | null
-          id?: string
-          job_id?: string | null
-          metadata?: Json | null
-          opened_at?: string | null
-          provider?: string
-          recipient?: string
-          sent_at?: string | null
-          status?: string | null
-          subject?: string | null
-          to_address?: string | null
-          type?: string
-          updated_at?: string | null
-          user_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "communication_logs_job_id_fkey"
-            columns: ["job_id"]
-            isOneToOne: false
-            referencedRelation: "fact_jobs"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "communication_logs_job_id_fkey"
-            columns: ["job_id"]
-            isOneToOne: false
-            referencedRelation: "job_revenue_summary"
-            referencedColumns: ["job_id"]
-          },
-          {
-            foreignKeyName: "communication_logs_job_id_fkey"
-            columns: ["job_id"]
-            isOneToOne: false
-            referencedRelation: "jobs"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      communication_templates: {
-        Row: {
-          content: string
-          created_at: string | null
-          id: string
-          name: string
-          organization_id: string
-          preview_data: Json | null
-          subject: string | null
-          type: string | null
-          updated_at: string | null
-          variables: Json | null
-        }
-        Insert: {
-          content: string
-          created_at?: string | null
-          id?: string
-          name: string
-          organization_id: string
-          preview_data?: Json | null
-          subject?: string | null
-          type?: string | null
-          updated_at?: string | null
-          variables?: Json | null
-        }
-        Update: {
-          content?: string
-          created_at?: string | null
-          id?: string
-          name?: string
-          organization_id?: string
-          preview_data?: Json | null
-          subject?: string | null
-          type?: string | null
-          updated_at?: string | null
-          variables?: Json | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "communication_templates_organization_id_fkey"
-            columns: ["organization_id"]
-            isOneToOne: false
-            referencedRelation: "organizations"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      communications: {
-        Row: {
-          category: string
-          client_id: string | null
-          content: string
-          created_at: string | null
-          created_by: string
-          delivered_at: string | null
-          error_message: string | null
-          estimate_id: string | null
-          from: string
-          id: string
-          invoice_id: string | null
-          job_id: string | null
-          metadata: Json | null
-          organization_id: string
-          read_at: string | null
+          recipient: string | null
           sent_at: string | null
           status: string
           subject: string | null
-          to: string
+          to_address: string
           type: string
-          updated_at: string | null
+          user_id: string
         }
         Insert: {
-          category: string
           client_id?: string | null
-          content: string
+          communication_type?: string | null
+          content?: string | null
           created_at?: string | null
-          created_by: string
           delivered_at?: string | null
+          direction: string
+          document_id?: string | null
+          document_type?: string | null
           error_message?: string | null
-          estimate_id?: string | null
-          from: string
+          external_id?: string | null
+          failed_at?: string | null
+          from_address: string
+          from_number?: string | null
           id?: string
-          invoice_id?: string | null
           job_id?: string | null
           metadata?: Json | null
-          organization_id: string
-          read_at?: string | null
+          recipient?: string | null
           sent_at?: string | null
           status?: string
           subject?: string | null
-          to: string
+          to_address: string
           type: string
-          updated_at?: string | null
+          user_id: string
         }
         Update: {
-          category?: string
           client_id?: string | null
-          content?: string
+          communication_type?: string | null
+          content?: string | null
           created_at?: string | null
-          created_by?: string
           delivered_at?: string | null
+          direction?: string
+          document_id?: string | null
+          document_type?: string | null
           error_message?: string | null
-          estimate_id?: string | null
-          from?: string
+          external_id?: string | null
+          failed_at?: string | null
+          from_address?: string
+          from_number?: string | null
           id?: string
-          invoice_id?: string | null
           job_id?: string | null
           metadata?: Json | null
-          organization_id?: string
-          read_at?: string | null
+          recipient?: string | null
           sent_at?: string | null
           status?: string
           subject?: string | null
-          to?: string
+          to_address?: string
           type?: string
-          updated_at?: string | null
+          user_id?: string
         }
         Relationships: [
           {
-            foreignKeyName: "communications_client_id_fkey"
+            foreignKeyName: "communication_logs_client_id_fkey"
             columns: ["client_id"]
             isOneToOne: false
             referencedRelation: "clients"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "communications_estimate_id_fkey"
-            columns: ["estimate_id"]
-            isOneToOne: false
-            referencedRelation: "estimates"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "communications_invoice_id_fkey"
-            columns: ["invoice_id"]
-            isOneToOne: false
-            referencedRelation: "invoices"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "communications_job_id_fkey"
+            foreignKeyName: "communication_logs_job_id_fkey"
             columns: ["job_id"]
             isOneToOne: false
             referencedRelation: "fact_jobs"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "communications_job_id_fkey"
+            foreignKeyName: "communication_logs_job_id_fkey"
             columns: ["job_id"]
             isOneToOne: false
             referencedRelation: "job_revenue_summary"
             referencedColumns: ["job_id"]
           },
           {
-            foreignKeyName: "communications_job_id_fkey"
+            foreignKeyName: "communication_logs_job_id_fkey"
             columns: ["job_id"]
             isOneToOne: false
             referencedRelation: "jobs"
@@ -2139,68 +1748,6 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
-      }
-      conversations: {
-        Row: {
-          client_id: string | null
-          created_at: string | null
-          id: string
-          job_id: string | null
-          last_message_at: string | null
-          status: string | null
-          updated_at: string | null
-          user_id: string | null
-        }
-        Insert: {
-          client_id?: string | null
-          created_at?: string | null
-          id?: string
-          job_id?: string | null
-          last_message_at?: string | null
-          status?: string | null
-          updated_at?: string | null
-          user_id?: string | null
-        }
-        Update: {
-          client_id?: string | null
-          created_at?: string | null
-          id?: string
-          job_id?: string | null
-          last_message_at?: string | null
-          status?: string | null
-          updated_at?: string | null
-          user_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "conversations_client_id_fkey"
-            columns: ["client_id"]
-            isOneToOne: true
-            referencedRelation: "clients"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "conversations_job_id_fkey"
-            columns: ["job_id"]
-            isOneToOne: false
-            referencedRelation: "fact_jobs"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "conversations_job_id_fkey"
-            columns: ["job_id"]
-            isOneToOne: false
-            referencedRelation: "job_revenue_summary"
-            referencedColumns: ["job_id"]
-          },
-          {
-            foreignKeyName: "conversations_job_id_fkey"
-            columns: ["job_id"]
-            isOneToOne: false
-            referencedRelation: "jobs"
-            referencedColumns: ["id"]
-          },
-        ]
       }
       custom_fields: {
         Row: {
@@ -2340,48 +1887,48 @@ export type Database = {
       email_conversations: {
         Row: {
           client_id: string | null
-          company_id: string | null
+          client_name: string | null
           created_at: string | null
+          email_address: string
           id: string
-          job_id: string | null
+          is_archived: boolean | null
+          is_starred: boolean | null
           last_message_at: string | null
-          message_id: string | null
-          metadata: Json | null
-          status: string | null
-          subject: string
-          template_id: string | null
-          thread_id: string | null
+          last_message_preview: string | null
+          subject: string | null
+          unread_count: number | null
           updated_at: string | null
+          user_id: string
         }
         Insert: {
           client_id?: string | null
-          company_id?: string | null
+          client_name?: string | null
           created_at?: string | null
+          email_address: string
           id?: string
-          job_id?: string | null
+          is_archived?: boolean | null
+          is_starred?: boolean | null
           last_message_at?: string | null
-          message_id?: string | null
-          metadata?: Json | null
-          status?: string | null
-          subject: string
-          template_id?: string | null
-          thread_id?: string | null
+          last_message_preview?: string | null
+          subject?: string | null
+          unread_count?: number | null
           updated_at?: string | null
+          user_id: string
         }
         Update: {
           client_id?: string | null
-          company_id?: string | null
+          client_name?: string | null
           created_at?: string | null
+          email_address?: string
           id?: string
-          job_id?: string | null
+          is_archived?: boolean | null
+          is_starred?: boolean | null
           last_message_at?: string | null
-          message_id?: string | null
-          metadata?: Json | null
-          status?: string | null
-          subject?: string
-          template_id?: string | null
-          thread_id?: string | null
+          last_message_preview?: string | null
+          subject?: string | null
+          unread_count?: number | null
           updated_at?: string | null
+          user_id?: string
         }
         Relationships: [
           {
@@ -2391,177 +1938,62 @@ export type Database = {
             referencedRelation: "clients"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "email_conversations_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "company_settings"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "email_conversations_job_id_fkey"
-            columns: ["job_id"]
-            isOneToOne: false
-            referencedRelation: "fact_jobs"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "email_conversations_job_id_fkey"
-            columns: ["job_id"]
-            isOneToOne: false
-            referencedRelation: "job_revenue_summary"
-            referencedColumns: ["job_id"]
-          },
-          {
-            foreignKeyName: "email_conversations_job_id_fkey"
-            columns: ["job_id"]
-            isOneToOne: false
-            referencedRelation: "jobs"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "email_conversations_template_id_fkey"
-            columns: ["template_id"]
-            isOneToOne: false
-            referencedRelation: "automation_message_templates"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      email_logs: {
-        Row: {
-          automation_id: string | null
-          body: string | null
-          client_id: string | null
-          created_at: string
-          error_message: string | null
-          html: string | null
-          id: string
-          job_id: string | null
-          metadata: Json | null
-          provider: string | null
-          provider_message_id: string | null
-          recipient_email: string
-          status: string | null
-          subject: string
-          user_id: string | null
-          workflow_id: string | null
-        }
-        Insert: {
-          automation_id?: string | null
-          body?: string | null
-          client_id?: string | null
-          created_at?: string
-          error_message?: string | null
-          html?: string | null
-          id?: string
-          job_id?: string | null
-          metadata?: Json | null
-          provider?: string | null
-          provider_message_id?: string | null
-          recipient_email: string
-          status?: string | null
-          subject: string
-          user_id?: string | null
-          workflow_id?: string | null
-        }
-        Update: {
-          automation_id?: string | null
-          body?: string | null
-          client_id?: string | null
-          created_at?: string
-          error_message?: string | null
-          html?: string | null
-          id?: string
-          job_id?: string | null
-          metadata?: Json | null
-          provider?: string | null
-          provider_message_id?: string | null
-          recipient_email?: string
-          status?: string | null
-          subject?: string
-          user_id?: string | null
-          workflow_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "email_logs_client_id_fkey"
-            columns: ["client_id"]
-            isOneToOne: false
-            referencedRelation: "clients"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "email_logs_job_id_fkey"
-            columns: ["job_id"]
-            isOneToOne: false
-            referencedRelation: "fact_jobs"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "email_logs_job_id_fkey"
-            columns: ["job_id"]
-            isOneToOne: false
-            referencedRelation: "job_revenue_summary"
-            referencedColumns: ["job_id"]
-          },
-          {
-            foreignKeyName: "email_logs_job_id_fkey"
-            columns: ["job_id"]
-            isOneToOne: false
-            referencedRelation: "jobs"
-            referencedColumns: ["id"]
-          },
         ]
       }
       email_messages: {
         Row: {
           attachments: Json | null
-          body_html: string | null
-          body_text: string | null
-          clicked_at: string | null
+          body: string
           conversation_id: string | null
           created_at: string | null
-          delivery_status: string | null
           direction: string
+          email_id: string | null
+          from_email: string
+          html_body: string | null
           id: string
-          mailgun_message_id: string | null
-          opened_at: string | null
-          recipient_email: string
-          sender_email: string
+          is_read: boolean | null
+          metadata: Json | null
+          status: string | null
           subject: string | null
+          thread_id: string | null
+          to_email: string
+          user_id: string
         }
         Insert: {
           attachments?: Json | null
-          body_html?: string | null
-          body_text?: string | null
-          clicked_at?: string | null
+          body: string
           conversation_id?: string | null
           created_at?: string | null
-          delivery_status?: string | null
           direction: string
+          email_id?: string | null
+          from_email: string
+          html_body?: string | null
           id?: string
-          mailgun_message_id?: string | null
-          opened_at?: string | null
-          recipient_email: string
-          sender_email: string
+          is_read?: boolean | null
+          metadata?: Json | null
+          status?: string | null
           subject?: string | null
+          thread_id?: string | null
+          to_email: string
+          user_id: string
         }
         Update: {
           attachments?: Json | null
-          body_html?: string | null
-          body_text?: string | null
-          clicked_at?: string | null
+          body?: string
           conversation_id?: string | null
           created_at?: string | null
-          delivery_status?: string | null
           direction?: string
+          email_id?: string | null
+          from_email?: string
+          html_body?: string | null
           id?: string
-          mailgun_message_id?: string | null
-          opened_at?: string | null
-          recipient_email?: string
-          sender_email?: string
+          is_read?: boolean | null
+          metadata?: Json | null
+          status?: string | null
           subject?: string | null
+          thread_id?: string | null
+          to_email?: string
+          user_id?: string
         }
         Relationships: [
           {
@@ -2573,168 +2005,52 @@ export type Database = {
           },
         ]
       }
-      email_templates: {
-        Row: {
-          body_html: string | null
-          body_text: string | null
-          company_id: string | null
-          created_at: string | null
-          id: string
-          is_default: boolean | null
-          name: string
-          subject: string | null
-          template_type: string
-          updated_at: string | null
-          variables: Json | null
-        }
-        Insert: {
-          body_html?: string | null
-          body_text?: string | null
-          company_id?: string | null
-          created_at?: string | null
-          id?: string
-          is_default?: boolean | null
-          name: string
-          subject?: string | null
-          template_type: string
-          updated_at?: string | null
-          variables?: Json | null
-        }
-        Update: {
-          body_html?: string | null
-          body_text?: string | null
-          company_id?: string | null
-          created_at?: string | null
-          id?: string
-          is_default?: boolean | null
-          name?: string
-          subject?: string | null
-          template_type?: string
-          updated_at?: string | null
-          variables?: Json | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "email_templates_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "company_settings"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      emails: {
-        Row: {
-          body: string | null
-          client_id: string | null
-          created_at: string
-          direction: string
-          email_address: string
-          id: string
-          is_read: boolean | null
-          is_starred: boolean | null
-          status: string | null
-          subject: string
-          thread_id: string | null
-          updated_at: string
-        }
-        Insert: {
-          body?: string | null
-          client_id?: string | null
-          created_at?: string
-          direction: string
-          email_address: string
-          id?: string
-          is_read?: boolean | null
-          is_starred?: boolean | null
-          status?: string | null
-          subject: string
-          thread_id?: string | null
-          updated_at?: string
-        }
-        Update: {
-          body?: string | null
-          client_id?: string | null
-          created_at?: string
-          direction?: string
-          email_address?: string
-          id?: string
-          is_read?: boolean | null
-          is_starred?: boolean | null
-          status?: string | null
-          subject?: string
-          thread_id?: string | null
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "emails_client_id_fkey"
-            columns: ["client_id"]
-            isOneToOne: false
-            referencedRelation: "clients"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       estimate_communications: {
         Row: {
-          client_email: string | null
-          client_name: string | null
-          client_phone: string | null
-          communication_type: string
-          content: string | null
-          created_at: string
+          content: string
+          created_at: string | null
           estimate_id: string
-          estimate_number: string | null
-          external_id: string | null
           id: string
-          portal_link_included: boolean | null
-          provider_message_id: string | null
-          recipient: string
-          sent_at: string | null
-          status: string
-          subject: string | null
-          updated_at: string
+          metadata: Json | null
+          recipient_email: string | null
+          recipient_phone: string | null
+          status: string | null
+          type: string
+          updated_at: string | null
         }
         Insert: {
-          client_email?: string | null
-          client_name?: string | null
-          client_phone?: string | null
-          communication_type: string
-          content?: string | null
-          created_at?: string
+          content: string
+          created_at?: string | null
           estimate_id: string
-          estimate_number?: string | null
-          external_id?: string | null
           id?: string
-          portal_link_included?: boolean | null
-          provider_message_id?: string | null
-          recipient: string
-          sent_at?: string | null
-          status?: string
-          subject?: string | null
-          updated_at?: string
+          metadata?: Json | null
+          recipient_email?: string | null
+          recipient_phone?: string | null
+          status?: string | null
+          type: string
+          updated_at?: string | null
         }
         Update: {
-          client_email?: string | null
-          client_name?: string | null
-          client_phone?: string | null
-          communication_type?: string
-          content?: string | null
-          created_at?: string
+          content?: string
+          created_at?: string | null
           estimate_id?: string
-          estimate_number?: string | null
-          external_id?: string | null
           id?: string
-          portal_link_included?: boolean | null
-          provider_message_id?: string | null
-          recipient?: string
-          sent_at?: string | null
-          status?: string
-          subject?: string | null
-          updated_at?: string
+          metadata?: Json | null
+          recipient_email?: string | null
+          recipient_phone?: string | null
+          status?: string | null
+          type?: string
+          updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "estimate_communications_estimate_id_fkey"
+            columns: ["estimate_id"]
+            isOneToOne: false
+            referencedRelation: "estimates"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       estimates: {
         Row: {
@@ -2751,7 +2067,6 @@ export type Database = {
           job_id: string
           notes: string | null
           portal_access_token: string | null
-          sent_at: string | null
           signature_ip: string | null
           signature_timestamp: string | null
           status: string
@@ -2779,7 +2094,6 @@ export type Database = {
           job_id: string
           notes?: string | null
           portal_access_token?: string | null
-          sent_at?: string | null
           signature_ip?: string | null
           signature_timestamp?: string | null
           status?: string
@@ -2807,7 +2121,6 @@ export type Database = {
           job_id?: string
           notes?: string | null
           portal_access_token?: string | null
-          sent_at?: string | null
           signature_ip?: string | null
           signature_timestamp?: string | null
           status?: string
@@ -2880,63 +2193,50 @@ export type Database = {
       }
       invoice_communications: {
         Row: {
-          client_email: string | null
-          client_name: string | null
-          client_phone: string | null
-          communication_type: string
-          content: string | null
-          created_at: string
-          external_id: string | null
+          content: string
+          created_at: string | null
           id: string
           invoice_id: string
-          invoice_number: string | null
-          portal_link_included: boolean | null
-          provider_message_id: string | null
-          recipient: string
-          sent_at: string | null
-          status: string
-          subject: string | null
-          updated_at: string
+          metadata: Json | null
+          recipient_email: string | null
+          recipient_phone: string | null
+          status: string | null
+          type: string
+          updated_at: string | null
         }
         Insert: {
-          client_email?: string | null
-          client_name?: string | null
-          client_phone?: string | null
-          communication_type: string
-          content?: string | null
-          created_at?: string
-          external_id?: string | null
+          content: string
+          created_at?: string | null
           id?: string
           invoice_id: string
-          invoice_number?: string | null
-          portal_link_included?: boolean | null
-          provider_message_id?: string | null
-          recipient: string
-          sent_at?: string | null
-          status?: string
-          subject?: string | null
-          updated_at?: string
+          metadata?: Json | null
+          recipient_email?: string | null
+          recipient_phone?: string | null
+          status?: string | null
+          type: string
+          updated_at?: string | null
         }
         Update: {
-          client_email?: string | null
-          client_name?: string | null
-          client_phone?: string | null
-          communication_type?: string
-          content?: string | null
-          created_at?: string
-          external_id?: string | null
+          content?: string
+          created_at?: string | null
           id?: string
           invoice_id?: string
-          invoice_number?: string | null
-          portal_link_included?: boolean | null
-          provider_message_id?: string | null
-          recipient?: string
-          sent_at?: string | null
-          status?: string
-          subject?: string | null
-          updated_at?: string
+          metadata?: Json | null
+          recipient_email?: string | null
+          recipient_phone?: string | null
+          status?: string | null
+          type?: string
+          updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "invoice_communications_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       invoices: {
         Row: {
@@ -2962,7 +2262,6 @@ export type Database = {
           payment_link: string | null
           payment_status: string | null
           portal_access_token: string | null
-          sent_at: string | null
           status: string
           subtotal: number
           tax_amount: number | null
@@ -2996,7 +2295,6 @@ export type Database = {
           payment_link?: string | null
           payment_status?: string | null
           portal_access_token?: string | null
-          sent_at?: string | null
           status?: string
           subtotal?: number
           tax_amount?: number | null
@@ -3030,7 +2328,6 @@ export type Database = {
           payment_link?: string | null
           payment_status?: string | null
           portal_access_token?: string | null
-          sent_at?: string | null
           status?: string
           subtotal?: number
           tax_amount?: number | null
@@ -3572,95 +2869,48 @@ export type Database = {
       }
       message_templates: {
         Row: {
-          created_at: string
+          category: string
+          content: string
+          created_at: string | null
           id: string
           is_active: boolean | null
           is_default: boolean | null
-          message_content: string
-          template_name: string
-          template_type: string
-          updated_at: string
+          name: string
+          subject: string | null
+          type: string
+          updated_at: string | null
           user_id: string
           variables: Json | null
         }
         Insert: {
-          created_at?: string
+          category: string
+          content: string
+          created_at?: string | null
           id?: string
           is_active?: boolean | null
           is_default?: boolean | null
-          message_content: string
-          template_name: string
-          template_type: string
-          updated_at?: string
+          name: string
+          subject?: string | null
+          type: string
+          updated_at?: string | null
           user_id: string
           variables?: Json | null
         }
         Update: {
-          created_at?: string
+          category?: string
+          content?: string
+          created_at?: string | null
           id?: string
           is_active?: boolean | null
           is_default?: boolean | null
-          message_content?: string
-          template_name?: string
-          template_type?: string
-          updated_at?: string
+          name?: string
+          subject?: string | null
+          type?: string
+          updated_at?: string | null
           user_id?: string
           variables?: Json | null
         }
         Relationships: []
-      }
-      messages: {
-        Row: {
-          body: string
-          conversation_id: string | null
-          created_at: string | null
-          direction: string
-          id: string
-          media_url: string | null
-          message_sid: string | null
-          read_at: string | null
-          recipient: string | null
-          sender: string | null
-          status: string | null
-          user_id: string | null
-        }
-        Insert: {
-          body: string
-          conversation_id?: string | null
-          created_at?: string | null
-          direction: string
-          id?: string
-          media_url?: string | null
-          message_sid?: string | null
-          read_at?: string | null
-          recipient?: string | null
-          sender?: string | null
-          status?: string | null
-          user_id?: string | null
-        }
-        Update: {
-          body?: string
-          conversation_id?: string | null
-          created_at?: string | null
-          direction?: string
-          id?: string
-          media_url?: string | null
-          message_sid?: string | null
-          read_at?: string | null
-          recipient?: string | null
-          sender?: string | null
-          status?: string | null
-          user_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "messages_conversation_id_fkey"
-            columns: ["conversation_id"]
-            isOneToOne: false
-            referencedRelation: "conversations"
-            referencedColumns: ["id"]
-          },
-        ]
       }
       notifications: {
         Row: {
@@ -3695,6 +2945,42 @@ export type Database = {
           title?: string
           type?: string | null
           user_id?: string | null
+        }
+        Relationships: []
+      }
+      organization_communication_settings: {
+        Row: {
+          created_at: string | null
+          default_from_email: string | null
+          default_from_name: string | null
+          email_enabled: boolean | null
+          id: string
+          mailgun_domain: string | null
+          organization_id: string
+          sms_enabled: boolean | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          default_from_email?: string | null
+          default_from_name?: string | null
+          email_enabled?: boolean | null
+          id?: string
+          mailgun_domain?: string | null
+          organization_id: string
+          sms_enabled?: boolean | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          default_from_email?: string | null
+          default_from_name?: string | null
+          email_enabled?: boolean | null
+          id?: string
+          mailgun_domain?: string | null
+          organization_id?: string
+          sms_enabled?: boolean | null
+          updated_at?: string | null
         }
         Relationships: []
       }
@@ -3859,233 +3145,62 @@ export type Database = {
           },
         ]
       }
-      phone_number_assignments: {
+      phone_number_billing_history: {
         Row: {
-          ai_settings: Json | null
-          assigned_at: string
-          assigned_name: string | null
-          call_settings: Json | null
-          company_id: string | null
-          created_at: string
+          amount: number
+          billed_at: string | null
+          billing_type: string
+          created_at: string | null
           id: string
-          is_active: boolean | null
-          phone_number: string
-          purchase_id: string | null
-          sms_settings: Json | null
-          updated_at: string
-        }
-        Insert: {
-          ai_settings?: Json | null
-          assigned_at?: string
-          assigned_name?: string | null
-          call_settings?: Json | null
-          company_id?: string | null
-          created_at?: string
-          id?: string
-          is_active?: boolean | null
-          phone_number: string
-          purchase_id?: string | null
-          sms_settings?: Json | null
-          updated_at?: string
-        }
-        Update: {
-          ai_settings?: Json | null
-          assigned_at?: string
-          assigned_name?: string | null
-          call_settings?: Json | null
-          company_id?: string | null
-          created_at?: string
-          id?: string
-          is_active?: boolean | null
-          phone_number?: string
-          purchase_id?: string | null
-          sms_settings?: Json | null
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "phone_number_assignments_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "company_settings"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "phone_number_assignments_purchase_id_fkey"
-            columns: ["purchase_id"]
-            isOneToOne: false
-            referencedRelation: "phone_number_purchases"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      phone_number_billing: {
-        Row: {
-          billing_period_end: string
-          billing_period_start: string
-          call_minutes: number | null
-          company_id: string | null
-          created_at: string
-          due_date: string
-          id: string
-          monthly_fee: number
+          metadata: Json | null
           paid_at: string | null
-          phone_number: string
-          purchase_id: string | null
-          sms_count: number | null
-          status: string
-          total_amount: number
-          updated_at: string
-          usage_charges: number | null
+          payment_method: string | null
+          phone_number_id: string | null
+          status: string | null
+          stripe_payment_id: string | null
+          user_id: string | null
         }
         Insert: {
-          billing_period_end: string
-          billing_period_start: string
-          call_minutes?: number | null
-          company_id?: string | null
-          created_at?: string
-          due_date: string
+          amount: number
+          billed_at?: string | null
+          billing_type: string
+          created_at?: string | null
           id?: string
-          monthly_fee: number
+          metadata?: Json | null
           paid_at?: string | null
-          phone_number: string
-          purchase_id?: string | null
-          sms_count?: number | null
-          status?: string
-          total_amount: number
-          updated_at?: string
-          usage_charges?: number | null
+          payment_method?: string | null
+          phone_number_id?: string | null
+          status?: string | null
+          stripe_payment_id?: string | null
+          user_id?: string | null
         }
         Update: {
-          billing_period_end?: string
-          billing_period_start?: string
-          call_minutes?: number | null
-          company_id?: string | null
-          created_at?: string
-          due_date?: string
+          amount?: number
+          billed_at?: string | null
+          billing_type?: string
+          created_at?: string | null
           id?: string
-          monthly_fee?: number
+          metadata?: Json | null
           paid_at?: string | null
-          phone_number?: string
-          purchase_id?: string | null
-          sms_count?: number | null
-          status?: string
-          total_amount?: number
-          updated_at?: string
-          usage_charges?: number | null
+          payment_method?: string | null
+          phone_number_id?: string | null
+          status?: string | null
+          stripe_payment_id?: string | null
+          user_id?: string | null
         }
         Relationships: [
           {
-            foreignKeyName: "phone_number_billing_company_id_fkey"
-            columns: ["company_id"]
+            foreignKeyName: "phone_number_billing_history_phone_number_id_fkey"
+            columns: ["phone_number_id"]
             isOneToOne: false
-            referencedRelation: "company_settings"
+            referencedRelation: "available_phone_numbers"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "phone_number_billing_purchase_id_fkey"
-            columns: ["purchase_id"]
+            foreignKeyName: "phone_number_billing_history_phone_number_id_fkey"
+            columns: ["phone_number_id"]
             isOneToOne: false
-            referencedRelation: "phone_number_purchases"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      phone_number_plans: {
-        Row: {
-          created_at: string
-          description: string | null
-          features: Json | null
-          id: string
-          is_active: boolean | null
-          monthly_fee: number
-          name: string
-          price_per_number: number
-          setup_fee: number
-          updated_at: string
-        }
-        Insert: {
-          created_at?: string
-          description?: string | null
-          features?: Json | null
-          id?: string
-          is_active?: boolean | null
-          monthly_fee?: number
-          name: string
-          price_per_number?: number
-          setup_fee?: number
-          updated_at?: string
-        }
-        Update: {
-          created_at?: string
-          description?: string | null
-          features?: Json | null
-          id?: string
-          is_active?: boolean | null
-          monthly_fee?: number
-          name?: string
-          price_per_number?: number
-          setup_fee?: number
-          updated_at?: string
-        }
-        Relationships: []
-      }
-      phone_number_purchases: {
-        Row: {
-          company_id: string | null
-          created_at: string
-          expires_at: string | null
-          id: string
-          monthly_fee: number
-          phone_number: string
-          plan_id: string | null
-          purchase_price: number
-          purchased_at: string
-          status: string
-          telnyx_number_id: string | null
-          updated_at: string
-        }
-        Insert: {
-          company_id?: string | null
-          created_at?: string
-          expires_at?: string | null
-          id?: string
-          monthly_fee: number
-          phone_number: string
-          plan_id?: string | null
-          purchase_price: number
-          purchased_at?: string
-          status?: string
-          telnyx_number_id?: string | null
-          updated_at?: string
-        }
-        Update: {
-          company_id?: string | null
-          created_at?: string
-          expires_at?: string | null
-          id?: string
-          monthly_fee?: number
-          phone_number?: string
-          plan_id?: string | null
-          purchase_price?: number
-          purchased_at?: string
-          status?: string
-          telnyx_number_id?: string | null
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "phone_number_purchases_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "company_settings"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "phone_number_purchases_plan_id_fkey"
-            columns: ["plan_id"]
-            isOneToOne: false
-            referencedRelation: "phone_number_plans"
+            referencedRelation: "phone_numbers"
             referencedColumns: ["id"]
           },
         ]
@@ -4095,6 +3210,7 @@ export type Database = {
           ai_dispatcher_enabled: boolean | null
           ai_settings: Json | null
           assigned_to: string | null
+          billing_status: string | null
           capabilities: Json | null
           configured_for_ai: boolean | null
           connect_contact_flow_id: string | null
@@ -4105,28 +3221,36 @@ export type Database = {
           created_at: string
           friendly_name: string | null
           id: string
+          is_active: boolean | null
+          is_primary: boolean | null
           latitude: number | null
           locality: string | null
           longitude: number | null
           monthly_price: number | null
+          next_billing_date: string | null
           phone_number: string
           phone_number_type: string | null
           price: number | null
           price_unit: string | null
+          purchase_date: string | null
           purchased_at: string | null
           purchased_by: string | null
           rate_center: string | null
           region: string | null
+          retail_monthly_price: number | null
+          retail_price: number | null
           status: string | null
           telnyx_connection_id: string | null
           telnyx_phone_number_id: string | null
           updated_at: string
+          user_id: string | null
           webhook_url: string | null
         }
         Insert: {
           ai_dispatcher_enabled?: boolean | null
           ai_settings?: Json | null
           assigned_to?: string | null
+          billing_status?: string | null
           capabilities?: Json | null
           configured_for_ai?: boolean | null
           connect_contact_flow_id?: string | null
@@ -4137,28 +3261,36 @@ export type Database = {
           created_at?: string
           friendly_name?: string | null
           id?: string
+          is_active?: boolean | null
+          is_primary?: boolean | null
           latitude?: number | null
           locality?: string | null
           longitude?: number | null
           monthly_price?: number | null
+          next_billing_date?: string | null
           phone_number: string
           phone_number_type?: string | null
           price?: number | null
           price_unit?: string | null
+          purchase_date?: string | null
           purchased_at?: string | null
           purchased_by?: string | null
           rate_center?: string | null
           region?: string | null
+          retail_monthly_price?: number | null
+          retail_price?: number | null
           status?: string | null
           telnyx_connection_id?: string | null
           telnyx_phone_number_id?: string | null
           updated_at?: string
+          user_id?: string | null
           webhook_url?: string | null
         }
         Update: {
           ai_dispatcher_enabled?: boolean | null
           ai_settings?: Json | null
           assigned_to?: string | null
+          billing_status?: string | null
           capabilities?: Json | null
           configured_for_ai?: boolean | null
           connect_contact_flow_id?: string | null
@@ -4169,22 +3301,29 @@ export type Database = {
           created_at?: string
           friendly_name?: string | null
           id?: string
+          is_active?: boolean | null
+          is_primary?: boolean | null
           latitude?: number | null
           locality?: string | null
           longitude?: number | null
           monthly_price?: number | null
+          next_billing_date?: string | null
           phone_number?: string
           phone_number_type?: string | null
           price?: number | null
           price_unit?: string | null
+          purchase_date?: string | null
           purchased_at?: string | null
           purchased_by?: string | null
           rate_center?: string | null
           region?: string | null
+          retail_monthly_price?: number | null
+          retail_price?: number | null
           status?: string | null
           telnyx_connection_id?: string | null
           telnyx_phone_number_id?: string | null
           updated_at?: string
+          user_id?: string | null
           webhook_url?: string | null
         }
         Relationships: []
@@ -4322,84 +3461,6 @@ export type Database = {
             columns: ["client_id"]
             isOneToOne: false
             referencedRelation: "clients"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      portal_messages: {
-        Row: {
-          attachments: Json | null
-          client_id: string
-          created_at: string | null
-          id: string
-          is_read: boolean | null
-          job_id: string | null
-          message: string
-          reply_to: string | null
-          sender_name: string
-          sender_type: string
-          subject: string | null
-        }
-        Insert: {
-          attachments?: Json | null
-          client_id: string
-          created_at?: string | null
-          id?: string
-          is_read?: boolean | null
-          job_id?: string | null
-          message: string
-          reply_to?: string | null
-          sender_name: string
-          sender_type: string
-          subject?: string | null
-        }
-        Update: {
-          attachments?: Json | null
-          client_id?: string
-          created_at?: string | null
-          id?: string
-          is_read?: boolean | null
-          job_id?: string | null
-          message?: string
-          reply_to?: string | null
-          sender_name?: string
-          sender_type?: string
-          subject?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "portal_messages_client_id_fkey"
-            columns: ["client_id"]
-            isOneToOne: false
-            referencedRelation: "clients"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "portal_messages_job_id_fkey"
-            columns: ["job_id"]
-            isOneToOne: false
-            referencedRelation: "fact_jobs"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "portal_messages_job_id_fkey"
-            columns: ["job_id"]
-            isOneToOne: false
-            referencedRelation: "job_revenue_summary"
-            referencedColumns: ["job_id"]
-          },
-          {
-            foreignKeyName: "portal_messages_job_id_fkey"
-            columns: ["job_id"]
-            isOneToOne: false
-            referencedRelation: "jobs"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "portal_messages_reply_to_fkey"
-            columns: ["reply_to"]
-            isOneToOne: false
-            referencedRelation: "portal_messages"
             referencedColumns: ["id"]
           },
         ]
@@ -4886,91 +3947,183 @@ export type Database = {
           },
         ]
       }
-      sms_logs: {
+      sms_conversations: {
         Row: {
-          automation_id: string | null
           client_id: string | null
+          client_phone: string
           created_at: string | null
-          error_message: string | null
-          from_number: string
           id: string
-          job_id: string | null
-          message: string
-          metadata: Json | null
-          provider: string | null
-          provider_message_id: string | null
+          last_message_at: string | null
+          last_message_preview: string | null
+          phone_number: string
           status: string
-          to_number: string
+          stopped_at: string | null
+          unread_count: number | null
           updated_at: string | null
-          user_id: string | null
-          workflow_id: string | null
+          user_id: string
         }
         Insert: {
-          automation_id?: string | null
           client_id?: string | null
+          client_phone: string
           created_at?: string | null
-          error_message?: string | null
-          from_number: string
           id?: string
-          job_id?: string | null
-          message: string
-          metadata?: Json | null
-          provider?: string | null
-          provider_message_id?: string | null
+          last_message_at?: string | null
+          last_message_preview?: string | null
+          phone_number: string
           status?: string
-          to_number: string
+          stopped_at?: string | null
+          unread_count?: number | null
           updated_at?: string | null
-          user_id?: string | null
-          workflow_id?: string | null
+          user_id: string
         }
         Update: {
-          automation_id?: string | null
           client_id?: string | null
+          client_phone?: string
           created_at?: string | null
-          error_message?: string | null
-          from_number?: string
           id?: string
-          job_id?: string | null
-          message?: string
-          metadata?: Json | null
-          provider?: string | null
-          provider_message_id?: string | null
+          last_message_at?: string | null
+          last_message_preview?: string | null
+          phone_number?: string
           status?: string
-          to_number?: string
+          stopped_at?: string | null
+          unread_count?: number | null
           updated_at?: string | null
-          user_id?: string | null
-          workflow_id?: string | null
+          user_id?: string
         }
         Relationships: [
           {
-            foreignKeyName: "sms_logs_client_id_fkey"
+            foreignKeyName: "sms_conversations_client_id_fkey"
             columns: ["client_id"]
             isOneToOne: false
             referencedRelation: "clients"
             referencedColumns: ["id"]
           },
+        ]
+      }
+      sms_messages: {
+        Row: {
+          communication_log_id: string | null
+          content: string
+          conversation_id: string
+          created_at: string | null
+          direction: string
+          external_id: string | null
+          from_number: string
+          id: string
+          message: string | null
+          metadata: Json | null
+          raw_data: Json | null
+          status: string
+          to_number: string
+          updated_at: string | null
+        }
+        Insert: {
+          communication_log_id?: string | null
+          content: string
+          conversation_id: string
+          created_at?: string | null
+          direction: string
+          external_id?: string | null
+          from_number: string
+          id?: string
+          message?: string | null
+          metadata?: Json | null
+          raw_data?: Json | null
+          status?: string
+          to_number: string
+          updated_at?: string | null
+        }
+        Update: {
+          communication_log_id?: string | null
+          content?: string
+          conversation_id?: string
+          created_at?: string | null
+          direction?: string
+          external_id?: string | null
+          from_number?: string
+          id?: string
+          message?: string | null
+          metadata?: Json | null
+          raw_data?: Json | null
+          status?: string
+          to_number?: string
+          updated_at?: string | null
+        }
+        Relationships: [
           {
-            foreignKeyName: "sms_logs_job_id_fkey"
-            columns: ["job_id"]
+            foreignKeyName: "sms_messages_communication_log_id_fkey"
+            columns: ["communication_log_id"]
             isOneToOne: false
-            referencedRelation: "fact_jobs"
+            referencedRelation: "communication_logs"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "sms_logs_job_id_fkey"
-            columns: ["job_id"]
+            foreignKeyName: "sms_messages_conversation_id_fkey"
+            columns: ["conversation_id"]
             isOneToOne: false
-            referencedRelation: "job_revenue_summary"
-            referencedColumns: ["job_id"]
-          },
-          {
-            foreignKeyName: "sms_logs_job_id_fkey"
-            columns: ["job_id"]
-            isOneToOne: false
-            referencedRelation: "jobs"
+            referencedRelation: "sms_conversations"
             referencedColumns: ["id"]
           },
         ]
+      }
+      sms_opt_outs: {
+        Row: {
+          conversation_id: string | null
+          id: string
+          keyword: string | null
+          opted_out_at: string | null
+          phone_number: string
+        }
+        Insert: {
+          conversation_id?: string | null
+          id?: string
+          keyword?: string | null
+          opted_out_at?: string | null
+          phone_number: string
+        }
+        Update: {
+          conversation_id?: string | null
+          id?: string
+          keyword?: string | null
+          opted_out_at?: string | null
+          phone_number?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sms_opt_outs_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "sms_conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sms_webhook_logs: {
+        Row: {
+          created_at: string | null
+          error: string | null
+          event_type: string | null
+          id: string
+          payload: Json | null
+          processed: boolean | null
+        }
+        Insert: {
+          created_at?: string | null
+          error?: string | null
+          event_type?: string | null
+          id?: string
+          payload?: Json | null
+          processed?: boolean | null
+        }
+        Update: {
+          created_at?: string | null
+          error?: string | null
+          event_type?: string | null
+          id?: string
+          payload?: Json | null
+          processed?: boolean | null
+        }
+        Relationships: []
       }
       tags: {
         Row: {
@@ -5195,222 +4348,6 @@ export type Database = {
           id?: string
           name?: string
           user_id?: string
-        }
-        Relationships: []
-      }
-      telnyx_calls: {
-        Row: {
-          ai_transcript: string | null
-          answered_at: string | null
-          appointment_data: Json | null
-          appointment_scheduled: boolean | null
-          call_control_id: string | null
-          call_duration: number | null
-          call_session_id: string | null
-          call_status: string | null
-          client_id: string | null
-          created_at: string | null
-          direction: string | null
-          duration_seconds: number | null
-          ended_at: string | null
-          from_number: string | null
-          id: string
-          metadata: Json | null
-          phone_number: string | null
-          phone_number_id: string | null
-          started_at: string | null
-          status: string | null
-          streaming_active: boolean | null
-          to_number: string | null
-          user_id: string | null
-        }
-        Insert: {
-          ai_transcript?: string | null
-          answered_at?: string | null
-          appointment_data?: Json | null
-          appointment_scheduled?: boolean | null
-          call_control_id?: string | null
-          call_duration?: number | null
-          call_session_id?: string | null
-          call_status?: string | null
-          client_id?: string | null
-          created_at?: string | null
-          direction?: string | null
-          duration_seconds?: number | null
-          ended_at?: string | null
-          from_number?: string | null
-          id?: string
-          metadata?: Json | null
-          phone_number?: string | null
-          phone_number_id?: string | null
-          started_at?: string | null
-          status?: string | null
-          streaming_active?: boolean | null
-          to_number?: string | null
-          user_id?: string | null
-        }
-        Update: {
-          ai_transcript?: string | null
-          answered_at?: string | null
-          appointment_data?: Json | null
-          appointment_scheduled?: boolean | null
-          call_control_id?: string | null
-          call_duration?: number | null
-          call_session_id?: string | null
-          call_status?: string | null
-          client_id?: string | null
-          created_at?: string | null
-          direction?: string | null
-          duration_seconds?: number | null
-          ended_at?: string | null
-          from_number?: string | null
-          id?: string
-          metadata?: Json | null
-          phone_number?: string | null
-          phone_number_id?: string | null
-          started_at?: string | null
-          status?: string | null
-          streaming_active?: boolean | null
-          to_number?: string | null
-          user_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "telnyx_calls_client_id_fkey"
-            columns: ["client_id"]
-            isOneToOne: false
-            referencedRelation: "clients"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "telnyx_calls_phone_number_id_fkey"
-            columns: ["phone_number_id"]
-            isOneToOne: false
-            referencedRelation: "telnyx_phone_numbers"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      telnyx_configurations: {
-        Row: {
-          ai_settings: Json | null
-          api_key_configured: boolean | null
-          app_id: string | null
-          business_settings: Json | null
-          created_at: string | null
-          id: string
-          updated_at: string | null
-          user_id: string
-          voice_settings: Json | null
-          webhook_url: string | null
-        }
-        Insert: {
-          ai_settings?: Json | null
-          api_key_configured?: boolean | null
-          app_id?: string | null
-          business_settings?: Json | null
-          created_at?: string | null
-          id?: string
-          updated_at?: string | null
-          user_id: string
-          voice_settings?: Json | null
-          webhook_url?: string | null
-        }
-        Update: {
-          ai_settings?: Json | null
-          api_key_configured?: boolean | null
-          app_id?: string | null
-          business_settings?: Json | null
-          created_at?: string | null
-          id?: string
-          updated_at?: string | null
-          user_id?: string
-          voice_settings?: Json | null
-          webhook_url?: string | null
-        }
-        Relationships: []
-      }
-      telnyx_phone_numbers: {
-        Row: {
-          ai_dispatcher_config: Json | null
-          ai_dispatcher_enabled: boolean | null
-          area_code: string | null
-          call_routing_stats: Json | null
-          configured_at: string | null
-          connection_id: string | null
-          country_code: string | null
-          created_at: string | null
-          features: Json | null
-          id: string
-          last_call_routed_to: string | null
-          locality: string | null
-          messaging_profile_id: string | null
-          monthly_cost: number | null
-          order_id: string | null
-          phone_number: string
-          purchased_at: string | null
-          rate_center: string | null
-          region: string | null
-          setup_cost: number | null
-          status: string | null
-          telnyx_phone_number_id: string | null
-          updated_at: string | null
-          user_id: string | null
-          webhook_url: string | null
-        }
-        Insert: {
-          ai_dispatcher_config?: Json | null
-          ai_dispatcher_enabled?: boolean | null
-          area_code?: string | null
-          call_routing_stats?: Json | null
-          configured_at?: string | null
-          connection_id?: string | null
-          country_code?: string | null
-          created_at?: string | null
-          features?: Json | null
-          id?: string
-          last_call_routed_to?: string | null
-          locality?: string | null
-          messaging_profile_id?: string | null
-          monthly_cost?: number | null
-          order_id?: string | null
-          phone_number: string
-          purchased_at?: string | null
-          rate_center?: string | null
-          region?: string | null
-          setup_cost?: number | null
-          status?: string | null
-          telnyx_phone_number_id?: string | null
-          updated_at?: string | null
-          user_id?: string | null
-          webhook_url?: string | null
-        }
-        Update: {
-          ai_dispatcher_config?: Json | null
-          ai_dispatcher_enabled?: boolean | null
-          area_code?: string | null
-          call_routing_stats?: Json | null
-          configured_at?: string | null
-          connection_id?: string | null
-          country_code?: string | null
-          created_at?: string | null
-          features?: Json | null
-          id?: string
-          last_call_routed_to?: string | null
-          locality?: string | null
-          messaging_profile_id?: string | null
-          monthly_cost?: number | null
-          order_id?: string | null
-          phone_number?: string
-          purchased_at?: string | null
-          rate_center?: string | null
-          region?: string | null
-          setup_cost?: number | null
-          status?: string | null
-          telnyx_phone_number_id?: string | null
-          updated_at?: string | null
-          user_id?: string | null
-          webhook_url?: string | null
         }
         Relationships: []
       }
@@ -5948,6 +4885,48 @@ export type Database = {
       }
     }
     Views: {
+      available_phone_numbers: {
+        Row: {
+          capabilities: Json | null
+          country_code: string | null
+          friendly_name: string | null
+          id: string | null
+          locality: string | null
+          monthly_price: number | null
+          phone_number: string | null
+          phone_number_type: string | null
+          purchase_price: number | null
+          region: string | null
+          status: string | null
+        }
+        Insert: {
+          capabilities?: Json | null
+          country_code?: string | null
+          friendly_name?: string | null
+          id?: string | null
+          locality?: string | null
+          monthly_price?: number | null
+          phone_number?: string | null
+          phone_number_type?: string | null
+          purchase_price?: number | null
+          region?: string | null
+          status?: string | null
+        }
+        Update: {
+          capabilities?: Json | null
+          country_code?: string | null
+          friendly_name?: string | null
+          id?: string | null
+          locality?: string | null
+          monthly_price?: number | null
+          phone_number?: string | null
+          phone_number_type?: string | null
+          purchase_price?: number | null
+          region?: string | null
+          status?: string | null
+        }
+        Relationships: []
+      }
       fact_jobs: {
         Row: {
           client_id: string | null
@@ -6005,6 +4984,14 @@ export type Database = {
       }
     }
     Functions: {
+      assign_phone_to_user: {
+        Args: {
+          p_user_email: string
+          p_phone_number: string
+          p_is_primary?: boolean
+        }
+        Returns: boolean
+      }
       check_communication_health: {
         Args: Record<PropertyKey, never>
         Returns: {
@@ -6050,36 +5037,6 @@ export type Database = {
       check_user_products_status: {
         Args: Record<PropertyKey, never>
         Returns: Json
-      }
-      claim_phone_number: {
-        Args: { p_phone_number: string; p_user_id: string }
-        Returns: {
-          ai_dispatcher_config: Json | null
-          ai_dispatcher_enabled: boolean | null
-          area_code: string | null
-          call_routing_stats: Json | null
-          configured_at: string | null
-          connection_id: string | null
-          country_code: string | null
-          created_at: string | null
-          features: Json | null
-          id: string
-          last_call_routed_to: string | null
-          locality: string | null
-          messaging_profile_id: string | null
-          monthly_cost: number | null
-          order_id: string | null
-          phone_number: string
-          purchased_at: string | null
-          rate_center: string | null
-          region: string | null
-          setup_cost: number | null
-          status: string | null
-          telnyx_phone_number_id: string | null
-          updated_at: string | null
-          user_id: string | null
-          webhook_url: string | null
-        }
       }
       cleanup_all_user_data: {
         Args: { p_keep_system_users?: boolean; p_dry_run?: boolean }
@@ -6211,6 +5168,15 @@ export type Database = {
           created_at: string
         }[]
       }
+      get_connect_statistics: {
+        Args: { user_id_param: string }
+        Returns: {
+          total_conversations: number
+          active_conversations: number
+          new_today: number
+          response_rate: number
+        }[]
+      }
       get_current_user_info: {
         Args: Record<PropertyKey, never>
         Returns: Json
@@ -6247,6 +5213,37 @@ export type Database = {
           suggested_job_type: string
           available_tags: string[]
           available_lead_sources: string[]
+        }[]
+      }
+      get_message_stats: {
+        Args: { p_user_id: string }
+        Returns: {
+          total_messages: number
+          received_messages: number
+          sent_messages: number
+          messages_today: number
+          messages_this_week: number
+          messages_this_month: number
+          active_today: number
+          total_communications: number
+          email_count: number
+          call_count: number
+          total_calls: number
+          incoming_calls: number
+          outgoing_calls: number
+          avg_call_duration: number
+          ai_calls_handled: number
+          ai_success_rate: number
+          avg_ai_duration: number
+          ai_calls_today: number
+        }[]
+      }
+      get_message_template: {
+        Args: { p_user_id: string; p_name: string; p_type: string }
+        Returns: {
+          id: string
+          content: string
+          variables: Json
         }[]
       }
       get_next_document_number: {
@@ -6302,6 +5299,10 @@ export type Database = {
         Returns: string
       }
       get_user_phone_number: {
+        Args: { p_user_id: string }
+        Returns: string
+      }
+      get_user_primary_phone: {
         Args: { p_user_id: string }
         Returns: string
       }
@@ -6363,6 +5364,17 @@ export type Database = {
         Args: { p_user_id: string; p_business_niche: string }
         Returns: Json
       }
+      log_communication: {
+        Args: {
+          p_user_id: string
+          p_type: string
+          p_from: string
+          p_to: string
+          p_content: string
+          p_metadata?: Json
+        }
+        Returns: string
+      }
       log_security_event: {
         Args: {
           p_action: string
@@ -6376,6 +5388,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
+      normalize_phone_number: {
+        Args: { phone_input: string }
+        Returns: string
+      }
       populate_niche_products: {
         Args: { p_niche: string }
         Returns: number
@@ -6387,6 +5403,13 @@ export type Database = {
       populate_products_for_user_by_email: {
         Args: { p_email: string; p_niche?: string }
         Returns: Json
+      }
+      process_email_template: {
+        Args: { p_template_name: string; p_variables: Json; p_user_id?: string }
+        Returns: {
+          subject: string
+          html_content: string
+        }[]
       }
       process_pending_automations: {
         Args: Record<PropertyKey, never>
