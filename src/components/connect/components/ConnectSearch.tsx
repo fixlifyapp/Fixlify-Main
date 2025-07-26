@@ -53,19 +53,19 @@ export const ConnectSearch = ({ onSearchResults, onClientSelect }: ConnectSearch
           
         if (clientError) throw clientError;
         
-        // Search in conversations by client information
+        // Search in SMS conversations by client information
         const { data: conversationData, error: convError } = await supabase
-          .from('conversations')
+          .from('sms_conversations')
           .select(`
             id,
             client_id,
-            clients:client_id(id, name, phone, email)
+            client_phone
           `)
           .order('last_message_at', { ascending: false });
         
         if (convError) throw convError;
 
-        // Also search in jobs by id or title
+        // Also search in jobs by id or title  
         const { data: jobData, error: jobError } = await supabase
           .from('jobs')
           .select(`
@@ -100,36 +100,39 @@ export const ConnectSearch = ({ onSearchResults, onClientSelect }: ConnectSearch
         
         const conversationResults = conversationData
           .filter(conv => 
-            conv.clients?.name?.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) || 
-            (conv.clients?.phone && conv.clients.phone.includes(debouncedSearchTerm))
+            conv.client_phone?.includes(debouncedSearchTerm)
           )
           .map(conv => ({
             type: 'conversation',
-            id: conv.clients?.id,
-            name: conv.clients?.name || 'Unknown Client',
-            phone: conv.clients?.phone,
-            email: conv.clients?.email,
+            id: conv.client_id,
+            name: `Conversation with ${conv.client_phone}`,
+            phone: conv.client_phone,
+            email: undefined,
             sourceId: conv.id
           }));
         
-        const jobResults = jobData.map(job => ({
-          type: 'job',
-          id: job.clients?.id,
-          name: job.clients?.name || 'Unknown Client',
-          phone: job.clients?.phone,
-          email: job.clients?.email,
-          sourceId: job.id,
-          jobTitle: job.title
-        }));
+        const jobResults = jobData
+          .filter(job => job.clients) // Only include jobs with valid client data
+          .map(job => ({
+            type: 'job',
+            id: job.clients?.id,
+            name: job.clients?.name || 'Unknown Client',
+            phone: job.clients?.phone,
+            email: job.clients?.email,
+            sourceId: job.id,
+            jobTitle: job.title
+          }));
 
-        const phoneResults = phoneData.map(phone => ({
-          type: 'phone_number',
-          id: phone.id,
-          name: `${phone.phone_number} (${phone.locality}, ${phone.region})`,
-          phone: phone.phone_number,
-          sourceId: phone.id,
-          status: phone.status
-        }));
+        const phoneResults = phoneData
+          .filter(phone => phone) // Only include valid phone data
+          .map(phone => ({
+            type: 'phone_number',
+            id: phone.id,
+            name: `${phone.phone_number}${phone.locality ? ` (${phone.locality}${phone.region ? `, ${phone.region}` : ''})` : ''}`,
+            phone: phone.phone_number,
+            sourceId: phone.id,
+            status: phone.is_active ? 'active' : 'inactive'
+          }));
 
         // Combine all results
         const allResults = [...clientResults, ...conversationResults, ...jobResults, ...phoneResults];

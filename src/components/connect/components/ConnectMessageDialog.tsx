@@ -50,7 +50,9 @@ export const ConnectMessageDialog = ({ isOpen, onClose, client: preselectedClien
         .limit(10);
 
       if (!error && data) {
-        setClients(data);
+        setClients(Array.isArray(data) ? data : []);
+      } else {
+        setClients([]);
       }
     };
 
@@ -191,7 +193,7 @@ export const ConnectMessageDialog = ({ isOpen, onClose, client: preselectedClien
                       <CommandEmpty>No clients found.</CommandEmpty>
                       <CommandGroup>
                         <ScrollArea className="h-[200px]">
-                          {clients.map((client) => (
+                          {Array.isArray(clients) && clients.map((client) => (
                             <CommandItem
                               key={client.id}
                               onSelect={() => handleSelectClient(client)}
