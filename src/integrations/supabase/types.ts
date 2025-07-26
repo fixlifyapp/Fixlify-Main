@@ -2566,10 +2566,6 @@ export type Database = {
           emergency_contact: Json | null
           id: string
           job_id: string
-          previous_service_date: string | null
-          property_age: string | null
-          property_size: string | null
-          property_type: string | null
           updated_at: string
           warranty_info: Json | null
         }
@@ -2579,10 +2575,6 @@ export type Database = {
           emergency_contact?: Json | null
           id?: string
           job_id: string
-          previous_service_date?: string | null
-          property_age?: string | null
-          property_size?: string | null
-          property_type?: string | null
           updated_at?: string
           warranty_info?: Json | null
         }
@@ -2592,10 +2584,6 @@ export type Database = {
           emergency_contact?: Json | null
           id?: string
           job_id?: string
-          previous_service_date?: string | null
-          property_age?: string | null
-          property_size?: string | null
-          property_type?: string | null
           updated_at?: string
           warranty_info?: Json | null
         }
