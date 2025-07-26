@@ -4,20 +4,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Phone, Clock, User, MessageSquare, RefreshCw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "@/components/ui/sonner";
-
-interface CallLog {
-  id: string;
-  phone_number: string;
-  user_id?: string;
-  status: string;
-  created_at: string;
-  started_at?: string;
-  ended_at?: string;
-  duration?: number;
-  direction?: string;
-  notes?: string;
-}
+import { toast } from "sonner";
+import { CallLog } from "@/types/connect";
 
 export const CallMonitoring = () => {
   const [calls, setCalls] = useState<CallLog[]>([]);

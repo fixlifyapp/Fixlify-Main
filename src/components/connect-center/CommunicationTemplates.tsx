@@ -11,18 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { FileText, Plus, Edit, Trash2, Mail, MessageSquare } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-
-interface Template {
-  id: string;
-  name: string;
-  type: 'email' | 'sms';
-  category: string;
-  subject?: string;
-  content: string;
-  variables: string[];
-  is_active: boolean;
-  created_at: string;
-}
+import { Template } from "@/types/connect";
 
 export const CommunicationTemplates = () => {
   const [templates, setTemplates] = useState<Template[]>([]);
@@ -68,7 +57,7 @@ export const CommunicationTemplates = () => {
         category: template.category || 'general',
         subject: template.subject || '',
         content: template.content,
-        variables: Array.isArray(template.variables) ? template.variables : [],
+        variables: Array.isArray(template.variables) ? template.variables.map(String) : [],
         is_active: template.is_active !== false,
         created_at: template.created_at
       })) || [];

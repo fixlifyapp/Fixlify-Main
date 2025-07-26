@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "@/components/ui/sonner";
+import { toast } from "sonner";
+import { UnifiedClient } from "@/types/client";
 
 export const useClientData = (clientId?: string) => {
-  const [client, setClient] = useState<any>(null);
+  const [client, setClient] = useState<UnifiedClient | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [formData, setFormData] = useState({
@@ -44,7 +45,7 @@ export const useClientData = (clientId?: string) => {
         
         if (data) {
           console.log("Fetched client data:", data);
-          setClient(data);
+          setClient(data as UnifiedClient);
           // Populate form data
           const nameParts = data.name ? data.name.split(' ') : ['', ''];
           setFormData({
@@ -59,7 +60,7 @@ export const useClientData = (clientId?: string) => {
             zip: data.zip || '',
             status: data.status || 'active',
           });
-          generateClientInsight(data);
+          generateClientInsight(data as UnifiedClient);
         } else {
           toast.error("The requested client could not be found.");
         }
@@ -74,7 +75,7 @@ export const useClientData = (clientId?: string) => {
     fetchClient();
   }, [clientId]);
 
-  const generateClientInsight = async (client: any) => {
+  const generateClientInsight = async (client: UnifiedClient) => {
     if (!client) return;
     
     setIsGeneratingInsight(true);
@@ -84,11 +85,11 @@ export const useClientData = (clientId?: string) => {
       setTimeout(() => {
         let insight = "This client hasn't had any activity yet. Consider scheduling an introduction call.";
         
-        if (client.type === "commercial") {
+        if (client.type === "Commercial") {
           insight = "This commercial client has been with you since " + 
-            new Date(client.created_at).toLocaleDateString() + 
+            new Date(client.created_at!).toLocaleDateString() + 
             ". Consider offering an annual maintenance package.";
-        } else if (client.type === "residential") {
+        } else if (client.type === "Residential") {
           insight = "This residential client may be interested in seasonal maintenance services based on their profile.";
         }
         
@@ -139,7 +140,7 @@ export const useClientData = (clientId?: string) => {
       if (error) throw error;
       
       // Update local client state
-      setClient(prev => ({ ...prev, ...updates }));
+      setClient(prev => prev ? ({ ...prev, ...updates } as UnifiedClient) : null);
       
       toast.success("Client information has been updated successfully.");
     } catch (error) {

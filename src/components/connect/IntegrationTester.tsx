@@ -147,7 +147,7 @@ export const IntegrationTester = () => {
     // Test 6: Message Context Functionality
     try {
       const { data: conversations, error } = await supabase
-        .from('conversations')
+        .from('sms_conversations')
         .select(`
           id,
           clients:client_id(id, name, phone, email),

@@ -108,7 +108,7 @@ export const EmailsList = () => {
 
     try {
       const { error } = await supabase
-        .from('emails')
+        .from('email_conversations')
         .update({ is_starred: !email.is_starred })
         .eq('id', emailId);
 
