@@ -7,7 +7,7 @@ interface JobsKPICardsProps {
 }
 
 export const JobsKPICards = ({ className }: JobsKPICardsProps) => {
-  const { jobs, isLoading: jobsLoading } = useJobs();
+  const { data: jobs, isLoading: jobsLoading } = useJobs();
 
   // Calculate stats directly from jobs data using useMemo for performance
   const stats = useMemo(() => {
