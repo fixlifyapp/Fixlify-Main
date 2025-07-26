@@ -3,14 +3,14 @@ import { PageLayout } from "@/components/layout/PageLayout";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { NicheConfig } from "@/components/settings/configuration/NicheConfig";
+// import { NicheConfig } from "@/components/settings/configuration/NicheConfig";
 import { TagsConfig } from "@/components/settings/configuration/TagsConfig";
 import { JobTypesConfig } from "@/components/settings/configuration/JobTypesConfig";
-import { JobStatusesConfig } from "@/components/settings/configuration/JobStatusesConfig";
+// import { JobStatusesConfig } from "@/components/settings/configuration/JobStatusesConfig";
 import { CustomFieldsConfig } from "@/components/settings/configuration/CustomFieldsConfig";
 import { LeadSourcesConfig } from "@/components/settings/configuration/LeadSourcesConfig";
 import { TaxConfig } from "@/components/settings/configuration/TaxConfig";
-import { DocumentNumberingConfig } from "@/components/settings/configuration/DocumentNumberingConfig";
+// import { DocumentNumberingConfig } from "@/components/settings/configuration/DocumentNumberingConfig";
 import { Settings2, Tags, ListTodo, ClipboardList, FormInput, MessageCircle, Cog, Target, Zap, Receipt, Hash } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 
