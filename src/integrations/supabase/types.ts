@@ -1244,6 +1244,42 @@ export type Database = {
           },
         ]
       }
+      call_quality_logs: {
+        Row: {
+          audio_level: number | null
+          call_control_id: string
+          connection_state: string | null
+          created_at: string | null
+          id: string
+          jitter: number | null
+          packets_lost: number | null
+          round_trip_time: number | null
+          timestamp: string
+        }
+        Insert: {
+          audio_level?: number | null
+          call_control_id: string
+          connection_state?: string | null
+          created_at?: string | null
+          id?: string
+          jitter?: number | null
+          packets_lost?: number | null
+          round_trip_time?: number | null
+          timestamp: string
+        }
+        Update: {
+          audio_level?: number | null
+          call_control_id?: string
+          connection_state?: string | null
+          created_at?: string | null
+          id?: string
+          jitter?: number | null
+          packets_lost?: number | null
+          round_trip_time?: number | null
+          timestamp?: string
+        }
+        Relationships: []
+      }
       call_routing_logs: {
         Row: {
           ai_enabled: boolean
@@ -4383,6 +4419,8 @@ export type Database = {
           call_control_id: string | null
           call_status: string | null
           caller_phone: string | null
+          conference_id: string | null
+          conference_role: string | null
           created_at: string | null
           direction: string | null
           duration: number | null
@@ -4403,6 +4441,8 @@ export type Database = {
           call_control_id?: string | null
           call_status?: string | null
           caller_phone?: string | null
+          conference_id?: string | null
+          conference_role?: string | null
           created_at?: string | null
           direction?: string | null
           duration?: number | null
@@ -4423,6 +4463,8 @@ export type Database = {
           call_control_id?: string | null
           call_status?: string | null
           caller_phone?: string | null
+          conference_id?: string | null
+          conference_role?: string | null
           created_at?: string | null
           direction?: string | null
           duration?: number | null

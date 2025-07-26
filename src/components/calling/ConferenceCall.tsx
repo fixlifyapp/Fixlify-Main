@@ -83,11 +83,13 @@ export const ConferenceCall = ({ conferenceId, onEndConference }: ConferenceCall
       const participant = participants.find(p => p.id === participantId);
       if (!participant) return;
 
+      const { data: userData } = await supabase.auth.getUser();
+      
       await supabase.functions.invoke('telnyx-call-control', {
         body: {
           action: 'hangup',
           callControlId: participant.callControlId,
-          userId: (await supabase.auth.getUser()).data.user?.id
+          userId: userData.user?.id
         }
       });
 
@@ -105,12 +107,13 @@ export const ConferenceCall = ({ conferenceId, onEndConference }: ConferenceCall
       if (!participant) return;
 
       const action = participant.isMuted ? 'unmute' : 'mute';
+      const { data: userData } = await supabase.auth.getUser();
       
       await supabase.functions.invoke('telnyx-call-control', {
         body: {
           action,
           callControlId: participant.callControlId,
-          userId: (await supabase.auth.getUser()).data.user?.id
+          userId: userData.user?.id
         }
       });
 
@@ -129,6 +132,8 @@ export const ConferenceCall = ({ conferenceId, onEndConference }: ConferenceCall
 
   const endConference = async () => {
     try {
+      const { data: userData } = await supabase.auth.getUser();
+      
       // End all participant calls
       await Promise.all(
         participants.map(participant =>
@@ -136,7 +141,7 @@ export const ConferenceCall = ({ conferenceId, onEndConference }: ConferenceCall
             body: {
               action: 'hangup',
               callControlId: participant.callControlId,
-              userId: (await supabase.auth.getUser()).data.user?.id
+              userId: userData.user?.id
             }
           })
         )
