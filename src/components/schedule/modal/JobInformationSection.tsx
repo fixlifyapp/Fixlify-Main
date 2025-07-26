@@ -9,6 +9,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { UnifiedJobTypeSelector } from "@/components/shared/UnifiedJobTypeSelector";
 import { FormData } from "./useScheduleJobForm";
 
 interface JobInformationSectionProps {
@@ -114,33 +115,14 @@ export const JobInformationSection = ({
           />
         </div>
         
-        <div>
-          <Label htmlFor="job_type">Job Type *</Label>
-          <Select onValueChange={handleSelectChange("job_type")} value={formData.job_type}>
-            <SelectTrigger id="job_type">
-              <SelectValue placeholder="Select type" />
-            </SelectTrigger>
-            <SelectContent>
-              {jobTypesLoading ? (
-                <SelectItem value="" disabled>Loading types...</SelectItem>
-              ) : (
-                jobTypes.map(type => (
-                  <SelectItem key={type.id} value={type.name}>
-                    <div className="flex items-center gap-2">
-                      {type.color && (
-                        <div 
-                          className="w-3 h-3 rounded-full" 
-                          style={{ backgroundColor: type.color }}
-                        />
-                      )}
-                      {type.name}
-                    </div>
-                  </SelectItem>
-                ))
-              )}
-            </SelectContent>
-          </Select>
-        </div>
+        <UnifiedJobTypeSelector
+          value={formData.job_type}
+          onValueChange={handleSelectChange("job_type")}
+          jobTypes={jobTypes}
+          isLoading={jobTypesLoading}
+          required={true}
+          className="w-full"
+        />
         
         <div>
           <Label htmlFor="lead_source">Lead Source</Label>

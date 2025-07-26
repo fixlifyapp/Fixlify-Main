@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Tag, Plus, X } from "lucide-react";
+import { UnifiedTagsSelector } from "@/components/shared/UnifiedTagsSelector";
 import { FormData } from "./useScheduleJobForm";
 
 interface TagsTasksSectionProps {
@@ -36,29 +37,15 @@ export const TagsTasksSection = ({
 
   return (
     <>
-      {/* Tags Section - Dynamic from Database */}
-      {!tagsLoading && tags.length > 0 && (
-        <div className="space-y-4">
-          <h3 className="text-lg font-medium">Tags</h3>
-          <div className="flex flex-wrap gap-2">
-            {tags.map(tag => (
-              <Badge
-                key={tag.id}
-                variant={formData.tags.includes(tag.name) ? "default" : "outline"}
-                className="cursor-pointer"
-                onClick={() => handleTagToggle(tag.id)}
-                style={tag.color && formData.tags.includes(tag.name) ? 
-                  { backgroundColor: tag.color, color: 'white' } : 
-                  tag.color ? { borderColor: tag.color, color: tag.color } : {}
-                }
-              >
-                <Tag className="w-3 h-3 mr-1" />
-                {tag.name}
-              </Badge>
-            ))}
-          </div>
-        </div>
-      )}
+      {/* Tags Section - Using Unified Component */}
+      <UnifiedTagsSelector
+        selectedTags={formData.tags}
+        onTagToggle={handleTagToggle}
+        tags={tags}
+        isLoading={tagsLoading}
+        className="space-y-4"
+        maxHeight="150px"
+      />
 
       {/* Tasks Section */}
       <div className="space-y-4">

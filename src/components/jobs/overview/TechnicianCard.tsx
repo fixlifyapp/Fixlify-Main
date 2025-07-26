@@ -8,6 +8,8 @@ import { Badge } from "@/components/ui/badge";
 import { JobInfo } from "../context/types";
 import { useJobs } from "@/hooks/useJobs";
 import { useTechnicians } from "@/hooks/useTechnicians";
+import { UnifiedTechnicianSelector } from "@/components/shared/UnifiedTechnicianSelector";
+import { useUnifiedJobData } from "@/hooks/useUnifiedJobData";
 import { toast } from "sonner";
 
 interface TechnicianCardProps {
@@ -18,10 +20,10 @@ interface TechnicianCardProps {
 }
 
 export const TechnicianCard = ({ job, jobId, editable = false, onUpdate }: TechnicianCardProps) => {
+  const { technicians, isLoading: techniciansLoading } = useUnifiedJobData();
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState(job.technician_id || "unassigned");
   const { updateJob } = useJobs();
-  const { technicians } = useTechnicians();
 
   const handleSave = async () => {
     if (!jobId) return;
@@ -91,19 +93,15 @@ export const TechnicianCard = ({ job, jobId, editable = false, onUpdate }: Techn
         <div>
           <p className="text-sm text-muted-foreground mb-2">Assigned Technician</p>
           {isEditing ? (
-            <Select value={editValue} onValueChange={setEditValue}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select technician..." />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="unassigned">Unassigned</SelectItem>
-                {technicians.map((tech) => (
-                  <SelectItem key={tech.id} value={tech.id}>
-                    {tech.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <UnifiedTechnicianSelector
+              value={editValue}
+              onValueChange={setEditValue}
+              technicians={technicians}
+              isLoading={techniciansLoading}
+              label=""
+              className="w-full"
+              showManageLink={false}
+            />
           ) : (
             <div>
               {job.technician_id ? (

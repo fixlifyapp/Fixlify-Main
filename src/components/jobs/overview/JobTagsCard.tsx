@@ -6,6 +6,8 @@ import { Badge } from "@/components/ui/badge";
 import { Edit, Tag, Plus } from "lucide-react";
 import { useJobs } from "@/hooks/useJobs";
 import { useTags } from "@/hooks/useConfigItems";
+import { UnifiedTagsSelector } from "@/components/shared/UnifiedTagsSelector";
+import { useUnifiedJobData } from "@/hooks/useUnifiedJobData";
 import { toast } from "sonner";
 import { TagSelectionDialog } from "../dialogs/TagSelectionDialog";
 import { getTagColor } from "@/data/tags";
@@ -18,10 +20,10 @@ interface JobTagsCardProps {
 }
 
 export const JobTagsCard = ({ tags, jobId, editable = false, onUpdate }: JobTagsCardProps) => {
+  const { tags: unifiedTags, isLoading: tagsLoading } = useUnifiedJobData();
   const [isTagDialogOpen, setIsTagDialogOpen] = useState(false);
   const [resolvedTags, setResolvedTags] = useState<Array<{name: string, color?: string}>>([]);
   const { updateJob } = useJobs();
-  const { items: tagItems } = useTags();
 
   // Resolve tag UUIDs to tag names and colors
   useEffect(() => {
@@ -33,16 +35,16 @@ export const JobTagsCard = ({ tags, jobId, editable = false, onUpdate }: JobTags
     const resolved = tags.map(tag => {
       // If it's a UUID, find the tag by ID
       if (typeof tag === 'string' && tag.length === 36 && tag.includes('-')) {
-        const tagItem = tagItems.find(t => t.id === tag);
+        const tagItem = unifiedTags.find(t => t.id === tag);
         return tagItem ? { name: tagItem.name, color: tagItem.color } : { name: tag, color: getTagColor(tag) };
       }
       // If it's a name, find the tag by name
-      const tagItem = tagItems.find(t => t.name === tag);
+      const tagItem = unifiedTags.find(t => t.name === tag);
       return tagItem ? { name: tagItem.name, color: tagItem.color } : { name: String(tag), color: getTagColor(String(tag)) };
     });
 
     setResolvedTags(resolved);
-  }, [tags, tagItems]);
+  }, [tags, unifiedTags]);
 
   if (!resolvedTags || resolvedTags.length === 0) {
     if (!editable) return null;
