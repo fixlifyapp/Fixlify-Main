@@ -76,69 +76,6 @@ export const JobOverview = ({ jobId }: JobOverviewProps) => {
 
   return (
     <div className="space-y-6">
-      {/* Job Header */}
-      <Card>
-        <CardHeader>
-          <div className="flex justify-between items-start">
-            <div>
-              <CardTitle className="text-2xl">{job.title || job.service}</CardTitle>
-              <p className="text-muted-foreground mt-1">
-                Job ID: {job.id}
-              </p>
-            </div>
-            <Badge variant={job.status === 'completed' ? 'default' : 'secondary'}>
-              {job.status}
-            </Badge>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="flex items-center gap-2">
-              <User className="h-4 w-4 text-muted-foreground" />
-              <span className="text-sm">{job.client}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <MapPin className="h-4 w-4 text-muted-foreground" />
-              <span className="text-sm">{job.address}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <DollarSign className="h-4 w-4 text-muted-foreground" />
-              <span className="text-sm">${job.total}</span>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Client Information */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <User className="h-5 w-5" />
-            Client Information
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-3">
-            <div>
-              <h4 className="font-medium">{job.client}</h4>
-            </div>
-            <div className="flex flex-col sm:flex-row gap-4">
-              <div className="flex items-center gap-2">
-                <Phone className="h-4 w-4 text-muted-foreground" />
-                <span className="text-sm">{job.phone}</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Mail className="h-4 w-4 text-muted-foreground" />
-                <span className="text-sm">{job.email}</span>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <MapPin className="h-4 w-4 text-muted-foreground" />
-              <span className="text-sm">{job.address}</span>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
 
       {/* Job Details */}
       <Card>
