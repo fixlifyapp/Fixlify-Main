@@ -76,7 +76,7 @@ export const SettingsCompany = () => {
         .getPublicUrl(fileName);
 
       updateSettings({
-        company_logo_url: publicUrlData.publicUrl
+        company_logo: publicUrlData.publicUrl
       });
 
       toast.success('Logo uploaded successfully');
@@ -167,26 +167,6 @@ export const SettingsCompany = () => {
             </div>
 
             {/* Custom Email Domain Section */}
-            <div className="space-y-2 md:col-span-2">
-              <Label htmlFor="custom-domain-name">Email Domain Name</Label>
-              <div className="flex gap-2 items-center">
-                <Input 
-                  id="custom-domain-name" 
-                  value={settings?.custom_domain_name || ''}
-                  onChange={(e) => {
-                    const cleanValue = e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '');
-                    console.log('Settings - custom domain name changed to:', cleanValue);
-                    handleInputChange('custom_domain_name', cleanValue);
-                  }}
-                  placeholder="yourcompany"
-                  className="max-w-xs"
-                />
-                <span className="text-muted-foreground">@fixlify.app</span>
-              </div>
-              <p className="text-xs text-muted-foreground">
-                This will be your FROM address when sending emails (e.g., yourcompany@fixlify.app)
-              </p>
-            </div>
 
             <div className="space-y-2 md:col-span-2">
               <Label htmlFor="company-address">Address</Label>
@@ -194,38 +174,6 @@ export const SettingsCompany = () => {
                 id="company-address" 
                 value={settings?.company_address || ''}
                 onChange={(e) => handleInputChange('company_address', e.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="company-city">City</Label>
-              <Input 
-                id="company-city" 
-                value={settings?.company_city || ''}
-                onChange={(e) => handleInputChange('company_city', e.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="company-state">State</Label>
-              <Input 
-                id="company-state" 
-                value={settings?.company_state || ''}
-                onChange={(e) => handleInputChange('company_state', e.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="company-zip">ZIP / Postal Code</Label>
-              <Input 
-                id="company-zip" 
-                value={settings?.company_zip || ''}
-                onChange={(e) => handleInputChange('company_zip', e.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="company-country">Country</Label>
-              <Input 
-                id="company-country" 
-                value={settings?.company_country || ''}
-                onChange={(e) => handleInputChange('company_country', e.target.value)}
               />
             </div>
           </div>
@@ -257,19 +205,11 @@ export const SettingsCompany = () => {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="company-website">Website</Label>
+              <Label htmlFor="website">Website</Label>
               <Input 
-                id="company-website" 
-                value={settings?.company_website || ''}
-                onChange={(e) => handleInputChange('company_website', e.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="company-tax-id">Tax ID / EIN</Label>
-              <Input 
-                id="company-tax-id" 
-                value={settings?.tax_id || ''}
-                onChange={(e) => handleInputChange('tax_id', e.target.value)}
+                id="website" 
+                value={settings?.website || ''}
+                onChange={(e) => handleInputChange('website', e.target.value)}
               />
             </div>
           </div>
@@ -280,19 +220,19 @@ export const SettingsCompany = () => {
         <div>
           <h3 className="text-lg font-medium mb-4">Branding</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-2">
-              <Label>Company Logo</Label>
-              <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
-                {settings?.company_logo_url ? (
-                  <div className="space-y-4">
-                    <img 
-                      src={settings.company_logo_url} 
-                      alt="Company Logo" 
-                      className="mx-auto h-32 w-32 object-contain"
-                    />
-                    <p className="text-sm text-gray-600">Current logo</p>
-                  </div>
-                ) : (
+              <div className="space-y-2">
+                <Label>Company Logo</Label>
+                <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+                  {settings?.company_logo ? (
+                    <div className="space-y-4">
+                      <img 
+                        src={settings.company_logo} 
+                        alt="Company Logo" 
+                        className="mx-auto h-32 w-32 object-contain"
+                      />
+                      <p className="text-sm text-gray-600">Current logo</p>
+                    </div>
+                  ) : (
                   <div className="space-y-4">
                     <Upload className="mx-auto h-12 w-12 text-gray-400" />
                     <p className="text-sm text-gray-600">No logo uploaded</p>
@@ -318,26 +258,6 @@ export const SettingsCompany = () => {
               </div>
             </div>
             <div className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="company-tagline">Company Tagline</Label>
-                <Input 
-                  id="company-tagline" 
-                  value={settings?.company_tagline || ''}
-                  onChange={(e) => handleInputChange('company_tagline', e.target.value)}
-                  placeholder="Your company's tagline"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="company-description">Description</Label>
-                <Textarea 
-                  id="company-description" 
-                  className="resize-none" 
-                  rows={4}
-                  value={settings?.company_description || ''}
-                  onChange={(e) => handleInputChange('company_description', e.target.value)}
-                  placeholder="Brief description of your company..."
-                />
-              </div>
             </div>
           </div>
         </div>
@@ -375,7 +295,7 @@ export const SettingsCompany = () => {
                   id="service-areas" 
                   className="resize-none" 
                   rows={4}
-                  value={settings?.service_areas || ''}
+                  value=""
                   onChange={(e) => handleInputChange('service_areas', e.target.value)}
                   placeholder="Enter service areas..."
                 />
@@ -414,7 +334,7 @@ export const SettingsCompany = () => {
             </p>
             
             <BusinessHoursEditor
-              businessHours={settings?.business_hours || DEFAULT_BUSINESS_HOURS}
+              businessHours={typeof settings?.business_hours === 'object' ? settings.business_hours as any : DEFAULT_BUSINESS_HOURS}
               onBusinessHoursChange={(hours) => updateSettings({ business_hours: hours })}
             />
           </div>

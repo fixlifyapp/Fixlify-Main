@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Phone, MessageSquare, Mail, Zap, ExternalLink, Bot, Settings } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { CompanyEmailSettings } from './CompanyEmailSettings';
+import { EmailConfiguration } from './EmailConfiguration';
 export const SettingsIntegrations = () => {
   // Get both Telnyx numbers and regular phone numbers
   const {
@@ -198,7 +198,7 @@ export const SettingsIntegrations = () => {
         </TabsContent>
 
         <TabsContent value="email" className="space-y-6">
-          <CompanyEmailSettings />
+          <EmailConfiguration />
         </TabsContent>
 
         <TabsContent value="messaging" className="space-y-6">

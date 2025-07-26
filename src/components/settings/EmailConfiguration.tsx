@@ -8,7 +8,7 @@ import { useCompanySettings } from '@/hooks/useCompanySettings';
 import { generateFromEmail } from '@/utils/emailUtils';
 
 export const EmailConfiguration = () => {
-  const { settings } = useCompanySettings();
+  const { companySettings: settings } = useCompanySettings();
 
   const getEmailAddress = () => {
     return generateFromEmail(settings.company_name || 'Fixlify Services');

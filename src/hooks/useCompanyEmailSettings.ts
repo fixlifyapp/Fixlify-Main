@@ -12,6 +12,11 @@ interface EmailSettings {
   smtp_from_name: string;
   smtp_secure: boolean;
   is_configured: boolean;
+  custom_domain?: string;
+  mailgun_domain?: string;
+  domain_verification_status?: string;
+  email_from_name?: string;
+  email_from_address?: string;
 }
 
 export const useCompanyEmailSettings = () => {
@@ -110,12 +115,32 @@ export const useCompanyEmailSettings = () => {
     }
   };
 
+  const addDomain = async (domain: string) => {
+    // Placeholder implementation
+    console.log('Adding domain:', domain);
+    return { dns_records: [] };
+  };
+
+  const verifyDomain = async (domain: string) => {
+    // Placeholder implementation  
+    console.log('Verifying domain:', domain);
+    return { verified: false };
+  };
+
+  const updateEmailSettings = async (updates: Partial<EmailSettings>) => {
+    console.log('Updating email settings:', updates);
+    return saveSettings(updates);
+  };
+
   return {
     settings,
     loading,
     saving,
     saveSettings,
     testConnection,
-    refetch: fetchSettings
+    refetch: fetchSettings,
+    addDomain,
+    verifyDomain,
+    updateEmailSettings
   };
 };

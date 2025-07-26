@@ -1,7 +1,7 @@
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { JobTypesConfig } from "./configuration/JobTypesConfig";
-import { JobStatusesConfig } from "./configuration/JobStatusesConfig";
+// import { JobStatusesConfig } from "./configuration/JobStatusesConfig";
 import { LeadSourcesConfig } from "./configuration/LeadSourcesConfig";
 import { TagsConfig } from "./configuration/TagsConfig";
 import { CustomFieldsConfig } from "./configuration/CustomFieldsConfig";
@@ -35,7 +35,9 @@ export function SettingsConfiguration() {
         </TabsContent>
 
         <TabsContent value="job-statuses">
-          <JobStatusesConfig />
+          <div className="p-4 text-center text-muted-foreground">
+            Job statuses configuration temporarily unavailable
+          </div>
         </TabsContent>
 
         <TabsContent value="lead-sources">
