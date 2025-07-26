@@ -44,10 +44,18 @@ export const ScheduleSection = ({
   const handleStartDateSelect = (date: Date | undefined) => {
     if (date) {
       const dateTime = new Date(date);
-      dateTime.setHours(9, 0, 0, 0); // Default to 9 AM
+      
+      // Set default start time to 9 AM
+      dateTime.setHours(9, 0, 0, 0);
+      
+      // Auto-set end date to same day, 2 hours later
+      const endDateTime = new Date(date);
+      endDateTime.setHours(11, 0, 0, 0);
+      
       setFormData({
         ...formData,
-        schedule_start: dateTime.toISOString()
+        schedule_start: dateTime.toISOString(),
+        schedule_end: !formData.schedule_end ? endDateTime.toISOString() : formData.schedule_end
       });
     }
   };
@@ -55,7 +63,15 @@ export const ScheduleSection = ({
   const handleEndDateSelect = (date: Date | undefined) => {
     if (date) {
       const dateTime = new Date(date);
-      dateTime.setHours(17, 0, 0, 0); // Default to 5 PM
+      
+      // Keep existing time if end time was already set, otherwise default to 5 PM
+      if (formData.schedule_end) {
+        const existingEnd = new Date(formData.schedule_end);
+        dateTime.setHours(existingEnd.getHours(), existingEnd.getMinutes(), 0, 0);
+      } else {
+        dateTime.setHours(17, 0, 0, 0);
+      }
+      
       setFormData({
         ...formData,
         schedule_end: dateTime.toISOString()
@@ -68,7 +84,23 @@ export const ScheduleSection = ({
       const date = new Date(formData.schedule_start);
       const [hours, minutes] = e.target.value.split(':');
       date.setHours(parseInt(hours), parseInt(minutes));
-      setFormData({ ...formData, schedule_start: date.toISOString() });
+      
+      // Auto-adjust end time if it's before start time or if they're the same day
+      let newFormData = { ...formData, schedule_start: date.toISOString() };
+      
+      if (formData.schedule_end) {
+        const endDate = new Date(formData.schedule_end);
+        const startDate = new Date(date);
+        
+        // If end time is before start time on the same day, add 2 hours to start time
+        if (endDate.toDateString() === startDate.toDateString() && endDate <= startDate) {
+          const newEndTime = new Date(startDate);
+          newEndTime.setHours(startDate.getHours() + 2);
+          newFormData.schedule_end = newEndTime.toISOString();
+        }
+      }
+      
+      setFormData(newFormData);
     }
   };
 
@@ -110,7 +142,11 @@ export const ScheduleSection = ({
                 mode="single"
                 selected={formData.schedule_start ? new Date(formData.schedule_start) : undefined}
                 onSelect={handleStartDateSelect}
-                disabled={(date) => date < new Date()}
+                disabled={(date) => {
+                  const today = new Date();
+                  today.setHours(0, 0, 0, 0);
+                  return date < today;
+                }}
                 initialFocus
                 className="p-3 pointer-events-auto"
               />
@@ -151,7 +187,14 @@ export const ScheduleSection = ({
                 mode="single"
                 selected={formData.schedule_end ? new Date(formData.schedule_end) : undefined}
                 onSelect={handleEndDateSelect}
-                disabled={(date) => date < new Date()}
+                disabled={(date) => {
+                  const today = new Date();
+                  today.setHours(0, 0, 0, 0);
+                  // Don't allow end date before start date
+                  const startDate = formData.schedule_start ? new Date(formData.schedule_start) : today;
+                  startDate.setHours(0, 0, 0, 0);
+                  return date < Math.max(today.getTime(), startDate.getTime());
+                }}
                 initialFocus
                 className="p-3 pointer-events-auto"
               />
