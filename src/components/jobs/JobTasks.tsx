@@ -36,7 +36,7 @@ export const JobTasks: React.FC<JobTasksProps> = ({ jobId, clientId }) => {
       job_id: jobId,
       client_id: clientId,
       priority: newTaskPriority,
-      assigned_to: newTaskAssignee || undefined,
+      assigned_to: newTaskAssignee === 'unassigned' ? undefined : newTaskAssignee || undefined,
       due_date: newTaskDueDate || undefined,
     });
 
@@ -122,7 +122,7 @@ export const JobTasks: React.FC<JobTasksProps> = ({ jobId, clientId }) => {
                       <SelectValue placeholder="Assign to..." />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">Unassigned</SelectItem>
+                      <SelectItem value="unassigned">Unassigned</SelectItem>
                       {profiles.map((profile) => (
                         <SelectItem key={profile.id} value={profile.id}>
                           {profile.name || profile.email}
