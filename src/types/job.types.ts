@@ -5,7 +5,7 @@ export interface JobInfo {
   clientId: string;
   client: string;
   clients?: any;
-  service?: string;
+  service: string; // Make required to match context type
   address: string;
   phone: string;
   email: string;

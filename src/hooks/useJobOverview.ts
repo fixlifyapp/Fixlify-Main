@@ -10,6 +10,10 @@ export interface JobOverview {
   emergency_contact?: any;
   billing_contact?: any;
   lead_source?: string;
+  property_type?: string;
+  property_age?: string;
+  property_size?: string;
+  previous_service_date?: string;
   created_at?: string;
   updated_at?: string;
 }
@@ -63,6 +67,10 @@ export const useJobOverview = (jobId: string) => {
           id: overviewData?.id || '',
           job_id: jobId,
           lead_source: jobData?.lead_source,
+          property_type: overviewData?.property_type,
+          property_age: overviewData?.property_age,
+          property_size: overviewData?.property_size,
+          previous_service_date: overviewData?.previous_service_date,
           warranty_info: overviewData?.warranty_info || {},
           emergency_contact: overviewData?.emergency_contact || {},
           billing_contact: overviewData?.billing_contact || {},
@@ -91,6 +99,10 @@ export const useJobOverview = (jobId: string) => {
 
       const overviewFields = {
         job_id: jobId,
+        property_type: data.property_type,
+        property_age: data.property_age,
+        property_size: data.property_size,
+        previous_service_date: data.previous_service_date,
         warranty_info: data.warranty_info || {},
         emergency_contact: data.emergency_contact || {},
         billing_contact: data.billing_contact || {}

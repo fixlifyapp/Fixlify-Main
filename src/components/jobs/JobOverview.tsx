@@ -85,7 +85,6 @@ export const JobOverview = ({ jobId }: JobOverviewProps) => {
       <EditableJobDescriptionCard 
         description={job.description || ""} 
         jobId={jobId} 
-        editable={true}
         onUpdate={() => {}}
       />
 

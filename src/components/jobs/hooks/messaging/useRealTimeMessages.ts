@@ -24,15 +24,15 @@ export const useRealTimeMessages = ({
       
       if (!channelConversationId) {
         try {
-          const { data: conversation } = await supabase
-            .from('conversations')
-            .select('id')
-            .eq('job_id', jobId)
-            .single();
+        const { data: conversation } = await supabase
+          .from('sms_conversations')
+          .select('id')
+          .eq('job_id', jobId)
+          .single();
 
-          if (conversation) {
-            channelConversationId = conversation.id;
-          }
+        if (conversation) {
+          channelConversationId = conversation.id.toString();
+        }
         } catch (error) {
           console.error("Error finding conversation:", error);
           return null; // Return null if there's an error

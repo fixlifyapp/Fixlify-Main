@@ -2067,6 +2067,7 @@ export type Database = {
           job_id: string
           notes: string | null
           portal_access_token: string | null
+          sent_at: string | null
           signature_ip: string | null
           signature_timestamp: string | null
           status: string
@@ -2094,6 +2095,7 @@ export type Database = {
           job_id: string
           notes?: string | null
           portal_access_token?: string | null
+          sent_at?: string | null
           signature_ip?: string | null
           signature_timestamp?: string | null
           status?: string
@@ -2121,6 +2123,7 @@ export type Database = {
           job_id?: string
           notes?: string | null
           portal_access_token?: string | null
+          sent_at?: string | null
           signature_ip?: string | null
           signature_timestamp?: string | null
           status?: string
@@ -2262,6 +2265,7 @@ export type Database = {
           payment_link: string | null
           payment_status: string | null
           portal_access_token: string | null
+          sent_at: string | null
           status: string
           subtotal: number
           tax_amount: number | null
@@ -2295,6 +2299,7 @@ export type Database = {
           payment_link?: string | null
           payment_status?: string | null
           portal_access_token?: string | null
+          sent_at?: string | null
           status?: string
           subtotal?: number
           tax_amount?: number | null
@@ -2328,6 +2333,7 @@ export type Database = {
           payment_link?: string | null
           payment_status?: string | null
           portal_access_token?: string | null
+          sent_at?: string | null
           status?: string
           subtotal?: number
           tax_amount?: number | null
@@ -2566,6 +2572,10 @@ export type Database = {
           emergency_contact: Json | null
           id: string
           job_id: string
+          previous_service_date: string | null
+          property_age: string | null
+          property_size: string | null
+          property_type: string | null
           updated_at: string
           warranty_info: Json | null
         }
@@ -2575,6 +2585,10 @@ export type Database = {
           emergency_contact?: Json | null
           id?: string
           job_id: string
+          previous_service_date?: string | null
+          property_age?: string | null
+          property_size?: string | null
+          property_type?: string | null
           updated_at?: string
           warranty_info?: Json | null
         }
@@ -2584,6 +2598,10 @@ export type Database = {
           emergency_contact?: Json | null
           id?: string
           job_id?: string
+          previous_service_date?: string | null
+          property_age?: string | null
+          property_size?: string | null
+          property_type?: string | null
           updated_at?: string
           warranty_info?: Json | null
         }
@@ -2699,6 +2717,7 @@ export type Database = {
           revenue: number | null
           schedule_end: string | null
           schedule_start: string | null
+          service: string | null
           status: string | null
           tags: string[] | null
           tasks: Json | null
@@ -2725,6 +2744,7 @@ export type Database = {
           revenue?: number | null
           schedule_end?: string | null
           schedule_start?: string | null
+          service?: string | null
           status?: string | null
           tags?: string[] | null
           tasks?: Json | null
@@ -2751,6 +2771,7 @@ export type Database = {
           revenue?: number | null
           schedule_end?: string | null
           schedule_start?: string | null
+          service?: string | null
           status?: string | null
           tags?: string[] | null
           tasks?: Json | null
@@ -2819,6 +2840,7 @@ export type Database = {
           description: string
           discount: number | null
           id: string
+          our_price: number | null
           parent_id: string
           parent_type: string
           quantity: number
@@ -2831,6 +2853,7 @@ export type Database = {
           description: string
           discount?: number | null
           id?: string
+          our_price?: number | null
           parent_id: string
           parent_type: string
           quantity?: number
@@ -2843,6 +2866,7 @@ export type Database = {
           description?: string
           discount?: number | null
           id?: string
+          our_price?: number | null
           parent_id?: string
           parent_type?: string
           quantity?: number
@@ -3194,6 +3218,7 @@ export type Database = {
         Row: {
           ai_dispatcher_enabled: boolean | null
           ai_settings: Json | null
+          area_code: string | null
           assigned_to: string | null
           billing_status: string | null
           capabilities: Json | null
@@ -3234,6 +3259,7 @@ export type Database = {
         Insert: {
           ai_dispatcher_enabled?: boolean | null
           ai_settings?: Json | null
+          area_code?: string | null
           assigned_to?: string | null
           billing_status?: string | null
           capabilities?: Json | null
@@ -3274,6 +3300,7 @@ export type Database = {
         Update: {
           ai_dispatcher_enabled?: boolean | null
           ai_settings?: Json | null
+          area_code?: string | null
           assigned_to?: string | null
           billing_status?: string | null
           capabilities?: Json | null
@@ -4046,6 +4073,13 @@ export type Database = {
             foreignKeyName: "sms_messages_conversation_id_fkey"
             columns: ["conversation_id"]
             isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sms_messages_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
             referencedRelation: "sms_conversations"
             referencedColumns: ["id"]
           },
@@ -4074,6 +4108,13 @@ export type Database = {
           phone_number?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "sms_opt_outs_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "sms_opt_outs_conversation_id_fkey"
             columns: ["conversation_id"]
@@ -4333,6 +4374,63 @@ export type Database = {
           id?: string
           name?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      telnyx_calls: {
+        Row: {
+          appointment_scheduled: boolean | null
+          call_control_id: string | null
+          call_status: string | null
+          caller_phone: string | null
+          created_at: string | null
+          direction: string | null
+          duration: number | null
+          ended_at: string | null
+          id: string
+          metadata: Json | null
+          phone_number: string | null
+          recording_url: string | null
+          started_at: string | null
+          status: string | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          appointment_scheduled?: boolean | null
+          call_control_id?: string | null
+          call_status?: string | null
+          caller_phone?: string | null
+          created_at?: string | null
+          direction?: string | null
+          duration?: number | null
+          ended_at?: string | null
+          id?: string
+          metadata?: Json | null
+          phone_number?: string | null
+          recording_url?: string | null
+          started_at?: string | null
+          status?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          appointment_scheduled?: boolean | null
+          call_control_id?: string | null
+          call_status?: string | null
+          caller_phone?: string | null
+          created_at?: string | null
+          direction?: string | null
+          duration?: number | null
+          ended_at?: string | null
+          id?: string
+          metadata?: Json | null
+          phone_number?: string | null
+          recording_url?: string | null
+          started_at?: string | null
+          status?: string | null
+          updated_at?: string | null
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -4911,6 +5009,47 @@ export type Database = {
           status?: string | null
         }
         Relationships: []
+      }
+      conversations: {
+        Row: {
+          client_id: string | null
+          created_at: string | null
+          id: string | null
+          last_message_at: string | null
+          last_message_preview: string | null
+          phone_number: string | null
+          unread_count: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          client_id?: string | null
+          created_at?: string | null
+          id?: string | null
+          last_message_at?: string | null
+          last_message_preview?: string | null
+          phone_number?: string | null
+          unread_count?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          client_id?: string | null
+          created_at?: string | null
+          id?: string | null
+          last_message_at?: string | null
+          last_message_preview?: string | null
+          phone_number?: string | null
+          unread_count?: number | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sms_conversations_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       fact_jobs: {
         Row: {

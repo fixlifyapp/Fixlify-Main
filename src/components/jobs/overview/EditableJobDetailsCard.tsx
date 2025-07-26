@@ -65,10 +65,12 @@ export const EditableJobDetailsCard = ({
       setOptimisticValues({
         schedule_start: scheduleStart || "",
         schedule_end: scheduleEnd || "",
+        job_type: jobType || "",
       });
       setEditValues({
         schedule_start: scheduleStart ? scheduleStart.slice(0, 16) : "",
         schedule_end: scheduleEnd ? scheduleEnd.slice(0, 16) : "",
+        job_type: jobType || "",
       });
       setIsEditing(true);
       toast.error("Failed to update job details");
@@ -81,6 +83,7 @@ export const EditableJobDetailsCard = ({
     setEditValues({
       schedule_start: scheduleStart ? scheduleStart.slice(0, 16) : "",
       schedule_end: scheduleEnd ? scheduleEnd.slice(0, 16) : "",
+      job_type: jobType || "",
     });
     setIsEditing(false);
   };
