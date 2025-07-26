@@ -31,26 +31,25 @@ export function DeleteJobsDialog({ selectedJobs, onOpenChange, onSuccess, open }
     setIsSubmitting(true);
     
     try {
-      // Delete all selected jobs using the proper deleteJob function
-      const deletePromises = selectedJobs.map(async (jobId) => {
+      let successfulDeletions = 0;
+      let failedDeletions = 0;
+      
+      // Delete jobs one by one to handle individual failures
+      for (const jobId of selectedJobs) {
         try {
-          await deleteJob(jobId);
-          return { success: true, jobId };
+          const success = await deleteJob(jobId);
+          if (success) {
+            successfulDeletions++;
+          } else {
+            failedDeletions++;
+          }
         } catch (error) {
           console.error(`Failed to delete job ${jobId}:`, error);
-          return { success: false, jobId, error };
+          failedDeletions++;
         }
-      });
+      }
 
-      const results = await Promise.allSettled(deletePromises);
-      
-      // Count successful deletions
-      const successfulDeletions = results.filter(
-        (result) => result.status === 'fulfilled' && result.value.success
-      ).length;
-
-      const failedDeletions = selectedJobs.length - successfulDeletions;
-
+      // Show results
       if (successfulDeletions > 0) {
         toast.success(`Successfully deleted ${successfulDeletions} job${successfulDeletions > 1 ? 's' : ''}`);
       }

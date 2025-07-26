@@ -12,8 +12,10 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { useState } from "react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
-import { X } from "lucide-react"; // Add this import for the X icon
-import { globalTags, getTagColor } from "@/data/tags";
+import { X } from "lucide-react";
+import { useUnifiedJobData } from "@/hooks/useUnifiedJobData";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/use-auth";
 
 interface TagJobsDialogProps {
   selectedJobs: string[];
@@ -22,6 +24,8 @@ interface TagJobsDialogProps {
 }
 
 export function TagJobsDialog({ selectedJobs, onOpenChange, onSuccess }: TagJobsDialogProps) {
+  const { tags, isLoading: tagsLoading } = useUnifiedJobData();
+  const { user } = useAuth();
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [customTag, setCustomTag] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -52,19 +56,40 @@ export function TagJobsDialog({ selectedJobs, onOpenChange, onSuccess }: TagJobs
     setIsSubmitting(true);
     
     try {
-      // In a real app, this would be an actual API call
-      // await fetch('/api/jobs/bulk-add-tags', {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify({
-      //     jobIds: selectedJobs,
-      //     tags: selectedTags,
-      //   }),
-      // });
+      // Update each job with the new tags
+      for (const jobId of selectedJobs) {
+        // Get current job tags
+        const { data: currentJob, error: fetchError } = await supabase
+          .from('jobs')
+          .select('tags')
+          .eq('id', jobId)
+          .single();
+
+        if (fetchError) {
+          console.error(`Failed to fetch job ${jobId}:`, fetchError);
+          continue;
+        }
+
+        // Merge existing tags with new ones
+        const existingTags = Array.isArray(currentJob.tags) ? currentJob.tags : [];
+        const newTags = [...new Set([...existingTags, ...selectedTags])];
+
+        // Update the job with new tags
+        const { error: updateError } = await supabase
+          .from('jobs')
+          .update({ 
+            tags: newTags,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', jobId);
+
+        if (updateError) {
+          console.error(`Failed to update job ${jobId}:`, updateError);
+          throw updateError;
+        }
+      }
       
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
+      toast.success(`Successfully tagged ${selectedJobs.length} job${selectedJobs.length > 1 ? 's' : ''}`);
       onSuccess(selectedTags);
       onOpenChange(false);
     } catch (error) {
@@ -90,23 +115,34 @@ export function TagJobsDialog({ selectedJobs, onOpenChange, onSuccess }: TagJobs
             <label className="text-sm font-medium">
               Select Tags
             </label>
-            <div className="grid grid-cols-2 gap-2">
-              {globalTags.map((tag) => (
-                <div key={tag.id} className="flex items-center space-x-2">
-                  <Checkbox 
-                    id={`tag-${tag.id}`} 
-                    checked={selectedTags.includes(tag.name)}
-                    onCheckedChange={() => handleTagToggle(tag.name)}
-                  />
-                  <label 
-                    htmlFor={`tag-${tag.id}`} 
-                    className={`text-sm px-2 py-0.5 rounded-md ${tag.color}`}
-                  >
-                    {tag.name}
-                  </label>
-                </div>
-              ))}
-            </div>
+            {tagsLoading ? (
+              <div className="text-center py-4">
+                <span className="text-sm text-muted-foreground">Loading tags...</span>
+              </div>
+            ) : tags.length > 0 ? (
+              <div className="grid grid-cols-2 gap-2">
+                {tags.map((tag) => (
+                  <div key={tag.id} className="flex items-center space-x-2">
+                    <Checkbox 
+                      id={`tag-${tag.id}`} 
+                      checked={selectedTags.includes(tag.name)}
+                      onCheckedChange={() => handleTagToggle(tag.name)}
+                    />
+                    <label 
+                      htmlFor={`tag-${tag.id}`} 
+                      className="text-sm px-2 py-0.5 rounded-md border cursor-pointer"
+                      style={tag.color ? { borderColor: tag.color, color: tag.color } : {}}
+                    >
+                      {tag.name}
+                    </label>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-4">
+                <span className="text-sm text-muted-foreground">No tags available. Create tags in Settings → Configuration.</span>
+              </div>
+            )}
           </div>
 
           <div className="space-y-2">
@@ -134,23 +170,27 @@ export function TagJobsDialog({ selectedJobs, onOpenChange, onSuccess }: TagJobs
             <div className="space-y-2">
               <p className="text-sm font-medium">Selected Tags:</p>
               <div className="flex flex-wrap gap-2">
-                {selectedTags.map((tag, index) => (
-                  <Badge 
-                    key={index} 
-                    variant="outline" 
-                    className={`flex items-center gap-1 ${getTagColor(tag)}`}
-                  >
-                    {tag}
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      className="h-4 w-4 p-0 ml-1"
-                      onClick={() => setSelectedTags(prev => prev.filter(t => t !== tag))}
+                {selectedTags.map((tag, index) => {
+                  const tagData = tags.find(t => t.name === tag);
+                  return (
+                    <Badge 
+                      key={index} 
+                      variant="outline" 
+                      className="flex items-center gap-1"
+                      style={tagData?.color ? { borderColor: tagData.color, color: tagData.color } : {}}
                     >
-                      <X size={12} />
-                    </Button>
-                  </Badge>
-                ))}
+                      {tag}
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="h-4 w-4 p-0 ml-1"
+                        onClick={() => setSelectedTags(prev => prev.filter(t => t !== tag))}
+                      >
+                        <X size={12} />
+                      </Button>
+                    </Badge>
+                  );
+                })}
               </div>
             </div>
           )}
