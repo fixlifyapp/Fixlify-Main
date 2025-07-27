@@ -11,8 +11,7 @@ export const TAX_COUNTRIES = {
       { value: 'Ontario', label: 'Ontario', rate: 13.00, taxLabel: 'HST' },
       { value: 'Prince Edward Island', label: 'Prince Edward Island', rate: 15.00, taxLabel: 'HST' },
       { value: 'Quebec', label: 'Quebec', rate: 14.975, taxLabel: 'GST+QST' },
-      { value: 'Saskatchewan', label: 'Saskatchewan', rate: 11.00, taxLabel: 'GST+PST' },
-      { value: 'Yukon', label: 'Yukon', rate: 5.00, taxLabel: 'GST' }
+      { value: 'Saskatchewan', label: 'Saskatchewan', rate: 11.00, taxLabel: 'GST+PST' }
     ]
   },
   'United States': {

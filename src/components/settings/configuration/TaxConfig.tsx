@@ -129,7 +129,7 @@ export function TaxConfig() {
                 <SelectTrigger>
                   <SelectValue placeholder={formData.country ? "Select your province/state" : "First select a country"} />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="max-h-60 overflow-y-auto">
                   {availableProvinces.map((province) => (
                     <SelectItem key={province.value} value={province.value}>
                       {province.label}
