@@ -137,9 +137,11 @@ export function useConfigItems<T extends ConfigItem>(tableName: string) {
       if (error) throw error;
       
       // Optimistic update - update local state immediately
-      setItems(prev => prev.map(item => 
-        item.id === id ? { ...item, ...(data as Partial<T>) } : item
-      ));
+      if (data) {
+        setItems(prev => prev.map(item => 
+          item.id === id ? { ...item, ...(data as any) } : item
+        ));
+      }
       
       toast.success(`${tableName.replace('_', ' ')} updated successfully`);
       return data as unknown as T;

@@ -308,7 +308,13 @@ export const SMSProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       .subscribe();
 
     return () => {
-      supabase.removeChannel(conversationsChannel);
+      try {
+        if (conversationsChannel) {
+          supabase.removeChannel(conversationsChannel);
+        }
+      } catch (error) {
+        console.warn('Error removing conversations channel:', error);
+      }
     };
   }, [user?.id, fetchConversations]);
 
@@ -343,7 +349,13 @@ export const SMSProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       .subscribe();
 
     return () => {
-      supabase.removeChannel(messagesChannel);
+      try {
+        if (messagesChannel) {
+          supabase.removeChannel(messagesChannel);
+        }
+      } catch (error) {
+        console.warn('Error removing messages channel:', error);
+      }
     };
   }, [activeConversation?.id, fetchMessages, fetchConversations]);
 
