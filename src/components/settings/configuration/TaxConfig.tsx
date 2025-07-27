@@ -18,7 +18,7 @@ export function TaxConfig() {
     tax_label: taxConfig.label
   });
 
-  // Update form data when taxConfig changes
+  // Update form data when taxConfig changes - use specific values instead of whole object
   useEffect(() => {
     // Determine country from existing region
     let detectedCountry = 'Canada';
@@ -37,7 +37,7 @@ export function TaxConfig() {
       tax_region: taxConfig.region,
       tax_label: taxConfig.label
     });
-  }, [taxConfig]);
+  }, [taxConfig.rate, taxConfig.region, taxConfig.label]); // Only depend on specific values
 
   // Handle country selection
   const handleCountryChange = (country: string) => {
