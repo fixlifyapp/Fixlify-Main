@@ -5422,6 +5422,10 @@ export type Database = {
         Args: { p_entity_type: string }
         Returns: string
       }
+      get_next_job_status_sequence: {
+        Args: { p_user_id: string }
+        Returns: number
+      }
       get_popular_warranties_by_job_type: {
         Args: { p_job_type: string; p_limit?: number }
         Returns: {
