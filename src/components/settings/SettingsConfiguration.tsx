@@ -42,7 +42,7 @@ export function SettingsConfiguration() {
         </TabsList>
 
         <TabsContent value="business-niche">
-          <NicheConfig />
+          <NicheConfig userId={user?.id} />
         </TabsContent>
 
         <TabsContent value="document-numbering">
