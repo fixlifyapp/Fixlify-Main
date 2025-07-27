@@ -5595,6 +5595,10 @@ export type Database = {
         Args: { job_id_param: string }
         Returns: number
       }
+      refresh_user_products: {
+        Args: Record<PropertyKey, never>
+        Returns: Json
+      }
       reload_products_for_current_niche: {
         Args: Record<PropertyKey, never>
         Returns: Json
