@@ -29,7 +29,7 @@ interface EmailMessage {
   subject: string | null;
   body: string;
   html_body: string | null;
-  attachments: any[];
+  attachments: any;
   is_read: boolean;
   email_id: string | null;
   thread_id: string | null;
@@ -101,7 +101,11 @@ export const EmailProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         .order('created_at', { ascending: true });
 
       if (error) throw error;
-      setMessages(data || []);
+      setMessages((data || []).map(msg => ({
+        ...msg,
+        direction: msg.direction as 'inbound' | 'outbound',
+        attachments: Array.isArray(msg.attachments) ? msg.attachments : []
+      })));
     } catch (error) {
       console.error('Error fetching email messages:', error);
       toast.error('Failed to load email messages');

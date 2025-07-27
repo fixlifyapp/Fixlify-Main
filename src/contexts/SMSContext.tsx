@@ -106,7 +106,10 @@ export const SMSProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
       if (error) throw error;
       
-      setMessages(data || []);
+      setMessages((data || []).map(msg => ({
+        ...msg,
+        direction: msg.direction as 'inbound' | 'outbound'
+      })));
       prevMessageCountRef.current = data?.length || 0;
     } catch (error) {
       console.error('Error fetching messages:', error);

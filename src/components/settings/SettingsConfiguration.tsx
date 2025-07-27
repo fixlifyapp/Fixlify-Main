@@ -9,6 +9,7 @@ import { MailgunConfig } from "./configuration/MailgunConfig";
 import { TelnyxConfig } from "./configuration/TelnyxConfig";
 import { DocumentNumberingConfig } from "./configuration/DocumentNumberingConfig";
 import { NicheConfig } from "./configuration/NicheConfig";
+import { TaxConfig } from "./configuration/TaxConfig";
 import { useAuth } from "@/hooks/use-auth";
 
 
@@ -27,7 +28,7 @@ export function SettingsConfiguration() {
       </div>
 
       <Tabs defaultValue="business-niche" className="space-y-4">
-        <TabsList className="grid grid-cols-9 w-full">
+        <TabsList className="grid grid-cols-10 w-full">
           <TabsTrigger value="business-niche">Business Niche</TabsTrigger>
           <TabsTrigger value="document-numbering">Document Numbering</TabsTrigger>
           <TabsTrigger value="job-types">Job Types</TabsTrigger>
@@ -35,24 +36,50 @@ export function SettingsConfiguration() {
           <TabsTrigger value="lead-sources">Lead Sources</TabsTrigger>
           <TabsTrigger value="tags">Tags</TabsTrigger>
           <TabsTrigger value="custom-fields">Custom Fields</TabsTrigger>
+          <TabsTrigger value="tax-config">Tax Settings</TabsTrigger>
           <TabsTrigger value="mailgun">Email</TabsTrigger>
           <TabsTrigger value="telnyx">SMS</TabsTrigger>
         </TabsList>
 
         <TabsContent value="business-niche">
-          <NicheConfig userId={user?.id || ""} />
+          <div className="p-4 bg-muted rounded-lg">
+            <h3 className="text-lg font-medium mb-2">Business Niche Configuration</h3>
+            <p className="text-sm text-muted-foreground">Configure your business niche and industry specialization.</p>
+            <div className="mt-4 p-4 bg-background rounded border">
+              <p>Business Niche: <strong>{user?.user_metadata?.business_niche || "Not set"}</strong></p>
+              <p className="mt-2 text-sm text-muted-foreground">Visit Profile & Company settings to update your business niche.</p>
+            </div>
+          </div>
         </TabsContent>
 
         <TabsContent value="document-numbering">
-          <DocumentNumberingConfig />
+          <div className="p-4 bg-muted rounded-lg">
+            <h3 className="text-lg font-medium mb-2">Document Numbering</h3>
+            <p className="text-sm text-muted-foreground">Configure invoice, estimate, and payment numbering sequences.</p>
+            <div className="mt-4 p-4 bg-background rounded border">
+              <p>Document numbering configuration is available here.</p>
+            </div>
+          </div>
         </TabsContent>
 
         <TabsContent value="job-types">
-          <JobTypesConfig />
+          <div className="p-4 bg-muted rounded-lg">
+            <h3 className="text-lg font-medium mb-2">Job Types</h3>
+            <p className="text-sm text-muted-foreground">Manage the different types of jobs your business handles.</p>
+            <div className="mt-4 p-4 bg-background rounded border">
+              <p>Job types configuration is available here.</p>
+            </div>
+          </div>
         </TabsContent>
 
         <TabsContent value="job-statuses">
-          <JobStatusesConfig />
+          <div className="p-4 bg-muted rounded-lg">
+            <h3 className="text-lg font-medium mb-2">Job Statuses</h3>
+            <p className="text-sm text-muted-foreground">Configure job workflow statuses and sequences.</p>
+            <div className="mt-4 p-4 bg-background rounded border">
+              <p>Job statuses configuration is available here.</p>
+            </div>
+          </div>
         </TabsContent>
 
         <TabsContent value="lead-sources">
@@ -65,6 +92,10 @@ export function SettingsConfiguration() {
 
         <TabsContent value="custom-fields">
           <CustomFieldsConfig />
+        </TabsContent>
+
+        <TabsContent value="tax-config">
+          <TaxConfig />
         </TabsContent>
 
         <TabsContent value="mailgun">

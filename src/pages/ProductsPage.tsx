@@ -49,7 +49,7 @@ const ProductsPage = () => {
       badges.unshift({ 
         text: businessNiche, 
         icon: Store, 
-        variant: "default" as const 
+        variant: "info" as const 
       });
     }
 

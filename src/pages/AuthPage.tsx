@@ -9,8 +9,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Loader2, Eye, EyeOff, AlertCircle, RefreshCw } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
-import { testSupabaseAuth } from "@/utils/test-auth";
-import { fixAuthIssues } from "@/utils/auth-fix";
+// import { testSupabaseAuth } from "@/utils/test-auth";
+// import { fixAuthIssues } from "@/utils/auth-fix";
 
 export default function AuthPage() {
   const navigate = useNavigate();

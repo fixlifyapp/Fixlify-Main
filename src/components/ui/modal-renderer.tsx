@@ -25,12 +25,16 @@ export const ModalRenderer = () => {
           case "editJobDetails":
             return <JobDetailsEditDialog 
               {...commonProps} 
+              initialDescription={modalProps.initialDescription || ""}
+              jobId={modalProps.jobId || ""}
+              onSave={modalProps.onSave || (() => {})}
               {...modalProps}
             />;
             
           case "convertToInvoice":
             return <ConvertToInvoiceDialog 
               {...commonProps} 
+              onConfirm={modalProps.onConfirm || (() => {})}
               {...modalProps}
             />;
             
