@@ -5287,6 +5287,10 @@ export type Database = {
         Args: { p_automation_id: string; p_trigger_data?: Json }
         Returns: string
       }
+      extract_number_from_document: {
+        Args: { p_document_number: string }
+        Returns: number
+      }
       generate_approval_token: {
         Args: {
           p_document_type: string
