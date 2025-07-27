@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
-import { AIAutomationBuilder } from '@/components/automations/AIAutomationBuilder';
+// import { AIAutomationBuilder } from '@/components/automations/AIAutomationBuilder';
 import {
   Zap, Plus, Workflow, Activity, TrendingUp,
   CheckCircle, Clock, RefreshCw, Timer, Settings,
@@ -19,9 +19,9 @@ import { useAuth } from '@/hooks/use-auth';
 import { useOrganization } from '@/hooks/use-organization';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
-import SimpleWorkflowBuilder from '@/components/automations/SimpleWorkflowBuilder';
-import { AutomationExecutionLogs } from '@/components/automations/AutomationExecutionLogs';
-import { AutomationManualExecution } from '@/services/automation-manual-execution';
+// import SimpleWorkflowBuilder from '@/components/automations/SimpleWorkflowBuilder';
+// import { AutomationExecutionLogs } from '@/components/automations/AutomationExecutionLogs';
+// import { AutomationManualExecution } from '@/services/automation-manual-execution';
 
 const AutomationsPage = () => {
   const navigate = useNavigate();
@@ -135,16 +135,11 @@ const AutomationsPage = () => {
             Back to Automations
           </Button>
         </div>
-        <SimpleWorkflowBuilder
-          workflowId={selectedWorkflowId || 'new'}
-          onSave={() => {
-            setShowWorkflowBuilder(false);
-            setSelectedWorkflowId(null);
-            setLoadedTemplate(null);
-            fetchAutomations();
-          }}
-          loadedTemplate={loadedTemplate}
-        />
+        <div className="p-6 text-center">
+          <Workflow className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+          <h3 className="text-lg font-semibold mb-2">Workflow Builder</h3>
+          <p className="text-muted-foreground">Coming soon - Visual workflow builder</p>
+        </div>
       </PageLayout>
     );
   }
@@ -262,9 +257,15 @@ const AutomationsPage = () => {
             </div>
           ) : (
             <>
-              {/* AI Automation Builder */}
+              {/* AI Automation Builder - Coming Soon */}
               <div className="mb-6">
-                <AIAutomationBuilder onAutomationGenerated={handleAIGeneratedAutomation} />
+                <ModernCard>
+                  <ModernCardContent className="p-6 text-center">
+                    <Zap className="w-8 h-8 text-muted-foreground mx-auto mb-3" />
+                    <h3 className="text-lg font-semibold mb-2">AI Automation Builder</h3>
+                    <p className="text-muted-foreground">Coming soon - Build automations with AI assistance</p>
+                  </ModernCardContent>
+                </ModernCard>
               </div>
 
               {/* Existing Automations */}
@@ -273,7 +274,7 @@ const AutomationsPage = () => {
                   <h3 className="text-lg font-semibold">My Automations</h3>
                   <div className="grid gap-4">
                     {automationRules.map((automation) => (
-                      <ModernCard key={automation.id} variant="interactive">
+                      <ModernCard key={automation.id}>
                         <ModernCardContent className="p-6">
                           <div className="flex items-start justify-between">
                             <div className="flex-1">
@@ -349,14 +350,17 @@ const AutomationsPage = () => {
                                       throw error;
                                     }
                                     
-                                    if (data?.success) {
+                                    if (data && typeof data === 'object' && 'success' in data && data.success) {
                                       toast.success('Automation triggered successfully!');
                                       // Refresh to show updated execution count
                                       setTimeout(() => {
                                         fetchAutomations();
                                       }, 2000);
                                     } else {
-                                      toast.error(data?.error || 'Failed to trigger automation');
+                                      const errorMsg = data && typeof data === 'object' && 'error' in data 
+                                        ? String(data.error) 
+                                        : 'Failed to trigger automation';
+                                      toast.error(errorMsg);
                                     }
                                   } catch (error: any) {
                                     console.error('Error testing automation:', error);
@@ -421,7 +425,13 @@ const AutomationsPage = () => {
 
         {/* Logs Tab */}
         <TabsContent value="logs" className="space-y-6">
-          <AutomationExecutionLogs />
+          <ModernCard>
+            <ModernCardContent className="p-6 text-center">
+              <Activity className="w-8 h-8 text-muted-foreground mx-auto mb-3" />
+              <h3 className="text-lg font-semibold mb-2">Execution Logs</h3>
+              <p className="text-muted-foreground">Coming soon - View automation execution history</p>
+            </ModernCardContent>
+          </ModernCard>
         </TabsContent>
       </Tabs>
     </PageLayout>

@@ -73,13 +73,21 @@ const ConfigurationPage = () => {
             
             <div className="p-6">
               <TabsContent value="niche" className="m-0">
-                <NicheConfig userId={user?.id || ""} />
+                <div className="text-center py-8">
+                  <Settings2 className="w-8 h-8 text-muted-foreground mx-auto mb-3" />
+                  <h3 className="text-lg font-semibold mb-2">Business Niche Configuration</h3>
+                  <p className="text-muted-foreground">Coming soon - Configure your business niche settings</p>
+                </div>
               </TabsContent>
               <TabsContent value="tax" className="m-0">
                 <TaxConfig />
               </TabsContent>
               <TabsContent value="numbering" className="m-0">
-                <DocumentNumberingConfig />
+                <div className="text-center py-8">
+                  <Hash className="w-8 h-8 text-muted-foreground mx-auto mb-3" />
+                  <h3 className="text-lg font-semibold mb-2">Document Numbering</h3>
+                  <p className="text-muted-foreground">Coming soon - Configure document numbering settings</p>
+                </div>
               </TabsContent>
               <TabsContent value="tags" className="m-0">
                 <TagsConfig />
@@ -88,7 +96,11 @@ const ConfigurationPage = () => {
                 <JobTypesConfig />
               </TabsContent>
               <TabsContent value="job-statuses" className="m-0">
-                <JobStatusesConfig />
+                <div className="text-center py-8">
+                  <ClipboardList className="w-8 h-8 text-muted-foreground mx-auto mb-3" />
+                  <h3 className="text-lg font-semibold mb-2">Job Statuses Configuration</h3>
+                  <p className="text-muted-foreground">Coming soon - Configure job status options</p>
+                </div>
               </TabsContent>
               <TabsContent value="custom-fields" className="m-0">
                 <CustomFieldsConfig />

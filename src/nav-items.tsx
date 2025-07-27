@@ -1,5 +1,5 @@
 
-import { HomeIcon, CalendarIcon, UserIcon, ClipboardIcon, CreditCardIcon, BarChart3Icon, MessageSquareIcon, SettingsIcon, BotIcon, UsersIcon, PhoneIcon, DocumentIcon, ListTodoIcon, PackageIcon, PuzzleIcon, ShoppingCartIcon } from "lucide-react";
+import { HomeIcon, CalendarIcon, UserIcon, ClipboardIcon, CreditCardIcon, BarChart3Icon, MessageSquareIcon, SettingsIcon, BotIcon, UsersIcon, PhoneIcon, FileTextIcon, ListTodoIcon, PackageIcon, PuzzleIcon, ShoppingCartIcon } from "lucide-react";
 
 export const navItems = [
   {
@@ -70,7 +70,7 @@ export const navItems = [
   {
     title: "Documents",
     to: "/documents",
-    icon: DocumentIcon,
+    icon: FileTextIcon,
   },
   {
     title: "Tasks",
