@@ -5,6 +5,7 @@ import { DocumentType } from "../../UnifiedDocumentBuilder";
 import { Estimate } from "@/hooks/useEstimates";
 import { Invoice } from "@/hooks/useInvoices";
 import { supabase } from "@/integrations/supabase/client";
+import { useTaxSettings } from "@/hooks/useTaxSettings";
 
 interface UseDocumentInitializationProps {
   documentType: DocumentType;
@@ -19,11 +20,19 @@ export const useDocumentInitialization = ({
   jobId,
   open
 }: UseDocumentInitializationProps) => {
+  const { taxConfig } = useTaxSettings();
   const [lineItems, setLineItems] = useState<LineItem[]>([]);
-  const [taxRate, setTaxRate] = useState(8.5);
+  const [taxRate, setTaxRate] = useState(taxConfig.rate || 13.0);
   const [notes, setNotes] = useState("");
   const [documentNumber, setDocumentNumber] = useState("");
   const [isInitialized, setIsInitialized] = useState(false);
+
+  // Update tax rate when user's tax settings change
+  useEffect(() => {
+    if (taxConfig.rate && !existingDocument) {
+      setTaxRate(taxConfig.rate);
+    }
+  }, [taxConfig.rate, existingDocument]);
 
   // Initialize document data when dialog opens or existing document changes
   useEffect(() => {
@@ -40,6 +49,14 @@ export const useDocumentInitialization = ({
       if (existingDocument) {
         // Load existing document data
         setNotes(existingDocument.notes || "");
+        
+        // Set tax rate from existing document or fallback to user settings
+        const existingTaxRate = existingDocument.tax_rate || existingDocument.taxRate;
+        if (existingTaxRate) {
+          setTaxRate(parseFloat(existingTaxRate.toString()) || taxConfig.rate || 13.0);
+        } else {
+          setTaxRate(taxConfig.rate || 13.0);
+        }
         
         if (documentType === 'estimate') {
           const estimate = existingDocument as Estimate;

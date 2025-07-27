@@ -10,36 +10,21 @@ interface TaxSettingsCardProps {
   updateUserSettings: (updates: Partial<UserSettings>) => void;
 }
 
-const TAX_REGIONS = [
-  { value: 'Alberta', label: 'Alberta (5% GST)' },
-  { value: 'British Columbia', label: 'British Columbia (12% GST+PST)' },
-  { value: 'Manitoba', label: 'Manitoba (12% GST+PST)' },
-  { value: 'New Brunswick', label: 'New Brunswick (15% HST)' },
-  { value: 'Newfoundland and Labrador', label: 'Newfoundland and Labrador (15% HST)' },
-  { value: 'Northwest Territories', label: 'Northwest Territories (5% GST)' },
-  { value: 'Nova Scotia', label: 'Nova Scotia (15% HST)' },
-  { value: 'Nunavut', label: 'Nunavut (5% GST)' },
-  { value: 'Ontario', label: 'Ontario (13% HST)' },
-  { value: 'Prince Edward Island', label: 'Prince Edward Island (15% HST)' },
-  { value: 'Quebec', label: 'Quebec (14.975% GST+QST)' },
-  { value: 'Saskatchewan', label: 'Saskatchewan (11% GST+PST)' },
-  { value: 'Yukon', label: 'Yukon (5% GST)' },
-  { value: 'United States', label: 'United States (Variable Sales Tax)' },
-  { value: 'Custom', label: 'Custom/Other' }
-];
-
-const TAX_LABELS = [
-  { value: 'HST', label: 'HST (Harmonized Sales Tax)' },
-  { value: 'GST', label: 'GST (Goods and Services Tax)' },
-  { value: 'PST', label: 'PST (Provincial Sales Tax)' },
-  { value: 'GST+PST', label: 'GST + PST' },
-  { value: 'GST+QST', label: 'GST + QST (Quebec)' },
-  { value: 'Sales Tax', label: 'Sales Tax' },
-  { value: 'VAT', label: 'VAT (Value Added Tax)' },
-  { value: 'Tax', label: 'Tax' }
-];
+import { TAX_REGIONS, TAX_LABELS, getTaxDetailsByRegion } from "@/utils/taxRegions";
 
 export const TaxSettingsCard = ({ userSettings, updateUserSettings }: TaxSettingsCardProps) => {
+  // Handle region selection with automatic rate and label updates
+  const handleRegionChange = (region: string) => {
+    const selectedRegion = getTaxDetailsByRegion(region);
+    if (selectedRegion) {
+      updateUserSettings({
+        tax_region: region,
+        default_tax_rate: selectedRegion.rate,
+        tax_label: selectedRegion.taxLabel
+      });
+    }
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -88,10 +73,10 @@ export const TaxSettingsCard = ({ userSettings, updateUserSettings }: TaxSetting
 
         <div className="space-y-2">
           <Label htmlFor="tax-region">Tax Region/Jurisdiction</Label>
-          <Select
-            value={userSettings.tax_region || 'Ontario'}
-            onValueChange={(value) => updateUserSettings({ tax_region: value })}
-          >
+            <Select
+              value={userSettings.tax_region || 'Ontario'}
+              onValueChange={handleRegionChange}
+            >
             <SelectTrigger>
               <SelectValue placeholder="Select tax region" />
             </SelectTrigger>

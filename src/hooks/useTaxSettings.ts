@@ -1,5 +1,6 @@
 
 import { useUserSettings, UserSettings } from './useUserSettings';
+import { getTaxDetailsByRegion } from '@/utils/taxRegions';
 
 export interface TaxConfiguration {
   rate: number;
@@ -11,11 +12,14 @@ export interface TaxConfiguration {
 export const useTaxSettings = () => {
   const { settings, loading, updateSettings } = useUserSettings();
 
+  // Get default tax settings for Ontario (Canada's most common business location)
+  const defaultRegion = getTaxDetailsByRegion('Ontario');
+  
   const taxConfig: TaxConfiguration = {
-    rate: settings.default_tax_rate || 13.00,
+    rate: settings.default_tax_rate || defaultRegion?.rate || 13.00,
     region: settings.tax_region || 'Ontario',
-    label: settings.tax_label || 'HST',
-    displayText: `${settings.tax_label || 'HST'} (${settings.default_tax_rate || 13}%)`
+    label: settings.tax_label || defaultRegion?.taxLabel || 'HST',
+    displayText: `${settings.tax_label || defaultRegion?.taxLabel || 'HST'} (${settings.default_tax_rate || defaultRegion?.rate || 13}%)`
   };
 
   const updateTaxSettings = async (updates: Partial<Pick<UserSettings, 'default_tax_rate' | 'tax_region' | 'tax_label'>>) => {

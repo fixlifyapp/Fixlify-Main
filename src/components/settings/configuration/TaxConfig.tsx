@@ -2,9 +2,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useTaxSettings } from "@/hooks/useTaxSettings";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
+
+import { TAX_REGIONS, TAX_LABELS } from "@/utils/taxRegions";
 
 export function TaxConfig() {
   const { taxConfig, loading, updateTaxSettings } = useTaxSettings();
@@ -13,6 +16,28 @@ export function TaxConfig() {
     tax_region: taxConfig.region,
     tax_label: taxConfig.label
   });
+
+  // Update form data when taxConfig changes
+  useEffect(() => {
+    setFormData({
+      tax_rate: taxConfig.rate,
+      tax_region: taxConfig.region,
+      tax_label: taxConfig.label
+    });
+  }, [taxConfig]);
+
+  // Handle region selection with automatic rate and label updates
+  const handleRegionChange = (region: string) => {
+    const selectedRegion = TAX_REGIONS.find(r => r.value === region);
+    if (selectedRegion) {
+      setFormData(prev => ({
+        ...prev,
+        tax_region: region,
+        tax_rate: selectedRegion.rate,
+        tax_label: selectedRegion.taxLabel
+      }));
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -43,37 +68,68 @@ export function TaxConfig() {
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="tax_rate">Tax Rate (%)</Label>
-              <Input
-                id="tax_rate"
-                type="number"
-                step="0.01"
-                value={formData.tax_rate}
-                onChange={(e) => setFormData(prev => ({ ...prev, tax_rate: parseFloat(e.target.value) }))}
-                placeholder="13.00"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="tax_region">Tax Region</Label>
-              <Input
-                id="tax_region"
+              <Label htmlFor="tax_region">Tax Region/Province</Label>
+              <Select
                 value={formData.tax_region}
-                onChange={(e) => setFormData(prev => ({ ...prev, tax_region: e.target.value }))}
-                placeholder="Ontario"
-              />
+                onValueChange={handleRegionChange}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select your tax region" />
+                </SelectTrigger>
+                <SelectContent>
+                  {TAX_REGIONS.map((region) => (
+                    <SelectItem key={region.value} value={region.value}>
+                      {region.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="tax_label">Tax Label</Label>
-              <Input
-                id="tax_label"
-                value={formData.tax_label}
-                onChange={(e) => setFormData(prev => ({ ...prev, tax_label: e.target.value }))}
-                placeholder="HST"
-              />
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="tax_rate">Tax Rate (%)</Label>
+                <Input
+                  id="tax_rate"
+                  type="number"
+                  step="0.001"
+                  min="0"
+                  max="50"
+                  value={formData.tax_rate}
+                  onChange={(e) => setFormData(prev => ({ ...prev, tax_rate: parseFloat(e.target.value) || 0 }))}
+                  placeholder="13.00"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="tax_label">Tax Label</Label>
+                <Select
+                  value={formData.tax_label}
+                  onValueChange={(value) => setFormData(prev => ({ ...prev, tax_label: value }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select tax label" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {TAX_LABELS.map((label) => (
+                      <SelectItem key={label.value} value={label.value}>
+                        {label.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           </div>
+
+          <div className="bg-blue-50 p-3 rounded-lg">
+            <p className="text-sm text-blue-700">
+              <strong>Preview:</strong> Items will show "{formData.tax_label} ({formData.tax_rate}%)" 
+              for taxable items in {formData.tax_region}.
+            </p>
+          </div>
+
           <Button type="submit">Save Tax Settings</Button>
         </form>
       </CardContent>
