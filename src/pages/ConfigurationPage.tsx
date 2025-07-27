@@ -6,7 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 // import { NicheConfig } from "@/components/settings/configuration/NicheConfig";
 import { TagsConfig } from "@/components/settings/configuration/TagsConfig";
 import { JobTypesConfig } from "@/components/settings/configuration/JobTypesConfig";
-// import { JobStatusesConfig } from "@/components/settings/configuration/JobStatusesConfig";
+import { JobStatusesConfig } from "@/components/settings/configuration/JobStatusesConfig";
 import { CustomFieldsConfig } from "@/components/settings/configuration/CustomFieldsConfig";
 import { LeadSourcesConfig } from "@/components/settings/configuration/LeadSourcesConfig";
 import { TaxConfig } from "@/components/settings/configuration/TaxConfig";
@@ -96,11 +96,7 @@ const ConfigurationPage = () => {
                 <JobTypesConfig />
               </TabsContent>
               <TabsContent value="job-statuses" className="m-0">
-                <div className="text-center py-8">
-                  <ClipboardList className="w-8 h-8 text-muted-foreground mx-auto mb-3" />
-                  <h3 className="text-lg font-semibold mb-2">Job Statuses Configuration</h3>
-                  <p className="text-muted-foreground">Coming soon - Configure job status options</p>
-                </div>
+                <JobStatusesConfig />
               </TabsContent>
               <TabsContent value="custom-fields" className="m-0">
                 <CustomFieldsConfig />
