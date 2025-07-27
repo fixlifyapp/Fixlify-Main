@@ -9,7 +9,7 @@ import {
   SidebarMenuItem,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
-import { LayoutDashboard, Briefcase, Users, Calendar, DollarSign, MessageSquare, BarChart3, Settings, Bot, Zap, UserCheck, ExternalLink, Phone, Code } from "lucide-react";
+import { LayoutDashboard, Briefcase, Users, Calendar, DollarSign, MessageSquare, BarChart3, Settings, Bot, Zap, UserCheck, Phone, Package } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { TrackingWrapper } from "@/components/ui/TrackingWrapper";
 import { cn } from "@/lib/utils";
@@ -53,6 +53,11 @@ export function AppSidebar() {
     href: '/finance',
     color: "text-fixlyfy"
   }, {
+    label: 'Products',
+    icon: Package,
+    href: '/products',
+    color: "text-fixlyfy"
+  }, {
     label: 'Connect',
     icon: MessageSquare,
     href: '/connect',
@@ -81,11 +86,6 @@ export function AppSidebar() {
     label: 'Phone Numbers',
     icon: Phone,
     href: '/settings/phone-numbers',
-    color: "text-fixlyfy"
-  }, {
-    label: 'Edge Functions',
-    icon: Code,
-    href: '/edge-functions',
     color: "text-fixlyfy"
   }, {
     label: 'Settings',
