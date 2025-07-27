@@ -5622,6 +5622,10 @@ export type Database = {
         Args: { invoice_id: string; recipient_phone: string; message: string }
         Returns: Json
       }
+      switch_business_niche_comprehensive: {
+        Args: { p_user_id: string; p_business_niche: string }
+        Returns: Json
+      }
       test_create_products: {
         Args: { p_user_id: string; p_business_niche: string }
         Returns: Json

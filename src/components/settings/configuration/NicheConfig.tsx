@@ -169,27 +169,27 @@ export function NicheConfig({ userId }: NicheConfigProps) {
 
       console.log('Profile updated, now calling initialization function...');
 
-      // Use the enhanced initialization function to replace all data
-      const { error: initError, data: initData } = await supabase.rpc(
-        'initialize_user_data_complete_enhanced',
+      // Use the comprehensive niche switch function
+      const { data: result, error: switchError } = await supabase.rpc(
+        'switch_business_niche_comprehensive',
         { 
           p_user_id: userId,
           p_business_niche: dbNicheValue
         }
       );
 
-      if (initError) {
-        console.error('Enhanced initialization function error:', initError);
+      if (switchError) {
+        console.error('Comprehensive niche switch error:', switchError);
         console.error('Error details:', {
-          code: initError.code,
-          message: initError.message,
-          details: initError.details,
-          hint: initError.hint
+          code: switchError.code,
+          message: switchError.message,
+          details: switchError.details,
+          hint: switchError.hint
         });
-        throw initError;
+        throw switchError;
       }
 
-      console.log('Database initialization completed:', initData);
+      console.log('Comprehensive niche switch completed:', result);
 
       setCurrentNiche(selectedNiche);
       toast.dismiss(loadingToast);
