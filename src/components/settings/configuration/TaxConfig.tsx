@@ -21,15 +21,18 @@ export function TaxConfig() {
   // Update form data when taxConfig changes
   useEffect(() => {
     // Determine country from existing region
-    let country = 'Canada';
-    if (formData.tax_region && TAX_COUNTRIES[country]?.provinces.find(p => p.value === formData.tax_region)) {
-      country = 'Canada';
-    } else if (formData.tax_region && TAX_COUNTRIES['United States']?.provinces.find(p => p.value === formData.tax_region)) {
-      country = 'United States';
+    let detectedCountry = 'Canada';
+    
+    // Check which country this region belongs to
+    for (const [countryName, countryData] of Object.entries(TAX_COUNTRIES)) {
+      if (countryData.provinces.find(p => p.value === taxConfig.region)) {
+        detectedCountry = countryName;
+        break;
+      }
     }
     
     setFormData({
-      country,
+      country: detectedCountry,
       tax_rate: taxConfig.rate,
       tax_region: taxConfig.region,
       tax_label: taxConfig.label
@@ -50,18 +53,23 @@ export function TaxConfig() {
   // Handle region selection with automatic rate and label updates
   const handleRegionChange = (region: string) => {
     const selectedRegion = getTaxDetailsByCountryAndRegion(formData.country, region);
+    console.log('Region change:', region, 'Country:', formData.country, 'Found:', selectedRegion);
+    
     if (selectedRegion) {
-      setFormData(prev => ({
-        ...prev,
+      const newFormData = {
+        ...formData,
         tax_region: region,
         tax_rate: selectedRegion.rate,
         tax_label: selectedRegion.taxLabel
-      }));
+      };
+      console.log('Updating form data:', newFormData);
+      setFormData(newFormData);
     }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log('Submitting tax settings:', formData);
     try {
       await updateTaxSettings({
         default_tax_rate: formData.tax_rate,
@@ -138,7 +146,7 @@ export function TaxConfig() {
                   id="tax_rate"
                   type="number"
                   step="0.001"
-                  value={formData.tax_rate}
+                  value={formData.tax_rate || 0}
                   readOnly
                   className="bg-muted cursor-not-allowed"
                   placeholder="Select province to see rate"
@@ -149,7 +157,7 @@ export function TaxConfig() {
                 <Label htmlFor="tax_label">Tax Label</Label>
                 <Input
                   id="tax_label"
-                  value={formData.tax_label}
+                  value={formData.tax_label || 'Tax'}
                   readOnly
                   className="bg-muted cursor-not-allowed"
                   placeholder="Select province to see label"
