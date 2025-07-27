@@ -33,6 +33,8 @@ export const useInvoicePersistence = (
         job_id: jobId,
         invoice_number: formData.invoiceNumber,
         total: total,
+        subtotal: subtotal,
+        tax_rate: taxRate,
         tax_amount: taxAmount,
         amount_paid: 0,
         status: formData.status,
