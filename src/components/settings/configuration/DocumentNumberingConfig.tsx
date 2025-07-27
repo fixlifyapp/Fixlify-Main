@@ -28,6 +28,7 @@ export const DocumentNumberingConfig = () => {
   const [configs, setConfigs] = useState<NumberingConfig[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
     fetchConfigs();
@@ -64,14 +65,26 @@ export const DocumentNumberingConfig = () => {
       if (config.entity_type === entityType) {
         if (field === 'start_value') {
           const numValue = typeof value === 'string' ? parseInt(value) || 0 : value;
+          
+          // Validate that new number is higher than current counter
+          if (numValue <= config.current_value) {
+            setValidationErrors(prev => ({
+              ...prev,
+              [entityType]: `Number must be higher than current counter (${config.current_value})`
+            }));
+          } else {
+            setValidationErrors(prev => {
+              const newErrors = { ...prev };
+              delete newErrors[entityType];
+              return newErrors;
+            });
+          }
+          
           return { 
             ...config, 
-            [field]: numValue,
-            // If changing start value and current is less, update current too
-            current_value: Math.max(config.current_value, numValue - 1)
+            [field]: numValue
           };
         }
-        // Don't modify the prefix - preserve the case as entered
         return { ...config, [field]: value as string };
       }
       return config;
@@ -79,25 +92,49 @@ export const DocumentNumberingConfig = () => {
   };
 
   const handleSave = async () => {
+    // Check for validation errors
+    if (Object.keys(validationErrors).length > 0) {
+      toast.error('Please fix validation errors before saving');
+      return;
+    }
+
     setSaving(true);
     try {
-      // Update each config
+      // Update each config using the new simple function
       for (const config of configs) {
-        const { error } = await supabase
-          .from('id_counters')
-          .upsert({
-            entity_type: config.entity_type,
-            prefix: config.prefix,
-            start_value: config.start_value,
-            current_value: Math.max(config.current_value, config.start_value - 1),
-            updated_at: new Date().toISOString()
-          }, {
-            onConflict: 'entity_type'
-          });
+        if (config.start_value > config.current_value) {
+          const { data, error } = await supabase.rpc(
+            'update_document_counter_higher_only',
+            {
+              p_user_id: user?.id,
+              p_document_type: config.entity_type,
+              p_new_number: config.start_value
+            }
+          );
 
-        if (error) throw error;
+          if (error) throw error;
+          
+          const result = data as any;
+          if (!result.success) {
+            toast.error(result.error);
+            return;
+          }
+        } else {
+          // Just update prefix if no number change
+          const { error } = await supabase
+            .from('id_counters')
+            .update({
+              prefix: config.prefix,
+              updated_at: new Date().toISOString()
+            })
+            .eq('entity_type', config.entity_type)
+            .eq('user_id', user?.id);
+
+          if (error) throw error;
+        }
       }
 
+      await fetchConfigs(); // Refresh to show updated values
       toast.success('Document numbering configuration saved successfully');
     } catch (error) {
       console.error('Error saving numbering configs:', error);
@@ -107,63 +144,43 @@ export const DocumentNumberingConfig = () => {
     }
   };
 
-  const handleReset = async (entityType: string) => {
+  const handleUpdate = async (entityType: string) => {
     const config = configs.find(c => c.entity_type === entityType);
     if (!config) return;
 
+    // Check if there's a validation error
+    if (validationErrors[entityType]) {
+      toast.error(validationErrors[entityType]);
+      return;
+    }
+
+    if (config.start_value <= config.current_value) {
+      toast.error(`New number must be higher than current counter (${config.current_value})`);
+      return;
+    }
+
     try {
-      // Get suggestions for safe reset
-      const { data: safeValue, error: suggestionError } = await supabase.rpc(
-        'suggest_safe_reset_value',
-        { 
-          p_user_id: user?.id,
-          p_document_type: entityType
-        }
-      );
-
-      if (suggestionError) throw suggestionError;
-
-      // Enhanced confirmation with smart suggestions
-      const confirmMessage = `⚠️ DUPLICATE PREVENTION SYSTEM
-
-Current situation:
-- Current counter: ${config.current_value}
-- Suggested safe value: ${safeValue}
-
-The system has analyzed your existing ${entityType}s and suggests starting from ${safeValue} to avoid duplicates.
-
-Options:
-1. Use suggested safe value (${safeValue}) - RECOMMENDED
-2. Cancel and set a custom value manually
-
-Choose "OK" to use the safe value (${safeValue}) or "Cancel" to abort.`;
-
-      if (!confirm(confirmMessage)) {
-        return;
-      }
-
-      // Use the smart reset function
-      const { data: result, error: resetError } = await supabase.rpc(
-        'safe_reset_document_counter',
-        { 
+      const { data, error } = await supabase.rpc(
+        'update_document_counter_higher_only',
+        {
           p_user_id: user?.id,
           p_document_type: entityType,
-          p_new_start_value: safeValue
+          p_new_number: config.start_value
         }
       );
 
-      if (resetError) throw resetError;
-
-      const resultData = result as any;
-      if (resultData?.success) {
-        toast.success(`✅ ${resultData.message}. Next ${entityType} will be #${resultData.next_number}.`);
+      if (error) throw error;
+      
+      const result = data as any;
+      if (result.success) {
+        toast.success(result.message);
         await fetchConfigs();
       } else {
-        toast.error(resultData?.error || 'Reset failed');
+        toast.error(result.error);
       }
     } catch (error) {
-      console.error('Error resetting counter:', error);
-      toast.error('Failed to reset counter');
+      console.error('Error updating counter:', error);
+      toast.error('Failed to update counter');
     }
   };
 
@@ -192,30 +209,6 @@ Choose "OK" to use the safe value (${safeValue}) or "Cancel" to abort.`;
     return nextNumber.toString();
   };
 
-  const getDuplicateStatus = async (entityType: string) => {
-    try {
-      const { data: highest, error } = await supabase.rpc(
-        'get_highest_document_number',
-        { 
-          p_user_id: user?.id,
-          p_document_type: entityType
-        }
-      );
-
-      if (error) return null;
-      
-      const config = configs.find(c => c.entity_type === entityType);
-      const nextNumber = config ? config.current_value + 1 : 0;
-      
-      return {
-        highest,
-        nextNumber,
-        wouldDuplicate: nextNumber <= highest
-      };
-    } catch {
-      return null;
-    }
-  };
 
   if (loading) {
     return (
@@ -236,12 +229,12 @@ Choose "OK" to use the safe value (${safeValue}) or "Cancel" to abort.`;
 
       <Alert>
         <InfoIcon className="h-4 w-4" />
-        <AlertTitle>Smart Duplicate Prevention System</AlertTitle>
+        <AlertTitle>Higher Numbers Only</AlertTitle>
         <AlertDescription className="space-y-2">
-          <p>✅ <strong>Automatic Protection:</strong> The system analyzes your existing documents and suggests safe reset values to prevent duplicates.</p>
-          <p>🔍 <strong>Smart Analysis:</strong> Before any reset, the system checks your highest document numbers and recommends safe starting points.</p>
-          <p>⚡ <strong>One-Click Safety:</strong> The reset function automatically calculates safe values - no manual checking needed!</p>
-          <p><strong>Best Practice:</strong> Always use the system's suggested values for guaranteed duplicate prevention.</p>
+          <p>✅ <strong>Simple & Safe:</strong> You can only set numbers higher than your current counter to prevent duplicates.</p>
+          <p>🔢 <strong>Current Counter:</strong> Shows your current counter value - new numbers must be higher than this.</p>
+          <p>⚡ <strong>Instant Validation:</strong> The system validates your input immediately and prevents invalid changes.</p>
+          <p><strong>Example:</strong> If your current counter is 1005, you can set it to 1100, 1200, etc., but not 1000.</p>
         </AlertDescription>
       </Alert>
 
@@ -275,13 +268,19 @@ Choose "OK" to use the safe value (${safeValue}) or "Cancel" to abort.`;
                   <Label htmlFor={`${config.entity_type}-start`}>
                     Starting Number
                   </Label>
-                  <Input
-                    id={`${config.entity_type}-start`}
-                    type="number"
-                    value={config.start_value}
-                    onChange={(e) => handleConfigChange(config.entity_type, 'start_value', e.target.value)}
-                    min="1"
-                  />
+                  <div className="space-y-1">
+                    <Input
+                      id={`${config.entity_type}-start`}
+                      type="number"
+                      value={config.start_value}
+                      onChange={(e) => handleConfigChange(config.entity_type, 'start_value', e.target.value)}
+                      min={config.current_value + 1}
+                      className={validationErrors[config.entity_type] ? 'border-red-500' : ''}
+                    />
+                    {validationErrors[config.entity_type] && (
+                      <p className="text-sm text-red-500">{validationErrors[config.entity_type]}</p>
+                    )}
+                  </div>
                 </div>
 
                 <div className="space-y-2">
@@ -294,12 +293,12 @@ Choose "OK" to use the safe value (${safeValue}) or "Cancel" to abort.`;
                     />
                     <Button
                       variant="outline"
-                      size="icon"
-                      onClick={() => handleReset(config.entity_type)}
-                      title={`Smart Reset - Automatically calculates safe value`}
-                      className="text-green-600 hover:text-green-700 border-green-300 hover:border-green-400"
+                      size="sm"
+                      onClick={() => handleUpdate(config.entity_type)}
+                      disabled={config.start_value <= config.current_value || !!validationErrors[config.entity_type]}
+                      className="text-blue-600 hover:text-blue-700 border-blue-300 hover:border-blue-400"
                     >
-                      <RotateCcw className="h-4 w-4" />
+                      Update
                     </Button>
                   </div>
                 </div>
@@ -307,8 +306,8 @@ Choose "OK" to use the safe value (${safeValue}) or "Cancel" to abort.`;
 
               <div className="text-sm text-muted-foreground space-y-1">
                 <div>Current counter value: {config.current_value}</div>
-                <div className="text-xs text-green-600 font-medium">
-                  ✅ Smart reset available - automatically prevents duplicates
+                <div className="text-xs text-blue-600 font-medium">
+                  💡 Enter a number higher than {config.current_value} to update the counter
                 </div>
               </div>
             </CardContent>

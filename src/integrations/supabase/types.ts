@@ -5287,10 +5287,6 @@ export type Database = {
         Args: { p_automation_id: string; p_trigger_data?: Json }
         Returns: string
       }
-      extract_number_from_document: {
-        Args: { p_document_number: string }
-        Returns: number
-      }
       generate_approval_token: {
         Args: {
           p_document_type: string
@@ -5373,10 +5369,6 @@ export type Database = {
       get_enhanced_portal_data: {
         Args: { p_client_id: string }
         Returns: Json
-      }
-      get_highest_document_number: {
-        Args: { p_user_id: string; p_document_type: string }
-        Returns: number
       }
       get_job_portal_data: {
         Args: { p_job_number: string }
@@ -5626,21 +5618,9 @@ export type Database = {
         Args: { p_products: Json; p_user_id: string }
         Returns: Json
       }
-      safe_reset_document_counter: {
-        Args: {
-          p_user_id: string
-          p_document_type: string
-          p_new_start_value?: number
-        }
-        Returns: Json
-      }
       send_invoice_sms: {
         Args: { invoice_id: string; recipient_phone: string; message: string }
         Returns: Json
-      }
-      suggest_safe_reset_value: {
-        Args: { p_user_id: string; p_document_type: string }
-        Returns: number
       }
       switch_business_niche_comprehensive: {
         Args: { p_user_id: string; p_business_niche: string }
@@ -5660,6 +5640,14 @@ export type Database = {
       }
       trigger_automation_manually: {
         Args: { automation_id: string; test_data?: Json }
+        Returns: Json
+      }
+      update_document_counter_higher_only: {
+        Args: {
+          p_user_id: string
+          p_document_type: string
+          p_new_number: number
+        }
         Returns: Json
       }
       update_team_member_commission: {
