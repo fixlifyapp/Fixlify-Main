@@ -3,7 +3,7 @@ import { PageLayout } from "@/components/layout/PageLayout";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-// import { NicheConfig } from "@/components/settings/configuration/NicheConfig";
+import { NicheConfig } from "@/components/settings/configuration/NicheConfig";
 import { TagsConfig } from "@/components/settings/configuration/TagsConfig";
 import { JobTypesConfig } from "@/components/settings/configuration/JobTypesConfig";
 import { JobStatusesConfig } from "@/components/settings/configuration/JobStatusesConfig";
@@ -73,11 +73,7 @@ const ConfigurationPage = () => {
             
             <div className="p-6">
               <TabsContent value="niche" className="m-0">
-                <div className="text-center py-8">
-                  <Settings2 className="w-8 h-8 text-muted-foreground mx-auto mb-3" />
-                  <h3 className="text-lg font-semibold mb-2">Business Niche Configuration</h3>
-                  <p className="text-muted-foreground">Coming soon - Configure your business niche settings</p>
-                </div>
+                <NicheConfig userId={user?.id} />
               </TabsContent>
               <TabsContent value="tax" className="m-0">
                 <TaxConfig />
