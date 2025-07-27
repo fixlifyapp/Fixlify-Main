@@ -5370,6 +5370,10 @@ export type Database = {
         Args: { p_client_id: string }
         Returns: Json
       }
+      get_highest_document_number: {
+        Args: { p_user_id: string; p_document_type: string }
+        Returns: number
+      }
       get_job_portal_data: {
         Args: { p_job_number: string }
         Returns: Json
@@ -5618,9 +5622,21 @@ export type Database = {
         Args: { p_products: Json; p_user_id: string }
         Returns: Json
       }
+      safe_reset_document_counter: {
+        Args: {
+          p_user_id: string
+          p_document_type: string
+          p_new_start_value?: number
+        }
+        Returns: Json
+      }
       send_invoice_sms: {
         Args: { invoice_id: string; recipient_phone: string; message: string }
         Returns: Json
+      }
+      suggest_safe_reset_value: {
+        Args: { p_user_id: string; p_document_type: string }
+        Returns: number
       }
       switch_business_niche_comprehensive: {
         Args: { p_user_id: string; p_business_niche: string }

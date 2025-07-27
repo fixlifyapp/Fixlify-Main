@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { FileText, Receipt, DollarSign, Loader2, Save, RotateCcw } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { InfoIcon } from "lucide-react";
+import { useAuth } from "@/hooks/use-auth";
 
 interface NumberingConfig {
   entity_type: string;
@@ -23,6 +24,7 @@ const DEFAULT_CONFIGS: NumberingConfig[] = [
 ];
 
 export const DocumentNumberingConfig = () => {
+  const { user } = useAuth();
   const [configs, setConfigs] = useState<NumberingConfig[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -109,35 +111,56 @@ export const DocumentNumberingConfig = () => {
     const config = configs.find(c => c.entity_type === entityType);
     if (!config) return;
 
-    // Enhanced warning about potential duplicates
-    const warningMessage = `⚠️ IMPORTANT: Resetting the ${entityType} counter to ${config.start_value} may create duplicate document numbers if documents with those numbers already exist.
-
-This action will:
-- Reset the counter to ${config.start_value}
-- Future ${entityType}s will start numbering from ${config.start_value}
-- You may get duplicate numbers if ${entityType}s #${config.start_value} and up already exist
-
-Are you absolutely sure you want to proceed?
-
-Tip: Consider setting a higher starting number to avoid duplicates.`;
-
-    if (!confirm(warningMessage)) {
-      return;
-    }
-
     try {
-      const { error } = await supabase
-        .from('id_counters')
-        .update({
-          current_value: config.start_value - 1,
-          updated_at: new Date().toISOString()
-        })
-        .eq('entity_type', entityType);
+      // Get suggestions for safe reset
+      const { data: safeValue, error: suggestionError } = await supabase.rpc(
+        'suggest_safe_reset_value',
+        { 
+          p_user_id: user?.id,
+          p_document_type: entityType
+        }
+      );
 
-      if (error) throw error;
+      if (suggestionError) throw suggestionError;
 
-      toast.success(`${entityType} counter reset to ${config.start_value}. Please monitor for potential duplicates.`);
-      await fetchConfigs();
+      // Enhanced confirmation with smart suggestions
+      const confirmMessage = `⚠️ DUPLICATE PREVENTION SYSTEM
+
+Current situation:
+- Current counter: ${config.current_value}
+- Suggested safe value: ${safeValue}
+
+The system has analyzed your existing ${entityType}s and suggests starting from ${safeValue} to avoid duplicates.
+
+Options:
+1. Use suggested safe value (${safeValue}) - RECOMMENDED
+2. Cancel and set a custom value manually
+
+Choose "OK" to use the safe value (${safeValue}) or "Cancel" to abort.`;
+
+      if (!confirm(confirmMessage)) {
+        return;
+      }
+
+      // Use the smart reset function
+      const { data: result, error: resetError } = await supabase.rpc(
+        'safe_reset_document_counter',
+        { 
+          p_user_id: user?.id,
+          p_document_type: entityType,
+          p_new_start_value: safeValue
+        }
+      );
+
+      if (resetError) throw resetError;
+
+      const resultData = result as any;
+      if (resultData?.success) {
+        toast.success(`✅ ${resultData.message}. Next ${entityType} will be #${resultData.next_number}.`);
+        await fetchConfigs();
+      } else {
+        toast.error(resultData?.error || 'Reset failed');
+      }
     } catch (error) {
       console.error('Error resetting counter:', error);
       toast.error('Failed to reset counter');
@@ -169,6 +192,31 @@ Tip: Consider setting a higher starting number to avoid duplicates.`;
     return nextNumber.toString();
   };
 
+  const getDuplicateStatus = async (entityType: string) => {
+    try {
+      const { data: highest, error } = await supabase.rpc(
+        'get_highest_document_number',
+        { 
+          p_user_id: user?.id,
+          p_document_type: entityType
+        }
+      );
+
+      if (error) return null;
+      
+      const config = configs.find(c => c.entity_type === entityType);
+      const nextNumber = config ? config.current_value + 1 : 0;
+      
+      return {
+        highest,
+        nextNumber,
+        wouldDuplicate: nextNumber <= highest
+      };
+    } catch {
+      return null;
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center p-8">
@@ -188,15 +236,12 @@ Tip: Consider setting a higher starting number to avoid duplicates.`;
 
       <Alert>
         <InfoIcon className="h-4 w-4" />
-        <AlertTitle>How Document Numbering Works</AlertTitle>
+        <AlertTitle>Smart Duplicate Prevention System</AlertTitle>
         <AlertDescription className="space-y-2">
-          <p>Each document type can have a prefix and a starting number. The system will automatically increment 
-          the number for each new document.</p>
-          <p><strong>⚠️ Important:</strong> Resetting counters may create duplicate document numbers if documents 
-          with those numbers already exist. Always ensure you set a starting number higher than your existing documents 
-          to avoid conflicts.</p>
-          <p><strong>Best Practice:</strong> Only reset counters at the beginning of a new year or when you're certain 
-          no conflicts will occur.</p>
+          <p>✅ <strong>Automatic Protection:</strong> The system analyzes your existing documents and suggests safe reset values to prevent duplicates.</p>
+          <p>🔍 <strong>Smart Analysis:</strong> Before any reset, the system checks your highest document numbers and recommends safe starting points.</p>
+          <p>⚡ <strong>One-Click Safety:</strong> The reset function automatically calculates safe values - no manual checking needed!</p>
+          <p><strong>Best Practice:</strong> Always use the system's suggested values for guaranteed duplicate prevention.</p>
         </AlertDescription>
       </Alert>
 
@@ -251,8 +296,8 @@ Tip: Consider setting a higher starting number to avoid duplicates.`;
                       variant="outline"
                       size="icon"
                       onClick={() => handleReset(config.entity_type)}
-                      title={`Reset ${config.entity_type} counter (⚠️ May create duplicates)`}
-                      className="text-destructive hover:text-destructive"
+                      title={`Smart Reset - Automatically calculates safe value`}
+                      className="text-green-600 hover:text-green-700 border-green-300 hover:border-green-400"
                     >
                       <RotateCcw className="h-4 w-4" />
                     </Button>
@@ -262,8 +307,8 @@ Tip: Consider setting a higher starting number to avoid duplicates.`;
 
               <div className="text-sm text-muted-foreground space-y-1">
                 <div>Current counter value: {config.current_value}</div>
-                <div className="text-xs text-amber-600">
-                  ⚠️ Resetting may create duplicates if documents #{config.start_value}+ already exist
+                <div className="text-xs text-green-600 font-medium">
+                  ✅ Smart reset available - automatically prevents duplicates
                 </div>
               </div>
             </CardContent>
