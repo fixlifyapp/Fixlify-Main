@@ -19,7 +19,7 @@ interface NumberingConfig {
 
 const DEFAULT_CONFIGS: NumberingConfig[] = [
   { entity_type: 'invoice', prefix: 'INV', current_value: 1000, start_value: 1000 },
-  { entity_type: 'estimate', prefix: '', current_value: 100, start_value: 100 },
+  { entity_type: 'estimate', prefix: 'EST', current_value: 1000, start_value: 1000 },
   { entity_type: 'payment', prefix: 'PAY', current_value: 1000, start_value: 1000 },
 ];
 
@@ -227,16 +227,6 @@ export const DocumentNumberingConfig = () => {
         </p>
       </div>
 
-      <Alert>
-        <InfoIcon className="h-4 w-4" />
-        <AlertTitle>Higher Numbers Only</AlertTitle>
-        <AlertDescription className="space-y-2">
-          <p>✅ <strong>Simple & Safe:</strong> You can only set numbers higher than your current counter to prevent duplicates.</p>
-          <p>🔢 <strong>Current Counter:</strong> Shows your current counter value - new numbers must be higher than this.</p>
-          <p>⚡ <strong>Instant Validation:</strong> The system validates your input immediately and prevents invalid changes.</p>
-          <p><strong>Example:</strong> If your current counter is 1005, you can set it to 1100, 1200, etc., but not 1000.</p>
-        </AlertDescription>
-      </Alert>
 
       <div className="grid gap-4">
         {configs.map((config) => (
