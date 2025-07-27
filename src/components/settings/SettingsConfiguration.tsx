@@ -42,14 +42,7 @@ export function SettingsConfiguration() {
         </TabsList>
 
         <TabsContent value="business-niche">
-          <div className="p-4 bg-muted rounded-lg">
-            <h3 className="text-lg font-medium mb-2">Business Niche Configuration</h3>
-            <p className="text-sm text-muted-foreground">Configure your business niche and industry specialization.</p>
-            <div className="mt-4 p-4 bg-background rounded border">
-              <p>Business Niche: <strong>{user?.user_metadata?.business_niche || "Not set"}</strong></p>
-              <p className="mt-2 text-sm text-muted-foreground">Visit Profile & Company settings to update your business niche.</p>
-            </div>
-          </div>
+          <NicheConfig />
         </TabsContent>
 
         <TabsContent value="document-numbering">
