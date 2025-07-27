@@ -109,7 +109,19 @@ export const DocumentNumberingConfig = () => {
     const config = configs.find(c => c.entity_type === entityType);
     if (!config) return;
 
-    if (!confirm(`Are you sure you want to reset the ${entityType} counter to ${config.start_value}? This will affect all future ${entityType} numbers.`)) {
+    // Enhanced warning about potential duplicates
+    const warningMessage = `⚠️ IMPORTANT: Resetting the ${entityType} counter to ${config.start_value} may create duplicate document numbers if documents with those numbers already exist.
+
+This action will:
+- Reset the counter to ${config.start_value}
+- Future ${entityType}s will start numbering from ${config.start_value}
+- You may get duplicate numbers if ${entityType}s #${config.start_value} and up already exist
+
+Are you absolutely sure you want to proceed?
+
+Tip: Consider setting a higher starting number to avoid duplicates.`;
+
+    if (!confirm(warningMessage)) {
       return;
     }
 
@@ -124,7 +136,7 @@ export const DocumentNumberingConfig = () => {
 
       if (error) throw error;
 
-      toast.success(`${entityType} counter reset successfully`);
+      toast.success(`${entityType} counter reset to ${config.start_value}. Please monitor for potential duplicates.`);
       await fetchConfigs();
     } catch (error) {
       console.error('Error resetting counter:', error);
@@ -177,9 +189,14 @@ export const DocumentNumberingConfig = () => {
       <Alert>
         <InfoIcon className="h-4 w-4" />
         <AlertTitle>How Document Numbering Works</AlertTitle>
-        <AlertDescription>
-          Each document type can have a prefix and a starting number. The system will automatically increment 
-          the number for each new document. You can reset the counter to the starting value if needed.
+        <AlertDescription className="space-y-2">
+          <p>Each document type can have a prefix and a starting number. The system will automatically increment 
+          the number for each new document.</p>
+          <p><strong>⚠️ Important:</strong> Resetting counters may create duplicate document numbers if documents 
+          with those numbers already exist. Always ensure you set a starting number higher than your existing documents 
+          to avoid conflicts.</p>
+          <p><strong>Best Practice:</strong> Only reset counters at the beginning of a new year or when you're certain 
+          no conflicts will occur.</p>
         </AlertDescription>
       </Alert>
 
@@ -234,7 +251,8 @@ export const DocumentNumberingConfig = () => {
                       variant="outline"
                       size="icon"
                       onClick={() => handleReset(config.entity_type)}
-                      title={`Reset ${config.entity_type} counter`}
+                      title={`Reset ${config.entity_type} counter (⚠️ May create duplicates)`}
+                      className="text-destructive hover:text-destructive"
                     >
                       <RotateCcw className="h-4 w-4" />
                     </Button>
@@ -242,8 +260,11 @@ export const DocumentNumberingConfig = () => {
                 </div>
               </div>
 
-              <div className="text-sm text-muted-foreground">
-                Current counter value: {config.current_value}
+              <div className="text-sm text-muted-foreground space-y-1">
+                <div>Current counter value: {config.current_value}</div>
+                <div className="text-xs text-amber-600">
+                  ⚠️ Resetting may create duplicates if documents #{config.start_value}+ already exist
+                </div>
               </div>
             </CardContent>
           </Card>
