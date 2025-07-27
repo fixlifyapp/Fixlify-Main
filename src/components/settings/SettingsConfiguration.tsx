@@ -14,6 +14,8 @@ import { useAuth } from "@/hooks/use-auth";
 
 export function SettingsConfiguration() {
   const { user } = useAuth();
+  
+  console.log('SettingsConfiguration rendered with user:', user?.id);
 
   return (
     <div className="space-y-6">
