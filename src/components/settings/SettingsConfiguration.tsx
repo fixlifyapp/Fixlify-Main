@@ -73,13 +73,7 @@ export function SettingsConfiguration() {
         </TabsContent>
 
         <TabsContent value="job-statuses">
-          <div className="p-4 bg-muted rounded-lg">
-            <h3 className="text-lg font-medium mb-2">Job Statuses</h3>
-            <p className="text-sm text-muted-foreground">Configure job workflow statuses and sequences.</p>
-            <div className="mt-4 p-4 bg-background rounded border">
-              <p>Job statuses configuration is available here.</p>
-            </div>
-          </div>
+          <JobStatusesConfig />
         </TabsContent>
 
         <TabsContent value="lead-sources">
