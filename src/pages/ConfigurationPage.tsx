@@ -10,7 +10,7 @@ import { JobStatusesConfig } from "@/components/settings/configuration/JobStatus
 import { CustomFieldsConfig } from "@/components/settings/configuration/CustomFieldsConfig";
 import { LeadSourcesConfig } from "@/components/settings/configuration/LeadSourcesConfig";
 import { TaxConfig } from "@/components/settings/configuration/TaxConfig";
-// import { DocumentNumberingConfig } from "@/components/settings/configuration/DocumentNumberingConfig";
+import { DocumentNumberingConfig } from "@/components/settings/configuration/DocumentNumberingConfig";
 import { Settings2, Tags, ListTodo, ClipboardList, FormInput, MessageCircle, Cog, Target, Zap, Receipt, Hash } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 
@@ -79,11 +79,7 @@ const ConfigurationPage = () => {
                 <TaxConfig />
               </TabsContent>
               <TabsContent value="numbering" className="m-0">
-                <div className="text-center py-8">
-                  <Hash className="w-8 h-8 text-muted-foreground mx-auto mb-3" />
-                  <h3 className="text-lg font-semibold mb-2">Document Numbering</h3>
-                  <p className="text-muted-foreground">Coming soon - Configure document numbering settings</p>
-                </div>
+                <DocumentNumberingConfig />
               </TabsContent>
               <TabsContent value="tags" className="m-0">
                 <TagsConfig />
