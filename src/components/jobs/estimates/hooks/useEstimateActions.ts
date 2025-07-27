@@ -157,7 +157,7 @@ export const useEstimateActions = (
       }
 
       // Generate portal link with token
-      const portalLink = `${window.location.origin}/portal/estimate/${estimateId}?token=${portalToken}`;
+      const portalLink = `https://hub.fixlify.app/portal/estimate/${estimateId}?token=${portalToken}`;
 
       // Create SMS message with shortened link (for SMS character limit)
       const message = `Hi ${jobData?.clients?.name || 'there'}, your estimate ${estimateData.estimate_number} is ready! Total: $${estimateData.total.toFixed(2)}. View: ${portalLink}`;

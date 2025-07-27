@@ -48,7 +48,7 @@ export const GeneratePortalLinkDialog = ({ open, onOpenChange, clientId, clientN
       if (error) throw error;
 
       if (data && typeof data === 'object' && 'token' in data) {
-        const baseUrl = window.location.origin;
+        const baseUrl = "https://hub.fixlify.app";
         const portalUrl = `${baseUrl}/client-portal/${clientId}?token=${data.token}`;
         setGeneratedLink(portalUrl);
         

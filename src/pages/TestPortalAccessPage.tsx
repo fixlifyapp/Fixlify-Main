@@ -86,7 +86,7 @@ export default function TestPortalAccessPage() {
       if (error) throw error;
 
       const accessToken = data;
-      const portalUrl = `${window.location.origin}/portal/${accessToken}`;
+      const portalUrl = `https://hub.fixlify.app/portal/${accessToken}`;
 
       // Test the portal data edge function
       const testResult = await testPortalData(accessToken);

@@ -36,7 +36,7 @@ export const useDocumentSending = () => {
         const { data, error } = await supabase.functions.invoke('send-sms', {
           body: {
             to: sendTo,
-            message: customMessage || `Your ${documentType} is ready. View it here: ${window.location.origin}/${documentType}/${documentId}`,
+            message: customMessage || `Your ${documentType} is ready. View it here: https://hub.fixlify.app/${documentType}/${documentId}`,
             userId: user?.id,
             metadata: {
               documentType,

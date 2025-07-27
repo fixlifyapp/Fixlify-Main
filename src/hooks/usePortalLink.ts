@@ -34,7 +34,7 @@ export const usePortalLink = () => {
 
       console.log('✅ Portal access token generated:', portalToken);
 
-      const portalLink = `${window.location.origin}/portal/${portalToken}`;
+      const portalLink = `https://hub.fixlify.app/portal/${portalToken}`;
       console.log('🔗 Portal link:', portalLink);
 
       return portalLink;
