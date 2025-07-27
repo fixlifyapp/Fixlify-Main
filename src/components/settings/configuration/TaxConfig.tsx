@@ -7,11 +7,12 @@ import { useTaxSettings } from "@/hooks/useTaxSettings";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 
-import { TAX_REGIONS, TAX_LABELS } from "@/utils/taxRegions";
+import { TAX_COUNTRIES, getTaxDetailsByCountryAndRegion } from "@/utils/taxRegions";
 
 export function TaxConfig() {
   const { taxConfig, loading, updateTaxSettings } = useTaxSettings();
   const [formData, setFormData] = useState({
+    country: 'Canada',
     tax_rate: taxConfig.rate,
     tax_region: taxConfig.region,
     tax_label: taxConfig.label
@@ -19,16 +20,36 @@ export function TaxConfig() {
 
   // Update form data when taxConfig changes
   useEffect(() => {
+    // Determine country from existing region
+    let country = 'Canada';
+    if (formData.tax_region && TAX_COUNTRIES[country]?.provinces.find(p => p.value === formData.tax_region)) {
+      country = 'Canada';
+    } else if (formData.tax_region && TAX_COUNTRIES['United States']?.provinces.find(p => p.value === formData.tax_region)) {
+      country = 'United States';
+    }
+    
     setFormData({
+      country,
       tax_rate: taxConfig.rate,
       tax_region: taxConfig.region,
       tax_label: taxConfig.label
     });
   }, [taxConfig]);
 
+  // Handle country selection
+  const handleCountryChange = (country: string) => {
+    setFormData(prev => ({
+      ...prev,
+      country,
+      tax_region: '', // Reset region when country changes
+      tax_rate: 0,
+      tax_label: 'Tax'
+    }));
+  };
+
   // Handle region selection with automatic rate and label updates
   const handleRegionChange = (region: string) => {
-    const selectedRegion = TAX_REGIONS.find(r => r.value === region);
+    const selectedRegion = getTaxDetailsByCountryAndRegion(formData.country, region);
     if (selectedRegion) {
       setFormData(prev => ({
         ...prev,
@@ -58,6 +79,8 @@ export function TaxConfig() {
     return <div>Loading tax settings...</div>;
   }
 
+  const availableProvinces = TAX_COUNTRIES[formData.country as keyof typeof TAX_COUNTRIES]?.provinces || [];
+
   return (
     <Card>
       <CardHeader>
@@ -70,18 +93,38 @@ export function TaxConfig() {
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="tax_region">Tax Region/Province</Label>
+              <Label htmlFor="country">Country</Label>
+              <Select
+                value={formData.country}
+                onValueChange={handleCountryChange}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select your country" />
+                </SelectTrigger>
+                <SelectContent>
+                  {Object.keys(TAX_COUNTRIES).map((country) => (
+                    <SelectItem key={country} value={country}>
+                      {country}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="tax_region">Province/State</Label>
               <Select
                 value={formData.tax_region}
                 onValueChange={handleRegionChange}
+                disabled={!formData.country}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Select your tax region" />
+                  <SelectValue placeholder={formData.country ? "Select your province/state" : "First select a country"} />
                 </SelectTrigger>
                 <SelectContent>
-                  {TAX_REGIONS.map((region) => (
-                    <SelectItem key={region.value} value={region.value}>
-                      {region.label}
+                  {availableProvinces.map((province) => (
+                    <SelectItem key={province.value} value={province.value}>
+                      {province.label}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -95,30 +138,23 @@ export function TaxConfig() {
                   id="tax_rate"
                   type="number"
                   step="0.001"
-                  min="0"
-                  max="50"
                   value={formData.tax_rate}
-                  onChange={(e) => setFormData(prev => ({ ...prev, tax_rate: parseFloat(e.target.value) || 0 }))}
-                  placeholder="13.00"
+                  readOnly
+                  className="bg-muted cursor-not-allowed"
+                  placeholder="Select province to see rate"
                 />
+                <p className="text-xs text-muted-foreground">Rate is automatically set based on your province/state selection</p>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="tax_label">Tax Label</Label>
-                <Select
+                <Input
+                  id="tax_label"
                   value={formData.tax_label}
-                  onValueChange={(value) => setFormData(prev => ({ ...prev, tax_label: value }))}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select tax label" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {TAX_LABELS.map((label) => (
-                      <SelectItem key={label.value} value={label.value}>
-                        {label.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  readOnly
+                  className="bg-muted cursor-not-allowed"
+                  placeholder="Select province to see label"
+                />
+                <p className="text-xs text-muted-foreground">Label is automatically set based on your province/state selection</p>
               </div>
             </div>
           </div>
@@ -126,11 +162,13 @@ export function TaxConfig() {
           <div className="bg-blue-50 p-3 rounded-lg">
             <p className="text-sm text-blue-700">
               <strong>Preview:</strong> Items will show "{formData.tax_label} ({formData.tax_rate}%)" 
-              for taxable items in {formData.tax_region}.
+              for taxable items in {formData.tax_region || 'your selected province'}.
             </p>
           </div>
 
-          <Button type="submit">Save Tax Settings</Button>
+          <Button type="submit" disabled={!formData.tax_region || formData.tax_rate === 0}>
+            Save Tax Settings
+          </Button>
         </form>
       </CardContent>
     </Card>
