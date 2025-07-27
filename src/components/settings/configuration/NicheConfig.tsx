@@ -193,7 +193,7 @@ export function NicheConfig({ userId }: NicheConfigProps) {
 
       setCurrentNiche(selectedNiche);
       toast.dismiss(loadingToast);
-      toast.success("Business niche updated successfully! Your products, tags, lead sources, and job types have been updated with niche-specific options. Job statuses and payment methods remain unchanged.");
+      toast.success("Business niche updated successfully! Your products, tags, and job types have been updated with niche-specific options. Lead sources, job statuses, and payment methods remain unchanged.");
       
       // Reload after a short delay to apply changes
       setTimeout(() => {
@@ -239,8 +239,8 @@ export function NicheConfig({ userId }: NicheConfigProps) {
             <AlertTriangle className="h-4 w-4 text-orange-600" />
             <AlertTitle className="text-orange-800">Important Notice</AlertTitle>
             <AlertDescription className="text-orange-700">
-              Changing your business niche will completely replace your current products, tags, lead sources, and job types 
-              with new ones specific to the selected industry. Your existing jobs, clients, invoices, job statuses, and payment methods will remain unchanged.
+              Changing your business niche will completely replace your current products, tags, and job types 
+              with new ones specific to the selected industry. Your existing jobs, clients, invoices, job statuses, lead sources, and payment methods will remain unchanged.
             </AlertDescription>
           </Alert>
 
@@ -269,8 +269,8 @@ export function NicheConfig({ userId }: NicheConfigProps) {
               <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
                 <p className="text-blue-800 text-sm font-medium mb-1">💡 What's included with each niche:</p>
                 <p className="text-blue-700 text-xs">
-                  Each business niche comes with pre-configured products, tags, job types, and lead sources 
-                  tailored to that industry. This helps you get started quickly with relevant options for your business.
+                  Each business niche comes with pre-configured products, tags, and job types 
+                  tailored to that industry. Lead sources remain universal across all niches. This helps you get started quickly with relevant options for your business.
                 </p>
               </div>
               
@@ -359,10 +359,9 @@ export function NicheConfig({ userId }: NicheConfigProps) {
                 <li>Products</li>
                 <li>Tags</li>
                 <li>Job types</li>
-                <li>Lead sources</li>
               </ul>
               <p className="mt-2 font-medium text-orange-600">
-                This action cannot be undone. Your jobs, clients, invoices, job statuses, and payment methods will remain unchanged.
+                This action cannot be undone. Your jobs, clients, invoices, job statuses, lead sources, and payment methods will remain unchanged.
               </p>
             </DialogDescription>
           </DialogHeader>
