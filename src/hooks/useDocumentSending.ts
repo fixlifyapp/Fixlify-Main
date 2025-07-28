@@ -32,12 +32,13 @@ export const useDocumentSending = () => {
 
     try {
       if (sendMethod === 'sms') {
-        // Send SMS using our edge function
-        const { data, error } = await supabase.functions.invoke('send-sms', {
+        // Use the specific SMS edge function based on document type
+        const smsFunction = documentType === 'estimate' ? 'send-estimate-sms' : 'send-invoice-sms';
+        const { data, error } = await supabase.functions.invoke(smsFunction, {
           body: {
-            to: sendTo,
-            message: customMessage || `Your ${documentType} is ready. View it here: https://hub.fixlify.app/${documentType}/${documentId}`,
-            userId: user?.id,
+            [`${documentType}Id`]: documentId,
+            recipientPhone: sendTo,
+            customMessage: customMessage,
             metadata: {
               documentType,
               documentId,
@@ -45,6 +46,8 @@ export const useDocumentSending = () => {
             }
           }
         });
+
+        console.log(`SMS ${documentType} sending result:`, { data, error });
 
         if (error) throw error;
 
