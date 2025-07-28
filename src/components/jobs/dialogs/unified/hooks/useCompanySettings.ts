@@ -44,12 +44,21 @@ export const useCompanySettings = () => {
         .eq('user_id', user.id)
         .maybeSingle();
       
+      // Also query profiles for company name (newer data source)
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('company_name, company_email, company_phone, company_address')
+        .eq('id', user.id)
+        .single();
+      
       console.log('Company settings query result:', { companySettings, error });
+      console.log('Profile data query result:', { profileData, profileError });
       
       if (companySettings) {
         console.log('Found company settings, setting company info');
         setCompanyInfo({
-            name: companySettings.company_name,
+            // Use profile company name if available, otherwise fall back to company_settings
+            name: profileData?.company_name || companySettings.company_name,
             businessType: companySettings.business_type,
             address: companySettings.company_address,
             city: companySettings.company_city,
