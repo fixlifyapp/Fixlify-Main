@@ -268,13 +268,233 @@ const AutomationsPage = () => {
             </div>
           ) : (
             <>
-              {/* AI Automation Builder - Coming Soon */}
+              {/* Quick Action Templates */}
+              <div className="mb-6">
+                <h3 className="text-lg font-semibold mb-4">Popular Templates</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {/* Welcome New Clients */}
+                  <ModernCard className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => {
+                    const template = {
+                      name: "Welcome New Clients",
+                      description: "Send welcome message to new clients via SMS",
+                      triggers: [{
+                        trigger_type: "client_created",
+                        conditions: {}
+                      }],
+                      steps: [{
+                        action_type: "send_sms",
+                        action_config: {
+                          message: "Welcome {{client.firstName}}! Thank you for choosing our services. We'll keep you updated on your service requests.",
+                          delay: 0
+                        }
+                      }]
+                    };
+                    setLoadedTemplate(template);
+                    setShowWorkflowBuilder(true);
+                  }}>
+                    <ModernCardContent className="p-4">
+                      <div className="flex items-center gap-3 mb-2">
+                        <div className="p-2 rounded-lg bg-blue-500/10">
+                          <Zap className="w-4 h-4 text-blue-500" />
+                        </div>
+                        <h4 className="font-semibold">Welcome New Clients</h4>
+                      </div>
+                      <p className="text-sm text-muted-foreground">Auto-send welcome SMS to new clients</p>
+                    </ModernCardContent>
+                  </ModernCard>
+
+                  {/* Job Completion Follow-up */}
+                  <ModernCard className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => {
+                    const template = {
+                      name: "Job Completion Follow-up",
+                      description: "Follow up with clients after job completion",
+                      triggers: [{
+                        trigger_type: "job_status_changed",
+                        conditions: { status: "completed" }
+                      }],
+                      steps: [{
+                        action_type: "send_sms",
+                        action_config: {
+                          message: "Hi {{client.firstName}}, your job #{{job.number}} is complete! We hope you're satisfied with our service. Please let us know if you need anything else.",
+                          delay: 3600 // 1 hour delay
+                        }
+                      }]
+                    };
+                    setLoadedTemplate(template);
+                    setShowWorkflowBuilder(true);
+                  }}>
+                    <ModernCardContent className="p-4">
+                      <div className="flex items-center gap-3 mb-2">
+                        <div className="p-2 rounded-lg bg-green-500/10">
+                          <CheckCircle className="w-4 h-4 text-green-500" />
+                        </div>
+                        <h4 className="font-semibold">Job Completion</h4>
+                      </div>
+                      <p className="text-sm text-muted-foreground">Follow up after job completion</p>
+                    </ModernCardContent>
+                  </ModernCard>
+
+                  {/* Payment Reminder */}
+                  <ModernCard className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => {
+                    const template = {
+                      name: "Payment Reminder",
+                      description: "Remind clients about overdue invoices",
+                      triggers: [{
+                        trigger_type: "invoice_overdue",
+                        conditions: { days_overdue: 7 }
+                      }],
+                      steps: [
+                        {
+                          action_type: "send_email",
+                          action_config: {
+                            subject: "Payment Reminder - Invoice #{{invoice.number}}",
+                            message: "Dear {{client.firstName}}, this is a friendly reminder that invoice #{{invoice.number}} for ${{invoice.total}} is now overdue. Please submit payment at your earliest convenience.",
+                            delay: 0
+                          }
+                        },
+                        {
+                          action_type: "send_sms",
+                          action_config: {
+                            message: "Hi {{client.firstName}}, invoice #{{invoice.number}} (${{invoice.total}}) is overdue. Please check your email for details.",
+                            delay: 86400 // 24 hours after email
+                          }
+                        }
+                      ]
+                    };
+                    setLoadedTemplate(template);
+                    setShowWorkflowBuilder(true);
+                  }}>
+                    <ModernCardContent className="p-4">
+                      <div className="flex items-center gap-3 mb-2">
+                        <div className="p-2 rounded-lg bg-amber-500/10">
+                          <Clock className="w-4 h-4 text-amber-500" />
+                        </div>
+                        <h4 className="font-semibold">Payment Reminder</h4>
+                      </div>
+                      <p className="text-sm text-muted-foreground">Auto-remind overdue payments</p>
+                    </ModernCardContent>
+                  </ModernCard>
+                </div>
+              </div>
+
+              {/* AI Builder */}
               <div className="mb-6">
                 <ModernCard>
-                  <ModernCardContent className="p-6 text-center">
-                    <Zap className="w-8 h-8 text-muted-foreground mx-auto mb-3" />
-                    <h3 className="text-lg font-semibold mb-2">AI Automation Builder</h3>
-                    <p className="text-muted-foreground">Coming soon - Build automations with AI assistance</p>
+                  <ModernCardContent className="p-6">
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="p-2 rounded-lg bg-purple-500/10">
+                        <Zap className="w-5 h-5 text-purple-500" />
+                      </div>
+                      <div>
+                        <h3 className="text-lg font-semibold">AI Automation Builder</h3>
+                        <p className="text-sm text-muted-foreground">Describe what you want to automate and we'll build it for you</p>
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-4">
+                      <textarea
+                        placeholder="Example: Send SMS to clients 24 hours before their scheduled appointment"
+                        className="w-full p-3 border rounded-lg resize-none h-20 focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                        id="ai-automation-input"
+                      />
+                      
+                      <div className="flex gap-2">
+                        <GradientButton 
+                          onClick={() => {
+                            const input = document.getElementById('ai-automation-input') as HTMLTextAreaElement;
+                            const description = input?.value?.trim();
+                            
+                            if (!description) {
+                              toast.error('Please describe what you want to automate');
+                              return;
+                            }
+
+                            // Parse the description and create a template
+                            let template = null;
+                            
+                            if (description.toLowerCase().includes('appointment') && description.toLowerCase().includes('remind')) {
+                              template = {
+                                name: "Appointment Reminder",
+                                description: description,
+                                triggers: [{
+                                  trigger_type: "scheduled_trigger",
+                                  conditions: { hours_before_appointment: 24 }
+                                }],
+                                steps: [{
+                                  action_type: "send_sms",
+                                  action_config: {
+                                    message: "Hi {{client.firstName}}, this is a reminder about your appointment tomorrow at {{appointment.time}}. See you then!",
+                                    delay: 0
+                                  }
+                                }]
+                              };
+                            } else if (description.toLowerCase().includes('welcome') && description.toLowerCase().includes('new')) {
+                              template = {
+                                name: "Welcome New Clients",
+                                description: description,
+                                triggers: [{
+                                  trigger_type: "client_created",
+                                  conditions: {}
+                                }],
+                                steps: [{
+                                  action_type: "send_sms",
+                                  action_config: {
+                                    message: "Welcome {{client.firstName}}! Thank you for choosing our services.",
+                                    delay: 0
+                                  }
+                                }]
+                              };
+                            } else if (description.toLowerCase().includes('job') && description.toLowerCase().includes('complete')) {
+                              template = {
+                                name: "Job Completion Follow-up",
+                                description: description,
+                                triggers: [{
+                                  trigger_type: "job_status_changed",
+                                  conditions: { status: "completed" }
+                                }],
+                                steps: [{
+                                  action_type: "send_sms",
+                                  action_config: {
+                                    message: "Hi {{client.firstName}}, your job is complete! Please let us know if you need anything else.",
+                                    delay: 0
+                                  }
+                                }]
+                              };
+                            } else {
+                              // Generic template
+                              template = {
+                                name: "Custom Automation",
+                                description: description,
+                                triggers: [{
+                                  trigger_type: "manual",
+                                  conditions: {}
+                                }],
+                                steps: [{
+                                  action_type: "send_sms",
+                                  action_config: {
+                                    message: "Custom message based on: " + description,
+                                    delay: 0
+                                  }
+                                }]
+                              };
+                            }
+                            
+                            setLoadedTemplate(template);
+                            setShowWorkflowBuilder(true);
+                            input.value = '';
+                          }}
+                          className="px-6"
+                        >
+                          <Zap className="w-4 h-4 mr-2" />
+                          Create Automation
+                        </GradientButton>
+                        
+                        <Button variant="outline" onClick={() => setShowWorkflowBuilder(true)}>
+                          <Workflow className="w-4 h-4 mr-2" />
+                          Advanced Builder
+                        </Button>
+                      </div>
+                    </div>
                   </ModernCardContent>
                 </ModernCard>
               </div>
