@@ -85,7 +85,7 @@ serve(async (req) => {
 
     // Create message
     const messagePrefix = customMessage ? `${customMessage}\n\n` : '';
-    const defaultMessage = `Hi ${client?.name || 'there'},\n\nYour invoice #${invoice.invoice_number} for $${invoice.total_amount} is ready.\n\nView & pay invoice: ${portalUrl}\n\n- Fixlify Team`;
+    const defaultMessage = `Hi ${client?.name || 'there'},\n\nYour invoice #${invoice.invoice_number} for $${invoice.total || invoice.total_amount} is ready.\n\nView & pay invoice: ${portalUrl}\n\n- Fixlify Team`;
     const fullMessage = messagePrefix + defaultMessage;
 
     // Get auth header from the request

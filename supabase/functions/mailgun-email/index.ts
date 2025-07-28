@@ -150,7 +150,7 @@ serve(async (req) => {
               metadata: {
                 test_mode: true,
                 mailgun_id: mailgunResult.id,
-                from: from
+                  from: fromEmail
               }
             });
         } catch (logError) {
@@ -190,7 +190,7 @@ serve(async (req) => {
                 error: responseText,
                 metadata: {
                   mailgun_status: mailgunResponse.status,
-                  from: from
+                  from: fromEmail
                 }
               });
           } catch (logError) {
@@ -217,7 +217,7 @@ serve(async (req) => {
               status: 'sent',
               metadata: {
                 mailgun_id: mailgunResult.id,
-                from: from
+                  from: fromEmail
               }
             });
         } catch (logError) {
