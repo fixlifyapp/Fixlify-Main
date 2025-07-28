@@ -6,7 +6,7 @@ import { Plus, FileText, Send, Trash2, Edit, DollarSign, Eye } from "lucide-reac
 import { useEstimates } from "@/hooks/useEstimates";
 import { useEstimateActions } from "@/components/jobs/estimates/hooks/useEstimateActions";
 import { SteppedEstimateBuilder } from "@/components/jobs/dialogs/SteppedEstimateBuilder";
-import { UnifiedDocumentViewer } from "@/components/jobs/dialogs/unified/UnifiedDocumentViewer";
+import { UnifiedDocumentViewer } from "@/components/jobs/dialogs/UnifiedDocumentViewer";
 import { UniversalSendDialog } from "@/components/jobs/dialogs/shared/UniversalSendDialog";
 import { format } from "date-fns";
 import { toast } from "sonner";
@@ -340,7 +340,7 @@ export const ModernJobEstimatesTab = ({
           documentType="estimate"
           jobId={jobId}
           onConvertToInvoice={handleConvertToInvoice}
-          onDocumentUpdated={refreshEstimates}
+          onUpdate={refreshEstimates}
         />
       )}
 
