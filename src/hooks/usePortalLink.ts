@@ -24,7 +24,7 @@ export const usePortalLink = () => {
           p_client_id: clientId,
           p_permissions: permissions,
           p_hours_valid: hoursValid,
-          p_domain_restriction: window.location.hostname
+          p_domain: window.location.hostname
         });
 
       if (portalError || !portalToken) {

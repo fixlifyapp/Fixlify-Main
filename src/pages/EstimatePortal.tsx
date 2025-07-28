@@ -87,7 +87,7 @@ export default function EstimatePortal() {
           city: companyData.company_city,
           state: companyData.company_state,
           zip: companyData.company_zip,
-          logo: companyData.company_logo
+          logo: companyData.company_logo_url
         });
       }
     } catch (error) {
