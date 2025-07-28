@@ -1,277 +1,532 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import React, { useState, useEffect } from 'react';
+import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
+import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy } from '@dnd-kit/sortable';
+import { useSortable } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
-import { Alert, AlertDescription } from '@/components/ui/alert';
 import { 
-  Plus, Save, Play, Clock, Mail, MessageSquare, 
-  ChevronRight, DollarSign, 
-  Zap, ArrowDown, GitBranch, Sun, Moon, Globe,
-  Trash2, Info, User, Calendar, Wrench, MapPin,
-  Hash, Shield, CheckCircle, Phone, FileText, BarChart3,
-  Sparkles, Variable, Copy, Star, Settings2, GripVertical
+  Plus, Save, Trash2, ChevronDown, Info, Sparkles,
+  Calendar, CheckCircle, Send, DollarSign, AlertCircle,
+  User, FileText, Clock, Star, Tag, UserPlus, MessageSquare,
+  Mail, Phone, Bell, Timer, Target, Zap, X, Play, Pause,
+  History, Variable, GripVertical, ArrowDown, Code, Webhook,
+  Wand2, RefreshCw, Edit3, ChevronUp
 } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/hooks/use-auth';
+import { motion, AnimatePresence } from 'framer-motion';
+
+// Types
+interface WorkflowTrigger {
+  type: string;
+  name: string;
+  icon: any;
+  color: string;
+  category: string;
+  description: string;
+  config?: any;
+}
+
+interface WorkflowStep {
+  id: string;
+  type: string;
+  name: string;
+  icon: any;
+  description: string;
+  config: any;
+  deliveryWindow?: {
+    enabled: boolean;
+    startTime: string;
+    endTime: string;
+    timezone?: string;
+    weekdays?: boolean[];
+  };
+}
+
+interface WorkflowCondition {
+  field: string;
+  operator: string;
+  value: string;
+  connector?: 'and' | 'or';
+  fieldType?: string;
+}
 
 interface SimpleWorkflowBuilderProps {
-  workflowId?: string | null;
-  initialTemplate?: any;
-  onSave?: () => void;
+  workflowId?: string;
+  onSave?: (workflow: any) => void;
+  loadedTemplate?: any;
   onCancel?: () => void;
 }
 
-// Trigger types
-const TRIGGER_TYPES = [
-  { 
-    type: 'job_scheduled', 
-    name: 'Job Scheduled', 
-    icon: Calendar,
-    color: 'bg-indigo-100 dark:bg-indigo-900 text-indigo-600',
-    description: 'When a job is scheduled'
-  },
-  { 
-    type: 'job_completed', 
-    name: 'Job Completed', 
-    icon: CheckCircle,
-    color: 'bg-emerald-100 dark:bg-emerald-900 text-emerald-600',
-    description: 'When a job is marked as complete'
-  },
-  { 
-    type: 'payment_overdue', 
-    name: 'Payment Overdue', 
-    icon: DollarSign,
-    color: 'bg-red-100 dark:bg-red-900 text-red-600',
-    description: 'When a payment becomes overdue'
-  },
-  { 
-    type: 'client_created', 
-    name: 'New Client', 
-    icon: User,
-    color: 'bg-cyan-100 dark:bg-cyan-900 text-cyan-600',
-    description: 'When a new client is added'
-  },
-  { 
-    type: 'manual', 
-    name: 'Manual Trigger', 
-    icon: Play,
-    color: 'bg-slate-100 dark:bg-slate-900 text-slate-600',
-    description: 'Triggered manually by user'
-  }
+// Trigger options
+const TRIGGERS: WorkflowTrigger[] = [
+  // Jobs
+  { type: 'job_created', name: 'Job Created', icon: Plus, color: 'blue', category: 'Jobs', description: 'When a new job is created' },
+  { type: 'job_scheduled', name: 'Job Scheduled', icon: Calendar, color: 'blue', category: 'Jobs', description: 'When a job is scheduled' },
+  { type: 'job_completed', name: 'Job Completed', icon: CheckCircle, color: 'green', category: 'Jobs', description: 'When a job is marked complete' },
+  { type: 'job_status_changed', name: 'Job Status Changed', icon: Target, color: 'blue', category: 'Jobs', description: 'When job status is updated' },
+  
+  // Financial
+  { type: 'estimate_sent', name: 'Estimate Sent', icon: Send, color: 'purple', category: 'Financial', description: 'When an estimate is sent' },
+  { type: 'estimate_approved', name: 'Estimate Approved', icon: CheckCircle, color: 'purple', category: 'Financial', description: 'When an estimate is approved' },
+  { type: 'invoice_sent', name: 'Invoice Sent', icon: FileText, color: 'purple', category: 'Financial', description: 'When an invoice is sent' },
+  { type: 'payment_received', name: 'Payment Received', icon: DollarSign, color: 'green', category: 'Financial', description: 'When payment is received' },
+  { type: 'payment_overdue', name: 'Payment Overdue', icon: AlertCircle, color: 'red', category: 'Financial', description: 'When payment becomes overdue' },
+  
+  // Customers
+  { type: 'customer_created', name: 'Customer Created', icon: UserPlus, color: 'teal', category: 'Customers', description: 'When a new customer is added' },
+  { type: 'customer_tagged', name: 'Customer Tagged', icon: Tag, color: 'teal', category: 'Customers', description: 'When a customer is tagged' },
+  
+  // Tasks
+  { type: 'task_created', name: 'Task Created', icon: Plus, color: 'orange', category: 'Tasks', description: 'When a task is created' },
+  { type: 'task_completed', name: 'Task Completed', icon: CheckCircle, color: 'orange', category: 'Tasks', description: 'When a task is marked done' },
 ];
 
-// Step types
-const STEP_TYPES = [
-  { type: 'email', name: 'Send Email', icon: Mail, color: 'bg-blue-50 dark:bg-blue-950 text-blue-600' },
-  { type: 'sms', name: 'Send SMS', icon: MessageSquare, color: 'bg-green-50 dark:bg-green-950 text-green-600' },
-  { type: 'delay', name: 'Wait', icon: Clock, color: 'bg-orange-50 dark:bg-orange-950 text-orange-600' },
-  { type: 'conditional', name: 'If/Then', icon: GitBranch, color: 'bg-purple-50 dark:bg-purple-950 text-purple-600' }
+// Action options
+const ACTION_TYPES = [
+  { type: 'send_sms', name: 'Send SMS', icon: MessageSquare, description: 'Send a text message' },
+  { type: 'send_email', name: 'Send Email', icon: Mail, description: 'Send an email' },
+  { type: 'send_notification', name: 'Send Notification', icon: Bell, description: 'Send in-app notification' },
+  { type: 'create_task', name: 'Create Task', icon: Plus, description: 'Create a follow-up task' },
+  { type: 'update_status', name: 'Update Status', icon: Target, description: 'Change job or invoice status' },
+  { type: 'add_tag', name: 'Add Tag', icon: Tag, description: 'Add a tag to customer or job' },
+  { type: 'webhook', name: 'Call Webhook', icon: Webhook, description: 'Send data to external service' },
+  { type: 'wait', name: 'Wait', icon: Clock, description: 'Add a delay before next action' },
 ];
 
-const SimpleWorkflowBuilder: React.FC<SimpleWorkflowBuilderProps> = ({ 
-  workflowId, 
-  initialTemplate,
+// Variables for message templates
+const AVAILABLE_VARIABLES = {
+  client: [
+    { name: 'client.name', description: 'Client full name' },
+    { name: 'client.firstName', description: 'Client first name' },
+    { name: 'client.email', description: 'Client email address' },
+    { name: 'client.phone', description: 'Client phone number' },
+    { name: 'client.address', description: 'Client address' },
+  ],
+  job: [
+    { name: 'job.number', description: 'Job number' },
+    { name: 'job.type', description: 'Job type' },
+    { name: 'job.status', description: 'Job status' },
+    { name: 'job.scheduledDate', description: 'Scheduled date' },
+    { name: 'job.address', description: 'Job address' },
+    { name: 'job.description', description: 'Job description' },
+  ],
+  company: [
+    { name: 'company.name', description: 'Company name' },
+    { name: 'company.phone', description: 'Company phone' },
+    { name: 'company.website', description: 'Company website' },
+  ],
+  technician: [
+    { name: 'technician.name', description: 'Assigned technician name' },
+    { name: 'technician.phone', description: 'Technician phone' },
+  ]
+};
+
+// Sortable Step Component
+const SortableStep: React.FC<{
+  step: WorkflowStep;
+  index: number;
+  onUpdate: (updates: Partial<WorkflowStep>) => void;
+  onDelete: () => void;
+  companyTimezone?: string;
+}> = ({ step, index, onUpdate, onDelete, companyTimezone }) => {
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [showVariables, setShowVariables] = useState(false);
+
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: step.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  const insertVariable = (variable: string, field: 'subject' | 'content' | 'message') => {
+    const currentValue = step.config[field] || '';
+    const newValue = currentValue + `{{${variable}}}`;
+    onUpdate({ config: { ...step.config, [field]: newValue } });
+  };
+
+  return (
+    <div ref={setNodeRef} style={style} className="mb-4">
+      <Card className="border shadow-sm">
+        <CardContent className="p-4">
+          <div className="flex items-start gap-3">
+            {/* Drag Handle */}
+            <div {...attributes} {...listeners} className="mt-1 cursor-grab active:cursor-grabbing">
+              <GripVertical className="h-4 w-4 text-muted-foreground" />
+            </div>
+
+            {/* Step Icon */}
+            <div className={cn(
+              "w-8 h-8 rounded-full flex items-center justify-center shrink-0",
+              "bg-primary/10 text-primary"
+            )}>
+              <step.icon className="h-4 w-4" />
+            </div>
+
+            {/* Step Content */}
+            <div className="flex-1 min-w-0">
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  <div className="flex items-center gap-2">
+                    <h4 className="font-medium text-sm">{step.name}</h4>
+                    <Badge variant="secondary" className="text-xs">
+                      Step {index + 1}
+                    </Badge>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">{step.description}</p>
+                </div>
+
+                <div className="flex items-center gap-1">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setIsExpanded(!isExpanded)}
+                    className="h-8 w-8 p-0"
+                  >
+                    {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={onDelete}
+                    className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+
+              {/* Expanded Configuration */}
+              <AnimatePresence>
+                {isExpanded && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: 'auto', opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ duration: 0.2 }}
+                    className="overflow-hidden"
+                  >
+                    <div className="mt-4 space-y-4 pl-11">
+                      {/* SMS Configuration */}
+                      {step.type === 'send_sms' && (
+                        <>
+                          <div>
+                            <Label className="text-xs">Message</Label>
+                            <div className="flex gap-2 mt-1">
+                              <Textarea
+                                placeholder="Enter SMS message..."
+                                value={step.config.message || ''}
+                                onChange={(e) => onUpdate({ config: { ...step.config, message: e.target.value } })}
+                                className="resize-none"
+                                rows={3}
+                              />
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setShowVariables(!showVariables)}
+                                className="shrink-0"
+                              >
+                                <Variable className="h-4 w-4" />
+                              </Button>
+                            </div>
+                            <div className="text-xs text-muted-foreground mt-1">
+                              {step.config.message?.length || 0}/160 characters
+                            </div>
+                          </div>
+
+                          {/* Variables Panel */}
+                          {showVariables && (
+                            <div className="border rounded-lg p-3 bg-muted/50">
+                              <Label className="text-xs font-medium">Insert Variables</Label>
+                              <div className="grid grid-cols-2 gap-2 mt-2">
+                                {Object.entries(AVAILABLE_VARIABLES).map(([category, variables]) => (
+                                  <div key={category}>
+                                    <div className="text-xs font-medium capitalize mb-1">{category}</div>
+                                    {variables.map((variable) => (
+                                      <Button
+                                        key={variable.name}
+                                        variant="ghost"
+                                        size="sm"
+                                        className="h-6 px-2 text-xs justify-start w-full"
+                                        onClick={() => insertVariable(variable.name, 'message')}
+                                      >
+                                        {`{{${variable.name}}}`}
+                                      </Button>
+                                    ))}
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </>
+                      )}
+
+                      {/* Email Configuration */}
+                      {step.type === 'send_email' && (
+                        <>
+                          <div>
+                            <Label className="text-xs">Subject</Label>
+                            <div className="flex gap-2 mt-1">
+                              <Input
+                                placeholder="Email subject..."
+                                value={step.config.subject || ''}
+                                onChange={(e) => onUpdate({ config: { ...step.config, subject: e.target.value } })}
+                              />
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setShowVariables(!showVariables)}
+                                className="shrink-0"
+                              >
+                                <Variable className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </div>
+
+                          <div>
+                            <Label className="text-xs">Content</Label>
+                            <Textarea
+                              placeholder="Email content..."
+                              value={step.config.content || ''}
+                              onChange={(e) => onUpdate({ config: { ...step.config, content: e.target.value } })}
+                              rows={4}
+                              className="mt-1"
+                            />
+                          </div>
+
+                          {/* Variables Panel */}
+                          {showVariables && (
+                            <div className="border rounded-lg p-3 bg-muted/50">
+                              <Label className="text-xs font-medium">Insert Variables</Label>
+                              <div className="grid grid-cols-2 gap-2 mt-2">
+                                {Object.entries(AVAILABLE_VARIABLES).map(([category, variables]) => (
+                                  <div key={category}>
+                                    <div className="text-xs font-medium capitalize mb-1">{category}</div>
+                                    {variables.map((variable) => (
+                                      <Button
+                                        key={variable.name}
+                                        variant="ghost"
+                                        size="sm"
+                                        className="h-6 px-2 text-xs justify-start w-full"
+                                        onClick={() => insertVariable(variable.name, 'content')}
+                                      >
+                                        {`{{${variable.name}}}`}
+                                      </Button>
+                                    ))}
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </>
+                      )}
+
+                      {/* Wait Configuration */}
+                      {step.type === 'wait' && (
+                        <div className="grid grid-cols-2 gap-2">
+                          <div>
+                            <Label className="text-xs">Duration</Label>
+                            <Input
+                              type="number"
+                              placeholder="1"
+                              value={step.config.duration || ''}
+                              onChange={(e) => onUpdate({ config: { ...step.config, duration: e.target.value } })}
+                              className="mt-1"
+                            />
+                          </div>
+                          <div>
+                            <Label className="text-xs">Unit</Label>
+                            <Select
+                              value={step.config.unit || 'hours'}
+                              onValueChange={(value) => onUpdate({ config: { ...step.config, unit: value } })}
+                            >
+                              <SelectTrigger className="mt-1">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="minutes">Minutes</SelectItem>
+                                <SelectItem value="hours">Hours</SelectItem>
+                                <SelectItem value="days">Days</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Task Creation Configuration */}
+                      {step.type === 'create_task' && (
+                        <>
+                          <div>
+                            <Label className="text-xs">Task Title</Label>
+                            <Input
+                              placeholder="Task title..."
+                              value={step.config.title || ''}
+                              onChange={(e) => onUpdate({ config: { ...step.config, title: e.target.value } })}
+                              className="mt-1"
+                            />
+                          </div>
+                          <div>
+                            <Label className="text-xs">Description</Label>
+                            <Textarea
+                              placeholder="Task description..."
+                              value={step.config.description || ''}
+                              onChange={(e) => onUpdate({ config: { ...step.config, description: e.target.value } })}
+                              rows={2}
+                              className="mt-1"
+                            />
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+};
+
+const SimpleWorkflowBuilder: React.FC<SimpleWorkflowBuilderProps> = ({
+  workflowId,
   onSave,
+  loadedTemplate,
   onCancel
 }) => {
-  const { user } = useAuth();
-  const [name, setName] = useState('');
-  const [description, setDescription] = useState('');
-  const [isActive, setIsActive] = useState(true);
-  const [triggers, setTriggers] = useState<any[]>([]);
-  const [steps, setSteps] = useState<any[]>([]);
-  const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
-  const [expandedVariables, setExpandedVariables] = useState(true);
+  // State
+  const [workflowName, setWorkflowName] = useState('');
+  const [selectedTrigger, setSelectedTrigger] = useState<WorkflowTrigger | null>(null);
+  const [steps, setSteps] = useState<WorkflowStep[]>([]);
+  const [conditions, setConditions] = useState<WorkflowCondition[]>([]);
+  const [showConditions, setShowConditions] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isActive, setIsActive] = useState(true);
 
-  // Automation templates
-  const AUTOMATION_TEMPLATES = {
-    welcome: {
-      name: "Welcome Series",
-      description: "Welcome new clients with a series of messages",
-      triggers: [{ type: 'client_created', config: {} }],
-      steps: [
-        {
-          id: '1',
-          type: 'email',
-          name: 'Welcome Email',
-          config: {
-            subject: 'Welcome to {{company_name}}!',
-            message: 'Thank you for choosing us, {{client_name}}!'
-          }
-        },
-        {
-          id: '2',
-          type: 'delay',
-          name: 'Wait 1 Day',
-          config: { amount: 1, unit: 'days' }
-        },
-        {
-          id: '3',
-          type: 'sms',
-          name: 'Follow-up SMS',
-          config: {
-            message: 'Hi {{client_name}}, how was your experience with us?'
-          }
-        }
-      ]
-    },
-    payment_reminder: {
-      name: "Payment Reminder",
-      description: "Remind clients about overdue payments",
-      triggers: [{ type: 'payment_overdue', config: { days: 7 } }],
-      steps: [
-        {
-          id: '1',
-          type: 'email',
-          name: 'Payment Reminder',
-          config: {
-            subject: 'Payment Reminder - Invoice {{invoice_number}}',
-            message: 'Dear {{client_name}}, your payment of ${{amount}} is overdue.'
-          }
-        }
-      ]
-    }
-  };
+  // Drag and drop sensors
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
 
-  // Load existing workflow
+  // Load template or existing workflow
   useEffect(() => {
-    if (workflowId) {
-      loadWorkflow();
-    } else if (initialTemplate) {
-      applyTemplate(initialTemplate);
-    }
-  }, [workflowId, initialTemplate]);
-
-  const loadWorkflow = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('automation_workflows')
-        .select('*')
-        .eq('id', workflowId)
-        .single();
-
-      if (error) throw error;
-      if (data) {
-        setName(data.name || '');
-        setDescription(data.description || '');
-        setIsActive(data.enabled ?? true);
-        setTriggers(Array.isArray(data.triggers) ? data.triggers : []);
-        setSteps(Array.isArray(data.steps) ? data.steps : []);
+    if (loadedTemplate) {
+      setWorkflowName(loadedTemplate.name || '');
+      // Load trigger
+      if (loadedTemplate.triggers?.[0]) {
+        const trigger = TRIGGERS.find(t => t.type === loadedTemplate.triggers[0].type);
+        if (trigger) setSelectedTrigger(trigger);
       }
-    } catch (error) {
-      console.error('Error loading workflow:', error);
-      toast.error('Failed to load workflow');
+      // Load steps
+      if (loadedTemplate.steps?.length > 0) {
+        const loadedSteps = loadedTemplate.steps.map((step: any) => {
+          const actionType = ACTION_TYPES.find(a => a.type === step.type);
+          return {
+            id: step.id || `step-${Date.now()}-${Math.random()}`,
+            type: step.type,
+            name: actionType?.name || step.name,
+            icon: actionType?.icon || Clock,
+            description: actionType?.description || '',
+            config: step.config || {}
+          };
+        });
+        setSteps(loadedSteps);
+      }
+    }
+  }, [loadedTemplate]);
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+
+    if (over && active.id !== over.id) {
+      setSteps((items) => {
+        const oldIndex = items.findIndex((item) => item.id === active.id);
+        const newIndex = items.findIndex((item) => item.id === over.id);
+
+        return arrayMove(items, oldIndex, newIndex);
+      });
     }
   };
 
-  const applyTemplate = (templateKey: string) => {
-    const template = AUTOMATION_TEMPLATES[templateKey as keyof typeof AUTOMATION_TEMPLATES];
-    if (template) {
-      setName(template.name);
-      setDescription(template.description);
-      setTriggers(template.triggers);
-      setSteps(template.steps);
-      setSelectedTemplate(templateKey);
-    }
-  };
-
-  const addTrigger = () => {
-    const newTrigger = {
-      id: Date.now().toString(),
-      type: '',
-      config: {}
-    };
-    setTriggers([...triggers, newTrigger]);
-  };
-
-  const updateTrigger = (index: number, field: string, value: any) => {
-    const updated = [...triggers];
-    if (field === 'type') {
-      updated[index] = { ...updated[index], [field]: value, config: {} };
-    } else {
-      updated[index] = { ...updated[index], [field]: value };
-    }
-    setTriggers(updated);
-  };
-
-  const removeTrigger = (index: number) => {
-    setTriggers(triggers.filter((_, i) => i !== index));
-  };
-
-  const addStep = () => {
-    const newStep = {
-      id: Date.now().toString(),
-      type: '',
-      name: '',
+  const addStep = (actionType: typeof ACTION_TYPES[0]) => {
+    const newStep: WorkflowStep = {
+      id: `step-${Date.now()}-${Math.random()}`,
+      type: actionType.type,
+      name: actionType.name,
+      icon: actionType.icon,
+      description: actionType.description,
       config: {}
     };
     setSteps([...steps, newStep]);
   };
 
-  const updateStep = (index: number, field: string, value: any) => {
-    const updated = [...steps];
-    updated[index] = { ...updated[index], [field]: value };
-    setSteps(updated);
+  const updateStep = (stepId: string, updates: Partial<WorkflowStep>) => {
+    setSteps(steps.map(step => 
+      step.id === stepId ? { ...step, ...updates } : step
+    ));
   };
 
-  const removeStep = (index: number) => {
-    setSteps(steps.filter((_, i) => i !== index));
+  const deleteStep = (stepId: string) => {
+    setSteps(steps.filter(step => step.id !== stepId));
   };
 
   const saveWorkflow = async () => {
-    if (!name.trim()) {
-      toast.error('Please enter a workflow name');
-      return;
-    }
-
-    if (triggers.length === 0) {
-      toast.error('Please add at least one trigger');
+    if (!selectedTrigger || !workflowName.trim()) {
+      toast.error('Please select a trigger and enter a workflow name');
       return;
     }
 
     setIsSaving(true);
+
     try {
       const workflowData = {
-        name: name.trim(),
-        description: description.trim(),
+        name: workflowName,
+        trigger_type: selectedTrigger.type,
+        trigger_config: selectedTrigger.config || {},
+        action_config: steps.map(step => ({
+          type: step.type,
+          config: step.config
+        })),
         enabled: isActive,
-        triggers,
-        steps,
-        user_id: user?.id,
-        organization_id: user?.id, // Using user_id as org_id for now
-        workflow_type: 'simple',
-        updated_at: new Date().toISOString()
+        user_id: 'current-user',
+        organization_id: 'current-org'
       };
 
-      if (workflowId) {
-        const { error } = await supabase
-          .from('automation_workflows')
-          .update(workflowData)
-          .eq('id', workflowId);
+      const { error } = await supabase
+        .from('automation_workflows')
+        .insert(workflowData);
 
-        if (error) throw error;
-        toast.success('Workflow updated successfully');
-      } else {
-        const { error } = await supabase
-          .from('automation_workflows')
-          .insert({
-            ...workflowData,
-            created_at: new Date().toISOString()
-          });
+      if (error) throw error;
 
-        if (error) throw error;
-        toast.success('Workflow created successfully');
-      }
-
-      onSave?.();
+      toast.success('Workflow saved successfully!');
+      onSave?.(workflowData);
     } catch (error) {
       console.error('Error saving workflow:', error);
       toast.error('Failed to save workflow');
@@ -280,359 +535,166 @@ const SimpleWorkflowBuilder: React.FC<SimpleWorkflowBuilderProps> = ({
     }
   };
 
-  const renderTriggerConfig = (trigger: any, index: number) => {
-    const triggerType = TRIGGER_TYPES.find(t => t.type === trigger.type);
-    if (!triggerType) return null;
-
-    return (
-      <div className="space-y-4 mt-4 p-4 bg-muted rounded-lg">
-        <h4 className="font-medium">Trigger Configuration</h4>
-        
-        {trigger.type === 'payment_overdue' && (
-          <div>
-            <Label>Days Overdue</Label>
-            <Input
-              type="number"
-              placeholder="7"
-              value={trigger.config?.days || ''}
-              onChange={(e) => updateTrigger(index, 'config', { ...trigger.config, days: parseInt(e.target.value) || 0 })}
-            />
-          </div>
-        )}
-
-        {trigger.type === 'job_scheduled' && (
-          <div>
-            <Label>Hours Before Job</Label>
-            <Input
-              type="number"
-              placeholder="24"
-              value={trigger.config?.hours || ''}
-              onChange={(e) => updateTrigger(index, 'config', { ...trigger.config, hours: parseInt(e.target.value) || 0 })}
-            />
-          </div>
-        )}
-      </div>
-    );
-  };
-
-  const renderStepConfig = (step: any, index: number) => {
-    return (
-      <div className="space-y-4 mt-4 p-4 bg-muted rounded-lg">
-        <div>
-          <Label>Step Name</Label>
-          <Input
-            placeholder="Enter step name"
-            value={step.name}
-            onChange={(e) => updateStep(index, 'name', e.target.value)}
-          />
-        </div>
-
-        {(step.type === 'email' || step.type === 'sms') && (
-          <>
-            {step.type === 'email' && (
-              <div>
-                <Label>Subject</Label>
-                <Input
-                  placeholder="Email subject"
-                  value={step.config?.subject || ''}
-                  onChange={(e) => updateStep(index, 'config', { ...step.config, subject: e.target.value })}
-                />
-              </div>
-            )}
-            <div>
-              <Label>Message</Label>
-              <Textarea
-                placeholder="Enter your message. Use {{variable_name}} for dynamic content."
-                value={step.config?.message || ''}
-                onChange={(e) => updateStep(index, 'config', { ...step.config, message: e.target.value })}
-                rows={4}
-              />
-            </div>
-          </>
-        )}
-
-        {step.type === 'delay' && (
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label>Amount</Label>
-              <Input
-                type="number"
-                placeholder="1"
-                value={step.config?.amount || ''}
-                onChange={(e) => updateStep(index, 'config', { ...step.config, amount: parseInt(e.target.value) || 0 })}
-              />
-            </div>
-            <div>
-              <Label>Unit</Label>
-              <Select
-                value={step.config?.unit || 'hours'}
-                onValueChange={(value) => updateStep(index, 'config', { ...step.config, unit: value })}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="minutes">Minutes</SelectItem>
-                  <SelectItem value="hours">Hours</SelectItem>
-                  <SelectItem value="days">Days</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-        )}
-      </div>
-    );
-  };
-
   return (
-    <div className="space-y-6 p-6">
+    <div className="max-w-4xl mx-auto p-6 space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold">Simple Workflow Builder</h2>
+          <h1 className="text-2xl font-bold">Simple Workflow Builder</h1>
           <p className="text-muted-foreground">Create automated workflows for your business</p>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={onCancel}>Cancel</Button>
-          <Button onClick={saveWorkflow} disabled={isSaving}>
-            {isSaving ? 'Saving...' : workflowId ? 'Update' : 'Save'} Workflow
-          </Button>
-        </div>
-      </div>
-
-      {/* Templates */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Star className="w-5 h-5" />
-            Quick Templates
-          </CardTitle>
-          <CardDescription>Start with a pre-built template</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {Object.entries(AUTOMATION_TEMPLATES).map(([key, template]) => (
-              <Card 
-                key={key} 
-                className={cn("cursor-pointer transition-colors", selectedTemplate === key && "ring-2 ring-primary")}
-                onClick={() => applyTemplate(key)}
-              >
-                <CardContent className="p-4">
-                  <h4 className="font-medium">{template.name}</h4>
-                  <p className="text-sm text-muted-foreground">{template.description}</p>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Basic Info */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Workflow Details</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div>
-            <Label>Workflow Name *</Label>
-            <Input
-              placeholder="Enter workflow name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-            />
-          </div>
-          <div>
-            <Label>Description</Label>
-            <Textarea
-              placeholder="Describe what this workflow does"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-            />
-          </div>
-          <div className="flex items-center space-x-2">
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2">
             <Switch
               checked={isActive}
               onCheckedChange={setIsActive}
             />
-            <Label>Activate workflow</Label>
+            <Label className="text-sm">Active</Label>
+          </div>
+          <Button variant="outline" onClick={onCancel}>
+            Cancel
+          </Button>
+          <Button
+            onClick={saveWorkflow}
+            disabled={isSaving || !selectedTrigger || !workflowName.trim()}
+            className="gap-2"
+          >
+            <Save className="h-4 w-4" />
+            {isSaving ? 'Saving...' : 'Save Workflow'}
+          </Button>
+        </div>
+      </div>
+
+      {/* Workflow Name */}
+      <Card>
+        <CardContent className="p-4">
+          <div>
+            <Label>Workflow Name</Label>
+            <Input
+              placeholder="Enter workflow name..."
+              value={workflowName}
+              onChange={(e) => setWorkflowName(e.target.value)}
+              className="mt-1"
+            />
           </div>
         </CardContent>
       </Card>
 
-      {/* Triggers */}
+      {/* Trigger Selection */}
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center justify-between">
-            <span className="flex items-center gap-2">
-              <Zap className="w-5 h-5" />
-              Triggers
-            </span>
-            <Button onClick={addTrigger} size="sm">
-              <Plus className="w-4 h-4 mr-2" />
-              Add Trigger
-            </Button>
-          </CardTitle>
-          <CardDescription>When should this workflow run?</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {triggers.map((trigger, index) => (
-            <Card key={trigger.id}>
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between mb-4">
-                  <h4 className="font-medium">Trigger {index + 1}</h4>
-                  <Button 
-                    variant="ghost" 
-                    size="sm"
-                    onClick={() => removeTrigger(index)}
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
-                </div>
-                
-                <div className="space-y-4">
-                  <div>
-                    <Label>Trigger Type</Label>
-                    <Select
-                      value={trigger.type}
-                      onValueChange={(value) => updateTrigger(index, 'type', value)}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select trigger type" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {TRIGGER_TYPES.map((type) => (
-                          <SelectItem key={type.type} value={type.type}>
-                            <div className="flex items-center gap-2">
-                              <type.icon className="w-4 h-4" />
-                              {type.name}
-                            </div>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  
-                  {renderTriggerConfig(trigger, index)}
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-          
-          {triggers.length === 0 && (
-            <div className="text-center py-8 text-muted-foreground">
-              <Zap className="w-12 h-12 mx-auto mb-4 opacity-50" />
-              <p>No triggers added yet. Add a trigger to get started.</p>
+        <CardContent className="p-4">
+          <div className="space-y-4">
+            <div className="flex items-center gap-2">
+              <Zap className="h-4 w-4 text-primary" />
+              <Label className="font-medium">When this happens (Trigger)</Label>
             </div>
-          )}
+
+            {selectedTrigger ? (
+              <div className="flex items-center gap-3 p-3 border rounded-lg bg-muted/50">
+                <div className={cn(
+                  "w-8 h-8 rounded-full flex items-center justify-center",
+                  `bg-${selectedTrigger.color}-100 text-${selectedTrigger.color}-600`
+                )}>
+                  <selectedTrigger.icon className="h-4 w-4" />
+                </div>
+                <div className="flex-1">
+                  <div className="font-medium text-sm">{selectedTrigger.name}</div>
+                  <div className="text-xs text-muted-foreground">{selectedTrigger.description}</div>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setSelectedTrigger(null)}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+                {TRIGGERS.map((trigger) => (
+                  <Button
+                    key={trigger.type}
+                    variant="outline"
+                    className="h-auto p-3 text-left justify-start"
+                    onClick={() => setSelectedTrigger(trigger)}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className={cn(
+                        "w-8 h-8 rounded-full flex items-center justify-center shrink-0",
+                        `bg-${trigger.color}-100 text-${trigger.color}-600`
+                      )}>
+                        <trigger.icon className="h-4 w-4" />
+                      </div>
+                      <div className="min-w-0">
+                        <div className="font-medium text-sm">{trigger.name}</div>
+                        <div className="text-xs text-muted-foreground">{trigger.description}</div>
+                      </div>
+                    </div>
+                  </Button>
+                ))}
+              </div>
+            )}
+          </div>
         </CardContent>
       </Card>
 
       {/* Steps */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center justify-between">
-            <span className="flex items-center gap-2">
-              <Settings2 className="w-5 h-5" />
-              Actions
-            </span>
-            <Button onClick={addStep} size="sm">
-              <Plus className="w-4 h-4 mr-2" />
-              Add Action
-            </Button>
-          </CardTitle>
-          <CardDescription>What should happen when the workflow is triggered?</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {steps.map((step, index) => (
-            <Card key={step.id}>
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between mb-4">
-                  <h4 className="font-medium">Action {index + 1}</h4>
-                  <Button 
-                    variant="ghost" 
-                    size="sm"
-                    onClick={() => removeStep(index)}
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
-                </div>
-                
-                <div className="space-y-4">
-                  <div>
-                    <Label>Action Type</Label>
-                    <Select
-                      value={step.type}
-                      onValueChange={(value) => updateStep(index, 'type', value)}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select action type" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {STEP_TYPES.map((type) => (
-                          <SelectItem key={type.type} value={type.type}>
-                            <div className="flex items-center gap-2">
-                              <type.icon className="w-4 h-4" />
-                              {type.name}
-                            </div>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  
-                  {renderStepConfig(step, index)}
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-          
-          {steps.length === 0 && (
-            <div className="text-center py-8 text-muted-foreground">
-              <Settings2 className="w-12 h-12 mx-auto mb-4 opacity-50" />
-              <p>No actions added yet. Add an action to define what happens.</p>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      {selectedTrigger && (
+        <Card>
+          <CardContent className="p-4">
+            <div className="space-y-4">
+              <div className="flex items-center gap-2">
+                <ArrowDown className="h-4 w-4 text-primary" />
+                <Label className="font-medium">Then do this (Actions)</Label>
+              </div>
 
-      {/* Variables Reference */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Variable className="w-5 h-5" />
-            Available Variables
-          </CardTitle>
-          <CardDescription>Use these variables in your messages</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
-            <div>
-              <h4 className="font-medium mb-2">Client</h4>
-              <div className="space-y-1 text-muted-foreground">
-                <p>{"{{client_name}}"}</p>
-                <p>{"{{client_email}}"}</p>
-                <p>{"{{client_phone}}"}</p>
-              </div>
+              {/* Existing Steps */}
+              <DndContext
+                sensors={sensors}
+                collisionDetection={closestCenter}
+                onDragEnd={handleDragEnd}
+              >
+                <SortableContext items={steps.map(s => s.id)} strategy={verticalListSortingStrategy}>
+                  {steps.map((step, index) => (
+                    <SortableStep
+                      key={step.id}
+                      step={step}
+                      index={index}
+                      onUpdate={(updates) => updateStep(step.id, updates)}
+                      onDelete={() => deleteStep(step.id)}
+                    />
+                  ))}
+                </SortableContext>
+              </DndContext>
+
+              {/* Add Step */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" className="w-full gap-2">
+                    <Plus className="h-4 w-4" />
+                    Add Action
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-56">
+                  {ACTION_TYPES.map((actionType) => (
+                    <DropdownMenuItem
+                      key={actionType.type}
+                      onClick={() => addStep(actionType)}
+                      className="flex items-center gap-2"
+                    >
+                      <actionType.icon className="h-4 w-4" />
+                      <div>
+                        <div className="font-medium">{actionType.name}</div>
+                        <div className="text-xs text-muted-foreground">{actionType.description}</div>
+                      </div>
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
-            <div>
-              <h4 className="font-medium mb-2">Job</h4>
-              <div className="space-y-1 text-muted-foreground">
-                <p>{"{{job_title}}"}</p>
-                <p>{"{{job_date}}"}</p>
-                <p>{"{{job_address}}"}</p>
-              </div>
-            </div>
-            <div>
-              <h4 className="font-medium mb-2">Company</h4>
-              <div className="space-y-1 text-muted-foreground">
-                <p>{"{{company_name}}"}</p>
-                <p>{"{{company_phone}}"}</p>
-                <p>{"{{company_email}}"}</p>
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 };
