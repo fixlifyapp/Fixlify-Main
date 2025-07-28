@@ -81,7 +81,7 @@ serve(async (req) => {
 
     // Generate portal URL with token
     const baseUrl = Deno.env.get('PUBLIC_SITE_URL') || 'https://hub.fixlify.app';
-    const portalUrl = `${baseUrl}/portal/invoice/${portalToken}`;
+    const portalUrl = `${baseUrl}/portal/${portalToken}`;
 
     // Create message
     const messagePrefix = customMessage ? `${customMessage}\n\n` : '';

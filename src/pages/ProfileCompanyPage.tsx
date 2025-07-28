@@ -4,6 +4,7 @@ import { PageHeader } from "@/components/ui/page-header";
 import { CompanyInfoSection } from "@/components/settings/profile/CompanyInfoSection";
 import { BrandingSection } from "@/components/settings/profile/BrandingSection";
 import { BusinessHoursCard } from "@/components/settings/profile/BusinessHoursCard";
+import { EmailSettingsCard } from "@/components/settings/EmailSettingsCard";
 import { useCompanySettings } from "@/hooks/useCompanySettings";
 import { Building2 } from "lucide-react";
 
@@ -52,6 +53,14 @@ const ProfileCompanyPage = () => {
         <BusinessHoursCard
           businessHours={companySettings.business_hours || {}}
           onBusinessHoursChange={handleBusinessHoursChange}
+        />
+
+        <EmailSettingsCard
+          companyName={companySettings.company_name || 'Your Company'}
+          onSave={(settings) => {
+            console.log('Email settings saved:', settings);
+            // Here you would typically save to database
+          }}
         />
       </div>
     </PageLayout>

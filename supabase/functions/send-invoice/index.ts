@@ -133,21 +133,79 @@ serve(async (req) => {
 
     const portalLink = `${Deno.env.get("PUBLIC_SITE_URL") || "https://hub.fixlify.app"}/portal/${portalToken}`;
     
-    // Simple email HTML
+    // Generate personalized email address
+    const cleanName = companyName.toLowerCase().replace(/[^a-z0-9]/g, '').substring(0, 20) || 'team';
+    const personalizedEmail = `${cleanName}@fixlify.app`;
+    
+    // Professional email HTML template
     const emailHtml = `
       <!DOCTYPE html>
       <html>
       <head>
         <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Invoice ${invoice.invoice_number}</title>
       </head>
-      <body style="font-family: Arial, sans-serif;">
-        <h2>Invoice ${invoice.invoice_number}</h2>
-        <p>Dear ${invoice.jobs?.clients?.name || "Valued Customer"},</p>
-        <p>${customMessage || `Please find your invoice attached.`}</p>
-        <p>Total: $${invoice.total.toFixed(2)}</p>
-        <p><a href="${portalLink}">View and Pay Invoice Online</a></p>
-        <p>Thank you,<br>${companyName}</p>
+      <body style="margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f8f9fa;">
+        <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff;">
+          <div style="background: linear-gradient(135deg, #28a745 0%, #20c997 100%); padding: 30px; text-align: center;">
+            <h1 style="color: white; margin: 0; font-size: 28px; font-weight: 300;">Invoice Ready</h1>
+          </div>
+          
+          <div style="padding: 30px;">
+            <p style="font-size: 16px; color: #333; line-height: 1.6;">Dear ${invoice.jobs?.clients?.name || "Valued Customer"},</p>
+            
+            ${customMessage ? `<p style="font-size: 16px; color: #333; line-height: 1.6; background-color: #f8f9fa; padding: 15px; border-radius: 8px; border-left: 4px solid #28a745;">${customMessage}</p>` : ''}
+            
+            <p style="font-size: 16px; color: #333; line-height: 1.6;">
+              Your invoice <strong style="color: #28a745;">#${invoice.invoice_number}</strong> 
+              for <strong style="color: #28a745;">$${invoice.total.toFixed(2)}</strong> 
+              is ready for payment.
+            </p>
+            
+            <div style="text-align: center; margin: 30px 0;">
+              <a href="${portalLink}" 
+                 style="background: linear-gradient(135deg, #28a745 0%, #20c997 100%); 
+                        color: white; 
+                        padding: 15px 30px; 
+                        text-decoration: none; 
+                        border-radius: 8px; 
+                        display: inline-block; 
+                        font-weight: 500;
+                        font-size: 16px;
+                        box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);">
+                💳 View & Pay Invoice Online
+              </a>
+            </div>
+            
+            <div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0;">
+              <h3 style="color: #333; margin: 0 0 10px 0; font-size: 18px;">Payment Options:</h3>
+              <ul style="color: #666; margin: 0; padding-left: 20px;">
+                <li>Secure online payment</li>
+                <li>Multiple payment methods accepted</li>
+                <li>Instant payment confirmation</li>
+              </ul>
+            </div>
+            
+            <p style="font-size: 14px; color: #666; line-height: 1.6;">
+              Questions about your invoice? Simply reply to this email or contact us directly. 
+              Thank you for choosing us for your project!
+            </p>
+            
+            <div style="border-top: 1px solid #eee; padding-top: 20px; margin-top: 30px;">
+              <p style="font-size: 16px; color: #333; margin: 0;">
+                Thank you for your business,<br>
+                <strong style="color: #28a745;">${companyName}</strong>
+              </p>
+            </div>
+          </div>
+          
+          <div style="background-color: #f8f9fa; padding: 20px; text-align: center; border-top: 1px solid #eee;">
+            <p style="font-size: 12px; color: #999; margin: 0;">
+              Need help? Contact us anytime. We appreciate your business!
+            </p>
+          </div>
+        </div>
       </body>
       </html>
     `;
@@ -165,7 +223,7 @@ serve(async (req) => {
         to: toEmail,
         subject: `Invoice ${invoice.invoice_number} from ${companyName}`,
         html: emailHtml,
-        from: `${companyName} <${companyEmail}>`,
+        from: `${companyName} <${personalizedEmail}>`,
         replyTo: companyEmail,
         userId: user.id
       })

@@ -152,21 +152,79 @@ serve(async (req) => {
 
     const portalLink = `${Deno.env.get("PUBLIC_SITE_URL") || "https://hub.fixlify.app"}/portal/${portalToken}`;
     
-    // Simple email HTML
+    // Generate personalized email address
+    const cleanName = companyName.toLowerCase().replace(/[^a-z0-9]/g, '').substring(0, 20) || 'team';
+    const personalizedEmail = `${cleanName}@fixlify.app`;
+    
+    // Professional email HTML template
     const emailHtml = `
       <!DOCTYPE html>
       <html>
       <head>
         <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Estimate ${estimate.estimate_number}</title>
       </head>
-      <body style="font-family: Arial, sans-serif;">
-        <h2>Estimate ${estimate.estimate_number}</h2>
-        <p>Dear ${estimate.jobs?.clients?.name || "Valued Customer"},</p>
-        <p>${customMessage || `Please find your estimate attached.`}</p>
-        <p>Total: $${estimate.total.toFixed(2)}</p>
-        <p><a href="${portalLink}">View Estimate Online</a></p>
-        <p>Thank you,<br>${companyName}</p>
+      <body style="margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f8f9fa;">
+        <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff;">
+          <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; text-align: center;">
+            <h1 style="color: white; margin: 0; font-size: 28px; font-weight: 300;">Estimate Ready</h1>
+          </div>
+          
+          <div style="padding: 30px;">
+            <p style="font-size: 16px; color: #333; line-height: 1.6;">Dear ${estimate.jobs?.clients?.name || "Valued Customer"},</p>
+            
+            ${customMessage ? `<p style="font-size: 16px; color: #333; line-height: 1.6; background-color: #f8f9fa; padding: 15px; border-radius: 8px; border-left: 4px solid #667eea;">${customMessage}</p>` : ''}
+            
+            <p style="font-size: 16px; color: #333; line-height: 1.6;">
+              Your estimate <strong style="color: #667eea;">#${estimate.estimate_number}</strong> 
+              for <strong style="color: #667eea;">$${estimate.total.toFixed(2)}</strong> 
+              is ready for your review.
+            </p>
+            
+            <div style="text-align: center; margin: 30px 0;">
+              <a href="${portalLink}" 
+                 style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+                        color: white; 
+                        padding: 15px 30px; 
+                        text-decoration: none; 
+                        border-radius: 8px; 
+                        display: inline-block; 
+                        font-weight: 500;
+                        font-size: 16px;
+                        box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);">
+                📋 View Estimate Online
+              </a>
+            </div>
+            
+            <div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0;">
+              <h3 style="color: #333; margin: 0 0 10px 0; font-size: 18px;">What's included:</h3>
+              <ul style="color: #666; margin: 0; padding-left: 20px;">
+                <li>Detailed breakdown of services</li>
+                <li>Transparent pricing</li>
+                <li>Easy online review and approval</li>
+              </ul>
+            </div>
+            
+            <p style="font-size: 14px; color: #666; line-height: 1.6;">
+              Have questions? Simply reply to this email or call us directly. 
+              We're here to help make your project a success.
+            </p>
+            
+            <div style="border-top: 1px solid #eee; padding-top: 20px; margin-top: 30px;">
+              <p style="font-size: 16px; color: #333; margin: 0;">
+                Best regards,<br>
+                <strong style="color: #667eea;">${companyName}</strong>
+              </p>
+            </div>
+          </div>
+          
+          <div style="background-color: #f8f9fa; padding: 20px; text-align: center; border-top: 1px solid #eee;">
+            <p style="font-size: 12px; color: #999; margin: 0;">
+              This estimate is valid for 30 days. Questions? Contact us anytime.
+            </p>
+          </div>
+        </div>
       </body>
       </html>
     `;
@@ -184,7 +242,7 @@ serve(async (req) => {
         to: toEmail,
         subject: `Estimate ${estimate.estimate_number} from ${companyName}`,
         html: emailHtml,
-        from: `${companyName} <${companyEmail}>`,
+        from: `${companyName} <${personalizedEmail}>`,
         replyTo: companyEmail,
         userId: user.id
       })
