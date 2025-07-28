@@ -106,11 +106,7 @@ export default function InvoicePortal() {
       }
     } catch (error) {
       console.error("Error loading invoice:", error);
-      toast({
-        title: "Error",
-        description: "Failed to load invoice. Please check your link and try again.",
-        variant: "destructive"
-      });
+      toast.error("Failed to load invoice. Please check your link and try again.");
     } finally {
       setLoading(false);
     }
@@ -121,18 +117,12 @@ export default function InvoicePortal() {
   };
 
   const handleDownload = () => {
-    toast({
-      title: "Coming Soon",
-      description: "PDF download feature will be available soon. You can print this page using your browser's print function.",
-    });
+    toast.info("PDF download feature will be available soon. You can print this page using your browser's print function.");
     window.print();
   };
 
   const handlePayNow = () => {
-    toast({
-      title: "Coming Soon",
-      description: "Online payment will be available soon. Please contact us for payment options.",
-    });
+    toast.info("Online payment will be available soon. Please contact us for payment options.");
   };
 
   const formatCurrency = (amount: number) => {

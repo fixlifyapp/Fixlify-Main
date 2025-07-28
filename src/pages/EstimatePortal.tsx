@@ -92,11 +92,7 @@ export default function EstimatePortal() {
       }
     } catch (error) {
       console.error("Error loading estimate:", error);
-      toast({
-        title: "Error",
-        description: "Failed to load estimate. Please check your link and try again.",
-        variant: "destructive"
-      });
+      toast.error("Failed to load estimate. Please check your link and try again.");
     } finally {
       setLoading(false);
     }
@@ -107,18 +103,12 @@ export default function EstimatePortal() {
   };
 
   const handleDownload = () => {
-    toast({
-      title: "Coming Soon",
-      description: "PDF download feature will be available soon. You can print this page using your browser's print function.",
-    });
+    toast.info("PDF download feature will be available soon. You can print this page using your browser's print function.");
     window.print();
   };
 
   const handleAccept = () => {
-    toast({
-      title: "Coming Soon",
-      description: "Online estimate acceptance will be available soon. Please contact us to accept this estimate.",
-    });
+    toast.info("Online estimate acceptance will be available soon. Please contact us to accept this estimate.");
   };
 
   if (loading) {
