@@ -71,22 +71,22 @@ ${companyName} Team`;
 
   // Set default values when dialog opens
   useEffect(() => {
-    if (isOpen && contactInfo) {
-      if (sendMethod === "email" && contactInfo.email) {
-        setSendTo(contactInfo.email);
-      } else if (sendMethod === "sms" && contactInfo.phone) {
-        setSendTo(contactInfo.phone);
-      } else {
-        setSendTo("");
+    if (isOpen) {
+      if (contactInfo) {
+        if (sendMethod === "email" && contactInfo.email) {
+          setSendTo(contactInfo.email);
+        } else if (sendMethod === "sms" && contactInfo.phone) {
+          setSendTo(contactInfo.phone);
+        } else {
+          setSendTo("");
+        }
       }
       setValidationError("");
       
-      // Set default message template
-      if (!customNote) {
-        setCustomNote(generateDefaultMessage(sendMethod));
-      }
+      // Always set default personalized message template when dialog opens
+      setCustomNote(generateDefaultMessage(sendMethod));
     }
-  }, [isOpen, sendMethod, contactInfo]);
+  }, [isOpen, sendMethod, contactInfo, documentType, documentId, documentNumber, total, companySettings]);
 
   // Update message template when send method changes
   useEffect(() => {
