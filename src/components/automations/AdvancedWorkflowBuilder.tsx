@@ -17,6 +17,7 @@ import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AIAutomationAssistant } from './AIAutomationAssistant';
 import { SmartOptimizationPanel } from './SmartOptimizationPanel';
+import { AutomationLearningSystem } from './AutomationLearningSystem';
 
 interface WorkflowStep {
   id: string;
@@ -221,6 +222,7 @@ export const AdvancedWorkflowBuilder: React.FC<WorkflowBuilderProps> = ({
         <TabsList className="mb-6">
           <TabsTrigger value="builder">Workflow Builder</TabsTrigger>
           <TabsTrigger value="optimization">AI Optimization</TabsTrigger>
+          <TabsTrigger value="learning">Learning & Analytics</TabsTrigger>
         </TabsList>
 
         <TabsContent value="builder">
@@ -315,6 +317,15 @@ export const AdvancedWorkflowBuilder: React.FC<WorkflowBuilderProps> = ({
             workflows={steps} 
             onApplyOptimization={(workflowId, optimization) => {
               console.log('Applying optimization:', optimization);
+            }}
+          />
+        </TabsContent>
+
+        <TabsContent value="learning">
+          <AutomationLearningSystem 
+            workflows={steps} 
+            onApplyLearning={(insight) => {
+              console.log('Applying learning insight:', insight);
             }}
           />
         </TabsContent>
