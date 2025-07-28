@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
-import { WorkflowBuilder } from '@/components/automations/WorkflowBuilder';
+import { AdvancedWorkflowBuilder } from '@/components/automations/AdvancedWorkflowBuilder';
 import {
   Zap, Plus, Workflow, Activity, TrendingUp,
   CheckCircle, Clock, RefreshCw, Timer, Settings,
@@ -135,7 +135,7 @@ const AutomationsPage = () => {
             Back to Automations
           </Button>
         </div>
-        <WorkflowBuilder
+        <AdvancedWorkflowBuilder
           initialWorkflow={loadedTemplate?.steps || []}
           availableVariables={[
             { name: 'client.firstName', label: 'Client First Name', type: 'text' },
@@ -183,11 +183,6 @@ const AutomationsPage = () => {
               console.error('Error saving workflow:', error);
               toast.error('Failed to save workflow');
             }
-          }}
-          onCancel={() => {
-            setShowWorkflowBuilder(false);
-            setSelectedWorkflowId(null);
-            setLoadedTemplate(null);
           }}
         />
       </PageLayout>
