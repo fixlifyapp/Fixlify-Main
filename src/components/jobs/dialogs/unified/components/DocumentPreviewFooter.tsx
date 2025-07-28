@@ -19,13 +19,13 @@ export const DocumentPreviewFooter = ({
       <div className="bg-white rounded-lg border border-gray-200 p-4 sm:p-6">
         <div className="text-center space-y-4">
           <h4 className="text-lg font-semibold text-gray-900">
-            Thank you for choosing {companyInfo?.name || 'FixLyfy Services'}!
+            Thank you for choosing {companyInfo?.name || companyInfo?.company_name || 'Our Company'}!
           </h4>
           
           <div className="text-sm text-gray-600 space-y-2 max-w-2xl mx-auto">
             <p>
               This {documentType} contains confidential information. 
-              For questions, contact us at {companyInfo?.phone || '(555) 123-4567'} or {companyInfo?.email || 'info@fixlify.com'}.
+              For questions, contact us at {companyInfo?.phone || companyInfo?.company_phone || '(555) 123-4567'} or {companyInfo?.email || companyInfo?.company_email || 'info@company.com'}.
             </p>
             
             {documentType === 'estimate' && (
