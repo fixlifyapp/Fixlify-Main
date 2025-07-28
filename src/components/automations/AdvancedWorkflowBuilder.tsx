@@ -16,6 +16,7 @@ import {
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AIAutomationAssistant } from './AIAutomationAssistant';
+import { SmartOptimizationPanel } from './SmartOptimizationPanel';
 
 interface WorkflowStep {
   id: string;
@@ -216,17 +217,24 @@ export const AdvancedWorkflowBuilder: React.FC<WorkflowBuilderProps> = ({
         </motion.div>
       )}
 
-      {/* Workflow Canvas */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            Workflow Steps
-            {steps.length > 0 && (
-              <Badge variant="secondary">{steps.length} steps</Badge>
-            )}
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
+      <Tabs defaultValue="builder" className="w-full">
+        <TabsList className="mb-6">
+          <TabsTrigger value="builder">Workflow Builder</TabsTrigger>
+          <TabsTrigger value="optimization">AI Optimization</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="builder">
+          {/* Workflow Canvas */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                Workflow Steps
+                {steps.length > 0 && (
+                  <Badge variant="secondary">{steps.length} steps</Badge>
+                )}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
           <div className="space-y-4">
             <AnimatePresence>
               {steps.map((step, index) => (
@@ -295,11 +303,22 @@ export const AdvancedWorkflowBuilder: React.FC<WorkflowBuilderProps> = ({
       {/* Smart Timing Options */}
       <SmartTimingOptions />
 
-      {/* Save Button */}
-      <div className="flex justify-end gap-2">
-        <Button variant="outline">Cancel</Button>
-        <Button onClick={() => onSave(steps)}>Save Workflow</Button>
-      </div>
+          {/* Save Button */}
+          <div className="flex justify-end gap-2">
+            <Button variant="outline">Cancel</Button>
+            <Button onClick={() => onSave(steps)}>Save Workflow</Button>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="optimization">
+          <SmartOptimizationPanel 
+            workflows={steps} 
+            onApplyOptimization={(workflowId, optimization) => {
+              console.log('Applying optimization:', optimization);
+            }}
+          />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };
