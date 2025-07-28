@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
-// import { AIAutomationBuilder } from '@/components/automations/AIAutomationBuilder';
+import { EnhancedVerticalWorkflowBuilder } from '@/components/automations/EnhancedVerticalWorkflowBuilder';
 import {
   Zap, Plus, Workflow, Activity, TrendingUp,
   CheckCircle, Clock, RefreshCw, Timer, Settings,
@@ -135,11 +135,22 @@ const AutomationsPage = () => {
             Back to Automations
           </Button>
         </div>
-        <div className="p-6 text-center">
-          <Workflow className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-          <h3 className="text-lg font-semibold mb-2">Workflow Builder</h3>
-          <p className="text-muted-foreground">Coming soon - Visual workflow builder</p>
-        </div>
+        <EnhancedVerticalWorkflowBuilder
+          workflowId={selectedWorkflowId || undefined}
+          template={loadedTemplate}
+          onSave={(workflow) => {
+            toast.success('Workflow saved successfully!');
+            setShowWorkflowBuilder(false);
+            setSelectedWorkflowId(null);
+            setLoadedTemplate(null);
+            fetchAutomations();
+          }}
+          onCancel={() => {
+            setShowWorkflowBuilder(false);
+            setSelectedWorkflowId(null);
+            setLoadedTemplate(null);
+          }}
+        />
       </PageLayout>
     );
   }
