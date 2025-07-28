@@ -229,9 +229,9 @@ export const AIAutomationAssistant: React.FC<AIAutomationAssistantProps> = ({
       return 'Hi {{client.firstName}}! Your {{job.type}} appointment is confirmed for {{job.scheduledDate}} at {{job.scheduledTime}}. - {{company.name}}';
     }
     if (text.includes('overdue')) {
-      return 'Hi {{client.firstName}}, invoice #{{invoice.number}} (${{invoice.total}}) is overdue. Please submit payment. - {{company.name}}';
+      return 'Hi $\{client.firstName}, invoice #$\{invoice.number} ($$\{invoice.total}) is overdue. Please submit payment. - $\{company.name}';
     }
-    return 'Hi {{client.firstName}}, update from {{company.name}}: {{message}}';
+    return 'Hi $\{client.firstName}, update from $\{company.name}: $\{message}';
   };
 
   const generateTemplateSuggestions = (query: string, businessType: string): any[] => {
