@@ -49,7 +49,7 @@ import AcceptInvitationPage from "@/pages/AcceptInvitationPage";
 import ClientPortal from "@/pages/ClientPortal";
 import TestPortalAccessPage from "@/pages/TestPortalAccessPage";
 import EstimatePortal from "@/pages/EstimatePortal";
-import InvoicePortal from "@/pages/InvoicePortal";
+import UniversalPortal from "@/pages/UniversalPortal";
 
 import EdgeFunctionsPage from "@/pages/EdgeFunctionsPage";
 import SMSTestPage from "@/pages/SMSTestPage"
@@ -108,19 +108,9 @@ function App() {
               </AuthProvider>
             } />
             
-            {/* Client Portal */}
-            <Route path="/portal/:accessToken" element={
-              <ClientPortal />
-            } />
-            
-            {/* Estimate View */}
-            <Route path="/portal/estimate/:token" element={
-              <EstimatePortal />
-            } />
-            
-            {/* Invoice View */}
-            <Route path="/portal/invoice/:token" element={
-              <InvoicePortal />
+            {/* Universal Portal - handles both estimates and invoices */}
+            <Route path="/portal/:token" element={
+              <UniversalPortal />
             } />
             
             {/* Test Portal Access */}

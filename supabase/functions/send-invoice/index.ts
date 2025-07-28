@@ -131,7 +131,7 @@ serve(async (req) => {
       );
     }
 
-    const portalLink = `${Deno.env.get("PUBLIC_SITE_URL") || "https://hub.fixlify.app"}/portal/invoice/${portalToken}`;
+    const portalLink = `${Deno.env.get("PUBLIC_SITE_URL") || "https://hub.fixlify.app"}/portal/${portalToken}`;
     
     // Simple email HTML
     const emailHtml = `
