@@ -26,22 +26,29 @@ export const useCompanySettings = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchCompanySettings = async () => {
-      try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) {
-          setLoading(false);
-          return;
-        }
+  const fetchCompanySettings = async () => {
+    try {
+      console.log('=== useCompanySettings - Starting fetch ===');
+      const { data: { user } } = await supabase.auth.getUser();
+      console.log('Current user:', user?.id);
+      if (!user) {
+        console.log('No user found, setting loading to false');
+        setLoading(false);
+        return;
+      }
 
-        const { data: companySettings } = await supabase
-          .from('company_settings')
-          .select('*')
-          .eq('user_id', user.id)
-          .maybeSingle();
-        
-        if (companySettings) {
-          setCompanyInfo({
+      console.log('Querying company_settings for user:', user.id);
+      const { data: companySettings, error } = await supabase
+        .from('company_settings')
+        .select('*')
+        .eq('user_id', user.id)
+        .maybeSingle();
+      
+      console.log('Company settings query result:', { companySettings, error });
+      
+      if (companySettings) {
+        console.log('Found company settings, setting company info');
+        setCompanyInfo({
             name: companySettings.company_name,
             businessType: companySettings.business_type,
             address: companySettings.company_address,
