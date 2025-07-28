@@ -137,6 +137,8 @@ const AutomationsPage = () => {
         </div>
         <AdvancedWorkflowBuilder
           initialWorkflow={loadedTemplate?.steps || []}
+          businessType="HVAC Services"
+          companyName="Your Company"
           availableVariables={[
             { name: 'client.firstName', label: 'Client First Name', type: 'text' },
             { name: 'client.lastName', label: 'Client Last Name', type: 'text' },

@@ -88,3 +88,10 @@ verify_jwt = false
 # Estimate SMS Function
 [functions.send-estimate-sms]
 verify_jwt = false
+
+# AI Functions
+[functions.automation-ai-assistant]
+verify_jwt = true
+
+[functions.intelligent-ai-assistant]
+verify_jwt = true

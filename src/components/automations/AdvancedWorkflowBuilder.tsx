@@ -11,10 +11,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Plus, Trash2, Clock, Calendar, Mail, MessageSquare, Phone,
   ChevronRight, AlertCircle, DollarSign, Star, User, Settings,
-  Zap, ArrowDown, GitBranch, Timer, Sun, Moon, Globe
+  Zap, ArrowDown, GitBranch, Timer, Sun, Moon, Globe, Bot, Sparkles
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
+import { AIAutomationAssistant } from './AIAutomationAssistant';
 
 interface WorkflowStep {
   id: string;
@@ -47,15 +48,20 @@ interface WorkflowBuilderProps {
   initialWorkflow?: WorkflowStep[];
   onSave: (workflow: WorkflowStep[]) => void;
   availableVariables: Array<{ name: string; label: string; type: string }>;
+  businessType?: string;
+  companyName?: string;
 }
 
 export const AdvancedWorkflowBuilder: React.FC<WorkflowBuilderProps> = ({
   initialWorkflow = [],
   onSave,
-  availableVariables
+  availableVariables,
+  businessType = 'General Service',
+  companyName = 'Your Company'
 }) => {
   const [steps, setSteps] = useState<WorkflowStep[]>(initialWorkflow);
   const [selectedStep, setSelectedStep] = useState<string | null>(null);
+  const [showAIAssistant, setShowAIAssistant] = useState(false);
 
   const addStep = (type: WorkflowStep['type']) => {
     const newStep: WorkflowStep = {
@@ -140,12 +146,85 @@ export const AdvancedWorkflowBuilder: React.FC<WorkflowBuilderProps> = ({
     }
   };
 
+  const handleAIWorkflowGenerated = (workflow: any) => {
+    if (workflow && workflow.steps) {
+      setSteps(workflow.steps);
+      setShowAIAssistant(false);
+    }
+  };
+
+  const handleAITemplateSelected = (template: any) => {
+    // Convert template to workflow steps
+    const templateSteps = convertTemplateToSteps(template);
+    setSteps(templateSteps);
+    setShowAIAssistant(false);
+  };
+
+  const convertTemplateToSteps = (template: any): WorkflowStep[] => {
+    // Simple template to steps conversion
+    return [
+      {
+        id: `step-${Date.now()}`,
+        type: 'action',
+        name: template.name,
+        config: {
+          actionType: 'email',
+          subject: `${template.name} - {{company.name}}`,
+          message: `Generated from ${template.name} template`
+        }
+      }
+    ];
+  };
+
   return (
     <div className="space-y-6">
+      {/* AI Assistant Toggle */}
+      <div className="flex justify-between items-center">
+        <div>
+          <h2 className="text-2xl font-bold">Workflow Builder</h2>
+          <p className="text-muted-foreground">Create intelligent automations for your business</p>
+        </div>
+        <Button
+          onClick={() => setShowAIAssistant(!showAIAssistant)}
+          variant={showAIAssistant ? "default" : "outline"}
+          className="gap-2"
+        >
+          <Bot className="w-4 h-4" />
+          {showAIAssistant ? 'Hide AI Assistant' : 'AI Assistant'}
+          <Sparkles className="w-4 h-4" />
+        </Button>
+      </div>
+
+      {/* AI Assistant Panel */}
+      {showAIAssistant && (
+        <motion.div
+          initial={{ opacity: 0, height: 0 }}
+          animate={{ opacity: 1, height: 'auto' }}
+          exit={{ opacity: 0, height: 0 }}
+          transition={{ duration: 0.3 }}
+        >
+          <AIAutomationAssistant
+            onWorkflowGenerated={handleAIWorkflowGenerated}
+            onTemplateSelected={handleAITemplateSelected}
+            businessType={businessType}
+            existingData={{
+              jobs: 0,
+              clients: 0,
+              revenue: 0
+            }}
+          />
+        </motion.div>
+      )}
+
       {/* Workflow Canvas */}
       <Card>
         <CardHeader>
-          <CardTitle>Workflow Steps</CardTitle>
+          <CardTitle className="flex items-center gap-2">
+            Workflow Steps
+            {steps.length > 0 && (
+              <Badge variant="secondary">{steps.length} steps</Badge>
+            )}
+          </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
