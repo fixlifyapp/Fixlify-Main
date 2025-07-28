@@ -10,6 +10,10 @@ export const DocumentPreviewFooter = ({
   documentType,
   companyInfo
 }: DocumentPreviewFooterProps) => {
+  console.log('=== DocumentPreviewFooter Debug ===');
+  console.log('Company info received:', companyInfo);
+  console.log('Document type:', documentType);
+  
   return (
     <div className="bg-gray-50 px-4 sm:px-8 py-4 sm:py-8 border-t border-gray-200">
       <div className="bg-white rounded-lg border border-gray-200 p-4 sm:p-6">
