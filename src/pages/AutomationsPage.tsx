@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
-import { EnhancedVerticalWorkflowBuilder } from '@/components/automations/EnhancedVerticalWorkflowBuilder';
+import { WorkflowBuilder } from '@/components/automations/WorkflowBuilder';
 import {
   Zap, Plus, Workflow, Activity, TrendingUp,
   CheckCircle, Clock, RefreshCw, Timer, Settings,
@@ -135,15 +135,54 @@ const AutomationsPage = () => {
             Back to Automations
           </Button>
         </div>
-        <EnhancedVerticalWorkflowBuilder
-          workflowId={selectedWorkflowId || undefined}
-          template={loadedTemplate}
-          onSave={(workflow) => {
-            toast.success('Workflow saved successfully!');
-            setShowWorkflowBuilder(false);
-            setSelectedWorkflowId(null);
-            setLoadedTemplate(null);
-            fetchAutomations();
+        <WorkflowBuilder
+          initialWorkflow={loadedTemplate?.steps || []}
+          availableVariables={[
+            { name: 'client.firstName', label: 'Client First Name', type: 'text' },
+            { name: 'client.lastName', label: 'Client Last Name', type: 'text' },
+            { name: 'client.email', label: 'Client Email', type: 'text' },
+            { name: 'client.phone', label: 'Client Phone', type: 'text' },
+            { name: 'job.number', label: 'Job Number', type: 'text' },
+            { name: 'job.title', label: 'Job Title', type: 'text' },
+            { name: 'job.status', label: 'Job Status', type: 'text' },
+            { name: 'job.scheduledDate', label: 'Scheduled Date', type: 'date' },
+            { name: 'invoice.number', label: 'Invoice Number', type: 'text' },
+            { name: 'invoice.total', label: 'Invoice Total', type: 'currency' },
+            { name: 'company.name', label: 'Company Name', type: 'text' },
+            { name: 'company.phone', label: 'Company Phone', type: 'text' }
+          ]}
+          onSave={async (workflow) => {
+            try {
+              const { error } = await supabase
+                .from('automation_workflows')
+                .insert({
+                  name: loadedTemplate?.name || 'New Workflow',
+                  description: loadedTemplate?.description || 'Custom workflow',
+                  user_id: user?.id,
+                  organization_id: organization?.id,
+                  template_config: JSON.parse(JSON.stringify({
+                    triggers: loadedTemplate?.triggers || [],
+                    steps: workflow.map(step => ({
+                      id: step.id,
+                      type: step.type,
+                      name: step.name,
+                      config: step.config
+                    }))
+                  })),
+                  status: 'active'
+                });
+
+              if (error) throw error;
+
+              toast.success('Workflow saved successfully!');
+              setShowWorkflowBuilder(false);
+              setSelectedWorkflowId(null);
+              setLoadedTemplate(null);
+              fetchAutomations();
+            } catch (error) {
+              console.error('Error saving workflow:', error);
+              toast.error('Failed to save workflow');
+            }
           }}
           onCancel={() => {
             setShowWorkflowBuilder(false);
