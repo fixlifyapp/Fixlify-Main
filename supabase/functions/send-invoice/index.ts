@@ -176,6 +176,9 @@ serve(async (req) => {
                         box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);">
                 💳 View & Pay Invoice Online
               </a>
+              ${companyEmail ? `<div style="margin-top: 15px; font-size: 14px; color: #666;">
+                Questions? Contact us at <a href="mailto:${companyEmail}" style="color: #28a745; text-decoration: none;">${companyEmail}</a>
+              </div>` : ''}
             </div>
             
             <div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0;">
@@ -230,10 +233,17 @@ serve(async (req) => {
     });
 
     if (!mailgunResponse.ok) {
-      const error = await mailgunResponse.text();
-      console.error("[send-invoice] Error sending email:", error);
+      const errorText = await mailgunResponse.text();
+      console.error("[send-invoice] Error sending email:", { 
+        status: mailgunResponse.status, 
+        statusText: mailgunResponse.statusText,
+        error: errorText
+      });
       return new Response(
-        JSON.stringify({ error: "Failed to send email", details: error }),
+        JSON.stringify({ 
+          success: false,
+          error: `Failed to send email: ${errorText}` 
+        }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }

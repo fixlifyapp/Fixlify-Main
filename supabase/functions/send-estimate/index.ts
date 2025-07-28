@@ -195,6 +195,9 @@ serve(async (req) => {
                         box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);">
                 📋 View Estimate Online
               </a>
+              ${companyEmail ? `<div style="margin-top: 15px; font-size: 14px; color: #666;">
+                Questions? Contact us at <a href="mailto:${companyEmail}" style="color: #667eea; text-decoration: none;">${companyEmail}</a>
+              </div>` : ''}
             </div>
             
             <div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0;">
