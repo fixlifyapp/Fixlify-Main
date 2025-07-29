@@ -35,9 +35,9 @@ export const CallDeviceSelector = ({
 
   const loadAudioDevices = async () => {
     try {
-      const devices = await audioDeviceManager.getAudioDevices();
-      setMicrophones(devices.microphones);
-      setSpeakers(devices.speakers);
+      const devices = await audioDeviceManager.getDevices();
+      setMicrophones(devices.microphones || []);
+      setSpeakers(devices.speakers || []);
     } catch (error) {
       console.error('Error loading audio devices:', error);
       toast.error('Failed to load audio devices');

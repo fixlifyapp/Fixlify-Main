@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/hooks/use-auth';
-import { useProfile } from '@/hooks/use-profiles';
 import { organizationContext } from '@/services/organizationContext';
 
 /**
@@ -8,7 +7,6 @@ import { organizationContext } from '@/services/organizationContext';
  */
 export const useOrganizationContext = () => {
   const { user } = useAuth();
-  const { profile } = useProfile();
   const [isInitialized, setIsInitialized] = useState(false);
 
   useEffect(() => {
