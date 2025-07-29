@@ -24,6 +24,44 @@ import { WORKFLOW_TEMPLATES, getPopularTemplates } from '@/data/workflowTemplate
 import { TriggerTypes } from '@/types/automationFramework';
 import { supabase } from '@/integrations/supabase/client';
 
+// Generate AI message function
+const generateAIMessage = async (
+  messageType: 'email' | 'sms',
+  config: any,
+  onUpdate: (config: any) => void,
+  availableVariables: Array<{ name: string; label: string; type: string }>
+) => {
+  onUpdate({ ...config, isGenerating: true });
+  
+  try {
+    const { data, error } = await supabase.functions.invoke('generate-ai-message', {
+      body: {
+        messageType: messageType === 'email' ? 'professional' : 'friendly',
+        context: `Generate a ${messageType} message`,
+        variables: availableVariables,
+        companyInfo: {
+          businessType: 'service company',
+          tone: 'professional'
+        }
+      }
+    });
+
+    if (error) throw error;
+
+    if (data?.message) {
+      onUpdate({ 
+        ...config, 
+        message: data.message,
+        subject: messageType === 'email' && data.subject ? data.subject : config.subject,
+        isGenerating: false
+      });
+    }
+  } catch (error) {
+    console.error('Error generating AI message:', error);
+    onUpdate({ ...config, isGenerating: false });
+  }
+};
+
 interface WorkflowStep {
   id: string;
   type: 'trigger' | 'action' | 'condition' | 'delay' | 'branch' | 'webhook' | 'task' | 'notification';
@@ -719,10 +757,15 @@ const StepActionConfig: React.FC<{
             <Button
               size="sm"
               variant="outline"
-              onClick={() => onUpdate({ ...config, showAIGenerator: true })}
+              onClick={() => generateAIMessage('email', config, onUpdate, availableVariables)}
               className="absolute top-2 right-2 h-6 w-6 p-0"
+              disabled={config.isGenerating}
             >
-              <Bot className="w-3 h-3" />
+              {config.isGenerating ? (
+                <div className="w-3 h-3 border border-current border-t-transparent animate-spin rounded-full" />
+              ) : (
+                <Bot className="w-3 h-3" />
+              )}
             </Button>
           </div>
         </>
@@ -740,10 +783,15 @@ const StepActionConfig: React.FC<{
           <Button
             size="sm"
             variant="outline"
-            onClick={() => onUpdate({ ...config, showAIGenerator: true })}
+            onClick={() => generateAIMessage('sms', config, onUpdate, availableVariables)}
             className="absolute top-2 right-2 h-6 w-6 p-0"
+            disabled={config.isGenerating}
           >
-            <Bot className="w-3 h-3" />
+            {config.isGenerating ? (
+              <div className="w-3 h-3 border border-current border-t-transparent animate-spin rounded-full" />
+            ) : (
+              <Bot className="w-3 h-3" />
+            )}
           </Button>
         </div>
       )}
