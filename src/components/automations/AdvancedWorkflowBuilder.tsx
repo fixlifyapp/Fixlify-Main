@@ -18,7 +18,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { AIAutomationAssistant } from './AIAutomationAssistant';
 import { EnhancedTriggerSelector } from './EnhancedTriggerSelector';
 import { EnhancedActionSelector } from './EnhancedActionSelector';
-import { SmartTriggerSelector } from './SmartTriggerSelector';
 import { SmartActionSelector } from './SmartActionSelector';
 import { WORKFLOW_TEMPLATES, getPopularTemplates } from '@/data/workflowTemplates';
 import { TriggerTypes } from '@/types/automationFramework';
@@ -69,7 +68,6 @@ export const AdvancedWorkflowBuilder: React.FC<WorkflowBuilderProps> = ({
   const [steps, setSteps] = useState<WorkflowStep[]>(initialWorkflow);
   const [selectedStep, setSelectedStep] = useState<string | null>(null);
   const [showAIAssistant, setShowAIAssistant] = useState(false);
-  const [showTriggerSelector, setShowTriggerSelector] = useState(false);
 
   const addStep = (type: WorkflowStep['type']) => {
     const newStep: WorkflowStep = {
@@ -311,7 +309,7 @@ export const AdvancedWorkflowBuilder: React.FC<WorkflowBuilderProps> = ({
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => setShowTriggerSelector(!showTriggerSelector)}
+                onClick={() => addStep('trigger')}
                 className="gap-2"
               >
                 <Zap className="w-4 h-4" />
@@ -346,48 +344,6 @@ export const AdvancedWorkflowBuilder: React.FC<WorkflowBuilderProps> = ({
               </Button>
             </div>
 
-            {/* Inline Trigger Selector */}
-            {showTriggerSelector && (
-              <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: 'auto' }}
-                exit={{ opacity: 0, height: 0 }}
-                transition={{ duration: 0.3 }}
-                className="mt-4 p-4 border rounded-lg bg-muted/20"
-              >
-                <div className="flex items-center justify-between mb-4">
-                  <div>
-                    <h4 className="font-medium">Add Trigger</h4>
-                    <p className="text-sm text-muted-foreground">
-                      Select a trigger to start your workflow
-                    </p>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setShowTriggerSelector(false)}
-                  >
-                    ✕
-                  </Button>
-                </div>
-                <SmartTriggerSelector
-                  onTriggerSelect={(trigger) => {
-                    // Add trigger as first step
-                    const triggerStep: WorkflowStep = {
-                      id: `trigger-${Date.now()}`,
-                      type: 'trigger',
-                      name: `Trigger: ${trigger.name}`,
-                      config: {
-                        triggerType: trigger.type,
-                        conditions: []
-                      }
-                    };
-                    setSteps([triggerStep, ...steps]);
-                    setShowTriggerSelector(false);
-                  }}
-                />
-              </motion.div>
-            )}
           </div>
         </CardContent>
       </Card>
