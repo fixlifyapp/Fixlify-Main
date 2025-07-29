@@ -43,13 +43,13 @@ export const useCompanyEmailSettings = () => {
         throw error;
       }
 
-      setSettings(data || {
+      setSettings({
         smtp_host: '',
         smtp_port: 587,
         smtp_username: '',
         smtp_password: '',
-        smtp_from_email: '',
-        smtp_from_name: '',
+        smtp_from_email: data?.default_from_email || '',
+        smtp_from_name: data?.default_from_name || '',
         smtp_secure: true,
         is_configured: false
       });

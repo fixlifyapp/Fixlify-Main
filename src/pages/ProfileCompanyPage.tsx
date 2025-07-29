@@ -51,15 +51,23 @@ const ProfileCompanyPage = () => {
         />
 
         <BusinessHoursCard
-          businessHours={companySettings.business_hours || {}}
+          businessHours={{} as any}
           onBusinessHoursChange={handleBusinessHoursChange}
         />
 
         <EmailSettingsCard
-          companyName={companySettings.company_name || 'Your Company'}
-          onSave={(settings) => {
-            console.log('Email settings saved:', settings);
-            // Here you would typically save to database
+          settings={{
+            smtp_host: '',
+            smtp_port: 587,
+            smtp_username: '',
+            smtp_password: '',
+            default_from_email: '',
+            default_from_name: '',
+            email_enabled: false,
+            sms_enabled: false
+          }}
+          onUpdate={(settings) => {
+            console.log('Email settings updated:', settings);
           }}
         />
       </div>

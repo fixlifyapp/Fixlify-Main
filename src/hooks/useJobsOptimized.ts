@@ -211,8 +211,8 @@ export const useJobsOptimized = (options: UseJobsOptimizedOptions = {}) => {
           
           // Only refresh if the change is relevant to the current view
           const isRelevant = !clientId || 
-            (payload.new && payload.new.client_id === clientId) ||
-            (payload.old && payload.old.client_id === clientId);
+            (payload.new && (payload.new as any).client_id === clientId) ||
+            (payload.old && (payload.old as any).client_id === clientId);
           
           if (!isRelevant) return;
           
