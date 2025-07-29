@@ -2749,6 +2749,7 @@ export type Database = {
           job_type: string | null
           lead_source: string | null
           notes: string | null
+          organization_id: string | null
           property_id: string | null
           revenue: number | null
           schedule_end: string | null
@@ -2776,6 +2777,7 @@ export type Database = {
           job_type?: string | null
           lead_source?: string | null
           notes?: string | null
+          organization_id?: string | null
           property_id?: string | null
           revenue?: number | null
           schedule_end?: string | null
@@ -2803,6 +2805,7 @@ export type Database = {
           job_type?: string | null
           lead_source?: string | null
           notes?: string | null
+          organization_id?: string | null
           property_id?: string | null
           revenue?: number | null
           schedule_end?: string | null
