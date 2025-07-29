@@ -131,6 +131,7 @@ export const AdvancedWorkflowBuilder: React.FC<WorkflowBuilderProps> = ({
   const [steps, setSteps] = useState<WorkflowStep[]>(initialWorkflow);
   const [selectedStep, setSelectedStep] = useState<string | null>(null);
   const [showAIAssistant, setShowAIAssistant] = useState(false);
+  const [workflowTitle, setWorkflowTitle] = useState('Untitled Workflow');
 
   const addStep = (type: WorkflowStep['type']) => {
     const newStep: WorkflowStep = {
@@ -296,6 +297,24 @@ export const AdvancedWorkflowBuilder: React.FC<WorkflowBuilderProps> = ({
           <Sparkles className="w-4 h-4" />
         </Button>
       </div>
+
+      {/* Workflow Title Section */}
+      <Card>
+        <CardContent className="pt-6">
+          <div className="space-y-2">
+            <Label htmlFor="workflow-title" className="text-sm font-medium">
+              Workflow Title
+            </Label>
+            <Input
+              id="workflow-title"
+              value={workflowTitle}
+              onChange={(e) => setWorkflowTitle(e.target.value)}
+              placeholder="Enter workflow name..."
+              className="max-w-md"
+            />
+          </div>
+        </CardContent>
+      </Card>
 
       {/* AI Assistant Panel */}
       {showAIAssistant && (
