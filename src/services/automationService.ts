@@ -62,10 +62,20 @@ export class AutomationService {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('User not authenticated');
 
+    // Get user's organization
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('organization_id')
+      .eq('id', user.id)
+      .maybeSingle();
+
+    const orgId = profile?.organization_id || user.id;
+
+    // Get workflows for the organization
     const { data, error } = await supabase
       .from('automation_workflows')
       .select('*')
-      .eq('user_id', user.id)
+      .eq('organization_id', orgId)
       .order('created_at', { ascending: false });
 
     if (error) throw error;
@@ -198,10 +208,23 @@ export class AutomationService {
 
   private static async getActiveWorkflows(): Promise<AutomationWorkflow[]> {
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return [];
+
+      // Get user's organization
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('organization_id')
+        .eq('id', user.id)
+        .maybeSingle();
+
+      const orgId = profile?.organization_id || user.id;
+
       const { data, error } = await supabase
         .from('automation_workflows')
         .select('*')
-        .eq('status', 'active');
+        .eq('status', 'active')
+        .eq('organization_id', orgId);
 
       if (error) throw error;
       return (data || []) as any[];
