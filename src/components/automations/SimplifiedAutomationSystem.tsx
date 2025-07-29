@@ -239,8 +239,22 @@ export const SimplifiedAutomationSystem: React.FC = () => {
         </Card>
       </div>
 
-      {/* Combined View: Templates and Workflows */}
+      {/* Combined View: Workflows and Templates */}
       <div className="space-y-6">
+        {/* Existing Workflows */}
+        <div>
+          <h3 className="text-lg font-semibold mb-4">Your Workflows</h3>
+          <WorkflowList 
+            automations={automations}
+            setAutomations={setAutomations}
+            onEdit={handleEditWorkflow}
+            onDelete={handleDeleteWorkflow}
+            onToggle={handleToggleWorkflow}
+            onTest={handleTestWorkflow}
+            loading={loading}
+          />
+        </div>
+
         {/* Quick Start Templates */}
         <div>
           <h3 className="text-lg font-semibold mb-4">Ready-to-Use Templates</h3>
@@ -379,20 +393,6 @@ export const SimplifiedAutomationSystem: React.FC = () => {
               );
             })}
           </div>
-        </div>
-
-        {/* Existing Workflows */}
-        <div>
-          <h3 className="text-lg font-semibold mb-4">Your Workflows</h3>
-          <WorkflowList 
-            automations={automations}
-            setAutomations={setAutomations}
-            onEdit={handleEditWorkflow}
-            onDelete={handleDeleteWorkflow}
-            onToggle={handleToggleWorkflow}
-            onTest={handleTestWorkflow}
-            loading={loading}
-          />
         </div>
       </div>
     </div>
