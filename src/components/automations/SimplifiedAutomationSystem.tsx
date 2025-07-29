@@ -100,9 +100,9 @@ export const SimplifiedAutomationSystem: React.FC = () => {
     }
   };
 
-  const handleToggleWorkflow = async (id: string, currentStatus: string) => {
+  const handleToggleWorkflow = async (id: string, newStatus: string) => {
     try {
-      const enabled = currentStatus !== 'active';
+      const enabled = newStatus === 'active';
       await AutomationService.toggleWorkflow(id, enabled);
       toast.success(`Workflow ${enabled ? 'enabled' : 'disabled'}`);
       loadAutomations();
@@ -543,7 +543,7 @@ const WorkflowList: React.FC<{
                 <Switch
                   checked={automation.status === 'active'}
                   onCheckedChange={(checked) => 
-                    onToggle(automation.id!, automation.status || 'inactive')
+                    onToggle(automation.id!, checked ? 'active' : 'inactive')
                   }
                 />
                 <Button
