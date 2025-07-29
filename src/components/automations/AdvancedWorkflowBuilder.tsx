@@ -18,6 +18,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { AIAutomationAssistant } from './AIAutomationAssistant';
 import { EnhancedTriggerSelector } from './EnhancedTriggerSelector';
 import { EnhancedActionSelector } from './EnhancedActionSelector';
+import { SmartTriggerSelector } from './SmartTriggerSelector';
+import { SmartActionSelector } from './SmartActionSelector';
 import { WORKFLOW_TEMPLATES, getPopularTemplates } from '@/data/workflowTemplates';
 import { TriggerTypes } from '@/types/automationFramework';
 
@@ -334,7 +336,7 @@ export const AdvancedWorkflowBuilder: React.FC<WorkflowBuilderProps> = ({
                     ✕
                   </Button>
                 </div>
-                <EnhancedTriggerSelector
+                <SmartTriggerSelector
                   onTriggerSelect={(trigger) => {
                     // Add trigger as first step
                     const triggerStep: WorkflowStep = {
