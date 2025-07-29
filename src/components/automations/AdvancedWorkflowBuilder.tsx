@@ -696,7 +696,6 @@ const StepActionConfig: React.FC<{
           <SelectContent side="bottom">{/* Force dropdown to open downward */}
             <SelectItem value="email">Email</SelectItem>
             <SelectItem value="sms">SMS</SelectItem>
-            <SelectItem value="ai_generate_message">🤖 AI Generate Message</SelectItem>
             <SelectItem value="notification">App Notification</SelectItem>
             <SelectItem value="task">Create Task</SelectItem>
           </SelectContent>
