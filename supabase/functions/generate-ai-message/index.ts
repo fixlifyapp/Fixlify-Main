@@ -11,6 +11,7 @@ interface GenerateMessageRequest {
   userInput?: string;
   hasUserInput?: boolean;
   variables: Array<{ name: string; label: string; type?: string }>;
+  triggerType?: string;
   companyInfo: {
     businessType: string;
     tone: string;
@@ -24,9 +25,9 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
-    const { messageType, context, userInput, hasUserInput, variables, companyInfo }: GenerateMessageRequest = await req.json();
+    const { messageType, context, userInput, hasUserInput, variables, triggerType, companyInfo }: GenerateMessageRequest = await req.json();
     
-    console.log('Generating AI message with:', { messageType, context, hasUserInput, companyInfo });
+    console.log('Generating AI message with:', { messageType, context, hasUserInput, triggerType, companyInfo });
 
     const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
     if (!openaiApiKey) {
@@ -40,8 +41,10 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
-    // Create simple variable list for essential variables only
-    const essentialVariables = ['{{client.firstName}}', '{{job.title}}', '{{company.name}}', '{{job.status}}'];
+    // Use the context-aware variables sent from the frontend
+    const contextVariables = variables && variables.length > 0 
+      ? variables.map(v => `{{${v.name}}}`)
+      : ['{{client.firstName}}', '{{job.title}}', '{{company.name}}', '{{job.status}}'];
     
     let prompt = '';
     let isEmail = messageType === 'professional';
@@ -53,7 +56,7 @@ const handler = async (req: Request): Promise<Response> => {
 
 Original message: "${userInput}"
 
-Available variables: ${essentialVariables.join(', ')}
+Available variables: ${contextVariables.join(', ')}
 
 Improve the message to be more professional and add variables where appropriate. 
 
@@ -67,7 +70,7 @@ Format your response as JSON:
 
 Original message: "${userInput}"
 
-Available variables: ${essentialVariables.join(', ')}
+Available variables: ${contextVariables.join(', ')}
 
 Keep it under 160 characters and add variables where appropriate.
 
@@ -83,7 +86,7 @@ Format your response as JSON:
 
 Context: ${context || 'General business communication'}
 Tone: ${companyInfo.tone}
-Use these variables: ${essentialVariables.join(', ')}
+Use these variables: ${contextVariables.join(', ')}
 
 Please generate:
 1. A subject line
@@ -100,7 +103,7 @@ Make the message professional and relevant to the business context.`;
         prompt = `Generate a ${companyInfo.tone} SMS message for a ${companyInfo.businessType}.
         
 Context: ${context || 'General business communication'}
-Use these variables: ${essentialVariables.join(', ')}
+Use these variables: ${contextVariables.join(', ')}
 
 Keep it under 160 characters and use the variables appropriately.
 
