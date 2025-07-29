@@ -2,13 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
 import {
-  Zap, Plus, Activity, TrendingUp, Settings,
-  CheckCircle, RefreshCw, Timer, ArrowLeft,
-  Play, Trash2, Workflow
+  Plus, Activity, TrendingUp, Settings,
+  RefreshCw, ArrowLeft, Play, Trash2, 
+  Workflow, Clock, MessageSquare, Zap
 } from 'lucide-react';
 
 import { AdvancedWorkflowBuilder } from './AdvancedWorkflowBuilder';
@@ -16,7 +15,6 @@ import { AutomationService, AutomationWorkflow } from '@/services/automationServ
 import { useAuth } from '@/hooks/use-auth';
 
 export const SimplifiedAutomationSystem: React.FC = () => {
-  const [activeView, setActiveView] = useState('workflows');
   const [automations, setAutomations] = useState<AutomationWorkflow[]>([]);
   const [loading, setLoading] = useState(false);
   const [showBuilder, setShowBuilder] = useState(false);
@@ -45,6 +43,19 @@ export const SimplifiedAutomationSystem: React.FC = () => {
 
   const handleCreateWorkflow = () => {
     setEditingWorkflow(null);
+    setShowBuilder(true);
+  };
+
+  const handleCreateFromTemplate = (template: any) => {
+    // Create a new workflow based on template
+    const templateWorkflow = {
+      name: template.name,
+      description: template.description,
+      template_config: {
+        steps: template.steps
+      }
+    };
+    setEditingWorkflow(templateWorkflow as AutomationWorkflow);
     setShowBuilder(true);
   };
 
@@ -139,7 +150,7 @@ export const SimplifiedAutomationSystem: React.FC = () => {
             className="gap-2"
           >
             <ArrowLeft className="w-4 h-4" />
-            Back to Automations
+            Back to Workflows
           </Button>
         </div>
 
@@ -171,7 +182,7 @@ export const SimplifiedAutomationSystem: React.FC = () => {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold">Automation Workflows</h2>
-          <p className="text-muted-foreground">Create automated workflows starting with triggers</p>
+          <p className="text-muted-foreground">Create and manage automated workflows</p>
         </div>
         <Button onClick={handleCreateWorkflow} className="gap-2">
           <Plus className="w-4 h-4" />
@@ -228,14 +239,94 @@ export const SimplifiedAutomationSystem: React.FC = () => {
         </Card>
       </div>
 
-      {/* Simple Tabs */}
-      <Tabs value={activeView} onValueChange={setActiveView}>
-        <TabsList>
-          <TabsTrigger value="workflows">Workflows</TabsTrigger>
-          <TabsTrigger value="templates">Templates</TabsTrigger>
-        </TabsList>
+      {/* Combined View: Templates and Workflows */}
+      <div className="space-y-6">
+        {/* Quick Start Templates */}
+        <div>
+          <h3 className="text-lg font-semibold mb-4">Quick Start Templates</h3>
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            {[
+              {
+                name: 'Welcome New Clients',
+                description: 'Send welcome message when client is added',
+                icon: MessageSquare,
+                trigger: 'New Client Added',
+                actions: ['Send Email', 'Send SMS'],
+                steps: [
+                  { type: 'trigger', name: 'New Client Added', config: { trigger_type: 'client_created' } },
+                  { type: 'action', name: 'Send Welcome Email', config: { action_type: 'send_email', template: 'welcome' } }
+                ]
+              },
+              {
+                name: 'Job Completion Follow-up',
+                description: 'Follow up after job completion',
+                icon: Clock,
+                trigger: 'Job Completed',
+                actions: ['Wait 1 Day', 'Send Survey'],
+                steps: [
+                  { type: 'trigger', name: 'Job Completed', config: { trigger_type: 'job_completed' } },
+                  { type: 'delay', name: 'Wait 1 Day', config: { delay_hours: 24 } },
+                  { type: 'action', name: 'Send Survey', config: { action_type: 'send_email', template: 'survey' } }
+                ]
+              },
+              {
+                name: 'Payment Reminders',
+                description: 'Remind about overdue payments',
+                icon: RefreshCw,
+                trigger: 'Invoice Overdue',
+                actions: ['Send Reminder', 'Create Task'],
+                steps: [
+                  { type: 'trigger', name: 'Invoice Overdue', config: { trigger_type: 'invoice_overdue' } },
+                  { type: 'action', name: 'Send Reminder', config: { action_type: 'send_email', template: 'payment_reminder' } },
+                  { type: 'action', name: 'Create Task', config: { action_type: 'create_task', title: 'Follow up on payment' } }
+                ]
+              },
+              {
+                name: 'Appointment Confirmations',
+                description: 'Confirm upcoming appointments',
+                icon: Zap,
+                trigger: 'Job Scheduled',
+                actions: ['Wait Until Day Before', 'Send SMS'],
+                steps: [
+                  { type: 'trigger', name: 'Job Scheduled', config: { trigger_type: 'job_scheduled' } },
+                  { type: 'delay', name: 'Wait Until Day Before', config: { delay_until: 'day_before' } },
+                  { type: 'action', name: 'Send SMS Confirmation', config: { action_type: 'send_sms', template: 'appointment_confirm' } }
+                ]
+              }
+            ].map((template) => {
+              const IconComponent = template.icon;
+              return (
+                <Card key={template.name} className="cursor-pointer hover:shadow-md transition-shadow">
+                  <CardHeader className="pb-3">
+                    <div className="flex items-start justify-between">
+                      <IconComponent className="w-8 h-8 text-primary" />
+                      <Button 
+                        size="sm"
+                        onClick={() => handleCreateFromTemplate(template)}
+                        className="gap-1"
+                      >
+                        <Plus className="w-3 h-3" />
+                        Use
+                      </Button>
+                    </div>
+                    <CardTitle className="text-base">{template.name}</CardTitle>
+                  </CardHeader>
+                  <CardContent className="pt-0">
+                    <p className="text-sm text-muted-foreground mb-3">{template.description}</p>
+                    <div className="space-y-1 text-xs">
+                      <div><span className="font-medium text-blue-600">Trigger:</span> {template.trigger}</div>
+                      <div><span className="font-medium text-green-600">Actions:</span> {template.actions.join(' → ')}</div>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        </div>
 
-        <TabsContent value="workflows" className="space-y-6">
+        {/* Existing Workflows */}
+        <div>
+          <h3 className="text-lg font-semibold mb-4">Your Workflows</h3>
           <WorkflowList 
             automations={automations}
             onEdit={handleEditWorkflow}
@@ -244,12 +335,8 @@ export const SimplifiedAutomationSystem: React.FC = () => {
             onTest={handleTestWorkflow}
             loading={loading}
           />
-        </TabsContent>
-
-        <TabsContent value="templates" className="space-y-6">
-          <WorkflowTemplates onCreateWorkflow={handleCreateWorkflow} />
-        </TabsContent>
-      </Tabs>
+        </div>
+      </div>
     </div>
   );
 };
@@ -346,76 +433,11 @@ const WorkflowList: React.FC<{
           <CardContent className="p-12 text-center">
             <Workflow className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
             <h3 className="text-lg font-semibold mb-2">No workflows yet</h3>
-            <p className="text-muted-foreground mb-4">Create your first automation workflow to get started</p>
+            <p className="text-muted-foreground mb-4">Start with a template or create your own workflow</p>
             <p className="text-sm text-muted-foreground">Remember: Every workflow must start with a trigger</p>
           </CardContent>
         </Card>
       )}
-    </div>
-  );
-};
-
-// Workflow Templates Component
-const WorkflowTemplates: React.FC<{
-  onCreateWorkflow: () => void;
-}> = ({ onCreateWorkflow }) => {
-  const templates = [
-    {
-      name: 'Welcome New Clients',
-      description: 'Send welcome message to new clients when they are created',
-      trigger: 'New Client Added',
-      actions: ['Send Email', 'Send SMS']
-    },
-    {
-      name: 'Job Completion Follow-up',
-      description: 'Follow up with clients after job completion',
-      trigger: 'Job Status Changed to Completed',
-      actions: ['Wait 1 Day', 'Send Survey Email']
-    },
-    {
-      name: 'Payment Reminders',
-      description: 'Remind clients about overdue payments',
-      trigger: 'Invoice Overdue',
-      actions: ['Send Email Reminder', 'Create Task']
-    },
-    {
-      name: 'Appointment Confirmations',
-      description: 'Confirm upcoming appointments',
-      trigger: 'Job Scheduled',
-      actions: ['Wait Until 1 Day Before', 'Send SMS Confirmation']
-    }
-  ];
-
-  return (
-    <div className="grid gap-4 md:grid-cols-2">
-      {templates.map((template) => (
-        <Card key={template.name} className="cursor-pointer hover:shadow-md transition-shadow">
-          <CardHeader>
-            <CardTitle className="text-lg">{template.name}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-muted-foreground mb-4">{template.description}</p>
-            
-            <div className="space-y-2 mb-4">
-              <div className="text-sm">
-                <span className="font-medium text-blue-600">Trigger:</span> {template.trigger}
-              </div>
-              <div className="text-sm">
-                <span className="font-medium text-green-600">Actions:</span> {template.actions.join(' → ')}
-              </div>
-            </div>
-            
-            <Button 
-              onClick={onCreateWorkflow}
-              className="w-full gap-2"
-              variant="outline"
-            >
-              <Plus className="w-4 h-4" />
-              Use This Template
-            </Button>
-          </CardContent>
-        </Card>
-      ))}
     </div>
   );
 };

@@ -45,11 +45,16 @@ supabaseClient.channel = function(name: string, opts?: any) {
 const originalRemoveChannel = supabaseClient.removeChannel.bind(supabaseClient);
 supabaseClient.removeChannel = function(channel: any) {
   try {
-    // Check if channel has unsubscribe method and is valid
-    if (channel && typeof channel.unsubscribe === 'function') {
-      channel.unsubscribe();
+    // Check if this is our mock channel
+    if (channel && typeof channel.unsubscribe === 'function' && channel.unsubscribe.toString().includes('{}')) {
+      // This is our mock channel, just return resolved promise
+      return Promise.resolve();
     }
-    return originalRemoveChannel(channel);
+    // For real channels, use the original method
+    if (channel && typeof channel.unsubscribe === 'function') {
+      return originalRemoveChannel(channel);
+    }
+    return Promise.resolve();
   } catch (error) {
     console.log('Suppressed removeChannel error:', error);
     return Promise.resolve();
