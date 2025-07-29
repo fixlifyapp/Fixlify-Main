@@ -29,16 +29,39 @@ const generateAIMessage = async (
   messageType: 'email' | 'sms',
   config: any,
   onUpdate: (config: any) => void,
-  availableVariables: Array<{ name: string; label: string; type: string }>
+  availableVariables: Array<{ name: string; label: string; type: string }>,
+  workflowContext?: any
 ) => {
   onUpdate({ ...config, isGenerating: true });
   
   try {
+    // Simple, essential variables only
+    const essentialVars = [
+      { name: 'client.firstName', label: 'Client Name' },
+      { name: 'job.title', label: 'Job Type' },
+      { name: 'company.name', label: 'Company Name' },
+      { name: 'job.status', label: 'Job Status' }
+    ];
+
+    // Get context from existing message or workflow
+    const userInput = config.message || '';
+    const hasUserInput = userInput.trim().length > 0;
+    
+    // Create context-aware prompt
+    let contextPrompt = '';
+    if (hasUserInput) {
+      contextPrompt = `Take this message and improve it by adding appropriate variables: "${userInput}"`;
+    } else {
+      contextPrompt = `Generate a ${messageType === 'email' ? 'professional email' : 'friendly SMS'} message`;
+    }
+
     const { data, error } = await supabase.functions.invoke('generate-ai-message', {
       body: {
         messageType: messageType === 'email' ? 'professional' : 'friendly',
-        context: `Generate a ${messageType} message`,
-        variables: availableVariables,
+        context: contextPrompt,
+        userInput: userInput,
+        hasUserInput: hasUserInput,
+        variables: essentialVars,
         companyInfo: {
           businessType: 'service company',
           tone: 'professional'

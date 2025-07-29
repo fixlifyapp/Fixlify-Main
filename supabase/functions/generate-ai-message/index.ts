@@ -8,7 +8,9 @@ const corsHeaders = {
 interface GenerateMessageRequest {
   messageType: string;
   context: string;
-  variables: Array<{ name: string; label: string; type: string }>;
+  userInput?: string;
+  hasUserInput?: boolean;
+  variables: Array<{ name: string; label: string; type?: string }>;
   companyInfo: {
     businessType: string;
     tone: string;
@@ -22,9 +24,9 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
-    const { messageType, context, variables, companyInfo }: GenerateMessageRequest = await req.json();
+    const { messageType, context, userInput, hasUserInput, variables, companyInfo }: GenerateMessageRequest = await req.json();
     
-    console.log('Generating AI message with:', { messageType, context, companyInfo });
+    console.log('Generating AI message with:', { messageType, context, hasUserInput, companyInfo });
 
     const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
     if (!openaiApiKey) {
@@ -38,22 +40,54 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
-    // Create prompt based on message type
-    const variablesList = variables.map(v => `{{${v.name}}} - ${v.label}`).join('\n');
+    // Create simple variable list for essential variables only
+    const essentialVariables = ['{{client.firstName}}', '{{job.title}}', '{{company.name}}', '{{job.status}}'];
     
     let prompt = '';
     let isEmail = messageType === 'professional';
     
-    if (isEmail) {
-      prompt = `Generate a professional email for a ${companyInfo.businessType}. 
-      
+    if (hasUserInput && userInput) {
+      // Improve user's existing message
+      if (isEmail) {
+        prompt = `Take this email message and improve it by adding appropriate variables where they make sense:
+
+Original message: "${userInput}"
+
+Available variables: ${essentialVariables.join(', ')}
+
+Improve the message to be more professional and add variables where appropriate. 
+
+Format your response as JSON:
+{
+  "subject": "Improved email subject",
+  "message": "Improved email body with variables"
+}`;
+      } else {
+        prompt = `Take this SMS message and improve it by adding appropriate variables where they make sense:
+
+Original message: "${userInput}"
+
+Available variables: ${essentialVariables.join(', ')}
+
+Keep it under 160 characters and add variables where appropriate.
+
+Format your response as JSON:
+{
+  "message": "Improved SMS with variables"
+}`;
+      }
+    } else {
+      // Generate new message
+      if (isEmail) {
+        prompt = `Generate a professional email for a ${companyInfo.businessType}. 
+
 Context: ${context || 'General business communication'}
 Tone: ${companyInfo.tone}
-Available variables to use: ${variablesList}
+Use these variables: ${essentialVariables.join(', ')}
 
 Please generate:
 1. A subject line
-2. An email body that uses some of the available variables appropriately
+2. An email body that uses the variables appropriately
 
 Format your response as JSON:
 {
@@ -62,18 +96,19 @@ Format your response as JSON:
 }
 
 Make the message professional and relevant to the business context.`;
-    } else {
-      prompt = `Generate a ${companyInfo.tone} SMS message for a ${companyInfo.businessType}.
-      
+      } else {
+        prompt = `Generate a ${companyInfo.tone} SMS message for a ${companyInfo.businessType}.
+        
 Context: ${context || 'General business communication'}
-Available variables to use: ${variablesList}
+Use these variables: ${essentialVariables.join(', ')}
 
-Keep it under 160 characters and use some of the available variables appropriately.
+Keep it under 160 characters and use the variables appropriately.
 
 Format your response as JSON:
 {
   "message": "SMS message here"
 }`;
+      }
     }
 
     console.log('Sending prompt to OpenAI:', prompt);
