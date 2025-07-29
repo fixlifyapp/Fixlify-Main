@@ -422,6 +422,27 @@ function getNestedValue(obj: any, path: string): any {
   }, obj);
 }
 
+function formatTime12Hour(timeString: string): string {
+  if (!timeString) return '';
+  
+  try {
+    // Parse time string (assuming format like "14:30" or "14:30:00")
+    const [hours, minutes] = timeString.split(':');
+    const hour24 = parseInt(hours, 10);
+    const minute = parseInt(minutes, 10);
+    
+    if (isNaN(hour24) || isNaN(minute)) return timeString;
+    
+    const hour12 = hour24 === 0 ? 12 : hour24 > 12 ? hour24 - 12 : hour24;
+    const ampm = hour24 >= 12 ? 'PM' : 'AM';
+    const formattedMinute = minute.toString().padStart(2, '0');
+    
+    return `${hour12}:${formattedMinute} ${ampm}`;
+  } catch (error) {
+    return timeString;
+  }
+}
+
 async function enrichContext(context: any, supabaseClient: any): Promise<any> {
   const enriched = { ...context };
   
@@ -440,12 +461,34 @@ async function enrichContext(context: any, supabaseClient: any): Promise<any> {
         .single();
         
       if (!jobError && job) {
+        // Format scheduled date and time for better display
+        const scheduledDate = job.scheduled_date ? new Date(job.scheduled_date) : null;
+        const scheduledTime = job.scheduled_time;
+        
+        // Create readable date formats
+        const formattedDate = scheduledDate ? scheduledDate.toLocaleDateString('en-US', {
+          weekday: 'long',
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric'
+        }) : null;
+        
+        const shortDate = scheduledDate ? scheduledDate.toLocaleDateString('en-US') : null;
+        
+        // Format time to 12-hour format
+        const formattedTime = scheduledTime ? formatTime12Hour(scheduledTime) : null;
+        
         enriched.job = {
           id: job.id,
           title: job.title || job.description,
           status: job.status,
           date: job.scheduled_date,
           time: job.scheduled_time,
+          formattedDate: formattedDate,
+          shortDate: shortDate,
+          formattedTime: formattedTime,
+          scheduledDateTime: formattedDate && formattedTime ? `${formattedDate} at ${formattedTime}` : null,
+          scheduledDateTimeShort: shortDate && formattedTime ? `${shortDate} at ${formattedTime}` : null,
           technician: job.technician_name,
           service: job.service_type,
           notes: job.notes,

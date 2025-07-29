@@ -40,7 +40,10 @@ const generateAIMessage = async (
       { name: 'client.firstName', label: 'Client Name' },
       { name: 'job.title', label: 'Job Type' },
       { name: 'company.name', label: 'Company Name' },
-      { name: 'job.status', label: 'Job Status' }
+      { name: 'job.status', label: 'Job Status' },
+      { name: 'job.formattedDate', label: 'Appointment Date' },
+      { name: 'job.formattedTime', label: 'Appointment Time' },
+      { name: 'job.scheduledDateTime', label: 'Full Appointment' }
     ];
 
     // Get context from existing message or workflow

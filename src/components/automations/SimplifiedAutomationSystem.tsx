@@ -167,6 +167,10 @@ export const SimplifiedAutomationSystem: React.FC = () => {
             { name: 'job.number', label: 'Job Number', type: 'text' },
             { name: 'job.title', label: 'Job Title', type: 'text' },
             { name: 'job.status', label: 'Job Status', type: 'text' },
+            { name: 'job.formattedDate', label: 'Appointment Date', type: 'text' },
+            { name: 'job.formattedTime', label: 'Appointment Time', type: 'text' },
+            { name: 'job.scheduledDateTime', label: 'Full Appointment', type: 'text' },
+            { name: 'job.scheduledDateTimeShort', label: 'Short Appointment', type: 'text' },
             { name: 'invoice.number', label: 'Invoice Number', type: 'text' },
             { name: 'invoice.total', label: 'Invoice Total', type: 'currency' },
             { name: 'company.name', label: 'Company Name', type: 'text' }
