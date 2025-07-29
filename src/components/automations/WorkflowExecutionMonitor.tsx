@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { automationEngine } from '@/services/automationExecutionEngine';
+import { AutomationService } from '@/services/automationService';
 import { PlayCircle, PauseCircle, Activity, Clock, CheckCircle, XCircle } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -29,7 +29,7 @@ export const WorkflowExecutionMonitor: React.FC<WorkflowExecutionMonitorProps> =
     
     try {
       setLoading(true);
-      const logs = await automationEngine.getExecutionLogs(workflowId);
+      const logs = await AutomationService.getExecutionLogs();
       setExecutionLogs(logs);
     } catch (error) {
       console.error('Error loading execution logs:', error);
@@ -41,7 +41,7 @@ export const WorkflowExecutionMonitor: React.FC<WorkflowExecutionMonitorProps> =
 
   const handleStartEngine = async () => {
     try {
-      await automationEngine.initialize();
+      await AutomationService.startEngine();
       setIsEngineRunning(true);
       toast.success('Automation engine started');
     } catch (error) {
@@ -52,7 +52,7 @@ export const WorkflowExecutionMonitor: React.FC<WorkflowExecutionMonitorProps> =
 
   const handleStopEngine = async () => {
     try {
-      await automationEngine.pauseAllAutomations();
+      await AutomationService.stopEngine();
       setIsEngineRunning(false);
       toast.success('Automation engine stopped');
     } catch (error) {
@@ -65,7 +65,7 @@ export const WorkflowExecutionMonitor: React.FC<WorkflowExecutionMonitorProps> =
     if (!workflowId) return;
     
     try {
-      await automationEngine.testWorkflow(workflowId, {
+      await AutomationService.testWorkflow(workflowId, {
         test_client_id: 'test-123',
         test_job_id: 'job-456',
         test_message: 'This is a test execution'
