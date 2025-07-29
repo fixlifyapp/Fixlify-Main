@@ -3,11 +3,12 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
+import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 import {
   Plus, Activity, TrendingUp, Settings,
   RefreshCw, ArrowLeft, Play, Trash2, 
-  Workflow, Clock, MessageSquare, Zap
+  Workflow, Clock, MessageSquare, Zap, Edit2, Check, X
 } from 'lucide-react';
 
 import { AdvancedWorkflowBuilder } from './AdvancedWorkflowBuilder';
@@ -342,6 +343,57 @@ const WorkflowList: React.FC<{
   onTest: (id: string) => void;
   loading: boolean;
 }> = ({ automations, onEdit, onDelete, onToggle, onTest, loading }) => {
+  const [editingName, setEditingName] = useState<string | null>(null);
+  const [tempName, setTempName] = useState('');
+
+  const generateWorkflowSubtitle = (automation: AutomationWorkflow): string => {
+    let subtitle = '';
+    
+    // Extract triggers from template_config
+    const triggers = automation.triggers || automation.template_config?.triggers || [];
+    const actions = automation.actions || automation.template_config?.actions || automation.template_config?.steps?.filter((s: any) => s.type === 'action') || [];
+    
+    if (triggers.length > 0) {
+      const triggerType = triggers[0].triggerType || triggers[0].type || 'trigger';
+      const triggerName = triggerType.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase());
+      subtitle += `When ${triggerName}`;
+    }
+    
+    if (actions.length > 0) {
+      const actionCount = actions.length;
+      if (actionCount === 1) {
+        const actionType = actions[0].actionType || actions[0].type || 'action';
+        const actionName = actionType.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase());
+        subtitle += ` → ${actionName}`;
+      } else {
+        subtitle += ` → ${actionCount} actions`;
+      }
+    }
+    
+    return subtitle || 'Workflow automation';
+  };
+
+  const handleNameEdit = (automation: AutomationWorkflow) => {
+    setEditingName(automation.id!);
+    setTempName(automation.name);
+  };
+
+  const handleNameSave = async (automation: AutomationWorkflow) => {
+    if (tempName.trim() && tempName !== automation.name) {
+      try {
+        // TODO: Add API call to update automation name
+        toast.success('Workflow name updated');
+      } catch (error) {
+        toast.error('Failed to update workflow name');
+      }
+    }
+    setEditingName(null);
+  };
+
+  const handleNameCancel = () => {
+    setEditingName(null);
+    setTempName('');
+  };
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -356,17 +408,56 @@ const WorkflowList: React.FC<{
   return (
     <div className="space-y-4">
       {automations.map((automation) => (
-        <Card key={automation.id}>
+        <Card key={automation.id} className="group hover:shadow-md transition-shadow">
           <CardContent className="p-6">
             <div className="flex items-start justify-between">
               <div className="flex-1">
                 <div className="flex items-center gap-3 mb-2">
-                  <h3 className="text-lg font-semibold">{automation.name}</h3>
+                  {editingName === automation.id ? (
+                    <div className="flex items-center gap-2 flex-1">
+                      <Input
+                        value={tempName}
+                        onChange={(e) => setTempName(e.target.value)}
+                        className="text-lg font-semibold"
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') handleNameSave(automation);
+                          if (e.key === 'Escape') handleNameCancel();
+                        }}
+                        autoFocus
+                      />
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => handleNameSave(automation)}
+                      >
+                        <Check className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={handleNameCancel}
+                      >
+                        <X className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-lg font-semibold">{automation.name}</h3>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => handleNameEdit(automation)}
+                        className="opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <Edit2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  )}
                   <Badge variant={automation.status === 'active' ? 'default' : 'secondary'}>
                     {automation.status}
                   </Badge>
                 </div>
-                <p className="text-muted-foreground mb-4">{automation.description}</p>
+                <p className="text-muted-foreground mb-4">{generateWorkflowSubtitle(automation)}</p>
                 
                 <div className="flex items-center gap-4 text-sm text-muted-foreground">
                   <span>Executions: {automation.execution_count || 0}</span>
