@@ -1280,6 +1280,26 @@ const AIMessageGeneratorConfig: React.FC<{
           onChange={(e) => onUpdate({ ...config, context: e.target.value })}
           rows={2}
         />
+        
+        {/* Generate Button - Now near the message input */}
+        <Button
+          onClick={generateMessage}
+          disabled={isGenerating}
+          className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
+          size="sm"
+        >
+          {isGenerating ? (
+            <>
+              <Bot className="w-4 h-4 mr-2 animate-spin" />
+              Generating...
+            </>
+          ) : (
+            <>
+              <Sparkles className="w-4 h-4 mr-2" />
+              Generate AI Message
+            </>
+          )}
+        </Button>
       </div>
 
       {/* Generated Message Preview */}
@@ -1298,25 +1318,6 @@ const AIMessageGeneratorConfig: React.FC<{
           </Button>
         </div>
       )}
-
-      {/* Generate Button */}
-      <Button
-        onClick={generateMessage}
-        disabled={isGenerating}
-        className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
-      >
-        {isGenerating ? (
-          <>
-            <Bot className="w-4 h-4 mr-2 animate-spin" />
-            Generating...
-          </>
-        ) : (
-          <>
-            <Sparkles className="w-4 h-4 mr-2" />
-            Generate AI Message
-          </>
-        )}
-      </Button>
 
       {/* Available Variables */}
       <div className="space-y-2">
