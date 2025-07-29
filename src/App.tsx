@@ -6,7 +6,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { AuthProvider } from "@/hooks/use-auth";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { AppProviders } from "@/components/ui/AppProviders";
-import { setupAuthErrorHandler } from "@/utils/auth-fix";
+// Auth fix removed
 import { suppressSMSErrors } from "@/utils/suppressSMSErrors";
 import authMonitor from "@/utils/auth-monitor.js?raw";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
@@ -83,7 +83,6 @@ function App() {
   
   // Setup auth error handler
   React.useEffect(() => {
-    setupAuthErrorHandler();
     suppressSMSErrors();
   }, []);
   

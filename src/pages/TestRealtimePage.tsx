@@ -59,7 +59,7 @@ export default function TestRealtimePage() {
     try {
       console.log('📥 Loading messages...');
       const { data, error } = await supabase
-        .from('messages')
+        .from('sms_messages')
         .select(`
           id,
           body,

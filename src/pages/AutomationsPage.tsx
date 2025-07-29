@@ -19,9 +19,6 @@ import { useAuth } from '@/hooks/use-auth';
 import { useOrganization } from '@/hooks/use-organization';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
-// import SimpleWorkflowBuilder from '@/components/automations/SimpleWorkflowBuilder';
-// import { AutomationExecutionLogs } from '@/components/automations/AutomationExecutionLogs';
-// import { AutomationManualExecution } from '@/services/automation-manual-execution';
 
 const AutomationsPage = () => {
   const navigate = useNavigate();
