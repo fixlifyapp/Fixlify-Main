@@ -66,6 +66,7 @@ export const AdvancedWorkflowBuilder: React.FC<WorkflowBuilderProps> = ({
   const [steps, setSteps] = useState<WorkflowStep[]>(initialWorkflow);
   const [selectedStep, setSelectedStep] = useState<string | null>(null);
   const [showAIAssistant, setShowAIAssistant] = useState(false);
+  const [showTriggerSelector, setShowTriggerSelector] = useState(false);
 
   const addStep = (type: WorkflowStep['type']) => {
     const newStep: WorkflowStep = {
@@ -223,7 +224,6 @@ export const AdvancedWorkflowBuilder: React.FC<WorkflowBuilderProps> = ({
       <Tabs defaultValue="builder" className="w-full">
         <TabsList className="mb-6">
           <TabsTrigger value="builder">Workflow Builder</TabsTrigger>
-          <TabsTrigger value="triggers">Enhanced Triggers</TabsTrigger>
           <TabsTrigger value="actions">Enhanced Actions</TabsTrigger>
         </TabsList>
 
@@ -275,6 +275,15 @@ export const AdvancedWorkflowBuilder: React.FC<WorkflowBuilderProps> = ({
               <Button
                 variant="outline"
                 size="sm"
+                onClick={() => setShowTriggerSelector(!showTriggerSelector)}
+                className="gap-2"
+              >
+                <Zap className="w-4 h-4" />
+                Add Trigger
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
                 onClick={() => addStep('action')}
                 className="gap-2"
               >
@@ -300,6 +309,50 @@ export const AdvancedWorkflowBuilder: React.FC<WorkflowBuilderProps> = ({
                 Add If/Then/Else
               </Button>
             </div>
+
+            {/* Inline Trigger Selector */}
+            {showTriggerSelector && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: 0.3 }}
+                className="mt-4 p-4 border rounded-lg bg-muted/20"
+              >
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <h4 className="font-medium">Add Trigger</h4>
+                    <p className="text-sm text-muted-foreground">
+                      Select a trigger to start your workflow
+                    </p>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setShowTriggerSelector(false)}
+                  >
+                    ✕
+                  </Button>
+                </div>
+                <EnhancedTriggerSelector
+                  onTriggerSelect={(trigger) => {
+                    // Add trigger as first step
+                    const triggerStep: WorkflowStep = {
+                      id: `trigger-${Date.now()}`,
+                      type: 'action', // Using action type for now, could extend to trigger type
+                      name: `Trigger: ${trigger.name}`,
+                      config: {
+                        actionType: 'trigger',
+                        triggerType: trigger.type,
+                        triggerConfig: trigger.config
+                      }
+                    };
+                    setSteps([triggerStep, ...steps]);
+                    setShowTriggerSelector(false);
+                  }}
+                />
+              </motion.div>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -314,34 +367,6 @@ export const AdvancedWorkflowBuilder: React.FC<WorkflowBuilderProps> = ({
           </div>
         </TabsContent>
 
-        <TabsContent value="triggers">
-          <Card>
-            <CardHeader>
-              <CardTitle>Enhanced Trigger System</CardTitle>
-              <p className="text-muted-foreground">
-                Select advanced triggers with intelligent conditions and business logic
-              </p>
-            </CardHeader>
-            <CardContent>
-              <EnhancedTriggerSelector
-                onTriggerSelect={(trigger) => {
-                  // Add trigger as first step
-                  const triggerStep: WorkflowStep = {
-                    id: `trigger-${Date.now()}`,
-                    type: 'action', // Using action type for now, could extend to trigger type
-                    name: `Trigger: ${trigger.name}`,
-                    config: {
-                      actionType: 'trigger',
-                      triggerType: trigger.type,
-                      triggerConfig: trigger.config
-                    }
-                  };
-                  setSteps([triggerStep, ...steps]);
-                }}
-              />
-            </CardContent>
-          </Card>
-        </TabsContent>
 
         <TabsContent value="actions">
           <Card>
