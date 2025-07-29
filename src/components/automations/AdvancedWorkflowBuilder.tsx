@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { useJobStatuses, useTags } from "@/hooks/useConfigItems";
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
@@ -12,7 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Plus, Trash2, Clock, Calendar, Mail, MessageSquare, Phone,
   ChevronRight, AlertCircle, DollarSign, Star, User, Settings,
-  Zap, ArrowDown, GitBranch, Timer, Sun, Moon, Globe, Bot, Sparkles, Bell, Briefcase, Users
+  Zap, ArrowDown, GitBranch, Timer, Sun, Moon, Globe, Bot, Sparkles, Bell, Briefcase, Users, ChevronDown, Tag
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -859,7 +860,98 @@ const StepActionConfig: React.FC<{
 
       {/* Variable Insertion */}
       <div className="flex flex-wrap gap-1">
-        {availableVariables.slice(0, 5).map((variable) => (
+        {/* Important Variables Dropdown */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-2 text-xs h-6"
+            >
+              <Plus className="w-3 h-3" />
+              Variables
+              <ChevronDown className="w-3 h-3" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent 
+            className="w-56 max-h-64 overflow-y-auto bg-background border shadow-lg z-50"
+            align="start"
+          >
+            {/* Important variables first */}
+            <DropdownMenuItem
+              onClick={() => {
+                const currentMessage = config.message || '';
+                onUpdate({ ...config, message: currentMessage + ` {{client.firstName}}` });
+              }}
+            >
+              <User className="w-3 h-3 mr-2" />
+              Client Name
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={() => {
+                const currentMessage = config.message || '';
+                onUpdate({ ...config, message: currentMessage + ` {{job.formattedDate}}` });
+              }}
+            >
+              <Calendar className="w-3 h-3 mr-2" />
+              Appointment Date
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={() => {
+                const currentMessage = config.message || '';
+                onUpdate({ ...config, message: currentMessage + ` {{job.appointmentTime}}` });
+              }}
+            >
+              <Clock className="w-3 h-3 mr-2" />
+              Appointment Time
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={() => {
+                const currentMessage = config.message || '';
+                onUpdate({ ...config, message: currentMessage + ` {{job.scheduledDateTime}}` });
+              }}
+            >
+              <Calendar className="w-3 h-3 mr-2" />
+              Full Appointment
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={() => {
+                const currentMessage = config.message || '';
+                onUpdate({ ...config, message: currentMessage + ` {{job.title}}` });
+              }}
+            >
+              <Briefcase className="w-3 h-3 mr-2" />
+              Job Type
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={() => {
+                const currentMessage = config.message || '';
+                onUpdate({ ...config, message: currentMessage + ` {{company.name}}` });
+              }}
+            >
+              <Settings className="w-3 h-3 mr-2" />
+              Company Name
+            </DropdownMenuItem>
+            {/* Additional variables */}
+            {availableVariables.filter(v => 
+              !['client.firstName', 'job.formattedDate', 'job.appointmentTime', 'job.scheduledDateTime', 'job.title', 'company.name'].includes(v.name)
+            ).slice(0, 6).map((variable) => (
+              <DropdownMenuItem
+                key={variable.name}
+                onClick={() => {
+                  const currentMessage = config.message || '';
+                  onUpdate({ ...config, message: currentMessage + ` {{${variable.name}}}` });
+                }}
+              >
+                <Tag className="w-3 h-3 mr-2" />
+                {variable.label}
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
+        
+        {/* Quick access to top 3 variables */}
+        {availableVariables.slice(0, 3).map((variable) => (
           <Badge
             key={variable.name}
             variant="outline"
