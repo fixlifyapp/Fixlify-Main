@@ -544,7 +544,7 @@ const StepTriggerConfig: React.FC<{
           <SelectTrigger className="w-full sm:w-48">
             <SelectValue />
           </SelectTrigger>
-          <SelectContent>
+          <SelectContent side="bottom">{/* Force dropdown to open downward */}
             {/* Job Management Triggers */}
             <SelectItem value="job_created">Job Created</SelectItem>
             <SelectItem value="job_status_changed">Job Status Changed</SelectItem>
@@ -615,7 +615,7 @@ const StepConditionConfig: React.FC<{
           <SelectTrigger className="w-full sm:w-40">
             <SelectValue placeholder="Select field" />
           </SelectTrigger>
-          <SelectContent>
+          <SelectContent side="bottom">{/* Force dropdown to open downward */}
             {availableVariables.map((variable) => (
               <SelectItem key={variable.name} value={variable.name}>
                 {variable.label}
@@ -631,7 +631,7 @@ const StepConditionConfig: React.FC<{
           <SelectTrigger className="w-full sm:w-32">
             <SelectValue />
           </SelectTrigger>
-          <SelectContent>
+          <SelectContent side="bottom">{/* Force dropdown to open downward */}
             <SelectItem value="equals">Equals</SelectItem>
             <SelectItem value="not_equals">Not Equals</SelectItem>
             <SelectItem value="greater_than">Greater Than</SelectItem>
@@ -665,7 +665,7 @@ const StepActionConfig: React.FC<{
           <SelectTrigger className="w-full sm:w-32">
             <SelectValue />
           </SelectTrigger>
-          <SelectContent>
+          <SelectContent side="bottom">{/* Force dropdown to open downward */}
             <SelectItem value="email">Email</SelectItem>
             <SelectItem value="sms">SMS</SelectItem>
             <SelectItem value="notification">App Notification</SelectItem>
