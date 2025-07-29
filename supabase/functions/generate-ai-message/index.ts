@@ -44,7 +44,23 @@ const handler = async (req: Request): Promise<Response> => {
     // Use the context-aware variables sent from the frontend
     const contextVariables = variables && variables.length > 0 
       ? variables.map(v => `{{${v.name}}}`)
-      : ['{{client.firstName}}', '{{job.title}}', '{{company.name}}', '{{job.status}}'];
+      : getDefaultVariablesForTrigger(triggerType || 'general');
+    
+    function getDefaultVariablesForTrigger(trigger: string): string[] {
+      switch (trigger.toLowerCase()) {
+        case 'job scheduled':
+        case 'appointment scheduled':
+          return ['{{client.firstName}}', '{{job.title}}', '{{job.scheduledDate}}', '{{job.scheduledTime}}', '{{job.location}}', '{{company.name}}'];
+        case 'job completed':
+          return ['{{client.firstName}}', '{{job.title}}', '{{job.completionDate}}', '{{company.name}}'];
+        case 'invoice sent':
+          return ['{{client.firstName}}', '{{invoice.amount}}', '{{invoice.dueDate}}', '{{company.name}}'];
+        case 'payment received':
+          return ['{{client.firstName}}', '{{payment.amount}}', '{{payment.date}}', '{{company.name}}'];
+        default:
+          return ['{{client.firstName}}', '{{job.title}}', '{{company.name}}'];
+      }
+    }
     
     let prompt = '';
     let isEmail = messageType === 'professional';
