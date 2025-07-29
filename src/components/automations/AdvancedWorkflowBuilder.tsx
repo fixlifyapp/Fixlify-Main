@@ -206,6 +206,18 @@ export const AdvancedWorkflowBuilder: React.FC<WorkflowBuilderProps> = ({
   const [selectedStep, setSelectedStep] = useState<string | null>(null);
   const [showAIAssistant, setShowAIAssistant] = useState(false);
   const [workflowTitle, setWorkflowTitle] = useState('Untitled Workflow');
+  const [timingConfig, setTimingConfig] = useState({
+    businessHours: true,
+    businessStart: '09:00',
+    businessEnd: '17:00',
+    timezone: 'customer_local',
+    quietHours: true,
+    quietStart: '21:00',
+    quietEnd: '08:00',
+    optimalSend: false,
+    recurring: false,
+    recurringType: 'none'
+  });
 
   const addStep = (type: WorkflowStep['type']) => {
     const newStep: WorkflowStep = {
@@ -500,7 +512,10 @@ export const AdvancedWorkflowBuilder: React.FC<WorkflowBuilderProps> = ({
       </Card>
 
       {/* Smart Timing Options */}
-      <SmartTimingOptions />
+      <SmartTimingOptions 
+        config={timingConfig} 
+        onConfigChange={setTimingConfig}
+      />
 
           {/* Save Button */}
           <div className="flex justify-end gap-2">
@@ -1190,22 +1205,26 @@ const StepBranchConfig: React.FC<{
 };
 
 // Smart Timing Options Component
-const SmartTimingOptions: React.FC = () => {
+interface SmartTimingOptionsProps {
+  config: any;
+  onConfigChange: (config: any) => void;
+}
+
+const SmartTimingOptions: React.FC<SmartTimingOptionsProps> = ({ config, onConfigChange }) => {
   const { companySettings, isLoading } = useCompanySettings();
   
   const [timingConfig, setTimingConfig] = useState({
-    businessHours: true,
-    businessStart: '09:00',
-    businessEnd: '17:00',
-    timezone: 'customer_local',
-    quietHours: true,
-    quietStart: '21:00',
-    quietEnd: '08:00',
-    optimalSend: false,
-    recurring: false,
-    recurringType: 'none'
+    businessHours: config?.businessHours ?? true,
+    businessStart: config?.businessStart ?? '09:00',
+    businessEnd: config?.businessEnd ?? '17:00',
+    timezone: config?.timezone ?? 'customer_local',
+    quietHours: config?.quietHours ?? true,
+    quietStart: config?.quietStart ?? '21:00',
+    quietEnd: config?.quietEnd ?? '08:00',
+    optimalSend: config?.optimalSend ?? false,
+    recurring: config?.recurring ?? false,
+    recurringType: config?.recurringType ?? 'none'
   });
-
   // Update timing config when company settings change
   useEffect(() => {
     if (companySettings?.business_hours) {
@@ -1224,6 +1243,29 @@ const SmartTimingOptions: React.FC = () => {
       }
     }
   }, [companySettings]);
+
+  // Update local state when config prop changes
+  useEffect(() => {
+    if (config) {
+      setTimingConfig({
+        businessHours: config.businessHours ?? true,
+        businessStart: config.businessStart ?? '09:00',
+        businessEnd: config.businessEnd ?? '17:00',
+        timezone: config.timezone ?? 'customer_local',
+        quietHours: config.quietHours ?? true,
+        quietStart: config.quietStart ?? '21:00',
+        quietEnd: config.quietEnd ?? '08:00',
+        optimalSend: config.optimalSend ?? false,
+        recurring: config.recurring ?? false,
+        recurringType: config.recurringType ?? 'none'
+      });
+    }
+  }, [config]);
+
+  // Save changes back to parent when timing config changes
+  useEffect(() => {
+    onConfigChange(timingConfig);
+  }, [timingConfig, onConfigChange]);
 
   return (
     <Card>
