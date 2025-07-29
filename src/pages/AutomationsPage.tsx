@@ -2,7 +2,7 @@ import React from 'react';
 import { PageLayout } from "@/components/layout/PageLayout";
 import { PageHeader } from "@/components/ui/page-header";
 import { AnimatedContainer } from "@/components/ui/animated-container";
-import { UnifiedAutomationSystem } from '@/components/automations/UnifiedAutomationSystem';
+import { SimplifiedAutomationSystem } from '@/components/automations/SimplifiedAutomationSystem';
 import { Zap, Bot, TrendingUp, Settings } from "lucide-react";
 
 const AutomationsPage = () => {
@@ -22,7 +22,7 @@ const AutomationsPage = () => {
       </AnimatedContainer>
       
       <AnimatedContainer animation="fade-in" delay={200}>
-        <UnifiedAutomationSystem />
+        <SimplifiedAutomationSystem />
       </AnimatedContainer>
     </PageLayout>
   );

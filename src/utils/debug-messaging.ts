@@ -22,12 +22,12 @@ export const debugMessagingServices = async () => {
       results.auth.message = `Authenticated as: ${user.email}`;
     }
 
-    // 2. Check Telnyx phone numbers
-    console.log("2️⃣ Checking Telnyx phone numbers...");
+    // 2. Check phone numbers
+    console.log("2️⃣ Checking phone numbers...");
     const { data: phoneNumbers, error: phoneError } = await supabase
-      .from('telnyx_phone_numbers')
+      .from('phone_numbers')
       .select('*')
-      .eq('status', 'active');
+      .eq('is_active', true);
     
     if (phoneError) {
       results.phoneNumbers.message = `Database error: ${phoneError.message}`;
@@ -35,7 +35,7 @@ export const debugMessagingServices = async () => {
       results.phoneNumbers.message = "No active phone numbers found";
     } else {
       results.phoneNumbers.status = "✅";
-      results.phoneNumbers.message = `Found ${phoneNumbers.length} active phone number(s): ${phoneNumbers.map(p => p.phone_number).join(', ')}`;
+      results.phoneNumbers.message = `Found ${phoneNumbers.length} active phone number(s): ${phoneNumbers.map((p: any) => p.phone_number).join(', ')}`;
     }
 
     // 3. Check company settings

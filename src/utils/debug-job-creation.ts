@@ -52,22 +52,20 @@ export const debugJobCreation = async () => {
     // 4. Check configuration items
     console.log("4️⃣ Checking configuration items...");
     const { data: jobTypes } = await supabase
-      .from('config_items')
+      .from('job_types')
       .select('*')
-      .eq('category', 'job_type')
       .eq('user_id', user?.id || '');
     
     const { data: jobStatuses } = await supabase
-      .from('config_items')
+      .from('job_statuses')
       .select('*')
-      .eq('category', 'job_status')
       .eq('user_id', user?.id || '');
     
     results.configItems.success = true;
     results.configItems.message = `Found ${jobTypes?.length || 0} job types, ${jobStatuses?.length || 0} job statuses`;
     results.configItems.data = { 
-      jobTypes: jobTypes?.map(jt => jt.name) || [],
-      jobStatuses: jobStatuses?.map(js => js.name) || []
+      jobTypes: jobTypes?.map((jt: any) => jt.name) || [],
+      jobStatuses: jobStatuses?.map((js: any) => js.name) || []
     };
 
     // 5. Test creating a minimal job
