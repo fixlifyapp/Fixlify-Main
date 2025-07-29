@@ -708,42 +708,6 @@ const SmartTimingOptions: React.FC = () => {
             </div>
           </div>
 
-          {/* Quiet Hours */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Moon className="w-4 h-4 text-muted-foreground" />
-              <Label>Respect quiet hours</Label>
-            </div>
-            <div className="flex items-center gap-2">
-              <Switch
-                checked={timingConfig.quietHours}
-                onCheckedChange={(checked) =>
-                  setTimingConfig({ ...timingConfig, quietHours: checked })
-                }
-              />
-              {timingConfig.quietHours && (
-                <div className="flex items-center gap-2">
-                  <Input
-                    type="time"
-                    value={timingConfig.quietStart}
-                    onChange={(e) =>
-                      setTimingConfig({ ...timingConfig, quietStart: e.target.value })
-                    }
-                    className="w-24 h-8"
-                  />
-                  <span className="text-sm">to</span>
-                  <Input
-                    type="time"
-                    value={timingConfig.quietEnd}
-                    onChange={(e) =>
-                      setTimingConfig({ ...timingConfig, quietEnd: e.target.value })
-                    }
-                    className="w-24 h-8"
-                  />
-                </div>
-              )}
-            </div>
-          </div>
 
           {/* Timezone */}
           <div className="flex items-center justify-between">
