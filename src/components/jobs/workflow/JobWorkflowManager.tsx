@@ -14,6 +14,7 @@ import {
   PlayCircle
 } from "lucide-react";
 import { useJobWorkflow } from "./hooks/useJobWorkflow";
+import { useJobDetails } from "../context/JobDetailsContext";
 
 interface JobWorkflowManagerProps {
   jobId: string;
@@ -23,16 +24,18 @@ interface JobWorkflowManagerProps {
 export const JobWorkflowManager = ({ jobId, currentStatus }: JobWorkflowManagerProps) => {
   const { 
     workflow, 
-    isLoading, 
-    updateJobStatus, 
+    isLoading: workflowLoading, 
     getNextActions,
     getWorkflowProgress
   } = useJobWorkflow(jobId, currentStatus);
+  
+  // Use the real status update function from context
+  const { updateJobStatus, isLoading: statusLoading } = useJobDetails();
 
   const progress = getWorkflowProgress();
   const nextActions = getNextActions();
 
-  if (isLoading) {
+  if (workflowLoading || statusLoading) {
     return (
       <Card>
         <CardContent className="p-6">

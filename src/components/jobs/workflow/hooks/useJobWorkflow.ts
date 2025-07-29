@@ -137,14 +137,12 @@ export const useJobWorkflow = (jobId: string, currentStatus: string) => {
   const updateJobStatus = async (newStatus: string) => {
     setIsLoading(true);
     try {
-      // Here you would update the job status in your database
-      console.log(`Updating job ${jobId} status from ${currentStatus} to ${newStatus}`);
+      // This function is for demo purposes only
+      // Real status updates should use the JobDetailsContext updateJobStatus
+      console.log(`Mock workflow status update: ${jobId} from ${currentStatus} to ${newStatus}`);
       
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // In a real app, this would trigger a refresh of the job data
-      window.location.reload();
+      // Don't reload the page - let the parent component handle the actual update
+      console.warn('useJobWorkflow updateJobStatus is for demo only. Use JobDetailsContext updateJobStatus for real updates.');
     } catch (error) {
       console.error('Failed to update job status:', error);
     } finally {

@@ -83,8 +83,14 @@ export const JobDetailsProvider = ({
         },
         (payload) => {
           console.log('Job update detected:', payload);
+          // Only refresh if this wasn't an optimistic update we just made
           if (isMountedRef.current) {
-            refreshJob();
+            // Small delay to prevent race conditions with optimistic updates
+            setTimeout(() => {
+              if (isMountedRef.current) {
+                refreshJob();
+              }
+            }, 100);
           }
         }
       )
@@ -119,9 +125,11 @@ export const JobDetailsProvider = ({
     setCurrentStatus(newStatus);
     
     try {
-      await handleUpdateJobStatus(newStatus);
+      await handleUpdateJobStatus(newStatus, previousStatus);
+      console.log(`✅ Job status updated from ${previousStatus} to ${newStatus}`);
       // Status already updated optimistically, no need to refresh
     } catch (error) {
+      console.error(`❌ Failed to update status from ${previousStatus} to ${newStatus}:`, error);
       // Revert optimistic update on error
       setCurrentStatus(previousStatus);
       throw error;
