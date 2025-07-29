@@ -176,19 +176,25 @@ export const UnifiedOnboardingModal = ({
         console.log("User defaults initialized successfully");
       }
 
-      // Step 4: Use the new NicheDataInitializer for enhanced setup
-      console.log("Initializing niche-specific data with NicheDataInitializer...");
-      const nicheInitializer = new NicheDataInitializer(userId, formData.businessType);
+      // Step 4: Initialize niche-specific data directly through Supabase function
+      console.log("Initializing niche-specific data...");
       
-      const initResults = await nicheInitializer.initializeAllData({
-        setupProducts: formData.setupProducts,
-        setupTags: formData.setupTags,
-        setupCustomFields: true,
-        setupAutomations: true,
-        setupEmailTemplates: true
-      });
+      try {
+        const { error: nicheError } = await supabase.rpc('initialize_user_data_complete_enhanced', {
+          p_user_id: userId,
+          p_business_niche: formData.businessType
+        });
+        
+        if (nicheError) {
+          console.error("Niche initialization error:", nicheError);
+        } else {
+          console.log("Niche data initialized successfully");
+        }
+      } catch (error) {
+        console.error("Error initializing niche data:", error);
+      }
 
-      console.log("Niche initialization results:", initResults);
+      console.log("Niche initialization completed");
 
       // Step 5: Also run the existing enhanced niche data RPC for compatibility
       console.log("Running enhanced niche data RPC...");

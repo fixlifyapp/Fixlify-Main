@@ -21,6 +21,12 @@ export class AutomationService {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('User not authenticated');
 
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('organization_id')
+      .eq('id', user.id)
+      .maybeSingle();
+
     const { data, error } = await supabase
       .from('automation_workflows')
       .insert({
@@ -28,7 +34,8 @@ export class AutomationService {
         description: workflow.description || '',
         template_config: workflow.template_config || {},
         status: 'active',
-        user_id: user.id
+        user_id: user.id,
+        organization_id: profile?.organization_id || user.id
       })
       .select()
       .single();
