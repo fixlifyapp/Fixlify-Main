@@ -375,12 +375,11 @@ export const AdvancedWorkflowBuilder: React.FC<WorkflowBuilderProps> = ({
                     // Add trigger as first step
                     const triggerStep: WorkflowStep = {
                       id: `trigger-${Date.now()}`,
-                      type: 'action', // Using action type for now, could extend to trigger type
+                      type: 'trigger',
                       name: `Trigger: ${trigger.name}`,
                       config: {
-                        actionType: 'trigger',
                         triggerType: trigger.type,
-                        triggerConfig: trigger.config
+                        conditions: []
                       }
                     };
                     setSteps([triggerStep, ...steps]);
