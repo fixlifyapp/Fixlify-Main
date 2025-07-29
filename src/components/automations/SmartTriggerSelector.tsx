@@ -41,7 +41,6 @@ export const SmartTriggerSelector: React.FC<SmartTriggerSelectorProps> = ({
     job_management: 'Job Management',
     client_management: 'Client Management', 
     financial: 'Financial',
-    communication: 'Communication',
     time_based: 'Time-Based'
   };
 
