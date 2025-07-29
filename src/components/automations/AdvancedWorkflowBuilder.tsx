@@ -25,11 +25,12 @@ import { TriggerTypes } from '@/types/automationFramework';
 
 interface WorkflowStep {
   id: string;
-  type: 'action' | 'condition' | 'delay' | 'branch';
+  type: 'trigger' | 'action' | 'condition' | 'delay' | 'branch' | 'webhook' | 'task' | 'notification';
   name: string;
   config: any;
   conditions?: ConditionGroup;
   branches?: WorkflowBranch[];
+  enabled?: boolean;
 }
 
 interface WorkflowBranch {
@@ -100,33 +101,66 @@ export const AdvancedWorkflowBuilder: React.FC<WorkflowBuilderProps> = ({
 
   const getDefaultStepName = (type: WorkflowStep['type']) => {
     switch (type) {
+      case 'trigger': return 'New Trigger';
       case 'action': return 'Send Message';
       case 'condition': return 'Check Condition';
       case 'delay': return 'Wait';
       case 'branch': return 'If/Then/Else';
+      case 'webhook': return 'Send Webhook';
+      case 'task': return 'Create Task';
+      case 'notification': return 'Send Notification';
       default: return 'New Step';
     }
   };
 
   const getDefaultStepConfig = (type: WorkflowStep['type']) => {
     switch (type) {
+      case 'trigger':
+        return {
+          triggerType: 'job_created',
+          conditions: []
+        };
       case 'action':
         return {
           actionType: 'email',
           subject: '',
           message: '',
-          sendTime: 'immediately'
+          sendTime: 'immediately',
+          templateId: null
         };
       case 'delay':
         return {
           delayType: 'hours',
-          delayValue: 24
+          delayValue: 24,
+          businessHours: false
         };
       case 'condition':
         return {
           field: 'invoice_amount',
           operator: 'greater_than',
           value: 500
+        };
+      case 'webhook':
+        return {
+          url: '',
+          method: 'POST',
+          headers: {},
+          body: '{}'
+        };
+      case 'task':
+        return {
+          title: '',
+          description: '',
+          assignTo: 'creator',
+          priority: 'medium',
+          dueDate: null
+        };
+      case 'notification':
+        return {
+          type: 'push',
+          title: '',
+          message: '',
+          channels: ['app']
         };
       default:
         return {};
