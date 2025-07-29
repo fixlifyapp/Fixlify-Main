@@ -1,6 +1,41 @@
 // Enhanced Automation Framework Types
 // Based on FIXLIFY_AUTOMATION_SYSTEM_PLAN.md - Phase 1 Implementation
 
+export interface AutomationTrigger {
+  id: string;
+  type: keyof TriggerTypes;
+  name: string;
+  description: string;
+  conditions?: TriggerCondition[];
+  config: any;
+}
+
+export interface AutomationAction {
+  id: string;
+  type: keyof (CommunicationActions & BusinessActions & AIActions);
+  name: string;
+  description: string;
+  config: any;
+  delay_minutes?: number;
+}
+
+export interface TriggerCondition {
+  field: string;
+  operator: 'equals' | 'not_equals' | 'greater_than' | 'less_than' | 'contains' | 'not_contains' | 'in' | 'not_in';
+  value: any;
+}
+
+export interface WorkflowExecution {
+  id: string;
+  workflow_id: string;
+  trigger_type: string;
+  status: 'pending' | 'running' | 'completed' | 'failed';
+  started_at: string;
+  completed_at?: string;
+  error_message?: string;
+  trigger_data: any;
+}
+
 export interface TriggerTypes {
   // Job Management Triggers
   job_created: {
