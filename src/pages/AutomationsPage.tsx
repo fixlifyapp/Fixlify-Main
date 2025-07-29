@@ -3,7 +3,7 @@ import { PageLayout } from "@/components/layout/PageLayout";
 import { PageHeader } from "@/components/ui/page-header";
 import { AnimatedContainer } from "@/components/ui/animated-container";
 import { SimplifiedAutomationSystem } from '@/components/automations/SimplifiedAutomationSystem';
-import { EnhancedWorkflowBuilder } from '@/components/automations/EnhancedWorkflowBuilder';
+
 import { WorkflowExecutionMonitor } from '@/components/automations/WorkflowExecutionMonitor';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Zap, Bot, TrendingUp, Settings, Play, Monitor } from "lucide-react";
@@ -38,7 +38,7 @@ const AutomationsPage = () => {
           </TabsList>
           
           <TabsContent value="workflows" className="mt-6">
-            <EnhancedWorkflowBuilder />
+            <SimplifiedAutomationSystem />
           </TabsContent>
           
           <TabsContent value="monitor" className="mt-6">

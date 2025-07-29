@@ -21,7 +21,7 @@ export const useOrganizationContext = () => {
     };
 
     initializeContext();
-  }, [user?.id, profile?.organization_id]);
+  }, [user?.id]);
 
   return {
     organizationId: organizationContext.getOrganizationId(),
