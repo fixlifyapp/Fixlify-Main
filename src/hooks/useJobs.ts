@@ -155,6 +155,8 @@ export const useJobs = (clientId?: string, enableCustomFields?: boolean) => {
   });
 
   const validateJobData = (jobData: any) => {
+    console.log("🔍 validateJobData input:", jobData);
+    
     // Validate job type against configuration
     if (jobData.job_type && jobTypes.length > 0) {
       const validJobType = jobTypes.find(jt => jt.name === jobData.job_type);
@@ -184,13 +186,32 @@ export const useJobs = (clientId?: string, enableCustomFields?: boolean) => {
       jobData.schedule_start = jobData.date;
     }
 
-    // Remove any undefined values that could cause database issues
+    // Remove any undefined values or objects with _type: 'undefined'
     Object.keys(jobData).forEach(key => {
-      if (jobData[key] && typeof jobData[key] === 'object' && jobData[key]._type === 'undefined') {
+      if (jobData[key] === undefined) {
+        delete jobData[key];
+      } else if (jobData[key] && typeof jobData[key] === 'object' && jobData[key]._type === 'undefined') {
         delete jobData[key];
       }
     });
 
+    // Remove any fields that don't exist in the database schema
+    const validFields = [
+      'id', 'client_id', 'created_by', 'title', 'description', 'status', 'date',
+      'schedule_start', 'schedule_end', 'revenue', 'technician_id', 'tags', 'notes',
+      'created_at', 'updated_at', 'job_type', 'lead_source', 'tasks', 'property_id',
+      'address', 'user_id', 'created_by_automation', 'automation_triggered_at',
+      'deleted_at', 'service'
+    ];
+    
+    Object.keys(jobData).forEach(key => {
+      if (!validFields.includes(key)) {
+        console.warn(`Removing invalid field: ${key}`);
+        delete jobData[key];
+      }
+    });
+
+    console.log("✅ validateJobData output:", jobData);
     return jobData;
   };
 
