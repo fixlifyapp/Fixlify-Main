@@ -509,43 +509,15 @@ export class AutomationService {
   }
 
   private static startScheduledWorkflowChecker() {
-    setInterval(async () => {
-      if (!this.isListening) return;
-      
-      try {
-        const workflows = await this.getActiveWorkflows();
-        const now = new Date();
-        
-        for (const workflow of workflows || []) {
-          const triggers = Array.isArray(workflow.triggers) ? workflow.triggers : [];
-          
-          for (const trigger of triggers) {
-            const triggerObj = trigger as any;
-            if (triggerObj.type === 'scheduled_time' && this.shouldRunScheduledTrigger(triggerObj, now)) {
-              await this.executeWorkflow(workflow.id!, {
-                scheduled_time: now.toISOString(),
-                workflow_id: workflow.id
-              });
-            }
-          }
-        }
-      } catch (error) {
-        console.error('Error in scheduled workflow checker:', error);
-      }
-    }, 60000); // Check every minute
-  }
-
-  private static shouldRunScheduledTrigger(trigger: any, now: Date): boolean {
-    // Simple scheduled trigger logic
-    const hour = now.getHours();
-    const minute = now.getMinutes();
-    
-    if (trigger.frequency === 'daily' && trigger.time) {
-      const [triggerHour, triggerMinute] = trigger.time.split(':').map(Number);
-      return hour === triggerHour && minute === triggerMinute;
-    }
-    
-    return false;
+    // REMOVED: Client-side scheduled checking is now handled by server-side CRON
+    // The database CRON job calls the process-scheduled-automations edge function every minute
+    // which processes time-based triggers like:
+    // - scheduled_time
+    // - invoice_overdue
+    // - job_follow_up
+    // - maintenance_reminder
+    // - client_check_in
+    console.log('⏰ Scheduled workflows are now handled by server-side CRON jobs');
   }
 
   /**
