@@ -16,8 +16,10 @@ import {
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AIAutomationAssistant } from './AIAutomationAssistant';
-import { SmartOptimizationPanel } from './SmartOptimizationPanel';
-import { AutomationLearningSystem } from './AutomationLearningSystem';
+import { EnhancedTriggerSelector } from './EnhancedTriggerSelector';
+import { EnhancedActionSelector } from './EnhancedActionSelector';
+import { WORKFLOW_TEMPLATES, getPopularTemplates } from '@/data/workflowTemplates';
+import { TriggerTypes } from '@/types/automationFramework';
 
 interface WorkflowStep {
   id: string;
@@ -221,6 +223,8 @@ export const AdvancedWorkflowBuilder: React.FC<WorkflowBuilderProps> = ({
       <Tabs defaultValue="builder" className="w-full">
         <TabsList className="mb-6">
           <TabsTrigger value="builder">Workflow Builder</TabsTrigger>
+          <TabsTrigger value="triggers">Enhanced Triggers</TabsTrigger>
+          <TabsTrigger value="actions">Enhanced Actions</TabsTrigger>
         </TabsList>
 
         <TabsContent value="builder">
@@ -308,6 +312,63 @@ export const AdvancedWorkflowBuilder: React.FC<WorkflowBuilderProps> = ({
             <Button variant="outline">Cancel</Button>
             <Button onClick={() => onSave(steps)}>Save Workflow</Button>
           </div>
+        </TabsContent>
+
+        <TabsContent value="triggers">
+          <Card>
+            <CardHeader>
+              <CardTitle>Enhanced Trigger System</CardTitle>
+              <p className="text-muted-foreground">
+                Select advanced triggers with intelligent conditions and business logic
+              </p>
+            </CardHeader>
+            <CardContent>
+              <EnhancedTriggerSelector
+                onTriggerSelect={(trigger) => {
+                  // Add trigger as first step
+                  const triggerStep: WorkflowStep = {
+                    id: `trigger-${Date.now()}`,
+                    type: 'action', // Using action type for now, could extend to trigger type
+                    name: `Trigger: ${trigger.name}`,
+                    config: {
+                      actionType: 'trigger',
+                      triggerType: trigger.type,
+                      triggerConfig: trigger.config
+                    }
+                  };
+                  setSteps([triggerStep, ...steps]);
+                }}
+              />
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="actions">
+          <Card>
+            <CardHeader>
+              <CardTitle>Enhanced Action Library</CardTitle>
+              <p className="text-muted-foreground">
+                Create powerful actions with multi-channel communication and business automation
+              </p>
+            </CardHeader>
+            <CardContent>
+              <EnhancedActionSelector
+                onActionSelect={(action) => {
+                  // Add action as workflow step
+                  const actionStep: WorkflowStep = {
+                    id: `action-${Date.now()}`,
+                    type: 'action',
+                    name: action.name,
+                    config: {
+                      actionType: action.type,
+                      ...action.config
+                    }
+                  };
+                  setSteps([...steps, actionStep]);
+                }}
+              />
+            </CardContent>
+          </Card>
         </TabsContent>
       </Tabs>
     </div>
