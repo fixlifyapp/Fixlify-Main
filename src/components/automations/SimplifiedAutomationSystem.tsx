@@ -182,7 +182,7 @@ export const SimplifiedAutomationSystem: React.FC = () => {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold">Automation Workflows</h2>
-          <p className="text-muted-foreground">Create and manage automated workflows</p>
+          <p className="text-muted-foreground">Create and manage automated workflows with triggers and actions</p>
         </div>
         <Button onClick={handleCreateWorkflow} className="gap-2">
           <Plus className="w-4 h-4" />
@@ -190,7 +190,7 @@ export const SimplifiedAutomationSystem: React.FC = () => {
         </Button>
       </div>
 
-      {/* Stats Overview */}
+      {/* Basic Stats */}
       <div className="grid gap-4 md:grid-cols-3">
         <Card>
           <CardContent className="p-6">
@@ -210,12 +210,10 @@ export const SimplifiedAutomationSystem: React.FC = () => {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Total Executions</p>
-                <p className="text-2xl font-bold">
-                  {automations.reduce((sum, a) => sum + (a.execution_count || 0), 0)}
-                </p>
+                <p className="text-sm text-muted-foreground">Total Workflows</p>
+                <p className="text-2xl font-bold">{automations.length}</p>
               </div>
-              <RefreshCw className="w-8 h-8 text-blue-500" />
+              <Workflow className="w-8 h-8 text-blue-500" />
             </div>
           </CardContent>
         </Card>
@@ -224,16 +222,10 @@ export const SimplifiedAutomationSystem: React.FC = () => {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Success Rate</p>
-                <p className="text-2xl font-bold">
-                  {automations.length > 0 
-                    ? `${Math.round((automations.reduce((sum, a) => sum + (a.success_count || 0), 0) / 
-                        Math.max(automations.reduce((sum, a) => sum + (a.execution_count || 0), 0), 1)) * 100)}%`
-                    : '0%'
-                  }
-                </p>
+                <p className="text-sm text-muted-foreground">Templates Available</p>
+                <p className="text-2xl font-bold">4</p>
               </div>
-              <TrendingUp className="w-8 h-8 text-purple-500" />
+              <Zap className="w-8 h-8 text-purple-500" />
             </div>
           </CardContent>
         </Card>
@@ -243,7 +235,7 @@ export const SimplifiedAutomationSystem: React.FC = () => {
       <div className="space-y-6">
         {/* Quick Start Templates */}
         <div>
-          <h3 className="text-lg font-semibold mb-4">Quick Start Templates</h3>
+          <h3 className="text-lg font-semibold mb-4">Ready-to-Use Templates</h3>
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
             {[
               {
@@ -378,11 +370,6 @@ const WorkflowList: React.FC<{
                 
                 <div className="flex items-center gap-4 text-sm text-muted-foreground">
                   <span>Executions: {automation.execution_count || 0}</span>
-                  <span>Success Rate: {
-                    automation.execution_count 
-                      ? Math.round(((automation.success_count || 0) / automation.execution_count) * 100)
-                      : 0
-                  }%</span>
                   {automation.last_triggered_at && (
                     <span>Last Run: {new Date(automation.last_triggered_at).toLocaleDateString()}</span>
                   )}
@@ -434,7 +421,7 @@ const WorkflowList: React.FC<{
             <Workflow className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
             <h3 className="text-lg font-semibold mb-2">No workflows yet</h3>
             <p className="text-muted-foreground mb-4">Start with a template or create your own workflow</p>
-            <p className="text-sm text-muted-foreground">Remember: Every workflow must start with a trigger</p>
+            <p className="text-sm text-muted-foreground">Every workflow must start with a trigger</p>
           </CardContent>
         </Card>
       )}
