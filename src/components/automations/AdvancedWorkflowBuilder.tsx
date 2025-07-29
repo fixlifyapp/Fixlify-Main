@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useJobStatuses, useTags } from "@/hooks/useConfigItems";
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
@@ -581,6 +582,31 @@ const StepTriggerConfig: React.FC<{
         </Select>
       </div>
       
+      {/* Job Status Changed Configuration */}
+      {config.triggerType === 'job_status_changed' && (
+        <TriggerStatusChangeConfig 
+          config={config} 
+          onUpdate={onUpdate}
+        />
+      )}
+      
+      {/* Job Tags Changed Configuration */}
+      {config.triggerType === 'job_tags_changed' && (
+        <TriggerTagsChangeConfig 
+          config={config} 
+          onUpdate={onUpdate}
+        />
+      )}
+      
+      {/* Client Tags Changed Configuration */}
+      {config.triggerType === 'client_tags_changed' && (
+        <TriggerTagsChangeConfig 
+          config={config} 
+          onUpdate={onUpdate}
+          isClientTags={true}
+        />
+      )}
+      
       {config.triggerType === 'scheduled_time' && (
         <div className="flex items-center gap-2">
           <Input
@@ -996,6 +1022,155 @@ const SmartTimingOptions: React.FC = () => {
         </div>
       </CardContent>
     </Card>
+  );
+};
+
+// Trigger Status Change Configuration Component
+const TriggerStatusChangeConfig: React.FC<{
+  config: any;
+  onUpdate: (config: any) => void;
+}> = ({ config, onUpdate }) => {
+  const { items: jobStatuses } = useJobStatuses();
+  
+  return (
+    <div className="space-y-3 p-3 bg-muted/10 rounded-lg">
+      <div className="text-sm font-medium text-muted-foreground">Job Status Change Configuration</div>
+      
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        {/* From Status */}
+        <div className="space-y-2">
+          <Label className="text-xs">From Status</Label>
+          <Select
+            value={config.from_status || ''}
+            onValueChange={(value) => onUpdate({ ...config, from_status: [value] })}
+          >
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="Any status" />
+            </SelectTrigger>
+            <SelectContent side="bottom" className="max-h-48 overflow-y-auto">
+              <SelectItem value="">Any Status</SelectItem>
+              {jobStatuses?.map((status) => (
+                <SelectItem key={status.id} value={status.name}>
+                  <div className="flex items-center gap-2">
+                    <div 
+                      className="w-3 h-3 rounded-full" 
+                      style={{ backgroundColor: status.color }}
+                    />
+                    {status.name}
+                  </div>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        
+        {/* To Status */}
+        <div className="space-y-2">
+          <Label className="text-xs">To Status</Label>
+          <Select
+            value={config.to_status?.[0] || ''}
+            onValueChange={(value) => onUpdate({ ...config, to_status: [value] })}
+          >
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="Select status" />
+            </SelectTrigger>
+            <SelectContent side="bottom" className="max-h-48 overflow-y-auto">
+              {jobStatuses?.map((status) => (
+                <SelectItem key={status.id} value={status.name}>
+                  <div className="flex items-center gap-2">
+                    <div 
+                      className="w-3 h-3 rounded-full" 
+                      style={{ backgroundColor: status.color }}
+                    />
+                    {status.name}
+                  </div>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+      
+      <div className="text-xs text-muted-foreground">
+        Triggers when job status changes from specific status to another status
+      </div>
+    </div>
+  );
+};
+
+// Trigger Tags Change Configuration Component
+const TriggerTagsChangeConfig: React.FC<{
+  config: any;
+  onUpdate: (config: any) => void;
+  isClientTags?: boolean;
+}> = ({ config, onUpdate, isClientTags = false }) => {
+  const { items: tags } = useTags();
+  
+  return (
+    <div className="space-y-3 p-3 bg-muted/10 rounded-lg">
+      <div className="text-sm font-medium text-muted-foreground">
+        {isClientTags ? 'Client Tags' : 'Job Tags'} Change Configuration
+      </div>
+      
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        {/* From Tags */}
+        <div className="space-y-2">
+          <Label className="text-xs">From Tags</Label>
+          <Select
+            value={config.from_tags?.[0] || ''}
+            onValueChange={(value) => onUpdate({ ...config, from_tags: value ? [value] : [] })}
+          >
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="Any tags" />
+            </SelectTrigger>
+            <SelectContent side="bottom" className="max-h-48 overflow-y-auto">
+              <SelectItem value="">Any Tags</SelectItem>
+              {tags?.map((tag) => (
+                <SelectItem key={tag.id} value={tag.name}>
+                  <div className="flex items-center gap-2">
+                    <div 
+                      className="w-3 h-3 rounded-full" 
+                      style={{ backgroundColor: tag.color || '#6b7280' }}
+                    />
+                    {tag.name}
+                  </div>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        
+        {/* To Tags */}
+        <div className="space-y-2">
+          <Label className="text-xs">To Tags</Label>
+          <Select
+            value={config.to_tags?.[0] || ''}
+            onValueChange={(value) => onUpdate({ ...config, to_tags: value ? [value] : [] })}
+          >
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="Select tags" />
+            </SelectTrigger>
+            <SelectContent side="bottom" className="max-h-48 overflow-y-auto">
+              {tags?.map((tag) => (
+                <SelectItem key={tag.id} value={tag.name}>
+                  <div className="flex items-center gap-2">
+                    <div 
+                      className="w-3 h-3 rounded-full" 
+                      style={{ backgroundColor: tag.color || '#6b7280' }}
+                    />
+                    {tag.name}
+                  </div>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+      
+      <div className="text-xs text-muted-foreground">
+        Triggers when {isClientTags ? 'client' : 'job'} tags change from specific tags to other tags
+      </div>
+    </div>
   );
 };
 
