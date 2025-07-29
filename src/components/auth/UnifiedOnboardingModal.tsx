@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent } from "@/components/ui/card";
 import { Building2, Users, Package, CheckCircle2, Loader2, AlertCircle } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
-// NicheDataInitializer removed
+// NicheDataInitializer removed - using direct niche initialization
 
 interface UnifiedOnboardingModalProps {
   isOpen: boolean;
