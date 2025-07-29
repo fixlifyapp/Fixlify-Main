@@ -12,7 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Plus, Trash2, Clock, Calendar, Mail, MessageSquare, Phone,
   ChevronRight, AlertCircle, DollarSign, Star, User, Settings,
-  Zap, ArrowDown, GitBranch, Timer, Sun, Moon, Globe, Bot, Sparkles, Bell
+  Zap, ArrowDown, GitBranch, Timer, Sun, Moon, Globe, Bot, Sparkles, Bell, Briefcase, Users
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -22,6 +22,7 @@ import { EnhancedActionSelector } from './EnhancedActionSelector';
 import { SmartActionSelector } from './SmartActionSelector';
 import { WORKFLOW_TEMPLATES, getPopularTemplates } from '@/data/workflowTemplates';
 import { TriggerTypes } from '@/types/automationFramework';
+import { supabase } from '@/integrations/supabase/client';
 
 interface WorkflowStep {
   id: string;
@@ -412,6 +413,7 @@ const WorkflowStepCard: React.FC<{
           case 'email': return <Mail className="w-4 h-4" />;
           case 'sms': return <MessageSquare className="w-4 h-4" />;
           case 'call': return <Phone className="w-4 h-4" />;
+          case 'ai_generate_message': return <Bot className="w-4 h-4" />;
           default: return <Zap className="w-4 h-4" />;
         }
       case 'delay': return <Clock className="w-4 h-4" />;
@@ -694,6 +696,7 @@ const StepActionConfig: React.FC<{
           <SelectContent side="bottom">{/* Force dropdown to open downward */}
             <SelectItem value="email">Email</SelectItem>
             <SelectItem value="sms">SMS</SelectItem>
+            <SelectItem value="ai_generate_message">🤖 AI Generate Message</SelectItem>
             <SelectItem value="notification">App Notification</SelectItem>
             <SelectItem value="task">Create Task</SelectItem>
           </SelectContent>
@@ -723,6 +726,14 @@ const StepActionConfig: React.FC<{
           onChange={(e) => onUpdate({ ...config, message: e.target.value })}
           rows={2}
           maxLength={160}
+        />
+      )}
+
+      {config.actionType === 'ai_generate_message' && (
+        <AIMessageGeneratorConfig
+          config={config}
+          onUpdate={onUpdate}
+          availableVariables={availableVariables}
         />
       )}
 
@@ -1169,6 +1180,168 @@ const TriggerTagsChangeConfig: React.FC<{
       
       <div className="text-xs text-muted-foreground">
         Triggers when {isClientTags ? 'client' : 'job'} tags change from specific tags to other tags
+      </div>
+    </div>
+  );
+};
+
+// AI Message Generator Configuration Component
+const AIMessageGeneratorConfig: React.FC<{
+  config: any;
+  onUpdate: (config: any) => void;
+  availableVariables: Array<{ name: string; label: string; type: string }>;
+}> = ({ config, onUpdate, availableVariables }) => {
+  const [isGenerating, setIsGenerating] = useState(false);
+
+  const generateMessage = async () => {
+    setIsGenerating(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-ai-message', {
+        body: {
+          messageType: config.messageFormat || 'professional',
+          context: config.context || '',
+          variables: availableVariables,
+          companyInfo: {
+            businessType: config.businessType || 'service company',
+            tone: config.tone || 'professional'
+          }
+        }
+      });
+
+      if (error) throw error;
+
+      if (data?.message) {
+        onUpdate({ 
+          ...config, 
+          generatedMessage: data.message,
+          subject: data.subject || config.subject
+        });
+      }
+    } catch (error) {
+      console.error('Error generating AI message:', error);
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  return (
+    <div className="space-y-3 p-3 bg-gradient-to-r from-purple-50 to-blue-50 rounded-lg border border-purple-200">
+      <div className="flex items-center gap-2">
+        <Bot className="w-4 h-4 text-purple-600" />
+        <span className="text-sm font-medium text-purple-800">AI Message Generator</span>
+      </div>
+
+      {/* Message Format */}
+      <div className="space-y-2">
+        <Label className="text-xs">Message Format</Label>
+        <Select
+          value={config.messageFormat || 'professional'}
+          onValueChange={(value) => onUpdate({ ...config, messageFormat: value })}
+        >
+          <SelectTrigger className="w-full">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent side="bottom">
+            <SelectItem value="professional">📧 Professional Email</SelectItem>
+            <SelectItem value="friendly">😊 Friendly SMS</SelectItem>
+            <SelectItem value="reminder">⏰ Appointment Reminder</SelectItem>
+            <SelectItem value="follow_up">📞 Follow-up Message</SelectItem>
+            <SelectItem value="thank_you">🙏 Thank You Note</SelectItem>
+            <SelectItem value="invoice">💰 Invoice Message</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      {/* Tone */}
+      <div className="space-y-2">
+        <Label className="text-xs">Tone</Label>
+        <Select
+          value={config.tone || 'professional'}
+          onValueChange={(value) => onUpdate({ ...config, tone: value })}
+        >
+          <SelectTrigger className="w-full">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent side="bottom">
+            <SelectItem value="professional">Professional</SelectItem>
+            <SelectItem value="friendly">Friendly</SelectItem>
+            <SelectItem value="casual">Casual</SelectItem>
+            <SelectItem value="urgent">Urgent</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      {/* Context Input */}
+      <div className="space-y-2">
+        <Label className="text-xs">Additional Context</Label>
+        <Textarea
+          placeholder="e.g., This is for a plumbing job completion follow-up..."
+          value={config.context || ''}
+          onChange={(e) => onUpdate({ ...config, context: e.target.value })}
+          rows={2}
+        />
+      </div>
+
+      {/* Generated Message Preview */}
+      {config.generatedMessage && (
+        <div className="space-y-2">
+          <Label className="text-xs">Generated Message</Label>
+          <div className="p-3 bg-white rounded border border-gray-200">
+            <div className="text-sm whitespace-pre-wrap">{config.generatedMessage}</div>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => onUpdate({ ...config, message: config.generatedMessage })}
+          >
+            Use This Message
+          </Button>
+        </div>
+      )}
+
+      {/* Generate Button */}
+      <Button
+        onClick={generateMessage}
+        disabled={isGenerating}
+        className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
+      >
+        {isGenerating ? (
+          <>
+            <Bot className="w-4 h-4 mr-2 animate-spin" />
+            Generating...
+          </>
+        ) : (
+          <>
+            <Sparkles className="w-4 h-4 mr-2" />
+            Generate AI Message
+          </>
+        )}
+      </Button>
+
+      {/* Available Variables */}
+      <div className="space-y-2">
+        <Label className="text-xs">Available Variables</Label>
+        <div className="flex flex-wrap gap-1">
+          {availableVariables.slice(0, 8).map((variable) => (
+            <Badge
+              key={variable.name}
+              variant="secondary"
+              className="cursor-pointer text-xs hover:bg-purple-100"
+              onClick={() => {
+                const currentContext = config.context || '';
+                onUpdate({ 
+                  ...config, 
+                  context: currentContext + ` {{${variable.name}}}` 
+                });
+              }}
+              >
+                {`{{${variable.name}}}`}
+              </Badge>
+          ))}
+        </div>
+        <div className="text-xs text-muted-foreground">
+          Click variables to add them to context. AI will use company info and best practices.
+        </div>
       </div>
     </div>
   );
