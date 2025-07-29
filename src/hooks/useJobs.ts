@@ -175,6 +175,22 @@ export const useJobs = (clientId?: string, enableCustomFields?: boolean) => {
       }
     }
 
+    // Handle schedule date fields properly
+    if (jobData.schedule_start) {
+      // If we have schedule_start, use it as the primary date
+      jobData.date = jobData.schedule_start;
+    } else if (jobData.date && !jobData.schedule_start) {
+      // If we only have date, use it for schedule_start
+      jobData.schedule_start = jobData.date;
+    }
+
+    // Remove any undefined values that could cause database issues
+    Object.keys(jobData).forEach(key => {
+      if (jobData[key] && typeof jobData[key] === 'object' && jobData[key]._type === 'undefined') {
+        delete jobData[key];
+      }
+    });
+
     return jobData;
   };
 
