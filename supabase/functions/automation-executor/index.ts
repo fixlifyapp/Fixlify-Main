@@ -213,64 +213,138 @@ async function executeAction(step: any, context: any, supabaseClient: any) {
 async function sendEmail(config: any, context: any, supabaseClient: any) {
   console.log('Sending email with config:', config);
   
-  const subject = replaceVariables(config.subject || 'Automated Email', context);
-  const message = replaceVariables(config.message || 'This is an automated email.', context);
+  // Fetch real data for variables if we have job/client IDs
+  const enrichedContext = await enrichContext(context, supabaseClient);
   
-  // Log the communication
+  const subject = replaceVariables(config.subject || 'Automated Email', enrichedContext);
+  const message = replaceVariables(config.message || 'This is an automated email.', enrichedContext);
+  const recipientEmail = enrichedContext.client?.email || context.clientEmail || 'client@example.com';
+  
   try {
-    await supabaseClient
-      .from('communication_logs')
-      .insert({
-        type: 'email',
-        direction: 'outbound',
-        from_address: 'noreply@company.com',
-        to_address: context.clientEmail || 'client@example.com',
+    // Call the actual mailgun-email edge function
+    const emailResult = await supabaseClient.functions.invoke('mailgun-email', {
+      body: {
+        to: recipientEmail,
         subject: subject,
-        content: message,
-        status: 'sent',
-        metadata: { automationGenerated: true }
-      });
-  } catch (error) {
-    console.log('Note: Communication log not saved (table may not exist):', error.message);
-  }
+        html: message.replace(/\n/g, '<br>'),
+        text: message,
+        userId: context.userId || enrichedContext.job?.user_id,
+        clientId: enrichedContext.client?.id,
+        metadata: { 
+          automationGenerated: true,
+          workflowId: context.workflowId,
+          triggerType: context.triggerType
+        }
+      }
+    });
 
-  return { 
-    type: 'email', 
-    status: 'sent',
-    subject,
-    message,
-    recipient: context.clientEmail || 'client@example.com'
-  };
+    if (emailResult.error) {
+      console.error('Mailgun email failed:', emailResult.error);
+      throw new Error(`Email sending failed: ${emailResult.error.message}`);
+    }
+
+    console.log('Email sent successfully via Mailgun:', emailResult.data);
+
+    return { 
+      type: 'email', 
+      status: 'sent',
+      subject,
+      message,
+      recipient: recipientEmail,
+      mailgunId: emailResult.data?.messageId
+    };
+  } catch (error) {
+    console.error('Error sending email:', error);
+    
+    // Log failed communication
+    try {
+      await supabaseClient
+        .from('communication_logs')
+        .insert({
+          type: 'email',
+          direction: 'outbound',
+          from_address: 'noreply@company.com',
+          to_address: recipientEmail,
+          subject: subject,
+          content: message,
+          status: 'failed',
+          metadata: { 
+            automationGenerated: true,
+            error: error.message
+          }
+        });
+    } catch (logError) {
+      console.log('Failed to log email error:', logError);
+    }
+
+    throw error;
+  }
 }
 
 async function sendSMS(config: any, context: any, supabaseClient: any) {
   console.log('Sending SMS with config:', config);
   
-  const message = replaceVariables(config.message || 'Automated SMS message', context);
+  // Fetch real data for variables if we have job/client IDs
+  const enrichedContext = await enrichContext(context, supabaseClient);
   
-  // Log the communication
+  const message = replaceVariables(config.message || 'Automated SMS message', enrichedContext);
+  const recipientPhone = enrichedContext.client?.phone || context.clientPhone || '+1234567890';
+  
   try {
-    await supabaseClient
-      .from('communication_logs')
-      .insert({
-        type: 'sms',
-        direction: 'outbound',
-        from_address: '+1234567890',
-        to_address: context.clientPhone || '+1234567890',
-        content: message,
-        status: 'sent',
-        metadata: { automationGenerated: true }
-      });
-  } catch (error) {
-    console.log('Note: Communication log not saved (table may not exist):', error.message);
-  }
+    // Call the actual telnyx-sms edge function
+    const smsResult = await supabaseClient.functions.invoke('telnyx-sms', {
+      body: {
+        recipientPhone: recipientPhone,
+        message: message,
+        user_id: context.userId || enrichedContext.job?.user_id,
+        metadata: { 
+          automationGenerated: true,
+          workflowId: context.workflowId,
+          triggerType: context.triggerType,
+          clientId: enrichedContext.client?.id
+        }
+      }
+    });
 
-  return { 
-    type: 'sms', 
-    status: 'sent',
-    message,
-    recipient: context.clientPhone || '+1234567890'
-  };
+    if (smsResult.error) {
+      console.error('Telnyx SMS failed:', smsResult.error);
+      throw new Error(`SMS sending failed: ${smsResult.error.message}`);
+    }
+
+    console.log('SMS sent successfully via Telnyx:', smsResult.data);
+
+    return { 
+      type: 'sms', 
+      status: 'sent',
+      message,
+      recipient: recipientPhone,
+      telnyxId: smsResult.data?.messageId
+    };
+  } catch (error) {
+    console.error('Error sending SMS:', error);
+    
+    // Log failed communication
+    try {
+      await supabaseClient
+        .from('communication_logs')
+        .insert({
+          type: 'sms',
+          direction: 'outbound',
+          from_address: 'system',
+          to_address: recipientPhone,
+          content: message,
+          status: 'failed',
+          metadata: { 
+            automationGenerated: true,
+            error: error.message
+          }
+        });
+    } catch (logError) {
+      console.log('Failed to log SMS error:', logError);
+    }
+
+    throw error;
+  }
 }
 
 async function sendNotification(config: any, context: any, supabaseClient: any) {
@@ -346,4 +420,99 @@ function getNestedValue(obj: any, path: string): any {
   return path.split('.').reduce((current, key) => {
     return current && current[key] !== undefined ? current[key] : undefined;
   }, obj);
+}
+
+async function enrichContext(context: any, supabaseClient: any): Promise<any> {
+  const enriched = { ...context };
+  
+  try {
+    // If we have a job ID, fetch job and client data
+    if (context.jobId || context.job_id) {
+      const jobId = context.jobId || context.job_id;
+      
+      const { data: job, error: jobError } = await supabaseClient
+        .from('jobs')
+        .select(`
+          *,
+          clients!inner(*)
+        `)
+        .eq('id', jobId)
+        .single();
+        
+      if (!jobError && job) {
+        enriched.job = {
+          id: job.id,
+          title: job.title || job.description,
+          status: job.status,
+          date: job.scheduled_date,
+          time: job.scheduled_time,
+          technician: job.technician_name,
+          service: job.service_type,
+          notes: job.notes,
+          total: job.total
+        };
+        
+        if (job.clients) {
+          enriched.client = {
+            id: job.clients.id,
+            name: `${job.clients.first_name} ${job.clients.last_name}`.trim(),
+            firstName: job.clients.first_name,
+            lastName: job.clients.last_name,
+            email: job.clients.email,
+            phone: job.clients.phone,
+            address: job.clients.address
+          };
+        }
+      }
+    }
+    
+    // If we have a client ID but no job, fetch client data
+    if ((context.clientId || context.client_id) && !enriched.client) {
+      const clientId = context.clientId || context.client_id;
+      
+      const { data: client, error: clientError } = await supabaseClient
+        .from('clients')
+        .select('*')
+        .eq('id', clientId)
+        .single();
+        
+      if (!clientError && client) {
+        enriched.client = {
+          id: client.id,
+          name: `${client.first_name} ${client.last_name}`.trim(),
+          firstName: client.first_name,
+          lastName: client.last_name,
+          email: client.email,
+          phone: client.phone,
+          address: client.address
+        };
+      }
+    }
+    
+    // Get company information
+    if (enriched.job?.user_id || context.userId) {
+      const userId = enriched.job?.user_id || context.userId;
+      
+      const { data: company, error: companyError } = await supabaseClient
+        .from('company_settings')
+        .select('*')
+        .eq('user_id', userId)
+        .single();
+        
+      if (!companyError && company) {
+        enriched.company = {
+          name: company.company_name,
+          phone: company.phone,
+          email: company.email,
+          website: company.website,
+          address: company.address
+        };
+      }
+    }
+    
+  } catch (error) {
+    console.error('Error enriching context:', error);
+  }
+  
+  return enriched;
 }
