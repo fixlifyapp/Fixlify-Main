@@ -298,7 +298,7 @@ export const TaskDashboard: React.FC<TaskDashboardProps> = ({ filterByUser = fal
                   <SelectValue placeholder="Assign to..." />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Unassigned</SelectItem>
+                  <SelectItem value="unassigned">Unassigned</SelectItem>
                   {profiles.map((profile) => (
                     <SelectItem key={profile.id} value={profile.id}>
                       {profile.name || profile.email}
@@ -311,7 +311,7 @@ export const TaskDashboard: React.FC<TaskDashboardProps> = ({ filterByUser = fal
                   <SelectValue placeholder="Link to job..." />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">No job</SelectItem>
+                  <SelectItem value="no-job">No job</SelectItem>
                   {jobs.map((job) => (
                     <SelectItem key={job.id} value={job.id}>
                       {job.title || `Job #${job.id}`}

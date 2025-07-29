@@ -53,9 +53,9 @@ export const UnifiedJobTypeSelector = ({
         </SelectTrigger>
         <SelectContent>
           {isLoading ? (
-            <SelectItem value="" disabled>Loading types...</SelectItem>
+            <SelectItem value="loading" disabled>Loading types...</SelectItem>
           ) : jobTypes.length === 0 ? (
-            <SelectItem value="" disabled>No job types found</SelectItem>
+            <SelectItem value="no-types" disabled>No job types found</SelectItem>
           ) : (
             jobTypes.map(type => (
               <SelectItem key={type.id} value={type.name}>

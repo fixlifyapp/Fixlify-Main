@@ -56,11 +56,11 @@ export const UnifiedTechnicianSelector = ({
         </SelectTrigger>
         <SelectContent>
           {isLoading ? (
-            <SelectItem value="" disabled>Loading technicians...</SelectItem>
+            <SelectItem value="loading" disabled>Loading technicians...</SelectItem>
           ) : (
             <>
               {allowUnassigned && (
-                <SelectItem value="">
+                <SelectItem value="unassigned">
                   <div className="flex items-center gap-2">
                     <Avatar className="w-6 h-6">
                       <AvatarFallback className="text-xs">
@@ -72,7 +72,7 @@ export const UnifiedTechnicianSelector = ({
                 </SelectItem>
               )}
               {technicians.length === 0 ? (
-                <SelectItem value="" disabled>No technicians found</SelectItem>
+                <SelectItem value="no-technicians" disabled>No technicians found</SelectItem>
               ) : (
                 technicians.map(tech => (
                   <SelectItem key={tech.id} value={tech.id}>

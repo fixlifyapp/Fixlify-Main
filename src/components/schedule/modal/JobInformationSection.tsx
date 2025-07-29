@@ -54,7 +54,7 @@ export const JobInformationSection = ({
             </SelectTrigger>
             <SelectContent>
               {clientsLoading ? (
-                <SelectItem value="" disabled>Loading clients...</SelectItem>
+                <SelectItem value="loading" disabled>Loading clients...</SelectItem>
               ) : (
                 clients.map(client => (
                   <SelectItem key={client.id} value={client.id}>
@@ -86,7 +86,7 @@ export const JobInformationSection = ({
               </SelectTrigger>
               <SelectContent>
                 {propertiesLoading ? (
-                  <SelectItem value="" disabled>Loading properties...</SelectItem>
+                  <SelectItem value="loading" disabled>Loading properties...</SelectItem>
                 ) : (
                   clientProperties.map(property => (
                     <SelectItem key={property.id} value={property.id}>
@@ -132,7 +132,7 @@ export const JobInformationSection = ({
             </SelectTrigger>
             <SelectContent>
               {leadSourcesLoading ? (
-                <SelectItem value="" disabled>Loading sources...</SelectItem>
+                <SelectItem value="loading" disabled>Loading sources...</SelectItem>
               ) : (
                 leadSources
                   .filter(source => source.is_active)
