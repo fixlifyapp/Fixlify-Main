@@ -221,8 +221,6 @@ export const AdvancedWorkflowBuilder: React.FC<WorkflowBuilderProps> = ({
       <Tabs defaultValue="builder" className="w-full">
         <TabsList className="mb-6">
           <TabsTrigger value="builder">Workflow Builder</TabsTrigger>
-          <TabsTrigger value="optimization">AI Optimization</TabsTrigger>
-          <TabsTrigger value="learning">Learning & Analytics</TabsTrigger>
         </TabsList>
 
         <TabsContent value="builder">
@@ -310,24 +308,6 @@ export const AdvancedWorkflowBuilder: React.FC<WorkflowBuilderProps> = ({
             <Button variant="outline">Cancel</Button>
             <Button onClick={() => onSave(steps)}>Save Workflow</Button>
           </div>
-        </TabsContent>
-
-        <TabsContent value="optimization">
-          <SmartOptimizationPanel 
-            workflows={steps} 
-            onApplyOptimization={(workflowId, optimization) => {
-              console.log('Applying optimization:', optimization);
-            }}
-          />
-        </TabsContent>
-
-        <TabsContent value="learning">
-          <AutomationLearningSystem 
-            workflows={steps} 
-            onApplyLearning={(insight) => {
-              console.log('Applying learning insight:', insight);
-            }}
-          />
         </TabsContent>
       </Tabs>
     </div>
