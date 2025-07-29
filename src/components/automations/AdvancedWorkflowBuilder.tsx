@@ -1041,14 +1041,14 @@ const TriggerStatusChangeConfig: React.FC<{
         <div className="space-y-2">
           <Label className="text-xs">From Status</Label>
           <Select
-            value={config.from_status || ''}
-            onValueChange={(value) => onUpdate({ ...config, from_status: [value] })}
+            value={config.from_status?.[0] || 'any'}
+            onValueChange={(value) => onUpdate({ ...config, from_status: value === 'any' ? [] : [value] })}
           >
             <SelectTrigger className="w-full">
               <SelectValue placeholder="Any status" />
             </SelectTrigger>
             <SelectContent side="bottom" className="max-h-48 overflow-y-auto">
-              <SelectItem value="">Any Status</SelectItem>
+              <SelectItem value="any">Any Status</SelectItem>
               {jobStatuses?.map((status) => (
                 <SelectItem key={status.id} value={status.name}>
                   <div className="flex items-center gap-2">
@@ -1117,14 +1117,14 @@ const TriggerTagsChangeConfig: React.FC<{
         <div className="space-y-2">
           <Label className="text-xs">From Tags</Label>
           <Select
-            value={config.from_tags?.[0] || ''}
-            onValueChange={(value) => onUpdate({ ...config, from_tags: value ? [value] : [] })}
+            value={config.from_tags?.[0] || 'any'}
+            onValueChange={(value) => onUpdate({ ...config, from_tags: value === 'any' ? [] : [value] })}
           >
             <SelectTrigger className="w-full">
               <SelectValue placeholder="Any tags" />
             </SelectTrigger>
             <SelectContent side="bottom" className="max-h-48 overflow-y-auto">
-              <SelectItem value="">Any Tags</SelectItem>
+              <SelectItem value="any">Any Tags</SelectItem>
               {tags?.map((tag) => (
                 <SelectItem key={tag.id} value={tag.name}>
                   <div className="flex items-center gap-2">
@@ -1144,8 +1144,8 @@ const TriggerTagsChangeConfig: React.FC<{
         <div className="space-y-2">
           <Label className="text-xs">To Tags</Label>
           <Select
-            value={config.to_tags?.[0] || ''}
-            onValueChange={(value) => onUpdate({ ...config, to_tags: value ? [value] : [] })}
+            value={config.to_tags?.[0] || 'none'}
+            onValueChange={(value) => onUpdate({ ...config, to_tags: value === 'none' ? [] : [value] })}
           >
             <SelectTrigger className="w-full">
               <SelectValue placeholder="Select tags" />
