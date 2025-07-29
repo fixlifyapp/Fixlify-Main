@@ -322,6 +322,7 @@ export const SimplifiedAutomationSystem: React.FC = () => {
           <h3 className="text-lg font-semibold mb-4">Your Workflows</h3>
           <WorkflowList 
             automations={automations}
+            setAutomations={setAutomations}
             onEdit={handleEditWorkflow}
             onDelete={handleDeleteWorkflow}
             onToggle={handleToggleWorkflow}
@@ -337,12 +338,13 @@ export const SimplifiedAutomationSystem: React.FC = () => {
 // Workflow List Component
 const WorkflowList: React.FC<{
   automations: AutomationWorkflow[];
+  setAutomations: React.Dispatch<React.SetStateAction<AutomationWorkflow[]>>;
   onEdit: (workflow: AutomationWorkflow) => void;
   onDelete: (id: string) => void;
   onToggle: (id: string, status: string) => void;
   onTest: (id: string) => void;
   loading: boolean;
-}> = ({ automations, onEdit, onDelete, onToggle, onTest, loading }) => {
+}> = ({ automations, setAutomations, onEdit, onDelete, onToggle, onTest, loading }) => {
   const [editingName, setEditingName] = useState<string | null>(null);
   const [tempName, setTempName] = useState('');
 
@@ -381,7 +383,13 @@ const WorkflowList: React.FC<{
   const handleNameSave = async (automation: AutomationWorkflow) => {
     if (tempName.trim() && tempName !== automation.name) {
       try {
-        // TODO: Add API call to update automation name
+        await AutomationService.updateWorkflow(automation.id!, { 
+          name: tempName.trim() 
+        });
+        // Update local state
+        setAutomations(prev => prev.map(a => 
+          a.id === automation.id ? { ...a, name: tempName.trim() } : a
+        ));
         toast.success('Workflow name updated');
       } catch (error) {
         toast.error('Failed to update workflow name');
