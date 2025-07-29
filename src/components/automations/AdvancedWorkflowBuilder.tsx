@@ -42,7 +42,7 @@ const generateAIMessage = async (
       { name: 'company.name', label: 'Company Name' },
       { name: 'job.status', label: 'Job Status' },
       { name: 'job.formattedDate', label: 'Appointment Date' },
-      { name: 'job.formattedTime', label: 'Appointment Time' },
+      { name: 'job.appointmentTime', label: 'Appointment Time' },
       { name: 'job.scheduledDateTime', label: 'Full Appointment' }
     ];
 

@@ -422,7 +422,7 @@ function getNestedValue(obj: any, path: string): any {
   }, obj);
 }
 
-function formatTime12Hour(timeString: string): string {
+function formatTime24Hour(timeString: string): string {
   if (!timeString) return '';
   
   try {
@@ -433,14 +433,28 @@ function formatTime12Hour(timeString: string): string {
     
     if (isNaN(hour24) || isNaN(minute)) return timeString;
     
-    const hour12 = hour24 === 0 ? 12 : hour24 > 12 ? hour24 - 12 : hour24;
-    const ampm = hour24 >= 12 ? 'PM' : 'AM';
     const formattedMinute = minute.toString().padStart(2, '0');
+    const formattedHour = hour24.toString().padStart(2, '0');
     
-    return `${hour12}:${formattedMinute} ${ampm}`;
+    return `${formattedHour}:${formattedMinute}`;
   } catch (error) {
     return timeString;
   }
+}
+
+function formatAppointmentTime(scheduleStart: string, scheduleEnd: string): string {
+  const startTime = formatTime24Hour(scheduleStart);
+  const endTime = formatTime24Hour(scheduleEnd);
+  
+  if (startTime && endTime && startTime !== endTime) {
+    return `${startTime} - ${endTime}`;
+  } else if (startTime) {
+    return startTime;
+  } else if (endTime) {
+    return endTime;
+  }
+  
+  return '';
 }
 
 async function enrichContext(context: any, supabaseClient: any): Promise<any> {
@@ -475,8 +489,8 @@ async function enrichContext(context: any, supabaseClient: any): Promise<any> {
         
         const shortDate = scheduledDate ? scheduledDate.toLocaleDateString('en-US') : null;
         
-        // Format time to 12-hour format
-        const formattedTime = scheduledTime ? formatTime12Hour(scheduledTime) : null;
+        // Use the new appointment time formatting function
+        const appointmentTime = formatAppointmentTime(job.schedule_start, job.schedule_end);
         
         enriched.job = {
           id: job.id,
@@ -486,9 +500,9 @@ async function enrichContext(context: any, supabaseClient: any): Promise<any> {
           time: job.scheduled_time,
           formattedDate: formattedDate,
           shortDate: shortDate,
-          formattedTime: formattedTime,
-          scheduledDateTime: formattedDate && formattedTime ? `${formattedDate} at ${formattedTime}` : null,
-          scheduledDateTimeShort: shortDate && formattedTime ? `${shortDate} at ${formattedTime}` : null,
+          appointmentTime: appointmentTime,
+          scheduledDateTime: formattedDate && appointmentTime ? `${formattedDate} at ${appointmentTime}` : null,
+          scheduledDateTimeShort: shortDate && appointmentTime ? `${shortDate} at ${appointmentTime}` : null,
           technician: job.technician_name,
           service: job.service_type,
           notes: job.notes,
