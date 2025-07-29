@@ -11,7 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Plus, Trash2, Clock, Calendar, Mail, MessageSquare, Phone,
   ChevronRight, AlertCircle, DollarSign, Star, User, Settings,
-  Zap, ArrowDown, GitBranch, Timer, Sun, Moon, Globe, Bot, Sparkles
+  Zap, ArrowDown, GitBranch, Timer, Sun, Moon, Globe, Bot, Sparkles, Bell
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -450,6 +450,7 @@ const WorkflowStepCard: React.FC<{
 }> = ({ step, index, totalSteps, isSelected, onSelect, onUpdate, onDelete, onMove, availableVariables }) => {
   const getStepIcon = () => {
     switch (step.type) {
+      case 'trigger': return <Zap className="w-4 h-4" />;
       case 'action':
         switch (step.config.actionType) {
           case 'email': return <Mail className="w-4 h-4" />;
@@ -459,6 +460,10 @@ const WorkflowStepCard: React.FC<{
         }
       case 'delay': return <Clock className="w-4 h-4" />;
       case 'branch': return <GitBranch className="w-4 h-4" />;
+      case 'condition': return <AlertCircle className="w-4 h-4" />;
+      case 'webhook': return <Globe className="w-4 h-4" />;
+      case 'task': return <User className="w-4 h-4" />;
+      case 'notification': return <Bell className="w-4 h-4" />;
       default: return <Settings className="w-4 h-4" />;
     }
   };
@@ -489,6 +494,13 @@ const WorkflowStepCard: React.FC<{
               </div>
 
               {/* Step Content Preview */}
+              {step.type === 'trigger' && (
+                <StepTriggerConfig
+                  config={step.config}
+                  onUpdate={(config) => onUpdate({ config })}
+                />
+              )}
+
               {step.type === 'action' && (
                 <StepActionConfig
                   config={step.config}
@@ -501,6 +513,14 @@ const WorkflowStepCard: React.FC<{
                 <StepDelayConfig
                   config={step.config}
                   onUpdate={(config) => onUpdate({ config })}
+                />
+              )}
+
+              {step.type === 'condition' && (
+                <StepConditionConfig
+                  config={step.config}
+                  onUpdate={(config) => onUpdate({ config })}
+                  availableVariables={availableVariables}
                 />
               )}
 
@@ -554,7 +574,103 @@ const WorkflowStepCard: React.FC<{
   );
 };
 
-// Action Step Configuration
+// Trigger Step Configuration
+const StepTriggerConfig: React.FC<{
+  config: any;
+  onUpdate: (config: any) => void;
+}> = ({ config, onUpdate }) => {
+  return (
+    <div className="space-y-3 mt-3" onClick={(e) => e.stopPropagation()}>
+      <div className="flex gap-2">
+        <Select
+          value={config.triggerType}
+          onValueChange={(value) => onUpdate({ ...config, triggerType: value })}
+        >
+          <SelectTrigger className="w-48">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="job_created">Job Created</SelectItem>
+            <SelectItem value="job_completed">Job Completed</SelectItem>
+            <SelectItem value="job_scheduled">Job Scheduled</SelectItem>
+            <SelectItem value="invoice_sent">Invoice Sent</SelectItem>
+            <SelectItem value="invoice_paid">Invoice Paid</SelectItem>
+            <SelectItem value="invoice_overdue">Invoice Overdue</SelectItem>
+            <SelectItem value="client_added">Client Added</SelectItem>
+            <SelectItem value="scheduled_time">Scheduled Time</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+      
+      {config.triggerType === 'scheduled_time' && (
+        <div className="flex items-center gap-2">
+          <Input
+            type="datetime-local"
+            value={config.scheduledTime || ''}
+            onChange={(e) => onUpdate({ ...config, scheduledTime: e.target.value })}
+            className="w-48"
+          />
+        </div>
+      )}
+      
+      <div className="text-xs text-muted-foreground">
+        This trigger starts the workflow when the selected event occurs.
+      </div>
+    </div>
+  );
+};
+
+// Condition Step Configuration
+const StepConditionConfig: React.FC<{
+  config: any;
+  onUpdate: (config: any) => void;
+  availableVariables: Array<{ name: string; label: string; type: string }>;
+}> = ({ config, onUpdate, availableVariables }) => {
+  return (
+    <div className="space-y-3 mt-3" onClick={(e) => e.stopPropagation()}>
+      <div className="flex items-center gap-2">
+        <Select
+          value={config.field}
+          onValueChange={(value) => onUpdate({ ...config, field: value })}
+        >
+          <SelectTrigger className="w-40">
+            <SelectValue placeholder="Select field" />
+          </SelectTrigger>
+          <SelectContent>
+            {availableVariables.map((variable) => (
+              <SelectItem key={variable.name} value={variable.name}>
+                {variable.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        <Select
+          value={config.operator}
+          onValueChange={(value) => onUpdate({ ...config, operator: value })}
+        >
+          <SelectTrigger className="w-32">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="equals">Equals</SelectItem>
+            <SelectItem value="not_equals">Not Equals</SelectItem>
+            <SelectItem value="greater_than">Greater Than</SelectItem>
+            <SelectItem value="less_than">Less Than</SelectItem>
+            <SelectItem value="contains">Contains</SelectItem>
+          </SelectContent>
+        </Select>
+
+        <Input
+          value={config.value}
+          onChange={(e) => onUpdate({ ...config, value: e.target.value })}
+          placeholder="Value"
+          className="w-32"
+        />
+      </div>
+    </div>
+  );
+};
 const StepActionConfig: React.FC<{
   config: any;
   onUpdate: (config: any) => void;
