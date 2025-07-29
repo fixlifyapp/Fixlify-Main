@@ -298,23 +298,6 @@ export const AdvancedWorkflowBuilder: React.FC<WorkflowBuilderProps> = ({
         </Button>
       </div>
 
-      {/* Workflow Title Section */}
-      <Card>
-        <CardContent className="pt-6">
-          <div className="space-y-2">
-            <Label htmlFor="workflow-title" className="text-sm font-medium">
-              Workflow Title
-            </Label>
-            <Input
-              id="workflow-title"
-              value={workflowTitle}
-              onChange={(e) => setWorkflowTitle(e.target.value)}
-              placeholder="Enter workflow name..."
-              className="max-w-md"
-            />
-          </div>
-        </CardContent>
-      </Card>
 
       {/* AI Assistant Panel */}
       {showAIAssistant && (
@@ -353,6 +336,18 @@ export const AdvancedWorkflowBuilder: React.FC<WorkflowBuilderProps> = ({
                   <Badge variant="secondary">{steps.length} steps</Badge>
                 )}
               </CardTitle>
+              <div className="mt-4">
+                <Label htmlFor="workflow-title" className="text-sm font-medium">
+                  Workflow Name
+                </Label>
+                <Input
+                  id="workflow-title"
+                  value={workflowTitle}
+                  onChange={(e) => setWorkflowTitle(e.target.value)}
+                  placeholder="Enter workflow name..."
+                  className="max-w-md mt-2"
+                />
+              </div>
             </CardHeader>
             <CardContent>
           <div className="space-y-4">
