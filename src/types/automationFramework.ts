@@ -43,6 +43,7 @@ export interface TriggerTypes {
     priority?: string[];
     location?: string[];
     technician?: string[];
+    tags?: string[];
   };
   job_status_changed: {
     from_status?: string[];
@@ -59,15 +60,25 @@ export interface TriggerTypes {
     completion_rating?: number;
     payment_status?: string[];
   };
+  job_tags_changed: {
+    added_tags?: string[];
+    removed_tags?: string[];
+    job_type?: string[];
+  };
   
   // Client Management Triggers
   client_created: {
     client_type?: string[];
     lead_source?: string[];
     location?: string[];
+    tags?: string[];
   };
   client_updated: {
     fields_changed?: string[];
+  };
+  client_tags_changed: {
+    added_tags?: string[];
+    removed_tags?: string[];
   };
   
   // Financial Triggers
@@ -76,6 +87,15 @@ export interface TriggerTypes {
     job_type?: string[];
   };
   estimate_accepted: {
+    amount_range?: { min: number; max: number };
+  };
+  estimate_rejected: {
+    amount_range?: { min: number; max: number };
+    reason?: string[];
+  };
+  estimate_status_changed: {
+    from_status?: string[];
+    to_status?: string[];
     amount_range?: { min: number; max: number };
   };
   invoice_sent: {
@@ -89,6 +109,32 @@ export interface TriggerTypes {
   payment_received: {
     payment_method?: string[];
     amount_range?: { min: number; max: number };
+  };
+  
+  // Configuration Triggers
+  job_status_created: {
+    status_name?: string[];
+    color?: string[];
+  };
+  job_status_updated: {
+    old_name?: string[];
+    new_name?: string[];
+  };
+  tag_created: {
+    tag_name?: string[];
+    category?: string[];
+  };
+  tag_updated: {
+    old_name?: string[];
+    new_name?: string[];
+    category?: string[];
+  };
+  lead_source_created: {
+    source_name?: string[];
+  };
+  lead_source_updated: {
+    old_name?: string[];
+    new_name?: string[];
   };
   
   // Communication Triggers

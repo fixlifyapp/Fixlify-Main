@@ -545,14 +545,38 @@ const StepTriggerConfig: React.FC<{
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
+            {/* Job Management Triggers */}
             <SelectItem value="job_created">Job Created</SelectItem>
-            <SelectItem value="job_completed">Job Completed</SelectItem>
+            <SelectItem value="job_status_changed">Job Status Changed</SelectItem>
             <SelectItem value="job_scheduled">Job Scheduled</SelectItem>
+            <SelectItem value="job_completed">Job Completed</SelectItem>
+            <SelectItem value="job_tags_changed">Job Tags Changed</SelectItem>
+            
+            {/* Client Management Triggers */}
+            <SelectItem value="client_created">Client Created</SelectItem>
+            <SelectItem value="client_updated">Client Updated</SelectItem>
+            <SelectItem value="client_tags_changed">Client Tags Changed</SelectItem>
+            
+            {/* Financial Triggers */}
+            <SelectItem value="estimate_sent">Estimate Sent</SelectItem>
+            <SelectItem value="estimate_accepted">Estimate Accepted</SelectItem>
+            <SelectItem value="estimate_rejected">Estimate Rejected</SelectItem>
+            <SelectItem value="estimate_status_changed">Estimate Status Changed</SelectItem>
             <SelectItem value="invoice_sent">Invoice Sent</SelectItem>
-            <SelectItem value="invoice_paid">Invoice Paid</SelectItem>
             <SelectItem value="invoice_overdue">Invoice Overdue</SelectItem>
-            <SelectItem value="client_added">Client Added</SelectItem>
+            <SelectItem value="payment_received">Payment Received</SelectItem>
+            
+            {/* Configuration Triggers */}
+            <SelectItem value="job_status_created">Job Status Created</SelectItem>
+            <SelectItem value="job_status_updated">Job Status Updated</SelectItem>
+            <SelectItem value="tag_created">Tag Created</SelectItem>
+            <SelectItem value="tag_updated">Tag Updated</SelectItem>
+            <SelectItem value="lead_source_created">Lead Source Created</SelectItem>
+            <SelectItem value="lead_source_updated">Lead Source Updated</SelectItem>
+            
+            {/* Time-Based Triggers */}
             <SelectItem value="scheduled_time">Scheduled Time</SelectItem>
+            <SelectItem value="relative_time">Relative Time</SelectItem>
           </SelectContent>
         </Select>
       </div>
