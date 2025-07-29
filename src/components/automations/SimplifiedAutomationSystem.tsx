@@ -231,7 +231,7 @@ export const SimplifiedAutomationSystem: React.FC = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Templates Available</p>
-                <p className="text-2xl font-bold">4</p>
+                <p className="text-2xl font-bold">9</p>
               </div>
               <Zap className="w-8 h-8 text-purple-500" />
             </div>
@@ -291,6 +291,63 @@ export const SimplifiedAutomationSystem: React.FC = () => {
                   { type: 'trigger', name: 'Job Scheduled', config: { trigger_type: 'job_scheduled' } },
                   { type: 'delay', name: 'Wait Until Day Before', config: { delay_until: 'day_before' } },
                   { type: 'action', name: 'Send SMS Confirmation', config: { action_type: 'send_sms', template: 'appointment_confirm' } }
+                ]
+              },
+              {
+                name: 'Missed Call Auto Response',
+                description: 'Auto-respond when you miss a call',
+                icon: MessageSquare,
+                trigger: 'Missed Call',
+                actions: ['Send SMS'],
+                steps: [
+                  { type: 'trigger', name: 'Missed Call', config: { trigger_type: 'missed_call' } },
+                  { type: 'action', name: 'Send Auto-Response SMS', config: { action_type: 'send_sms', template: 'missed_call_response' } }
+                ]
+              },
+              {
+                name: 'Daily Task Reminders',
+                description: 'Send daily reminders for overdue tasks',
+                icon: Clock,
+                trigger: 'Daily Schedule',
+                actions: ['Check Tasks', 'Send Reminder'],
+                steps: [
+                  { type: 'trigger', name: 'Daily at 9 AM', config: { trigger_type: 'scheduled', schedule: 'daily_9am' } },
+                  { type: 'action', name: 'Send Task Reminder', config: { action_type: 'send_email', template: 'daily_tasks' } }
+                ]
+              },
+              {
+                name: 'Quote Follow-up',
+                description: 'Follow up on pending estimates',
+                icon: RefreshCw,
+                trigger: 'Estimate Created',
+                actions: ['Wait 3 Days', 'Send Follow-up'],
+                steps: [
+                  { type: 'trigger', name: 'Estimate Created', config: { trigger_type: 'estimate_created' } },
+                  { type: 'delay', name: 'Wait 3 Days', config: { delay_hours: 72 } },
+                  { type: 'action', name: 'Send Follow-up Email', config: { action_type: 'send_email', template: 'estimate_followup' } }
+                ]
+              },
+              {
+                name: 'Emergency Service Alert',
+                description: 'Immediate response for emergency calls',
+                icon: Zap,
+                trigger: 'Emergency Call',
+                actions: ['Alert Team', 'Auto-Response'],
+                steps: [
+                  { type: 'trigger', name: 'Emergency Call Received', config: { trigger_type: 'emergency_call' } },
+                  { type: 'action', name: 'Send Team Alert', config: { action_type: 'send_notification', template: 'emergency_alert' } },
+                  { type: 'action', name: 'Auto-Response SMS', config: { action_type: 'send_sms', template: 'emergency_response' } }
+                ]
+              },
+              {
+                name: 'Seasonal Maintenance',
+                description: 'Remind clients about seasonal services',
+                icon: TrendingUp,
+                trigger: 'Season Change',
+                actions: ['Send Campaign', 'Create Leads'],
+                steps: [
+                  { type: 'trigger', name: 'Seasonal Schedule', config: { trigger_type: 'seasonal_trigger' } },
+                  { type: 'action', name: 'Send Maintenance Reminder', config: { action_type: 'send_email', template: 'seasonal_maintenance' } }
                 ]
               }
             ].map((template) => {
