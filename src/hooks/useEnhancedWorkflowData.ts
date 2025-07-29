@@ -130,14 +130,27 @@ export const useEnhancedWorkflowData = () => {
     if (!user?.id) return null;
 
     try {
+      // Fetch from profiles table (where the actual company data is stored)
       const { data, error } = await supabase
-        .from('company_settings')
-        .select('*')
+        .from('profiles')
+        .select('company_name, business_niche, timezone, business_hours')
         .eq('user_id', user.id)
         .single();
 
       if (error && error.code !== 'PGRST116') throw error;
-      return data;
+      
+      if (data) {
+        return {
+          id: user.id,
+          company_name: data.company_name || 'Your Company',
+          business_type: data.business_niche || 'General Service',
+          business_niche: data.business_niche || 'General Service',
+          timezone: data.timezone || 'UTC',
+          business_hours: data.business_hours || {}
+        };
+      }
+      
+      return null;
     } catch (error) {
       console.error('Error fetching company settings:', error);
       return null;
