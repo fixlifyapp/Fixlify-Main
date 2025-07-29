@@ -51,7 +51,7 @@ export const TagsTasksSection = ({
               <Badge
                 key={tag.id}
                 variant={formData.tags.includes(tag.name) ? "default" : "outline"}
-                className="cursor-pointer hover:scale-105 transition-transform"
+                className="cursor-pointer"
                 onClick={() => handleTagToggle(tag.id)}
               >
                 {tag.name}
