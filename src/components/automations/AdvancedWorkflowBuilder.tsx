@@ -120,6 +120,7 @@ interface Condition {
 interface WorkflowBuilderProps {
   initialWorkflow?: WorkflowStep[];
   onSave: (workflow: WorkflowStep[]) => void;
+  onCancel?: () => void;
   availableVariables: Array<{ name: string; label: string; type: string }>;
   businessType?: string;
   companyName?: string;
@@ -128,6 +129,7 @@ interface WorkflowBuilderProps {
 export const AdvancedWorkflowBuilder: React.FC<WorkflowBuilderProps> = ({
   initialWorkflow = [],
   onSave,
+  onCancel,
   availableVariables,
   businessType = 'General Service',
   companyName = 'Your Company'
@@ -434,7 +436,7 @@ export const AdvancedWorkflowBuilder: React.FC<WorkflowBuilderProps> = ({
 
           {/* Save Button */}
           <div className="flex justify-end gap-2">
-            <Button variant="outline">Cancel</Button>
+            <Button variant="outline" onClick={onCancel}>Cancel</Button>
             <Button onClick={() => onSave(steps)}>Save Workflow</Button>
           </div>
         </TabsContent>

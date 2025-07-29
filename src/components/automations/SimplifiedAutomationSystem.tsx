@@ -175,6 +175,10 @@ export const SimplifiedAutomationSystem: React.FC = () => {
             { name: 'company.name', label: 'Company Name', type: 'text' }
           ]}
           onSave={handleSaveWorkflow}
+          onCancel={() => {
+            setShowBuilder(false);
+            setEditingWorkflow(null);
+          }}
         />
       </div>
     );
