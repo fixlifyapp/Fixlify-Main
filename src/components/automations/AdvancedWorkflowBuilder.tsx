@@ -36,27 +36,93 @@ const generateAIMessage = async (
   onUpdate({ ...config, isGenerating: true });
   
   try {
-    // Simple, essential variables only
-    const essentialVars = [
-      { name: 'client.firstName', label: 'Client Name' },
-      { name: 'job.title', label: 'Job Type' },
-      { name: 'company.name', label: 'Company Name' },
-      { name: 'job.status', label: 'Job Status' },
-      { name: 'job.formattedDate', label: 'Appointment Date' },
-      { name: 'job.appointmentTime', label: 'Appointment Time' },
-      { name: 'job.scheduledDateTime', label: 'Full Appointment' }
-    ];
+    // Get context-aware variables based on trigger type
+    const getContextAwareVariables = (triggerType?: string) => {
+      const baseVars = [
+        { name: 'client.firstName', label: 'Client Name' },
+        { name: 'company.name', label: 'Company Name' }
+      ];
 
+      switch (triggerType) {
+        case 'job_scheduled':
+        case 'appointment_scheduled':
+          return [
+            ...baseVars,
+            { name: 'job.scheduledDate', label: 'Appointment Date' },
+            { name: 'job.scheduledTime', label: 'Appointment Time' },
+            { name: 'job.scheduledDateTime', label: 'Full Date & Time' },
+            { name: 'job.title', label: 'Service Type' },
+            { name: 'job.technician', label: 'Technician Name' },
+            { name: 'job.address', label: 'Service Address' }
+          ];
+        case 'job_completed':
+          return [
+            ...baseVars,
+            { name: 'job.title', label: 'Service Type' },
+            { name: 'job.completedDate', label: 'Completion Date' },
+            { name: 'job.technician', label: 'Technician Name' },
+            { name: 'job.total', label: 'Service Total' }
+          ];
+        case 'invoice_sent':
+        case 'payment_overdue':
+          return [
+            ...baseVars,
+            { name: 'invoice.number', label: 'Invoice Number' },
+            { name: 'invoice.total', label: 'Amount Due' },
+            { name: 'invoice.dueDate', label: 'Due Date' },
+            { name: 'payment.link', label: 'Payment Link' }
+          ];
+        case 'estimate_sent':
+          return [
+            ...baseVars,
+            { name: 'estimate.number', label: 'Estimate Number' },
+            { name: 'estimate.total', label: 'Estimate Amount' },
+            { name: 'estimate.validUntil', label: 'Valid Until' },
+            { name: 'estimate.link', label: 'View Estimate' }
+          ];
+        default:
+          return [
+            ...baseVars,
+            { name: 'job.title', label: 'Job Type' },
+            { name: 'job.status', label: 'Job Status' },
+            { name: 'job.scheduledDate', label: 'Date' },
+            { name: 'job.scheduledTime', label: 'Time' }
+          ];
+      }
+    };
+
+    const contextAwareVars = getContextAwareVariables(workflowContext?.triggerType);
+    
     // Get context from existing message or workflow
     const userInput = config.message || '';
     const hasUserInput = userInput.trim().length > 0;
     
-    // Create context-aware prompt
+    // Create context-aware prompt based on trigger
     let contextPrompt = '';
     if (hasUserInput) {
       contextPrompt = `Take this message and improve it by adding appropriate variables: "${userInput}"`;
     } else {
-      contextPrompt = `Generate a ${messageType === 'email' ? 'professional email' : 'friendly SMS'} message`;
+      const triggerContext = workflowContext?.triggerType || 'general';
+      switch (triggerContext) {
+        case 'job_scheduled':
+        case 'appointment_scheduled':
+          contextPrompt = `Generate a ${messageType === 'email' ? 'professional appointment confirmation email' : 'friendly appointment reminder SMS'} for a scheduled service appointment`;
+          break;
+        case 'job_completed':
+          contextPrompt = `Generate a ${messageType === 'email' ? 'professional job completion follow-up email' : 'friendly completion SMS'} thanking the customer and asking for feedback`;
+          break;
+        case 'invoice_sent':
+          contextPrompt = `Generate a ${messageType === 'email' ? 'professional invoice email' : 'friendly invoice SMS'} notifying about a new invoice`;
+          break;
+        case 'payment_overdue':
+          contextPrompt = `Generate a ${messageType === 'email' ? 'polite payment reminder email' : 'friendly payment reminder SMS'} for an overdue invoice`;
+          break;
+        case 'estimate_sent':
+          contextPrompt = `Generate a ${messageType === 'email' ? 'professional estimate email' : 'friendly estimate SMS'} presenting a service estimate`;
+          break;
+        default:
+          contextPrompt = `Generate a ${messageType === 'email' ? 'professional email' : 'friendly SMS'} message`;
+      }
     }
 
     const { data, error } = await supabase.functions.invoke('generate-ai-message', {
@@ -65,7 +131,8 @@ const generateAIMessage = async (
         context: contextPrompt,
         userInput: userInput,
         hasUserInput: hasUserInput,
-        variables: essentialVars,
+        variables: contextAwareVars,
+        triggerType: workflowContext?.triggerType,
         companyInfo: {
           businessType: 'service company',
           tone: 'professional'
@@ -545,6 +612,9 @@ const WorkflowStepCard: React.FC<{
                   config={step.config}
                   onUpdate={(config) => onUpdate({ config })}
                   availableVariables={availableVariables}
+                  workflowContext={{
+                    triggerType: 'job_scheduled' // Default for now, will be enhanced later
+                  }}
                 />
               )}
 
@@ -763,7 +833,8 @@ const StepActionConfig: React.FC<{
   config: any;
   onUpdate: (config: any) => void;
   availableVariables: Array<{ name: string; label: string; type: string }>;
-}> = ({ config, onUpdate, availableVariables }) => {
+  workflowContext?: any;
+}> = ({ config, onUpdate, availableVariables, workflowContext }) => {
   return (
     <div className="space-y-3 mt-3" onClick={(e) => e.stopPropagation()}>
       <div className="flex gap-2">
@@ -800,7 +871,7 @@ const StepActionConfig: React.FC<{
             <Button
               size="sm"
               variant="outline"
-              onClick={() => generateAIMessage('email', config, onUpdate, availableVariables)}
+              onClick={() => generateAIMessage('email', config, onUpdate, availableVariables, workflowContext)}
               className="absolute top-2 right-2 h-6 w-6 p-0"
               disabled={config.isGenerating}
             >
@@ -826,7 +897,7 @@ const StepActionConfig: React.FC<{
           <Button
             size="sm"
             variant="outline"
-            onClick={() => generateAIMessage('sms', config, onUpdate, availableVariables)}
+            onClick={() => generateAIMessage('sms', config, onUpdate, availableVariables, workflowContext)}
             className="absolute top-2 right-2 h-6 w-6 p-0"
             disabled={config.isGenerating}
           >
