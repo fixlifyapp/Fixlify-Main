@@ -3,7 +3,9 @@ import { PageLayout } from "@/components/layout/PageLayout";
 import { PageHeader } from "@/components/ui/page-header";
 import { AnimatedContainer } from "@/components/ui/animated-container";
 import { SimplifiedAutomationSystem } from '@/components/automations/SimplifiedAutomationSystem';
-import { Zap, Bot, TrendingUp, Settings } from "lucide-react";
+import { WorkflowExecutionMonitor } from '@/components/automations/WorkflowExecutionMonitor';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Zap, Bot, TrendingUp, Settings, Play, Monitor } from "lucide-react";
 
 const AutomationsPage = () => {
   return (
@@ -22,7 +24,26 @@ const AutomationsPage = () => {
       </AnimatedContainer>
       
       <AnimatedContainer animation="fade-in" delay={200}>
-        <SimplifiedAutomationSystem />
+        <Tabs defaultValue="workflows" className="w-full">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="workflows" className="flex items-center gap-2">
+              <Settings className="h-4 w-4" />
+              Workflow Builder
+            </TabsTrigger>
+            <TabsTrigger value="monitor" className="flex items-center gap-2">
+              <Monitor className="h-4 w-4" />
+              Execution Monitor
+            </TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="workflows" className="mt-6">
+            <SimplifiedAutomationSystem />
+          </TabsContent>
+          
+          <TabsContent value="monitor" className="mt-6">
+            <WorkflowExecutionMonitor />
+          </TabsContent>
+        </Tabs>
       </AnimatedContainer>
     </PageLayout>
   );
