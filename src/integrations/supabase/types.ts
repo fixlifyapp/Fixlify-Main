@@ -5287,6 +5287,14 @@ export type Database = {
         Args: { p_automation_id: string; p_trigger_data?: Json }
         Returns: string
       }
+      execute_automation_for_record: {
+        Args: {
+          trigger_type_param: string
+          context_data_param: Json
+          org_id_param: string
+        }
+        Returns: undefined
+      }
       generate_approval_token: {
         Args: {
           p_document_type: string
