@@ -541,7 +541,7 @@ const StepTriggerConfig: React.FC<{
           value={config.triggerType}
           onValueChange={(value) => onUpdate({ ...config, triggerType: value })}
         >
-          <SelectTrigger className="w-48">
+          <SelectTrigger className="w-full sm:w-48">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -612,7 +612,7 @@ const StepConditionConfig: React.FC<{
           value={config.field}
           onValueChange={(value) => onUpdate({ ...config, field: value })}
         >
-          <SelectTrigger className="w-40">
+          <SelectTrigger className="w-full sm:w-40">
             <SelectValue placeholder="Select field" />
           </SelectTrigger>
           <SelectContent>
@@ -628,7 +628,7 @@ const StepConditionConfig: React.FC<{
           value={config.operator}
           onValueChange={(value) => onUpdate({ ...config, operator: value })}
         >
-          <SelectTrigger className="w-32">
+          <SelectTrigger className="w-full sm:w-32">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -662,7 +662,7 @@ const StepActionConfig: React.FC<{
           value={config.actionType}
           onValueChange={(value) => onUpdate({ ...config, actionType: value })}
         >
-          <SelectTrigger className="w-32">
+          <SelectTrigger className="w-full sm:w-32">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>

@@ -52,7 +52,7 @@ export const AUTOMATION_TRIGGERS: TriggerDefinition[] = [
   {
     key: 'job_tags_changed',
     name: 'Job Tags Changed',
-    description: 'Triggers when job tags are added or removed',
+    description: 'Triggers when job tags are changed from specific tags to others',
     category: 'job_management',
     icon: '🏷️',
     implemented: true,
@@ -80,7 +80,7 @@ export const AUTOMATION_TRIGGERS: TriggerDefinition[] = [
   {
     key: 'client_tags_changed',
     name: 'Client Tags Changed',
-    description: 'Triggers when client tags are modified',
+    description: 'Triggers when client tags are changed from specific tags to others',
     category: 'client_management',
     icon: '🏷️',
     implemented: true,

@@ -61,8 +61,8 @@ export interface TriggerTypes {
     payment_status?: string[];
   };
   job_tags_changed: {
-    added_tags?: string[];
-    removed_tags?: string[];
+    from_tags?: string[];
+    to_tags?: string[];
     job_type?: string[];
   };
   
@@ -77,8 +77,8 @@ export interface TriggerTypes {
     fields_changed?: string[];
   };
   client_tags_changed: {
-    added_tags?: string[];
-    removed_tags?: string[];
+    from_tags?: string[];
+    to_tags?: string[];
   };
   
   // Financial Triggers
@@ -117,24 +117,24 @@ export interface TriggerTypes {
     color?: string[];
   };
   job_status_updated: {
-    old_name?: string[];
-    new_name?: string[];
+    from_status?: string[];
+    to_status?: string[];
   };
   tag_created: {
     tag_name?: string[];
     category?: string[];
   };
   tag_updated: {
-    old_name?: string[];
-    new_name?: string[];
+    from_tag?: string[];
+    to_tag?: string[];
     category?: string[];
   };
   lead_source_created: {
     source_name?: string[];
   };
   lead_source_updated: {
-    old_name?: string[];
-    new_name?: string[];
+    from_source?: string[];
+    to_source?: string[];
   };
   
   // Communication Triggers
