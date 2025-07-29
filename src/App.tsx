@@ -16,7 +16,7 @@ import AuthPage from "@/pages/AuthPage";
 import Dashboard from "@/pages/Dashboard";
 import TestDashboard from "@/pages/TestDashboard";
 import TestPage from "@/pages/TestPage";
-import JobsPageOptimized from "@/pages/JobsPageOptimized";
+import JobsPageSimple from "@/pages/JobsPageSimple";
 import JobDetailsPage from "@/pages/JobDetailsPage";
 import ClientsPage from "@/pages/ClientsPage";
 import ClientDetailPage from "@/pages/ClientDetailPage";
@@ -179,7 +179,7 @@ function App() {
             <Route path="/jobs" element={
               <AuthProvider>
                 <ProtectedRouteWithProviders>
-                  <JobsPageOptimized />
+                  <JobsPageSimple />
                 </ProtectedRouteWithProviders>
               </AuthProvider>
             } />

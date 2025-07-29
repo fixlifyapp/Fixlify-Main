@@ -43,7 +43,7 @@ export const useCompanyEmailSettings = () => {
         throw error;
       }
 
-      setSettings(data || {
+      setSettings((data as any) || {
         smtp_host: '',
         smtp_port: 587,
         smtp_username: '',
