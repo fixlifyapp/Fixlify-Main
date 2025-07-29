@@ -10,7 +10,7 @@ import {
   Workflow, Clock, MessageSquare, Zap
 } from 'lucide-react';
 
-import { AdvancedWorkflowBuilder } from './AdvancedWorkflowBuilder';
+import { VisualWorkflowBuilder } from './VisualWorkflowBuilder';
 import { AutomationService, AutomationWorkflow } from '@/services/automationService';
 import { useAuth } from '@/hooks/use-auth';
 
@@ -154,23 +154,13 @@ export const SimplifiedAutomationSystem: React.FC = () => {
           </Button>
         </div>
 
-        <AdvancedWorkflowBuilder
-          initialWorkflow={editingWorkflow?.template_config?.steps || []}
-          businessType="Service Business"
-          companyName="Your Company"
-          availableVariables={[
-            { name: 'client.firstName', label: 'Client First Name', type: 'text' },
-            { name: 'client.lastName', label: 'Client Last Name', type: 'text' },
-            { name: 'client.email', label: 'Client Email', type: 'text' },
-            { name: 'client.phone', label: 'Client Phone', type: 'text' },
-            { name: 'job.number', label: 'Job Number', type: 'text' },
-            { name: 'job.title', label: 'Job Title', type: 'text' },
-            { name: 'job.status', label: 'Job Status', type: 'text' },
-            { name: 'invoice.number', label: 'Invoice Number', type: 'text' },
-            { name: 'invoice.total', label: 'Invoice Total', type: 'currency' },
-            { name: 'company.name', label: 'Company Name', type: 'text' }
-          ]}
+        <VisualWorkflowBuilder
           onSave={handleSaveWorkflow}
+          onBack={() => {
+            setShowBuilder(false);
+            setEditingWorkflow(null);
+          }}
+          initialWorkflow={editingWorkflow?.template_config?.steps || []}
         />
       </div>
     );
