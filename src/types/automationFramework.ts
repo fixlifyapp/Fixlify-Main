@@ -270,7 +270,7 @@ export interface WorkflowExecution {
   id: string;
   workflow_id: string;
   trigger_data: any;
-  status: 'pending' | 'running' | 'completed' | 'failed' | 'cancelled';
+  status: 'pending' | 'running' | 'completed' | 'failed';
   started_at: string;
   completed_at?: string;
   steps_executed: {

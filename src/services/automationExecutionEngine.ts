@@ -537,9 +537,9 @@ export class AutomationExecutionEngine {
       const { error } = await supabase
         .from('jobs')
         .insert({
+          id: crypto.randomUUID(),
           client_id: context.client_id,
           job_type: config.job_type,
-          priority: config.priority || 'medium',
           status: config.status || 'new',
           technician_id: config.technician_id,
           date: config.scheduled_date,
@@ -610,15 +610,21 @@ export class AutomationExecutionEngine {
   /**
    * Log communication
    */
-  private async logCommunication(type: string, recipient: string, content: string, context: any) {
+  private async logCommunication(commType: string, recipient: string, content: string, context: any) {
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
       await supabase.from('communication_logs').insert({
-        type,
+        type: commType,
+        communication_type: commType,
         direction: 'outbound',
+        from_address: 'automation@fixlify.app',
         to_address: recipient,
         content,
         metadata: { automation_context: context },
-        status: 'sent'
+        status: 'sent',
+        user_id: user.id
       });
     } catch (error) {
       console.error('Error logging communication:', error);
@@ -676,10 +682,11 @@ export class AutomationExecutionEngine {
       const now = new Date();
       
       for (const workflow of workflows || []) {
-        const triggers = workflow.triggers || [];
+        const triggers = Array.isArray(workflow.triggers) ? workflow.triggers : [];
         
         for (const trigger of triggers) {
-          if (trigger.type === 'scheduled_time' && this.shouldRunScheduledTrigger(trigger, now)) {
+          const triggerObj = trigger as any;
+          if (triggerObj.type === 'scheduled_time' && this.shouldRunScheduledTrigger(triggerObj, now)) {
             await this.executeWorkflow(workflow, 'scheduled_time', {
               scheduled_time: now.toISOString(),
               workflow_id: workflow.id
