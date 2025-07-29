@@ -135,7 +135,7 @@ export const AdvancedWorkflowBuilder: React.FC<WorkflowBuilderProps> = ({
 
   const addStep = (type: WorkflowStep['type']) => {
     const newStep: WorkflowStep = {
-      id: `step-${Date.now()}`,
+      id: `step-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       type,
       name: getDefaultStepName(type),
       config: getDefaultStepConfig(type)
