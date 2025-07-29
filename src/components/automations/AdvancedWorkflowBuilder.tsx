@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useCompanySettings } from '@/hooks/useCompanySettings';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -1190,6 +1191,8 @@ const StepBranchConfig: React.FC<{
 
 // Smart Timing Options Component
 const SmartTimingOptions: React.FC = () => {
+  const { companySettings, isLoading } = useCompanySettings();
+  
   const [timingConfig, setTimingConfig] = useState({
     businessHours: true,
     businessStart: '09:00',
@@ -1202,6 +1205,25 @@ const SmartTimingOptions: React.FC = () => {
     recurring: false,
     recurringType: 'none'
   });
+
+  // Update timing config when company settings change
+  useEffect(() => {
+    if (companySettings?.business_hours) {
+      const businessHours = companySettings.business_hours;
+      // Find the first enabled day to get default business hours
+      const enabledDay = Object.keys(businessHours).find(day => 
+        businessHours[day]?.enabled && businessHours[day]?.open && businessHours[day]?.close
+      );
+      
+      if (enabledDay) {
+        setTimingConfig(prev => ({
+          ...prev,
+          businessStart: businessHours[enabledDay].open,
+          businessEnd: businessHours[enabledDay].close
+        }));
+      }
+    }
+  }, [companySettings]);
 
   return (
     <Card>
@@ -1265,7 +1287,10 @@ const SmartTimingOptions: React.FC = () => {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="customer_local">Customer's Local Time</SelectItem>
-                <SelectItem value="business">Business Time</SelectItem>
+                <SelectItem value="business">
+                  Business Time {(companySettings as any)?.company_timezone && 
+                    `(${(companySettings as any).company_timezone})`}
+                </SelectItem>
                 <SelectItem value="utc">UTC</SelectItem>
               </SelectContent>
             </Select>
@@ -1310,8 +1335,13 @@ const SmartTimingOptions: React.FC = () => {
                 <SelectItem value="daily">Daily</SelectItem>
                 <SelectItem value="weekly">Weekly</SelectItem>
                 <SelectItem value="monthly">Monthly</SelectItem>
-                <SelectItem value="quarterly">Quarterly</SelectItem>
+                <SelectItem value="quarterly">Quarterly (3 months)</SelectItem>
+                <SelectItem value="6months">Semi-annually (6 months)</SelectItem>
                 <SelectItem value="yearly">Yearly</SelectItem>
+                <SelectItem value="2years">Every 2 years</SelectItem>
+                <SelectItem value="3years">Every 3 years</SelectItem>
+                <SelectItem value="4years">Every 4 years</SelectItem>
+                <SelectItem value="5years">Every 5 years</SelectItem>
               </SelectContent>
             </Select>
           </div>
