@@ -709,29 +709,62 @@ const StepActionConfig: React.FC<{
             value={config.subject || ''}
             onChange={(e) => onUpdate({ ...config, subject: e.target.value })}
           />
-          <Textarea
-            placeholder="Message"
-            value={config.message || ''}
-            onChange={(e) => onUpdate({ ...config, message: e.target.value })}
-            rows={3}
-          />
+          <div className="relative">
+            <Textarea
+              placeholder="Message"
+              value={config.message || ''}
+              onChange={(e) => onUpdate({ ...config, message: e.target.value })}
+              rows={3}
+            />
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => onUpdate({ ...config, showAIGenerator: true })}
+              className="absolute top-2 right-2 h-6 w-6 p-0"
+            >
+              <Bot className="w-3 h-3" />
+            </Button>
+          </div>
         </>
       )}
 
       {config.actionType === 'sms' && (
-        <Textarea
-          placeholder="SMS Message (160 characters)"
-          value={config.message || ''}
-          onChange={(e) => onUpdate({ ...config, message: e.target.value })}
-          rows={2}
-          maxLength={160}
-        />
+        <div className="relative">
+          <Textarea
+            placeholder="SMS Message (160 characters)"
+            value={config.message || ''}
+            onChange={(e) => onUpdate({ ...config, message: e.target.value })}
+            rows={2}
+            maxLength={160}
+          />
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => onUpdate({ ...config, showAIGenerator: true })}
+            className="absolute top-2 right-2 h-6 w-6 p-0"
+          >
+            <Bot className="w-3 h-3" />
+          </Button>
+        </div>
       )}
 
       {config.actionType === 'ai_generate_message' && (
         <AIMessageGeneratorConfig
           config={config}
           onUpdate={onUpdate}
+          availableVariables={availableVariables}
+        />
+      )}
+
+      {/* Show AI Generator when triggered */}
+      {config.showAIGenerator && (
+        <AIMessageGeneratorConfig
+          config={config}
+          onUpdate={(newConfig) => {
+            // Remove the trigger flag and update
+            const { showAIGenerator, ...updatedConfig } = newConfig;
+            onUpdate(updatedConfig);
+          }}
           availableVariables={availableVariables}
         />
       )}
