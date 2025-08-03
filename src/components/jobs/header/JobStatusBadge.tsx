@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Check, Clock, Loader2, MoreHorizontal, XCircle, Calendar, AlertTriangle } from "lucide-react";
@@ -30,21 +29,21 @@ export const JobStatusBadge = ({
   className 
 }: JobStatusBadgeProps) => {
   const [isUpdating, setIsUpdating] = useState(false);
-  const { items: jobStatuses } = useJobStatuses();
+  const { items: jobStatuses, isLoading } = useJobStatuses();
 
   const getStatusIcon = (statusValue: string) => {
-    switch (statusValue) {
+    switch (statusValue.toLowerCase()) {
       case "completed":
         return <Check size={16} className="mr-1" />;
+      case "new":
       case "scheduled":
         return <Calendar size={16} className="mr-1" />;
-      case "in-progress":
-      case "in_progress":
+      case "in progress":
         return <Loader2 size={16} className="mr-1 animate-spin" />;
-      case "canceled":
       case "cancelled":
+      case "canceled":
         return <XCircle size={16} className="mr-1" />;
-      case "ask-review":
+      case "on hold":
         return <AlertTriangle size={16} className="mr-1" />;
       default:
         return <Clock size={16} className="mr-1" />;
@@ -53,61 +52,60 @@ export const JobStatusBadge = ({
 
   const getStatusColor = (statusValue: string) => {
     // Find the status in our database statuses first
-    const dbStatus = jobStatuses.find(s => s.name === statusValue);
+    const dbStatus = jobStatuses.find(s => s.name.toLowerCase() === statusValue.toLowerCase());
     if (dbStatus && dbStatus.color) {
-      return `bg-${dbStatus.color}/10 text-${dbStatus.color} border-${dbStatus.color}/20`;
+      // Convert hex color to Tailwind classes
+      switch (dbStatus.color) {
+        case "#3b82f6": // Blue
+          return "bg-blue-50 text-blue-700 border-blue-200";
+        case "#f59e0b": // Amber
+          return "bg-amber-50 text-amber-700 border-amber-200";
+        case "#10b981": // Green
+          return "bg-green-50 text-green-700 border-green-200";
+        case "#ef4444": // Red
+          return "bg-red-50 text-red-700 border-red-200";
+        case "#6b7280": // Gray
+          return "bg-gray-50 text-gray-700 border-gray-200";
+        default:
+          return "bg-fixlyfy-bg-interface text-fixlyfy-primary border-fixlyfy-primary";
+      }
     }
     
-    // Fallback to default colors
-    switch (statusValue) {
-      case "open":
+    // Fallback to default colors based on status name
+    switch (statusValue.toLowerCase()) {
+      case "new":
       case "scheduled":
-        return "bg-fixlyfy-bg-interface text-fixlyfy-primary border-fixlyfy-primary";
-      case "in-progress":
-      case "in_progress":
-        return "bg-fixlyfy-warning/10 text-fixlyfy-warning border-fixlyfy-warning/20";
+        return "bg-blue-50 text-blue-700 border-blue-200";
+      case "in progress":
+        return "bg-amber-50 text-amber-700 border-amber-200";
       case "completed":
-        return "bg-fixlyfy-success/10 text-fixlyfy-success border-fixlyfy-success/20";
-      case "canceled":
+        return "bg-green-50 text-green-700 border-green-200";
       case "cancelled":
-        return "bg-fixlyfy-error/10 text-fixlyfy-error border-fixlyfy-error/20";
-      case "ask-review":
-        return "bg-fixlyfy-secondary/10 text-fixlyfy-secondary border-fixlyfy-secondary/20";
+      case "canceled":
+        return "bg-red-50 text-red-700 border-red-200";
+      case "on hold":
+        return "bg-gray-50 text-gray-700 border-gray-200";
       default:
         return "bg-fixlyfy-bg-interface text-fixlyfy-text-secondary border-fixlyfy-text-secondary/20";
     }
   };
 
   const getStatusLabel = (statusValue: string) => {
-    // Find the status in our database statuses first
-    const dbStatus = jobStatuses.find(s => s.name === statusValue);
-    if (dbStatus) {
-      return dbStatus.name.charAt(0).toUpperCase() + dbStatus.name.slice(1);
-    }
-    
-    // Fallback to default labels
-    switch (statusValue) {
-      case "open":
-        return "Open";
-      case "scheduled":
-        return "Scheduled";
-      case "in-progress":
-      case "in_progress":
-        return "In Progress";
-      case "completed":
-        return "Completed";
-      case "canceled":
-      case "cancelled":
-        return "Cancelled";
-      case "ask-review":
-        return "Ask Review";
-      default:
-        return statusValue.charAt(0).toUpperCase() + statusValue.slice(1);
-    }
+    // Always return the properly formatted status name
+    return statusValue;
   };
 
   const handleStatusChange = async (newStatus: string) => {
-    if (status === newStatus || isUpdating) return;
+    if (status === newStatus || isUpdating) {
+      console.log('JobStatusBadge: Skipping update - same status or already updating', { status, newStatus, isUpdating });
+      return;
+    }
+    
+    console.log('JobStatusBadge: Starting status update', {
+      currentStatus: status,
+      newStatus,
+      jobId
+    });
     
     setIsUpdating(true);
     try {
@@ -115,12 +113,26 @@ export const JobStatusBadge = ({
       await onStatusChange(newStatus);
       toast.success(`Status updated to ${getStatusLabel(newStatus)}`);
     } catch (error) {
-      console.error("Error updating job status:", error);
+      console.error("JobStatusBadge: Error updating job status:", error);
       toast.error("Failed to update status. Please try again.");
     } finally {
       setIsUpdating(false);
     }
   };
+
+  if (isLoading) {
+    return (
+      <Button 
+        variant="outline" 
+        size="sm" 
+        className="h-7 border font-medium"
+        disabled
+      >
+        <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+        Loading...
+      </Button>
+    );
+  }
 
   return (
     <DropdownMenu>
@@ -147,7 +159,7 @@ export const JobStatusBadge = ({
           {variant === "full" && <MoreHorizontal size={14} className="ml-1" />}
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="start">
+      <DropdownMenuContent align="start" className="w-48">
         <DropdownMenuLabel>Job Status</DropdownMenuLabel>
         <DropdownMenuSeparator />
         {jobStatuses
@@ -155,7 +167,10 @@ export const JobStatusBadge = ({
           .map((statusOption) => (
             <DropdownMenuItem 
               key={statusOption.id}
-              className={status === statusOption.name ? "bg-fixlyfy/10" : ""} 
+              className={cn(
+                "cursor-pointer",
+                status === statusOption.name && "bg-fixlyfy/10"
+              )} 
               onClick={() => handleStatusChange(statusOption.name)}
               disabled={isUpdating}
             >

@@ -11,7 +11,9 @@ import {
   Wrench, 
   Target, 
   TrendingUp,
-  RefreshCw
+  RefreshCw,
+  WifiOff,
+  Wifi
 } from "lucide-react";
 import { JobsList } from "@/components/jobs/JobsList";
 import { JobsFilters } from "@/components/jobs/JobsFilters";
@@ -20,6 +22,7 @@ import { ScheduleJobModal } from "@/components/schedule/ScheduleJobModal";
 import { useJobsOptimized } from "@/hooks/useJobsOptimized";
 import { useJobs } from "@/hooks/useJobs";
 import { toast } from "sonner";
+import { useGlobalRealtime } from "@/contexts/GlobalRealtimeProvider";
 
 const JobsPage = () => {
   const [isGridView, setIsGridView] = useState(false);
@@ -48,7 +51,8 @@ const JobsPage = () => {
     clearError: clearOptimizedError,
     canCreate,
     canEdit,
-    canDelete
+    canDelete,
+    realtimeConnected
   } = useJobsOptimized({
     page: currentPage,
     pageSize: 50,
@@ -80,8 +84,8 @@ const JobsPage = () => {
       }
     }
     
-    // Status filter
-    if (filters.status !== "all" && job.status.toLowerCase() !== filters.status.toLowerCase()) {
+    // Status filter - compare exact match since statuses are now standardized
+    if (filters.status !== "all" && job.status !== filters.status) {
       return false;
     }
     
@@ -253,6 +257,20 @@ const JobsPage = () => {
                 filters={filters}
               />
               <div className="flex items-center gap-2">
+                {/* Real-time connection status */}
+                <div className="flex items-center gap-2 px-3 py-1 rounded-lg text-sm">
+                  {realtimeConnected ? (
+                    <>
+                      <Wifi size={16} className="text-green-500" />
+                      <span className="text-green-600">Live</span>
+                    </>
+                  ) : (
+                    <>
+                      <WifiOff size={16} className="text-red-500" />
+                      <span className="text-red-600">Offline</span>
+                    </>
+                  )}
+                </div>
                 <Button
                   variant="ghost"
                   size="sm"

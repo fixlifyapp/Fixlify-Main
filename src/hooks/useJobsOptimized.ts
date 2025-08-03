@@ -6,6 +6,7 @@ import { Job } from "@/hooks/useJobs";
 import { localStorageCache } from "@/utils/cacheConfig";
 import { withRetry, handleJobsError } from "@/utils/errorHandling";
 import { RefreshThrottler } from "@/utils/refreshThrottler";
+import { useRealtime } from "@/hooks/useRealtime";
 
 interface UseJobsOptimizedOptions {
   page?: number;
@@ -31,11 +32,15 @@ export const useJobsOptimized = (options: UseJobsOptimizedOptions = {}) => {
   const { getJobViewScope, canCreateJobs, canEditJobs, canDeleteJobs } = usePermissions();
   
   const isMountedRef = useRef(true);
+  const refreshDebounceRef = useRef<NodeJS.Timeout | null>(null);
   
   useEffect(() => {
     isMountedRef.current = true;
     return () => {
       isMountedRef.current = false;
+      if (refreshDebounceRef.current) {
+        clearTimeout(refreshDebounceRef.current);
+      }
     };
   }, []);
 
@@ -45,12 +50,6 @@ export const useJobsOptimized = (options: UseJobsOptimizedOptions = {}) => {
   );
 
   const fetchJobs = useCallback(async (useCache = true) => {
-    // EMERGENCY: Prevent fetch if already loading
-    if (isLoading) {
-      console.warn('⚠️ Fetch already in progress, skipping...');
-      return;
-    }
-    
     if (!user?.id) {
       console.log('❌ No user ID in useJobsOptimized:', { userId: user?.id });
       setIsLoading(false);
@@ -59,7 +58,7 @@ export const useJobsOptimized = (options: UseJobsOptimizedOptions = {}) => {
       return;
     }
 
-    if (hasError) {
+    if (hasError && useCache) {
       setIsLoading(false);
       return;
     }
@@ -108,6 +107,9 @@ export const useJobsOptimized = (options: UseJobsOptimizedOptions = {}) => {
               address,
               tags,
               created_at,
+              user_id,
+              created_by,
+              technician_id,
               client:clients(id, name, email, phone)
             `, { count: 'exact' });
           
@@ -181,60 +183,48 @@ export const useJobsOptimized = (options: UseJobsOptimizedOptions = {}) => {
     fetchJobs();
   }, [fetchJobs]);
 
-  // Real-time updates with error handling
-  useEffect(() => {
-    // TEMPORARILY DISABLED to prevent resource exhaustion
-    console.log('Real-time updates disabled for jobs');
-    return;
-    
-    if (!enableRealtime || hasError || !user?.id) return;
+  // Handle real-time updates
+  const handleRealtimeUpdate = useCallback((payload: any) => {
+    if (!isMountedRef.current || !user?.id) return;
 
-    let debounceTimer: NodeJS.Timeout;
-    let isSubscribed = true;
+    const data = payload.new || payload.old || {};
     
-    // Create a more specific channel name that includes user context
-    const channelName = `jobs-user-${user.id}-${clientId || 'all'}`;
-    
-    const channel = supabase
-      .channel(channelName)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'jobs',
-          // Only listen to changes for jobs that belong to this user
-          filter: `user_id=eq.${user.id}`
-        },
-        (payload) => {
-          if (!isSubscribed || hasError) return;
-          
-          // Only refresh if the change is relevant to the current view
-          const isRelevant = !clientId || 
-            (payload.new && (payload.new as any).client_id === clientId) ||
-            (payload.old && (payload.old as any).client_id === clientId);
-          
-          if (!isRelevant) return;
-          
-          clearTimeout(debounceTimer);
-          debounceTimer = setTimeout(() => {
-            if (isSubscribed && isMountedRef.current && !hasError) {
-              console.log('Refreshing jobs due to relevant change:', payload.eventType);
-              localStorageCache.remove(cacheKey);
-              requestCache.delete(cacheKey);
-              fetchJobs(false);
-            }
-          }, 1000); // Reduced debounce time for faster updates
-        }
-      )
-      .subscribe();
+    // Check if this update is relevant to the current user
+    const isRelevant = 
+      data.user_id === user.id || 
+      data.created_by === user.id || 
+      data.technician_id === user.id;
 
-    return () => {
-      isSubscribed = false;
-      clearTimeout(debounceTimer);
-      supabase.removeChannel(channel);
-    };
-  }, [fetchJobs, enableRealtime, cacheKey, hasError, user?.id, clientId]);
+    // Check if relevant to current client filter
+    const isClientRelevant = !clientId || data.client_id === clientId;
+
+    if (!isRelevant || !isClientRelevant) {
+      console.log('[useJobsOptimized] Update not relevant, skipping');
+      return;
+    }
+
+    // Debounce the refresh
+    if (refreshDebounceRef.current) {
+      clearTimeout(refreshDebounceRef.current);
+    }
+
+    refreshDebounceRef.current = setTimeout(() => {
+      if (isMountedRef.current) {
+        console.log('[useJobsOptimized] Refreshing jobs after real-time update');
+        localStorageCache.remove(cacheKey);
+        requestCache.delete(cacheKey);
+        fetchJobs(false);
+      }
+    }, 300);
+  }, [user?.id, clientId, cacheKey, fetchJobs]);
+
+  // Use the new useRealtime hook
+  const { isConnected: realtimeConnected } = useRealtime({
+    table: 'jobs',
+    event: '*',
+    onUpdate: handleRealtimeUpdate,
+    enabled: enableRealtime && !hasError && !!user?.id
+  });
 
   const totalPages = useMemo(() => Math.ceil(totalCount / pageSize), [totalCount, pageSize]);
   const hasNextPage = useMemo(() => page < totalPages, [page, totalPages]);
@@ -268,6 +258,7 @@ export const useJobsOptimized = (options: UseJobsOptimizedOptions = {}) => {
     canCreate: canCreateJobs(),
     canEdit: canEditJobs(),
     canDelete: canDeleteJobs(),
-    viewScope: getJobViewScope()
+    viewScope: getJobViewScope(),
+    realtimeConnected
   };
 };

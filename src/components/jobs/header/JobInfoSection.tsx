@@ -42,6 +42,7 @@ export const JobInfoSection = ({
   const { financialRefreshTrigger } = useJobDetails();
   
   useEffect(() => {
+    console.log('JobInfoSection: Status prop changed', { status, currentStatus });
     if (status !== currentStatus) {
       setCurrentStatus(status);
     }
@@ -77,11 +78,19 @@ export const JobInfoSection = ({
   };
 
   const handleStatusChange = async (newStatus: string) => {
+    console.log('JobInfoSection: Status change requested', {
+      currentStatus: status,
+      newStatus,
+      jobId: job.id
+    });
+    
     setCurrentStatus(newStatus);
     
     try {
       await onStatusChange(newStatus);
+      console.log('JobInfoSection: Status change successful');
     } catch (error) {
+      console.error('JobInfoSection: Status change failed, reverting', error);
       setCurrentStatus(status);
       throw error;
     }

@@ -1,7 +1,7 @@
-
-import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import { createContext, useContext, useEffect, useState, ReactNode, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { RealtimeChannel } from '@supabase/supabase-js';
 
 interface GlobalRealtimeContextType {
   refreshJobs: () => void;
@@ -18,6 +18,7 @@ interface GlobalRealtimeContextType {
   refreshLeadSources: () => void;
   refreshJobCustomFieldValues: () => void;
   isConnected: boolean;
+  refreshCallbacks?: any;
 }
 
 // Export the context for use in other files
@@ -36,261 +37,335 @@ interface GlobalRealtimeProviderProps {
 }
 
 export const GlobalRealtimeProvider = ({ children }: GlobalRealtimeProviderProps) => {
-  const [refreshCallbacks, setRefreshCallbacks] = useState({
+  const refreshCallbacksRef = useRef({
     jobs: new Set<() => void>(),
     clients: new Set<() => void>(),
     messages: new Set<() => void>(),
     invoices: new Set<() => void>(),
     payments: new Set<() => void>(),
     estimates: new Set<() => void>(),
-    jobHistory: new Set<() => void>(),
-    jobStatuses: new Set<() => void>(),
-    jobTypes: new Set<() => void>(),
-    customFields: new Set<() => void>(),
+    jobhistory: new Set<() => void>(),
+    jobstatuses: new Set<() => void>(),
+    jobtypes: new Set<() => void>(),
+    customfields: new Set<() => void>(),
     tags: new Set<() => void>(),
-    leadSources: new Set<() => void>(),
-    jobCustomFieldValues: new Set<() => void>(),
+    leadsources: new Set<() => void>(),
+    jobcustomfieldvalues: new Set<() => void>(),
   });
+  
   const [isConnected, setIsConnected] = useState(false);
+  const channelRef = useRef<RealtimeChannel | null>(null);
+  const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const reconnectAttemptsRef = useRef(0);
 
   useEffect(() => {
+    console.log('🔌 Setting up global realtime channels...');
+    
     const setupRealtimeChannels = () => {
-      // Single channel for all database changes
-      const channel = supabase
-        .channel('global-db-changes')
-        .on(
-          'postgres_changes',
-          {
-            event: '*',
-            schema: 'public',
-            table: 'jobs'
-          },
-          (payload) => {
-            console.log('Jobs table changed:', payload);
-            refreshCallbacks.jobs.forEach(callback => callback());
-          }
-        )
-        .on(
-          'postgres_changes',
-          {
-            event: '*',
-            schema: 'public',
-            table: 'clients'
-          },
-          (payload) => {
-            console.log('Clients table changed:', payload);
-            refreshCallbacks.clients.forEach(callback => callback());
-          }
-        )
-        .on(
-          'postgres_changes',
-          {
-            event: '*',
-            schema: 'public',
-            table: 'messages'
-          },
-          (payload) => {
-            console.log('Messages table changed:', payload);
-            refreshCallbacks.messages.forEach(callback => callback());
-          }
-        )
-        .on(
-          'postgres_changes',
-          {
-            event: '*',
-            schema: 'public',
-            table: 'invoices'
-          },
-          (payload) => {
-            console.log('Invoices table changed:', payload);
-            refreshCallbacks.invoices.forEach(callback => callback());
-          }
-        )
-        .on(
-          'postgres_changes',
-          {
-            event: '*',
-            schema: 'public',
-            table: 'payments'
-          },
-          (payload) => {
-            console.log('Payments table changed:', payload);
-            refreshCallbacks.payments.forEach(callback => callback());
-          }
-        )
-        .on(
-          'postgres_changes',
-          {
-            event: '*',
-            schema: 'public',
-            table: 'estimates'
-          },
-          (payload) => {
-            console.log('Estimates table changed:', payload);
-            refreshCallbacks.estimates.forEach(callback => callback());
-          }
-        )
-        .on(
-          'postgres_changes',
-          {
-            event: '*',
-            schema: 'public',
-            table: 'job_history'
-          },
-          (payload) => {
-            console.log('Job history table changed:', payload);
-            refreshCallbacks.jobHistory.forEach(callback => callback());
-          }
-        )
-        .on(
-          'postgres_changes',
-          {
-            event: '*',
-            schema: 'public',
-            table: 'job_statuses'
-          },
-          (payload) => {
-            console.log('Job statuses table changed:', payload);
-            refreshCallbacks.jobStatuses.forEach(callback => callback());
-          }
-        )
-        .on(
-          'postgres_changes',
-          {
-            event: '*',
-            schema: 'public',
-            table: 'job_types'
-          },
-          (payload) => {
-            console.log('Job types table changed:', payload);
-            refreshCallbacks.jobTypes.forEach(callback => callback());
-          }
-        )
-        .on(
-          'postgres_changes',
-          {
-            event: '*',
-            schema: 'public',
-            table: 'custom_fields'
-          },
-          (payload) => {
-            console.log('Custom fields table changed:', payload);
-            refreshCallbacks.customFields.forEach(callback => callback());
-          }
-        )
-        .on(
-          'postgres_changes',
-          {
-            event: '*',
-            schema: 'public',
-            table: 'tags'
-          },
-          (payload) => {
-            console.log('Tags table changed:', payload);
-            refreshCallbacks.tags.forEach(callback => callback());
-          }
-        )
-        .on(
-          'postgres_changes',
-          {
-            event: '*',
-            schema: 'public',
-            table: 'lead_sources'
-          },
-          (payload) => {
-            console.log('Lead sources table changed:', payload);
-            refreshCallbacks.leadSources.forEach(callback => callback());
-          }
-        )
-        .on(
-          'postgres_changes',
-          {
-            event: '*',
-            schema: 'public',
-            table: 'job_custom_field_values'
-          },
-          (payload) => {
-            console.log('Job custom field values table changed:', payload);
-            refreshCallbacks.jobCustomFieldValues.forEach(callback => callback());
-          }
-        )
-        .subscribe((status) => {
-          console.log('Global realtime channel status:', status);
-          setIsConnected(status === 'SUBSCRIBED');
-          
-          if (status === 'SUBSCRIBED') {
-            console.log('Real-time sync connected');
-          } else if (status === 'CHANNEL_ERROR') {
-            console.error('Real-time sync error');
-          }
-        });
+      // Clean up existing channel if any
+      if (channelRef.current) {
+        console.log('🧹 Cleaning up existing channel before creating new one');
+        supabase.removeChannel(channelRef.current);
+        channelRef.current = null;
+      }
 
-      return () => {
-        supabase.removeChannel(channel);
+      try {
+        // Create a unique channel name with timestamp to avoid conflicts
+        const channelName = `global-db-changes-${Date.now()}`;
+        console.log(`📡 Creating new channel: ${channelName}`);
+        
+        const channel = supabase
+          .channel(channelName, {
+            config: {
+              broadcast: { self: true },
+              presence: { key: 'global' }
+            }
+          })
+          .on(
+            'postgres_changes',
+            {
+              event: '*',
+              schema: 'public',
+              table: 'jobs'
+            },
+            (payload) => {
+              console.log('📊 Jobs table changed:', {
+                event: payload.eventType,
+                id: payload.new?.id || payload.old?.id,
+                callbacks: refreshCallbacksRef.current.jobs.size
+              });
+              refreshCallbacksRef.current.jobs.forEach(callback => {
+                try {
+                  callback();
+                } catch (error) {
+                  console.error('Error in jobs callback:', error);
+                }
+              });
+            }
+          )
+          .on(
+            'postgres_changes',
+            {
+              event: '*',
+              schema: 'public',
+              table: 'clients'
+            },
+            (payload) => {
+              console.log('Clients table changed:', payload);
+              refreshCallbacksRef.current.clients.forEach(callback => {
+                try {
+                  callback();
+                } catch (error) {
+                  console.error('Error in clients callback:', error);
+                }
+              });
+            }
+          )
+          .on(
+            'postgres_changes',
+            {
+              event: '*',
+              schema: 'public',
+              table: 'invoices'
+            },
+            (payload) => {
+              console.log('Invoices table changed:', payload);
+              refreshCallbacksRef.current.invoices.forEach(callback => {
+                try {
+                  callback();
+                } catch (error) {
+                  console.error('Error in invoices callback:', error);
+                }
+              });
+            }
+          )
+          .on(
+            'postgres_changes',
+            {
+              event: '*',
+              schema: 'public',
+              table: 'estimates'
+            },
+            (payload) => {
+              console.log('Estimates table changed:', payload);
+              refreshCallbacksRef.current.estimates.forEach(callback => {
+                try {
+                  callback();
+                } catch (error) {
+                  console.error('Error in estimates callback:', error);
+                }
+              });
+            }
+          )
+          .subscribe((status, err) => {
+            console.log('✅ Global realtime subscription status:', status, err);
+            
+            if (err) {
+              console.error('❌ Realtime subscription error:', err);
+              setIsConnected(false);
+              
+              // Implement reconnection logic
+              if (reconnectAttemptsRef.current < 5) {
+                const delay = Math.min(1000 * Math.pow(2, reconnectAttemptsRef.current), 30000);
+                reconnectAttemptsRef.current++;
+                
+                console.log(`🔄 Attempting to reconnect in ${delay}ms (attempt ${reconnectAttemptsRef.current})`);
+                
+                reconnectTimeoutRef.current = setTimeout(() => {
+                  setupRealtimeChannels();
+                }, delay);
+              } else {
+                toast.error('Unable to connect to realtime updates. Please refresh the page.');
+              }
+            } else if (status === 'SUBSCRIBED') {
+              console.log('🎉 Successfully connected to realtime updates');
+              setIsConnected(true);
+              reconnectAttemptsRef.current = 0;
+            } else if (status === 'CHANNEL_ERROR') {
+              console.error('❌ Realtime channel error');
+              setIsConnected(false);
+              // Don't show toast for every channel error to avoid spam
+            } else if (status === 'CLOSED') {
+              console.log('📪 Channel closed');
+              setIsConnected(false);
+            }
+          });
+
+        channelRef.current = channel;
+        return channel;
+      } catch (error) {
+        console.error('❌ Error setting up realtime channels:', error);
         setIsConnected(false);
-      };
+        return null;
+      }
     };
 
-    const cleanup = setupRealtimeChannels();
-    return cleanup;
-  }, []);
-
-  const registerRefreshCallback = (table: keyof typeof refreshCallbacks, callback: () => void) => {
-    setRefreshCallbacks(prev => ({
-      ...prev,
-      [table]: new Set([...prev[table], callback])
-    }));
+    const channel = setupRealtimeChannels();
 
     return () => {
-      setRefreshCallbacks(prev => {
-        const newSet = new Set(prev[table]);
-        newSet.delete(callback);
-        return {
-          ...prev,
-          [table]: newSet
-        };
-      });
+      console.log('🔌 Cleaning up global realtime provider...');
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
+      }
+      if (channelRef.current) {
+        supabase.removeChannel(channelRef.current);
+        channelRef.current = null;
+      }
     };
+  }, []);
+
+  const refreshJobs = () => {
+    console.log('🔄 Manual refresh triggered for jobs');
+    refreshCallbacksRef.current.jobs.forEach(callback => {
+      try {
+        callback();
+      } catch (error) {
+        console.error('Error in manual jobs refresh:', error);
+      }
+    });
   };
 
-  const contextValue: GlobalRealtimeContextType = {
-    refreshJobs: () => refreshCallbacks.jobs.forEach(callback => callback()),
-    refreshClients: () => refreshCallbacks.clients.forEach(callback => callback()),
-    refreshMessages: () => refreshCallbacks.messages.forEach(callback => callback()),
-    refreshInvoices: () => refreshCallbacks.invoices.forEach(callback => callback()),
-    refreshPayments: () => refreshCallbacks.payments.forEach(callback => callback()),
-    refreshEstimates: () => refreshCallbacks.estimates.forEach(callback => callback()),
-    refreshJobHistory: () => refreshCallbacks.jobHistory.forEach(callback => callback()),
-    refreshJobStatuses: () => refreshCallbacks.jobStatuses.forEach(callback => callback()),
-    refreshJobTypes: () => refreshCallbacks.jobTypes.forEach(callback => callback()),
-    refreshCustomFields: () => refreshCallbacks.customFields.forEach(callback => callback()),
-    refreshTags: () => refreshCallbacks.tags.forEach(callback => callback()),
-    refreshLeadSources: () => refreshCallbacks.leadSources.forEach(callback => callback()),
-    refreshJobCustomFieldValues: () => refreshCallbacks.jobCustomFieldValues.forEach(callback => callback()),
-    isConnected
+  const refreshClients = () => {
+    refreshCallbacksRef.current.clients.forEach(callback => {
+      try {
+        callback();
+      } catch (error) {
+        console.error('Error in manual clients refresh:', error);
+      }
+    });
+  };
+
+  const refreshMessages = () => {
+    refreshCallbacksRef.current.messages.forEach(callback => {
+      try {
+        callback();
+      } catch (error) {
+        console.error('Error in manual messages refresh:', error);
+      }
+    });
+  };
+
+  const refreshInvoices = () => {
+    refreshCallbacksRef.current.invoices.forEach(callback => {
+      try {
+        callback();
+      } catch (error) {
+        console.error('Error in manual invoices refresh:', error);
+      }
+    });
+  };
+
+  const refreshPayments = () => {
+    refreshCallbacksRef.current.payments.forEach(callback => {
+      try {
+        callback();
+      } catch (error) {
+        console.error('Error in manual payments refresh:', error);
+      }
+    });
+  };
+
+  const refreshEstimates = () => {
+    refreshCallbacksRef.current.estimates.forEach(callback => {
+      try {
+        callback();
+      } catch (error) {
+        console.error('Error in manual estimates refresh:', error);
+      }
+    });
+  };
+
+  const refreshJobHistory = () => {
+    refreshCallbacksRef.current.jobhistory.forEach(callback => {
+      try {
+        callback();
+      } catch (error) {
+        console.error('Error in manual job history refresh:', error);
+      }
+    });
+  };
+
+  const refreshJobStatuses = () => {
+    refreshCallbacksRef.current.jobstatuses.forEach(callback => {
+      try {
+        callback();
+      } catch (error) {
+        console.error('Error in manual job statuses refresh:', error);
+      }
+    });
+  };
+
+  const refreshJobTypes = () => {
+    refreshCallbacksRef.current.jobtypes.forEach(callback => {
+      try {
+        callback();
+      } catch (error) {
+        console.error('Error in manual job types refresh:', error);
+      }
+    });
+  };
+
+  const refreshCustomFields = () => {
+    refreshCallbacksRef.current.customfields.forEach(callback => {
+      try {
+        callback();
+      } catch (error) {
+        console.error('Error in manual custom fields refresh:', error);
+      }
+    });
+  };
+
+  const refreshTags = () => {
+    refreshCallbacksRef.current.tags.forEach(callback => {
+      try {
+        callback();
+      } catch (error) {
+        console.error('Error in manual tags refresh:', error);
+      }
+    });
+  };
+
+  const refreshLeadSources = () => {
+    refreshCallbacksRef.current.leadsources.forEach(callback => {
+      try {
+        callback();
+      } catch (error) {
+        console.error('Error in manual lead sources refresh:', error);
+      }
+    });
+  };
+
+  const refreshJobCustomFieldValues = () => {
+    refreshCallbacksRef.current.jobcustomfieldvalues.forEach(callback => {
+      try {
+        callback();
+      } catch (error) {
+        console.error('Error in manual job custom field values refresh:', error);
+      }
+    });
   };
 
   return (
-    <GlobalRealtimeContext.Provider value={contextValue}>
+    <GlobalRealtimeContext.Provider
+      value={{
+        refreshJobs,
+        refreshClients,
+        refreshMessages,
+        refreshInvoices,
+        refreshPayments,
+        refreshEstimates,
+        refreshJobHistory,
+        refreshJobStatuses,
+        refreshJobTypes,
+        refreshCustomFields,
+        refreshTags,
+        refreshLeadSources,
+        refreshJobCustomFieldValues,
+        isConnected,
+        refreshCallbacks: refreshCallbacksRef.current
+      }}
+    >
       {children}
     </GlobalRealtimeContext.Provider>
   );
-};
-
-// Hook for components to register for specific table updates
-export const useTableSync = (table: 'jobs' | 'clients' | 'messages' | 'invoices' | 'payments' | 'estimates' | 'jobHistory' | 'jobStatuses' | 'jobTypes' | 'customFields' | 'tags' | 'leadSources' | 'jobCustomFieldValues', callback: () => void) => {
-  const context = useContext(GlobalRealtimeContext);
-  
-  useEffect(() => {
-    if (!context) return;
-    
-    const refreshCallbacks = (context as any).refreshCallbacks;
-    if (!refreshCallbacks || !refreshCallbacks[table]) return;
-    
-    refreshCallbacks[table].add(callback);
-    
-    return () => {
-      refreshCallbacks[table].delete(callback);
-    };
-  }, [callback, table, context]);
 };

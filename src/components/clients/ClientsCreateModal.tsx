@@ -99,8 +99,22 @@ export const ClientsCreateModal = ({ open, onOpenChange, onSuccess }: ClientsCre
       }, 100);
       
     } catch (error) {
-      console.error("Error adding client:", error);
-      toast.error("Failed to add client");
+      console.error("Error adding client - Full error details:", error);
+      console.error("Error type:", typeof error);
+      console.error("Error message:", error instanceof Error ? error.message : "Unknown error");
+      console.error("Error stack:", error instanceof Error ? error.stack : "No stack trace");
+      
+      // Log the client data that was attempted
+      console.error("Attempted client data:", {
+        name,
+        phone: formData.get('phone'),
+        formattedPhone: formatPhoneForTelnyx(formData.get('phone') as string || ''),
+        email: formData.get('email'),
+        clientType: formData.get('clientType'),
+        status: formData.get('status')
+      });
+      
+      toast.error("Failed to add client - Check console for details");
     } finally {
       setIsSubmitting(false);
     }

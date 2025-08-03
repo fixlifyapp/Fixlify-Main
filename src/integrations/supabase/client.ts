@@ -17,16 +17,18 @@ const supabaseClient = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE
   realtime: {
     params: {
       eventsPerSecond: 10
-    }
+    },
+    timeout: 20000,
+    heartbeatIntervalMs: 30000
   }
 });
 
 // Override the channel method to prevent sms_messages subscriptions
 const originalChannel = supabaseClient.channel.bind(supabaseClient);
 supabaseClient.channel = function(name: string, opts?: any) {
-  // Only block SMS-specific channels, not all messages
-  if (name.includes('sms') && !name.includes('email')) {
-    console.log('Blocked SMS realtime subscription for:', name);
+  // Only block specific SMS message channels that cause issues
+  if (name === 'sms_messages' || name.includes('sms_messages:')) {
+    console.log('Blocked problematic SMS channel:', name);
     // Return a mock channel that does nothing
     const mockChannel = {
       on: () => mockChannel,
@@ -45,15 +47,23 @@ supabaseClient.channel = function(name: string, opts?: any) {
 const originalRemoveChannel = supabaseClient.removeChannel.bind(supabaseClient);
 supabaseClient.removeChannel = function(channel: any) {
   try {
+    // Check if channel is valid
+    if (!channel) {
+      console.log('No channel to remove');
+      return Promise.resolve();
+    }
+    
     // Check if this is our mock channel
     if (channel && typeof channel.unsubscribe === 'function' && channel.unsubscribe.toString().includes('{}')) {
       // This is our mock channel, just return resolved promise
       return Promise.resolve();
     }
+    
     // For real channels, use the original method
     if (channel && typeof channel.unsubscribe === 'function') {
       return originalRemoveChannel(channel);
     }
+    
     return Promise.resolve();
   } catch (error) {
     console.log('Suppressed removeChannel error:', error);

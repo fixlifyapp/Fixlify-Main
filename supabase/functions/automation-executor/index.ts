@@ -183,6 +183,11 @@ async function executeStep(step: any, context: any, supabaseClient: any) {
       await new Promise(resolve => setTimeout(resolve, delayMs));
       return { delayed: delayMs };
     
+    case 'trigger':
+      // Skip trigger steps as they are not meant to be executed
+      console.log('Skipping trigger step - triggers are for workflow initiation only');
+      return { type: 'trigger', status: 'skipped' };
+    
     default:
       throw new Error(`Unknown step type: ${step.type}`);
   }
@@ -191,6 +196,23 @@ async function executeStep(step: any, context: any, supabaseClient: any) {
 async function executeAction(step: any, context: any, supabaseClient: any) {
   const actionType = step.config?.actionType;
   console.log('Executing action:', actionType);
+
+  // Check timing restrictions before executing action
+  const timing = step.config?.timing;
+  if (timing) {
+    const isWithinBusinessHours = await checkBusinessHours(timing, supabaseClient);
+    if (!isWithinBusinessHours) {
+      console.log('Action scheduled outside business hours, deferring execution');
+      // For now, we'll skip the action if outside business hours
+      // In a production system, this would be queued for later execution
+      return {
+        type: actionType,
+        status: 'deferred',
+        reason: 'Outside business hours',
+        timing: timing
+      };
+    }
+  }
 
   switch (actionType) {
     case 'email':
@@ -228,7 +250,7 @@ async function sendEmail(config: any, context: any, supabaseClient: any) {
         subject: subject,
         html: message.replace(/\n/g, '<br>'),
         text: message,
-        userId: context.userId || enrichedContext.job?.user_id,
+        userId: enrichedContext.job?.user_id || context.userId || context.user?.id,
         clientId: enrichedContext.client?.id,
         metadata: { 
           automationGenerated: true,
@@ -475,46 +497,88 @@ async function enrichContext(context: any, supabaseClient: any): Promise<any> {
         .single();
         
       if (!jobError && job) {
-        // Format scheduled date and time for better display
-        const scheduledDate = job.scheduled_date ? new Date(job.scheduled_date) : null;
-        const scheduledTime = job.scheduled_time;
+        // Use the actual database fields
+        const jobDate = job.date ? new Date(job.date) : null;
+        const scheduledStartDate = job.schedule_start ? new Date(job.schedule_start) : null;
+        const scheduledEndDate = job.schedule_end ? new Date(job.schedule_end) : null;
+        
+        // Use schedule_start for the main date if available, otherwise use date field
+        const mainDate = scheduledStartDate || jobDate;
         
         // Create readable date formats
-        const formattedDate = scheduledDate ? scheduledDate.toLocaleDateString('en-US', {
+        const formattedDate = mainDate ? mainDate.toLocaleDateString('en-US', {
           weekday: 'long',
           year: 'numeric',
           month: 'long',
           day: 'numeric'
         }) : null;
         
-        const shortDate = scheduledDate ? scheduledDate.toLocaleDateString('en-US') : null;
+        const shortDate = mainDate ? mainDate.toLocaleDateString('en-US') : null;
         
-        // Use the new appointment time formatting function
-        const appointmentTime = formatAppointmentTime(job.schedule_start, job.schedule_end);
+        // Format time from the timestamps
+        const scheduledTime = scheduledStartDate ? scheduledStartDate.toLocaleTimeString('en-US', {
+          hour: 'numeric',
+          minute: '2-digit',
+          hour12: true
+        }) : null;
+        
+        const endTime = scheduledEndDate ? scheduledEndDate.toLocaleTimeString('en-US', {
+          hour: 'numeric',
+          minute: '2-digit',
+          hour12: true
+        }) : null;
+        
+        // Use the appointment time formatting function
+        const appointmentTime = scheduledTime && endTime ? `${scheduledTime} - ${endTime}` : (scheduledTime || '');
+        
+        // Get technician name from profiles if technician_id exists
+        let technicianName = 'Not assigned';
+        if (job.technician_id) {
+          const { data: techProfile } = await supabaseClient
+            .from('profiles')
+            .select('name')
+            .eq('id', job.technician_id)
+            .single();
+          
+          if (techProfile) {
+            technicianName = techProfile.name;
+          }
+        }
         
         enriched.job = {
           id: job.id,
-          title: job.title || job.description,
+          title: job.title || job.description || 'Service Appointment',
           status: job.status,
-          date: job.scheduled_date,
-          time: job.scheduled_time,
+          date: mainDate?.toISOString(),
+          time: scheduledTime,
+          scheduledDate: formattedDate,
+          scheduledTime: scheduledTime,
           formattedDate: formattedDate,
           shortDate: shortDate,
           appointmentTime: appointmentTime,
           scheduledDateTime: formattedDate && appointmentTime ? `${formattedDate} at ${appointmentTime}` : null,
           scheduledDateTimeShort: shortDate && appointmentTime ? `${shortDate} at ${appointmentTime}` : null,
-          technician: job.technician_name,
-          service: job.service_type,
+          technician: technicianName,
+          technicianName: technicianName,
+          service: job.service || job.job_type || 'General Service',
           notes: job.notes,
-          total: job.total
+          total: job.revenue || job.total || 0,
+          address: job.address || 'No address specified',
+          user_id: job.user_id // Add user_id to enriched job data
         };
         
         if (job.clients) {
+          // Handle both single name field and first/last name fields
+          const clientName = job.clients.name || `${job.clients.first_name || ''} ${job.clients.last_name || ''}`.trim();
+          const nameParts = clientName.split(' ');
+          const firstName = nameParts[0] || '';
+          const lastName = nameParts.slice(1).join(' ') || '';
+          
           enriched.client = {
             id: job.clients.id,
-            name: `${job.clients.first_name} ${job.clients.last_name}`.trim(),
-            firstName: job.clients.first_name,
-            lastName: job.clients.last_name,
+            name: clientName,
+            firstName: firstName,
+            lastName: lastName,
             email: job.clients.email,
             phone: job.clients.phone,
             address: job.clients.address
@@ -534,11 +598,17 @@ async function enrichContext(context: any, supabaseClient: any): Promise<any> {
         .single();
         
       if (!clientError && client) {
+        // Handle both single name field and first/last name fields
+        const clientName = client.name || `${client.first_name || ''} ${client.last_name || ''}`.trim();
+        const nameParts = clientName.split(' ');
+        const firstName = nameParts[0] || '';
+        const lastName = nameParts.slice(1).join(' ') || '';
+        
         enriched.client = {
           id: client.id,
-          name: `${client.first_name} ${client.last_name}`.trim(),
-          firstName: client.first_name,
-          lastName: client.last_name,
+          name: clientName,
+          firstName: firstName,
+          lastName: lastName,
           email: client.email,
           phone: client.phone,
           address: client.address
@@ -559,10 +629,10 @@ async function enrichContext(context: any, supabaseClient: any): Promise<any> {
       if (!companyError && company) {
         enriched.company = {
           name: company.company_name,
-          phone: company.phone,
-          email: company.email,
-          website: company.website,
-          address: company.address
+          phone: company.company_phone,
+          email: company.company_email,
+          website: company.company_website,
+          address: company.company_address
         };
       }
     }
@@ -572,4 +642,57 @@ async function enrichContext(context: any, supabaseClient: any): Promise<any> {
   }
   
   return enriched;
+}
+
+// Check if current time is within business hours
+async function checkBusinessHours(timing: any, supabaseClient: any): Promise<boolean> {
+  if (!timing?.businessHours) {
+    // If business hours restriction is not enabled, allow execution
+    return true;
+  }
+
+  const now = new Date();
+  const currentHour = now.getHours();
+  const currentMinute = now.getMinutes();
+  
+  // Convert business hours to numbers for comparison
+  const startTime = timing.businessStart || '09:00';
+  const endTime = timing.businessEnd || '17:00';
+  
+  const [startHour, startMinute] = startTime.split(':').map(Number);
+  const [endHour, endMinute] = endTime.split(':').map(Number);
+  
+  const currentMinutes = currentHour * 60 + currentMinute;
+  const startMinutes = startHour * 60 + startMinute;
+  const endMinutes = endHour * 60 + endMinute;
+  
+  // Check if current time is within business hours
+  const isWithinHours = currentMinutes >= startMinutes && currentMinutes <= endMinutes;
+  
+  // Also check quiet hours if enabled
+  if (timing.quietHours && !isWithinHours) {
+    const quietStart = timing.quietStart || '21:00';
+    const quietEnd = timing.quietEnd || '08:00';
+    
+    const [quietStartHour, quietStartMinute] = quietStart.split(':').map(Number);
+    const [quietEndHour, quietEndMinute] = quietEnd.split(':').map(Number);
+    
+    const quietStartMinutes = quietStartHour * 60 + quietStartMinute;
+    const quietEndMinutes = quietEndHour * 60 + quietEndMinute;
+    
+    // Check if we're in quiet hours (block sending)
+    if (quietStartMinutes > quietEndMinutes) {
+      // Quiet hours span midnight
+      if (currentMinutes >= quietStartMinutes || currentMinutes <= quietEndMinutes) {
+        return false; // In quiet hours, don't send
+      }
+    } else {
+      // Normal quiet hours check
+      if (currentMinutes >= quietStartMinutes && currentMinutes <= quietEndMinutes) {
+        return false; // In quiet hours, don't send
+      }
+    }
+  }
+  
+  return isWithinHours;
 }

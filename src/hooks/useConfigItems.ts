@@ -49,6 +49,8 @@ export function useConfigItems<T extends ConfigItem>(tableName: string) {
   const fetchItems = async () => {
     setIsLoading(true);
     try {
+      console.log(`[useConfigItems] Fetching ${tableName} for user:`, user?.id);
+      
       let query = supabase.from(tableName as any).select('*');
       
       // Filter by user_id for data isolation (for tables that have user_id column)
@@ -69,7 +71,12 @@ export function useConfigItems<T extends ConfigItem>(tableName: string) {
       
       const { data, error } = await query;
       
-      if (error) throw error;
+      if (error) {
+        console.error(`[useConfigItems] Error fetching ${tableName}:`, error);
+        throw error;
+      }
+      
+      console.log(`[useConfigItems] Fetched ${tableName}:`, data?.length || 0, 'items');
       
       setItems(data as unknown as T[]);
     } catch (error) {
@@ -91,6 +98,13 @@ export function useConfigItems<T extends ConfigItem>(tableName: string) {
   });
   
   useEffect(() => {
+    // Don't fetch if no user
+    if (!user?.id) {
+      console.log(`[useConfigItems] No user ID available for ${tableName}`);
+      setIsLoading(false);
+      return;
+    }
+    
     fetchItems();
   }, [tableName, refreshTrigger, user?.id]);
   

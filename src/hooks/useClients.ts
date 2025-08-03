@@ -89,6 +89,12 @@ export const useClients = (options: UseClientsOptions = {}) => {
   }, [refreshTrigger, page, pageSize, isAuthenticated]);
 
   const addClient = async (client: { name: string } & Partial<Omit<Client, 'id' | 'created_at' | 'updated_at'>>) => {
+    console.log('=== addClient Debug Start ===');
+    console.log('1. isAuthenticated:', isAuthenticated);
+    console.log('2. User:', user);
+    console.log('3. User ID:', user?.id);
+    console.log('4. Input client data:', client);
+    
     if (!isAuthenticated) {
       toast.error('Please log in to add clients');
       throw new Error('Not authenticated');
@@ -96,7 +102,31 @@ export const useClients = (options: UseClientsOptions = {}) => {
     
     try {
       // Generate new client ID using the database function
-      const clientId = await generateNextId('client');
+      let clientId = await generateNextId('client');
+      console.log('5. Generated client ID:', clientId);
+      
+      // Double-check the ID doesn't exist (belt and suspenders approach)
+      let idCheckAttempts = 0;
+      while (idCheckAttempts < 5) {
+        const { data: existingClient } = await supabase
+          .from('clients')
+          .select('id')
+          .eq('id', clientId)
+          .single();
+          
+        if (!existingClient) {
+          // ID is unique, we can use it
+          break;
+        }
+        
+        console.warn(`ID ${clientId} already exists, generating a new one...`);
+        idCheckAttempts++;
+        clientId = await generateNextId('client');
+      }
+      
+      if (idCheckAttempts >= 5) {
+        throw new Error('Failed to generate unique client ID after 5 attempts');
+      }
       
       // Format phone number if provided
       const clientData = {
@@ -107,13 +137,51 @@ export const useClients = (options: UseClientsOptions = {}) => {
         created_by: user?.id
       };
       
+      console.log('6. Final client data to insert:', clientData);
+      console.log('7. Phone formatting details:', {
+        original: client.phone,
+        formatted: clientData.phone,
+        isEmpty: !client.phone,
+        isNull: client.phone === null,
+        isUndefined: client.phone === undefined
+      });
+      
       const { data, error } = await supabase
         .from('clients')
         .insert(clientData)
         .select()
         .single();
+      
+      console.log('8. Supabase response:', { data, error });
+      
+      if (error) {
+        console.error('9. Supabase error details:', {
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+          code: error.code
+        });
         
-      if (error) throw error;
+        // Extract the actual ID from the error message if it's a duplicate key error
+        if (error.code === '23505') {
+          console.error('DUPLICATE KEY ERROR - Attempted to use ID:', clientData.id);
+          console.error('Full client data that failed:', clientData);
+          
+          // Try to find what client has this ID
+          const { data: existingClient } = await supabase
+            .from('clients')
+            .select('id, name, created_at, user_id')
+            .eq('id', clientData.id)
+            .single();
+            
+          if (existingClient) {
+            console.error('Existing client with this ID:', existingClient);
+            toast.error(`Client ID ${clientData.id} already exists for client: ${existingClient.name}`);
+          }
+        }
+        
+        throw error;
+      }
       
       // If we're on the first page, add the new client to the list
       if (page === 1) {

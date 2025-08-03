@@ -67,21 +67,21 @@ export const JobsList = ({
 
   // Get status styling from configuration
   const getStatusBadgeStyle = (status: string) => {
-    const statusConfig = jobStatuses?.find(s => s.name.toLowerCase() === status.toLowerCase());
+    const statusConfig = jobStatuses?.find(s => s.name === status);
     if (statusConfig?.color) {
       return { backgroundColor: `${statusConfig.color}20`, color: statusConfig.color, borderColor: statusConfig.color };
     }
     
-    // Fallback styles
+    // Fallback styles - using proper capitalized status names
     const statusStyles: Record<string, any> = {
-      "completed": { backgroundColor: "#10b98120", color: "#10b981", borderColor: "#10b981" },
-      "in-progress": { backgroundColor: "#3b82f620", color: "#3b82f6", borderColor: "#3b82f6" }, 
-      "scheduled": { backgroundColor: "#f59e0b20", color: "#f59e0b", borderColor: "#f59e0b" },
-      "cancelled": { backgroundColor: "#ef444420", color: "#ef4444", borderColor: "#ef4444" },
-      "canceled": { backgroundColor: "#ef444420", color: "#ef4444", borderColor: "#ef4444" }
+      "Completed": { backgroundColor: "#10b98120", color: "#10b981", borderColor: "#10b981" },
+      "In Progress": { backgroundColor: "#f59e0b20", color: "#f59e0b", borderColor: "#f59e0b" }, 
+      "New": { backgroundColor: "#3b82f620", color: "#3b82f6", borderColor: "#3b82f6" },
+      "Cancelled": { backgroundColor: "#ef444420", color: "#ef4444", borderColor: "#ef4444" },
+      "On Hold": { backgroundColor: "#6b728020", color: "#6b7280", borderColor: "#6b7280" }
     };
     
-    return statusStyles[status.toLowerCase()] || { backgroundColor: "#6b728020", color: "#6b7280", borderColor: "#6b7280" };
+    return statusStyles[status] || { backgroundColor: "#6b728020", color: "#6b7280", borderColor: "#6b7280" };
   };
 
   // Get job type styling from configuration
@@ -116,15 +116,16 @@ export const JobsList = ({
   };
 
   const getStatusIcon = (status: string) => {
-    switch (status.toLowerCase()) {
-      case 'completed':
+    switch (status) {
+      case 'Completed':
         return <CheckCircle className="h-4 w-4" />;
-      case 'in-progress':
+      case 'In Progress':
         return <Clock className="h-4 w-4" />;
-      case 'scheduled':
+      case 'New':
         return <Calendar className="h-4 w-4" />;
-      case 'cancelled':
-      case 'canceled':
+      case 'Cancelled':
+        return <AlertCircle className="h-4 w-4" />;
+      case 'On Hold':
         return <AlertCircle className="h-4 w-4" />;
       default:
         return <Clock className="h-4 w-4" />;

@@ -12,7 +12,37 @@ export const useCompanySettings = () => {
   const { data: companySettings, isLoading } = useQuery({
     queryKey: ['company-settings', user?.id, organization?.id],
     queryFn: async () => {
-      // First try to get from profiles table
+      // First try to get from company_settings table
+      const { data: companyData, error: companyError } = await supabase
+        .from('company_settings')
+        .select('*')
+        .eq('user_id', user?.id)
+        .maybeSingle();
+
+      if (!companyError && companyData) {
+        return {
+          company_name: companyData.company_name || '',
+          company_email: companyData.company_email || '',
+          company_phone: companyData.company_phone || '',
+          company_address: companyData.company_address || '',
+          company_logo: companyData.company_logo_url || '',
+          website: companyData.company_website || '',
+          timezone: companyData.company_timezone || 'America/New_York',
+          business_hours: companyData.business_hours || {
+            monday: { start: '09:00', end: '17:00', enabled: true },
+            tuesday: { start: '09:00', end: '17:00', enabled: true },
+            wednesday: { start: '09:00', end: '17:00', enabled: true },
+            thursday: { start: '09:00', end: '17:00', enabled: true },
+            friday: { start: '09:00', end: '17:00', enabled: true },
+            saturday: { start: '09:00', end: '17:00', enabled: false },
+            sunday: { start: '09:00', end: '17:00', enabled: false },
+          },
+          brand_color: '#3b82f6',
+          ...companyData
+        };
+      }
+
+      // Then try to get from profiles table
       const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('*')
@@ -109,6 +139,29 @@ export const useCompanySettings = () => {
         .eq('user_id', user.id);
 
       if (profileError) throw profileError;
+
+      // Also update the company_settings table
+      const { error: companyError } = await supabase
+        .from('company_settings')
+        .upsert({
+          user_id: user.id,
+          company_name: updates.company_name,
+          company_email: updates.company_email,
+          company_phone: updates.company_phone,
+          company_address: updates.company_address,
+          company_city: updates.company_city,
+          company_state: updates.company_state,
+          company_zip: updates.company_zip,
+          company_country: updates.company_country,
+          company_website: updates.website,
+          company_logo_url: updates.company_logo,
+          updated_at: new Date().toISOString()
+        });
+
+      if (companyError) {
+        console.error('Error updating company_settings:', companyError);
+        // Don't throw here, as profiles was updated successfully
+      }
 
       // If organization exists, update there too
       if (organization?.id) {

@@ -1,23 +1,21 @@
-import React, { useState, useEffect } from 'react';
-import { useCompanySettings } from '@/hooks/useCompanySettings';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { useJobStatuses, useTags } from "@/hooks/useConfigItems";
 import { Textarea } from '@/components/ui/textarea';
-import { Switch } from '@/components/ui/switch';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import {
-  Plus, Trash2, Clock, Calendar, Mail, MessageSquare, Phone,
-  ChevronRight, AlertCircle, DollarSign, Star, User, Settings,
-  Zap, ArrowDown, GitBranch, Timer, Sun, Moon, Globe, Bot, Sparkles, Bell, Briefcase, Users, ChevronDown, Tag
+  Plus, Zap, Mail, MessageSquare, Phone, Clock, Trash2, ArrowDown,
+  GitBranch, Globe, Bell, Settings, Bot, Sparkles, User, Calendar,
+  Tag, Briefcase, ChevronDown, AlertCircle
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
+import { SmartTimingOptions } from './SmartTimingOptions';
 import { AIAutomationAssistant } from './AIAutomationAssistant';
 import { EnhancedTriggerSelector } from './EnhancedTriggerSelector';
 import { EnhancedActionSelector } from './EnhancedActionSelector';
@@ -25,6 +23,10 @@ import { SmartActionSelector } from './SmartActionSelector';
 import { WORKFLOW_TEMPLATES, getPopularTemplates } from '@/data/workflowTemplates';
 import { TriggerTypes } from '@/types/automationFramework';
 import { supabase } from '@/integrations/supabase/client';
+import { useJobStatuses } from '@/hooks/useJobStatuses';
+import { AIMessageGeneratorConfig } from './AIMessageGeneratorConfig';
+import { TriggerStatusChangeConfig } from './TriggerStatusChangeConfig';
+import { TriggerTagsChangeConfig } from './TriggerTagsChangeConfig';
 
 // Generate AI message function
 const generateAIMessage = async (
@@ -384,7 +386,6 @@ export const AdvancedWorkflowBuilder: React.FC<WorkflowBuilderProps> = ({
         </Button>
       </div>
 
-
       {/* AI Assistant Panel */}
       {showAIAssistant && (
         <motion.div
@@ -436,86 +437,79 @@ export const AdvancedWorkflowBuilder: React.FC<WorkflowBuilderProps> = ({
               </div>
             </CardHeader>
             <CardContent>
-          <div className="space-y-4">
-            <AnimatePresence>
-              {steps.map((step, index) => (
-                <motion.div
-                  key={step.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -20 }}
-                  transition={{ duration: 0.2 }}
-                >
-                  <WorkflowStepCard
-                    step={step}
-                    index={index}
-                    totalSteps={steps.length}
-                    isSelected={selectedStep === step.id}
-                    onSelect={() => setSelectedStep(step.id)}
-                    onUpdate={(updates) => updateStep(step.id, updates)}
-                    onDelete={() => deleteStep(step.id)}
-                    onMove={(direction) => moveStep(index, direction)}
-                    availableVariables={availableVariables}
-                  />
+              <div className="space-y-4">
+                <AnimatePresence>
+                  {steps.map((step, index) => (
+                    <motion.div
+                      key={step.id}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -20 }}
+                      transition={{ duration: 0.2 }}
+                    >
+                      <WorkflowStepCard
+                        step={step}
+                        index={index}
+                        totalSteps={steps.length}
+                        isSelected={selectedStep === step.id}
+                        onSelect={() => setSelectedStep(step.id)}
+                        onUpdate={(updates) => updateStep(step.id, updates)}
+                        onDelete={() => deleteStep(step.id)}
+                        onMove={(direction) => moveStep(index, direction)}
+                        availableVariables={availableVariables}
+                      />
 
-                  {index < steps.length - 1 && (
-                    <div className="flex justify-center my-2">
-                      <ArrowDown className="w-5 h-5 text-muted-foreground" />
-                    </div>
-                  )}
-                </motion.div>
-              ))}
-            </AnimatePresence>
+                      {index < steps.length - 1 && (
+                        <div className="flex justify-center my-2">
+                          <ArrowDown className="w-5 h-5 text-muted-foreground" />
+                        </div>
+                      )}
+                    </motion.div>
+                  ))}
+                </AnimatePresence>
 
-            {/* Add Step Buttons */}
-            <div className="flex flex-wrap gap-2 pt-4 border-t">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => addStep('trigger')}
-                className="gap-2"
-              >
-                <Zap className="w-4 h-4" />
-                Add Trigger
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => addStep('action')}
-                className="gap-2"
-              >
-                <Plus className="w-4 h-4" />
-                Add Action
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => addStep('delay')}
-                className="gap-2"
-              >
-                <Clock className="w-4 h-4" />
-                Add Delay
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => addStep('branch')}
-                className="gap-2"
-              >
-                <GitBranch className="w-4 h-4" />
-                Add If/Then/Else
-              </Button>
-            </div>
-
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Smart Timing Options */}
-      <SmartTimingOptions 
-        config={timingConfig} 
-        onConfigChange={setTimingConfig}
-      />
+                {/* Add Step Buttons */}
+                <div className="flex flex-wrap gap-2 pt-4 border-t">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => addStep('trigger')}
+                    className="gap-2"
+                  >
+                    <Zap className="w-4 h-4" />
+                    Add Trigger
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => addStep('action')}
+                    className="gap-2"
+                  >
+                    <Plus className="w-4 h-4" />
+                    Add Action
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => addStep('delay')}
+                    className="gap-2"
+                  >
+                    <Clock className="w-4 h-4" />
+                    Add Delay
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => addStep('branch')}
+                    className="gap-2"
+                  >
+                    <GitBranch className="w-4 h-4" />
+                    Add If/Then/Else
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
 
           {/* Save Button */}
           <div className="flex justify-end gap-2">
@@ -523,7 +517,6 @@ export const AdvancedWorkflowBuilder: React.FC<WorkflowBuilderProps> = ({
             <Button onClick={() => onSave(steps)}>Save Workflow</Button>
           </div>
         </TabsContent>
-
 
         <TabsContent value="actions">
           <Card>
@@ -845,12 +838,15 @@ const StepConditionConfig: React.FC<{
     </div>
   );
 };
+
 const StepActionConfig: React.FC<{
   config: any;
   onUpdate: (config: any) => void;
   availableVariables: Array<{ name: string; label: string; type: string }>;
   workflowContext?: any;
 }> = ({ config, onUpdate, availableVariables, workflowContext }) => {
+  const [showTiming, setShowTiming] = useState(false);
+  
   return (
     <div className="space-y-3 mt-3" onClick={(e) => e.stopPropagation()}>
       <div className="flex gap-2">
@@ -868,6 +864,17 @@ const StepActionConfig: React.FC<{
             <SelectItem value="task">Create Task</SelectItem>
           </SelectContent>
         </Select>
+        
+        {/* Timing Settings Toggle */}
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setShowTiming(!showTiming)}
+          className="gap-2"
+        >
+          <Clock className="w-4 h-4" />
+          Timing
+        </Button>
       </div>
 
       {config.actionType === 'email' && (
@@ -945,6 +952,18 @@ const StepActionConfig: React.FC<{
           }}
           availableVariables={availableVariables}
         />
+      )}
+      
+      {/* Timing Options */}
+      {showTiming && (
+        <div className="mt-4">
+          <SmartTimingOptions 
+            config={config.timing || {}}
+            onConfigChange={(timingConfig) => {
+              onUpdate({ ...config, timing: timingConfig });
+            }}
+          />
+        </div>
       )}
 
       {/* Variable Insertion */}
@@ -1203,508 +1222,3 @@ const StepBranchConfig: React.FC<{
     </div>
   );
 };
-
-// Smart Timing Options Component
-interface SmartTimingOptionsProps {
-  config: any;
-  onConfigChange: (config: any) => void;
-}
-
-const SmartTimingOptions: React.FC<SmartTimingOptionsProps> = ({ config, onConfigChange }) => {
-  const { companySettings, isLoading } = useCompanySettings();
-  
-  const [timingConfig, setTimingConfig] = useState({
-    businessHours: config?.businessHours ?? true,
-    businessStart: config?.businessStart ?? '09:00',
-    businessEnd: config?.businessEnd ?? '17:00',
-    timezone: config?.timezone ?? 'customer_local',
-    quietHours: config?.quietHours ?? true,
-    quietStart: config?.quietStart ?? '21:00',
-    quietEnd: config?.quietEnd ?? '08:00',
-    optimalSend: config?.optimalSend ?? false,
-    recurring: config?.recurring ?? false,
-    recurringType: config?.recurringType ?? 'none'
-  });
-  // Update timing config when company settings change
-  useEffect(() => {
-    if (companySettings?.business_hours) {
-      const businessHours = companySettings.business_hours;
-      // Find the first enabled day to get default business hours
-      const enabledDay = Object.keys(businessHours).find(day => 
-        businessHours[day]?.enabled && businessHours[day]?.open && businessHours[day]?.close
-      );
-      
-      if (enabledDay) {
-        setTimingConfig(prev => ({
-          ...prev,
-          businessStart: businessHours[enabledDay].open,
-          businessEnd: businessHours[enabledDay].close
-        }));
-      }
-    }
-  }, [companySettings]);
-
-  // Update local state when config prop changes
-  useEffect(() => {
-    if (config) {
-      setTimingConfig({
-        businessHours: config.businessHours ?? true,
-        businessStart: config.businessStart ?? '09:00',
-        businessEnd: config.businessEnd ?? '17:00',
-        timezone: config.timezone ?? 'customer_local',
-        quietHours: config.quietHours ?? true,
-        quietStart: config.quietStart ?? '21:00',
-        quietEnd: config.quietEnd ?? '08:00',
-        optimalSend: config.optimalSend ?? false,
-        recurring: config.recurring ?? false,
-        recurringType: config.recurringType ?? 'none'
-      });
-    }
-  }, [config]);
-
-  // Save changes back to parent when timing config changes
-  useEffect(() => {
-    onConfigChange(timingConfig);
-  }, [timingConfig, onConfigChange]);
-
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Smart Timing Options</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="space-y-4">
-          {/* Business Hours */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Sun className="w-4 h-4 text-muted-foreground" />
-              <Label>Send during business hours only</Label>
-            </div>
-            <div className="flex items-center gap-2">
-              <Switch
-                checked={timingConfig.businessHours}
-                onCheckedChange={(checked) =>
-                  setTimingConfig({ ...timingConfig, businessHours: checked })
-                }
-              />
-              {timingConfig.businessHours && (
-                <div className="flex items-center gap-2">
-                  <Input
-                    type="time"
-                    value={timingConfig.businessStart}
-                    onChange={(e) =>
-                      setTimingConfig({ ...timingConfig, businessStart: e.target.value })
-                    }
-                    className="w-24 h-8"
-                  />
-                  <span className="text-sm">to</span>
-                  <Input
-                    type="time"
-                    value={timingConfig.businessEnd}
-                    onChange={(e) =>
-                      setTimingConfig({ ...timingConfig, businessEnd: e.target.value })
-                    }
-                    className="w-24 h-8"
-                  />
-                </div>
-              )}
-            </div>
-          </div>
-
-
-          {/* Timezone */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Globe className="w-4 h-4 text-muted-foreground" />
-              <Label>Timezone</Label>
-            </div>
-            <Select
-              value={timingConfig.timezone}
-              onValueChange={(value) =>
-                setTimingConfig({ ...timingConfig, timezone: value })
-              }
-            >
-              <SelectTrigger className="w-48">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="customer_local">Customer's Local Time</SelectItem>
-                <SelectItem value="business">
-                  Business Time {(companySettings as any)?.company_timezone && 
-                    `(${(companySettings as any).company_timezone})`}
-                </SelectItem>
-                <SelectItem value="utc">UTC</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Optimal Send Time */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Zap className="w-4 h-4 text-muted-foreground" />
-              <div>
-                <Label>AI Optimal Send Time</Label>
-                <p className="text-xs text-muted-foreground">
-                  AI learns the best time to reach each customer
-                </p>
-              </div>
-            </div>
-            <Switch
-              checked={timingConfig.optimalSend}
-              onCheckedChange={(checked) =>
-                setTimingConfig({ ...timingConfig, optimalSend: checked })
-              }
-            />
-          </div>
-
-          {/* Recurring Schedule */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Calendar className="w-4 h-4 text-muted-foreground" />
-              <Label>Recurring Schedule</Label>
-            </div>
-            <Select
-              value={timingConfig.recurringType}
-              onValueChange={(value) =>
-                setTimingConfig({ ...timingConfig, recurringType: value, recurring: value !== 'none' })
-              }
-            >
-              <SelectTrigger className="w-48">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">One-time</SelectItem>
-                <SelectItem value="daily">Daily</SelectItem>
-                <SelectItem value="weekly">Weekly</SelectItem>
-                <SelectItem value="monthly">Monthly</SelectItem>
-                <SelectItem value="quarterly">Quarterly (3 months)</SelectItem>
-                <SelectItem value="6months">Semi-annually (6 months)</SelectItem>
-                <SelectItem value="yearly">Yearly</SelectItem>
-                <SelectItem value="2years">Every 2 years</SelectItem>
-                <SelectItem value="3years">Every 3 years</SelectItem>
-                <SelectItem value="4years">Every 4 years</SelectItem>
-                <SelectItem value="5years">Every 5 years</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-      </CardContent>
-    </Card>
-  );
-};
-
-// Trigger Status Change Configuration Component
-const TriggerStatusChangeConfig: React.FC<{
-  config: any;
-  onUpdate: (config: any) => void;
-}> = ({ config, onUpdate }) => {
-  const { items: jobStatuses } = useJobStatuses();
-  
-  return (
-    <div className="space-y-3 p-3 bg-muted/10 rounded-lg">
-      <div className="text-sm font-medium text-muted-foreground">Job Status Change Configuration</div>
-      
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-        {/* From Status */}
-        <div className="space-y-2">
-          <Label className="text-xs">From Status</Label>
-          <Select
-            value={config.from_status?.[0] || 'any'}
-            onValueChange={(value) => onUpdate({ ...config, from_status: value === 'any' ? [] : [value] })}
-          >
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder="Any status" />
-            </SelectTrigger>
-            <SelectContent side="bottom" className="max-h-48 overflow-y-auto">
-              <SelectItem value="any">Any Status</SelectItem>
-              {jobStatuses?.map((status) => (
-                <SelectItem key={status.id} value={status.name}>
-                  <div className="flex items-center gap-2">
-                    <div 
-                      className="w-3 h-3 rounded-full" 
-                      style={{ backgroundColor: status.color }}
-                    />
-                    {status.name}
-                  </div>
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-        
-        {/* To Status */}
-        <div className="space-y-2">
-          <Label className="text-xs">To Status</Label>
-          <Select
-            value={config.to_status?.[0] || ''}
-            onValueChange={(value) => onUpdate({ ...config, to_status: [value] })}
-          >
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder="Select status" />
-            </SelectTrigger>
-            <SelectContent side="bottom" className="max-h-48 overflow-y-auto">
-              {jobStatuses?.map((status) => (
-                <SelectItem key={status.id} value={status.name}>
-                  <div className="flex items-center gap-2">
-                    <div 
-                      className="w-3 h-3 rounded-full" 
-                      style={{ backgroundColor: status.color }}
-                    />
-                    {status.name}
-                  </div>
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
-      
-      <div className="text-xs text-muted-foreground">
-        Triggers when job status changes from specific status to another status
-      </div>
-    </div>
-  );
-};
-
-// Trigger Tags Change Configuration Component
-const TriggerTagsChangeConfig: React.FC<{
-  config: any;
-  onUpdate: (config: any) => void;
-  isClientTags?: boolean;
-}> = ({ config, onUpdate, isClientTags = false }) => {
-  const { items: tags } = useTags();
-  
-  return (
-    <div className="space-y-3 p-3 bg-muted/10 rounded-lg">
-      <div className="text-sm font-medium text-muted-foreground">
-        {isClientTags ? 'Client Tags' : 'Job Tags'} Change Configuration
-      </div>
-      
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-        {/* From Tags */}
-        <div className="space-y-2">
-          <Label className="text-xs">From Tags</Label>
-          <Select
-            value={config.from_tags?.[0] || 'any'}
-            onValueChange={(value) => onUpdate({ ...config, from_tags: value === 'any' ? [] : [value] })}
-          >
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder="Any tags" />
-            </SelectTrigger>
-            <SelectContent side="bottom" className="max-h-48 overflow-y-auto">
-              <SelectItem value="any">Any Tags</SelectItem>
-              {tags?.map((tag) => (
-                <SelectItem key={tag.id} value={tag.name}>
-                  <div className="flex items-center gap-2">
-                    <div 
-                      className="w-3 h-3 rounded-full" 
-                      style={{ backgroundColor: tag.color || '#6b7280' }}
-                    />
-                    {tag.name}
-                  </div>
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-        
-        {/* To Tags */}
-        <div className="space-y-2">
-          <Label className="text-xs">To Tags</Label>
-          <Select
-            value={config.to_tags?.[0] || 'none'}
-            onValueChange={(value) => onUpdate({ ...config, to_tags: value === 'none' ? [] : [value] })}
-          >
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder="Select tags" />
-            </SelectTrigger>
-            <SelectContent side="bottom" className="max-h-48 overflow-y-auto">
-              {tags?.map((tag) => (
-                <SelectItem key={tag.id} value={tag.name}>
-                  <div className="flex items-center gap-2">
-                    <div 
-                      className="w-3 h-3 rounded-full" 
-                      style={{ backgroundColor: tag.color || '#6b7280' }}
-                    />
-                    {tag.name}
-                  </div>
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
-      
-      <div className="text-xs text-muted-foreground">
-        Triggers when {isClientTags ? 'client' : 'job'} tags change from specific tags to other tags
-      </div>
-    </div>
-  );
-};
-
-// AI Message Generator Configuration Component
-const AIMessageGeneratorConfig: React.FC<{
-  config: any;
-  onUpdate: (config: any) => void;
-  availableVariables: Array<{ name: string; label: string; type: string }>;
-}> = ({ config, onUpdate, availableVariables }) => {
-  const [isGenerating, setIsGenerating] = useState(false);
-
-  const generateMessage = async () => {
-    setIsGenerating(true);
-    try {
-      const { data, error } = await supabase.functions.invoke('generate-ai-message', {
-        body: {
-          messageType: config.messageFormat || 'professional',
-          context: config.context || '',
-          variables: availableVariables,
-          companyInfo: {
-            businessType: config.businessType || 'service company',
-            tone: config.tone || 'professional'
-          }
-        }
-      });
-
-      if (error) throw error;
-
-      if (data?.message) {
-        onUpdate({ 
-          ...config, 
-          generatedMessage: data.message,
-          subject: data.subject || config.subject
-        });
-      }
-    } catch (error) {
-      console.error('Error generating AI message:', error);
-    } finally {
-      setIsGenerating(false);
-    }
-  };
-
-  return (
-    <div className="space-y-3 p-3 bg-gradient-to-r from-purple-50 to-blue-50 rounded-lg border border-purple-200">
-      <div className="flex items-center gap-2">
-        <Bot className="w-4 h-4 text-purple-600" />
-        <span className="text-sm font-medium text-purple-800">AI Message Generator</span>
-      </div>
-
-      {/* Message Format */}
-      <div className="space-y-2">
-        <Label className="text-xs">Message Format</Label>
-        <Select
-          value={config.messageFormat || 'professional'}
-          onValueChange={(value) => onUpdate({ ...config, messageFormat: value })}
-        >
-          <SelectTrigger className="w-full">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent side="bottom">
-            <SelectItem value="professional">📧 Professional Email</SelectItem>
-            <SelectItem value="friendly">😊 Friendly SMS</SelectItem>
-            <SelectItem value="reminder">⏰ Appointment Reminder</SelectItem>
-            <SelectItem value="follow_up">📞 Follow-up Message</SelectItem>
-            <SelectItem value="thank_you">🙏 Thank You Note</SelectItem>
-            <SelectItem value="invoice">💰 Invoice Message</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-
-      {/* Tone */}
-      <div className="space-y-2">
-        <Label className="text-xs">Tone</Label>
-        <Select
-          value={config.tone || 'professional'}
-          onValueChange={(value) => onUpdate({ ...config, tone: value })}
-        >
-          <SelectTrigger className="w-full">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent side="bottom">
-            <SelectItem value="professional">Professional</SelectItem>
-            <SelectItem value="friendly">Friendly</SelectItem>
-            <SelectItem value="casual">Casual</SelectItem>
-            <SelectItem value="urgent">Urgent</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-
-      {/* Context Input */}
-      <div className="space-y-2">
-        <Label className="text-xs">Additional Context</Label>
-        <Textarea
-          placeholder="e.g., This is for a plumbing job completion follow-up..."
-          value={config.context || ''}
-          onChange={(e) => onUpdate({ ...config, context: e.target.value })}
-          rows={2}
-        />
-        
-        {/* Generate Button - Now near the message input */}
-        <Button
-          onClick={generateMessage}
-          disabled={isGenerating}
-          className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
-          size="sm"
-        >
-          {isGenerating ? (
-            <>
-              <Bot className="w-4 h-4 mr-2 animate-spin" />
-              Generating...
-            </>
-          ) : (
-            <>
-              <Sparkles className="w-4 h-4 mr-2" />
-              Generate AI Message
-            </>
-          )}
-        </Button>
-      </div>
-
-      {/* Generated Message Preview */}
-      {config.generatedMessage && (
-        <div className="space-y-2">
-          <Label className="text-xs">Generated Message</Label>
-          <div className="p-3 bg-white rounded border border-gray-200">
-            <div className="text-sm whitespace-pre-wrap">{config.generatedMessage}</div>
-          </div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => onUpdate({ ...config, message: config.generatedMessage })}
-          >
-            Use This Message
-          </Button>
-        </div>
-      )}
-
-      {/* Available Variables */}
-      <div className="space-y-2">
-        <Label className="text-xs">Available Variables</Label>
-        <div className="flex flex-wrap gap-1">
-          {availableVariables.slice(0, 8).map((variable) => (
-            <Badge
-              key={variable.name}
-              variant="secondary"
-              className="cursor-pointer text-xs hover:bg-purple-100"
-              onClick={() => {
-                const currentContext = config.context || '';
-                onUpdate({ 
-                  ...config, 
-                  context: currentContext + ` {{${variable.name}}}` 
-                });
-              }}
-              >
-                {`{{${variable.name}}}`}
-              </Badge>
-          ))}
-        </div>
-        <div className="text-xs text-muted-foreground">
-          Click variables to add them to context. AI will use company info and best practices.
-        </div>
-      </div>
-    </div>
-  );
-};
-
-export type { WorkflowStep };
-
-export default AdvancedWorkflowBuilder;

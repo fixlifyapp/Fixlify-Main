@@ -21,7 +21,7 @@ max_client_conn = 100
 
 [realtime]
 enabled = true
-ip_version = "ipv6"
+ip_version = "IPv4"
 
 [studio]
 enabled = true
@@ -37,7 +37,9 @@ pop3_port = 54326
 [storage]
 enabled = true
 file_size_limit = "50MiB"
-image_transformation = true
+
+[storage.image_transformation]
+enabled = true
 
 [auth]
 enabled = true
@@ -45,10 +47,6 @@ site_url = "http://127.0.0.1:3000"
 additional_redirect_urls = ["https://127.0.0.1:3000"]
 jwt_expiry = 3600
 enable_signup = true
-enable_email_confirmations = false
-enable_email_autoconfirm = false
-enable_phone_confirmations = false
-enable_phone_autoconfirm = false
 
 [auth.email]
 enable_signup = true

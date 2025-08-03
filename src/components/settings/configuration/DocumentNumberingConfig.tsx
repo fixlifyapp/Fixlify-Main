@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { FileText, Receipt, DollarSign, Loader2, Save, RotateCcw } from "lucide-react";
+import { FileText, Receipt, DollarSign, Loader2, Save, RotateCcw, Briefcase, Users } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { InfoIcon } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
@@ -21,6 +21,8 @@ const DEFAULT_CONFIGS: NumberingConfig[] = [
   { entity_type: 'invoice', prefix: 'INV', current_value: 1000, start_value: 1000 },
   { entity_type: 'estimate', prefix: 'EST', current_value: 1000, start_value: 1000 },
   { entity_type: 'payment', prefix: 'PAY', current_value: 1000, start_value: 1000 },
+  { entity_type: 'job', prefix: 'J', current_value: 1000, start_value: 1000 },
+  { entity_type: 'client', prefix: 'C', current_value: 2000, start_value: 2000 },
 ];
 
 export const DocumentNumberingConfig = () => {
@@ -39,7 +41,7 @@ export const DocumentNumberingConfig = () => {
       const { data, error } = await supabase
         .from('id_counters')
         .select('*')
-        .in('entity_type', ['invoice', 'estimate', 'payment'])
+        .in('entity_type', ['invoice', 'estimate', 'payment', 'job', 'client'])
         .order('entity_type');
 
       if (error) throw error;
@@ -192,6 +194,10 @@ export const DocumentNumberingConfig = () => {
         return <FileText className="h-5 w-5" />;
       case 'payment':
         return <DollarSign className="h-5 w-5" />;
+      case 'job':
+        return <Briefcase className="h-5 w-5" />;
+      case 'client':
+        return <Users className="h-5 w-5" />;
       default:
         return <FileText className="h-5 w-5" />;
     }
@@ -223,7 +229,7 @@ export const DocumentNumberingConfig = () => {
       <div>
         <h3 className="text-lg font-medium">Document Numbering</h3>
         <p className="text-sm text-muted-foreground">
-          Configure how invoices, estimates, and payments are numbered
+          Configure how invoices, estimates, payments, jobs, and clients are numbered
         </p>
       </div>
 

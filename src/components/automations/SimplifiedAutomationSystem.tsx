@@ -14,12 +14,16 @@ import {
 import { AdvancedWorkflowBuilder } from './AdvancedWorkflowBuilder';
 import { AutomationService, AutomationWorkflow } from '@/services/automationService';
 import { useAuth } from '@/hooks/use-auth';
+import { processPendingAutomations } from '@/utils/automationProcessor';
+import { FixAutomationButton } from './FixAutomationButton';
+import { EmergencyAutomationStop } from './EmergencyAutomationStop';
 
 export const SimplifiedAutomationSystem: React.FC = () => {
   const [automations, setAutomations] = useState<AutomationWorkflow[]>([]);
   const [loading, setLoading] = useState(false);
   const [showBuilder, setShowBuilder] = useState(false);
   const [editingWorkflow, setEditingWorkflow] = useState<AutomationWorkflow | null>(null);
+  const [processingPending, setProcessingPending] = useState(false);
   
   const { user } = useAuth();
 
@@ -67,20 +71,38 @@ export const SimplifiedAutomationSystem: React.FC = () => {
 
   const handleSaveWorkflow = async (workflowSteps: any[]) => {
     try {
-      // Validate that we have a trigger
-      const hasTrigger = workflowSteps.some(step => step.type === 'trigger');
-      if (!hasTrigger) {
-        toast.error('Workflow must start with a trigger');
+      // Validate that we have both trigger and actions
+      const triggerStep = workflowSteps.find(step => step.type === 'trigger');
+      const actionSteps = workflowSteps.filter(step => step.type === 'action');
+      
+      if (!triggerStep) {
+        toast.error('Workflow must have a trigger');
         return;
       }
+      
+      if (actionSteps.length === 0) {
+        toast.error('Workflow must have at least one action');
+        return;
+      }
+
+      // Extract trigger type and config
+      const triggerType = triggerStep.subType || triggerStep.config?.triggerType || 'manual';
+      const triggerConfig = {
+        triggerType: triggerType,
+        conditions: triggerStep.config?.conditions || []
+      };
 
       const workflowData = {
         name: editingWorkflow?.name || 'New Workflow',
         description: editingWorkflow?.description || 'Custom automation workflow',
+        trigger_type: triggerType,
+        trigger_config: triggerConfig,
+        steps: actionSteps, // Store only action steps
         template_config: {
-          steps: workflowSteps
+          steps: workflowSteps // Keep all steps for the builder
         },
-        status: 'active' as const
+        status: 'active' as const,
+        is_active: true
       };
 
       if (editingWorkflow?.id) {
@@ -134,6 +156,25 @@ export const SimplifiedAutomationSystem: React.FC = () => {
       });
     } catch (error) {
       console.error('Error testing workflow:', error);
+    }
+  };
+
+  const handleProcessPending = async () => {
+    setProcessingPending(true);
+    try {
+      const result = await processPendingAutomations();
+      if (result.success) {
+        toast.success(`Processed ${result.processed} automations, ${result.failed} failed`);
+      } else {
+        toast.error(`Failed to process automations: ${result.errors.join(', ')}`);
+      }
+      // Reload automations to update execution counts
+      loadAutomations();
+    } catch (error) {
+      console.error('Error processing pending automations:', error);
+      toast.error('Failed to process pending automations');
+    } finally {
+      setProcessingPending(false);
     }
   };
 
@@ -192,11 +233,37 @@ export const SimplifiedAutomationSystem: React.FC = () => {
           <h2 className="text-2xl font-bold">Automation Workflows</h2>
           <p className="text-muted-foreground">Create and manage automated workflows with triggers and actions</p>
         </div>
-        <Button onClick={handleCreateWorkflow} className="gap-2">
-          <Plus className="w-4 h-4" />
-          Create Workflow
-        </Button>
+        <div className="flex gap-2">
+          <Button 
+            onClick={handleProcessPending} 
+            variant="outline"
+            disabled={processingPending}
+            className="gap-2"
+          >
+            {processingPending ? (
+              <>
+                <RefreshCw className="w-4 h-4 animate-spin" />
+                Processing...
+              </>
+            ) : (
+              <>
+                <RefreshCw className="w-4 h-4" />
+                Process Pending
+              </>
+            )}
+          </Button>
+          <Button onClick={handleCreateWorkflow} className="gap-2">
+            <Plus className="w-4 h-4" />
+            Create Workflow
+          </Button>
+        </div>
       </div>
+
+      {/* Fix Automation Button */}
+      <FixAutomationButton />
+      
+      {/* Emergency Stop */}
+      <EmergencyAutomationStop />
 
       {/* Basic Stats */}
       <div className="grid gap-4 md:grid-cols-3">

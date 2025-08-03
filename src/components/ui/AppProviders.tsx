@@ -7,6 +7,7 @@ import { MessageProvider } from '@/contexts/MessageContext';
 import { GlobalRealtimeProvider } from '@/contexts/GlobalRealtimeProvider';
 import { ModalProvider } from '@/components/ui/modal-provider';
 import { OrganizationProvider } from '@/contexts/OrganizationContext';
+import { AutomationProcessorProvider } from '@/contexts/AutomationProcessorContext';
 // import { AutomationScheduler } from '@/components/automations/AutomationScheduler';
 
 interface AppProvidersProps {
@@ -18,16 +19,18 @@ export const AppProviders = ({ children }: AppProvidersProps) => {
     <RBACProvider>
       <GlobalRealtimeProvider>
         <OrganizationProvider>
-          <MessageProvider>
-            <SMSProvider>
-              <EmailProvider>
-                <ModalProvider>
-                  {/* <AutomationScheduler /> */}
-                  {children}
-                </ModalProvider>
-              </EmailProvider>
-            </SMSProvider>
-          </MessageProvider>
+          <AutomationProcessorProvider>
+            <MessageProvider>
+              <SMSProvider>
+                <EmailProvider>
+                  <ModalProvider>
+                    {/* <AutomationScheduler /> */}
+                    {children}
+                  </ModalProvider>
+                </EmailProvider>
+              </SMSProvider>
+            </MessageProvider>
+          </AutomationProcessorProvider>
         </OrganizationProvider>
       </GlobalRealtimeProvider>
     </RBACProvider>

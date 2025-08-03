@@ -1,96 +1,198 @@
-
 import { supabase } from "@/integrations/supabase/client";
 
-// Starting values for each entity type - simplified numbering
-const STARTING_VALUES = {
-  job: 2000,
-  estimate: 100, // Shorter starting value for estimates
-  invoice: 1000, // Shorter starting value for invoices
-  client: 2000
-};
-
-// Simple prefixes for each entity type
-const PREFIXES = {
+// Prefixes for different entity types
+const PREFIXES: Record<string, string> = {
   job: 'J',
   estimate: '', // No prefix for estimates - just numbers
   invoice: 'I',
   client: 'C'
 };
 
+// Starting values for different entities
+const STARTING_VALUES: Record<string, number> = {
+  job: 1000,
+  estimate: 1000,
+  invoice: 1000,
+  client: 2000
+};
+
 export const generateNextId = async (entityType: 'job' | 'estimate' | 'invoice' | 'client'): Promise<string> => {
+  console.log('=== generateNextId Debug ===');
+  console.log('Entity type:', entityType);
+  
   try {
     // Get current user
     const { data: { user } } = await supabase.auth.getUser();
+    console.log('Current user in generateNextId:', user);
+    
     if (!user) {
+      console.error('No user found in generateNextId');
       throw new Error('User not authenticated');
     }
 
-    // For estimates and invoices, use the atomic database function
-    if (entityType === 'estimate' || entityType === 'invoice') {
-      const { data, error } = await supabase
-        .rpc('get_next_document_number', { p_entity_type: entityType });
+    // Use the atomic database function for ALL entity types
+    // This ensures no duplicates across all entities
+    const { data, error } = await supabase
+      .rpc('get_next_document_number', { 
+        p_entity_type: entityType
+      });
+    
+    if (error) {
+      console.error(`Error generating ${entityType} number:`, error);
       
-      if (error) {
-        console.error(`Error generating ${entityType} number:`, error);
-        throw error;
+      // If the RPC function doesn't exist or fails, fall back to the old method
+      if (error.code === 'PGRST202' || error.message?.includes('function') || error.message?.includes('does not exist')) {
+        console.log('Falling back to manual ID generation');
+        return await generateNextIdManual(entityType, user.id);
       }
       
-      return data;
+      throw error;
     }
+    
+    console.log('Generated ID from database:', data);
+    return data;
+    
+  } catch (error) {
+    console.error(`Error generating ${entityType} ID:`, error);
+    
+    // Fallback to timestamp-based ID to ensure uniqueness
+    const timestamp = Date.now();
+    const random = Math.floor(Math.random() * 1000);
+    const fallbackId = `${PREFIXES[entityType]}-${timestamp}-${random}`;
+    
+    console.log('Using fallback ID:', fallbackId);
+    return fallbackId;
+  }
+};
 
-    // For jobs and clients, continue using per-user counters
+// Manual ID generation as fallback
+async function generateNextIdManual(entityType: string, userId: string): Promise<string> {
+  const maxRetries = 10;
+  let attempt = 0;
+  
+  while (attempt < maxRetries) {
+    attempt++;
+    console.log(`Manual generation attempt ${attempt} for ${entityType}`);
+    
+    // Get the current counter
     const { data: counter, error: fetchError } = await supabase
       .from('id_counters')
       .select('*')
       .eq('entity_type', entityType)
-      .eq('user_id', user.id)
+      .eq('user_id', userId)
       .single();
 
     let nextNumber: number;
+    let needsInsert = false;
 
     if (fetchError && fetchError.code === 'PGRST116') {
-      // No counter exists, create one with starting value
+      // No counter exists, create one
       nextNumber = STARTING_VALUES[entityType];
+      needsInsert = true;
+      console.log('No counter exists, will create with value:', nextNumber);
+    } else if (counter) {
+      nextNumber = counter.current_value + 1;
+      console.log('Counter exists with current value:', counter.current_value, 'next will be:', nextNumber);
+    } else {
+      throw new Error('Unexpected error fetching counter');
+    }
+
+    // Generate the ID with proper format
+    const generatedId = formatEntityId(entityType, nextNumber);
+    console.log('Generated ID:', generatedId);
+
+    // Check if this ID already exists
+    const tableName = getTableName(entityType);
+    const { data: existing } = await supabase
+      .from(tableName)
+      .select('id')
+      .eq('id', generatedId)
+      .single();
       
-      await supabase
+    if (existing) {
+      console.log('ID already exists, incrementing and retrying...');
+      // ID already exists, update counter and retry
+      if (counter) {
+        await supabase
+          .from('id_counters')
+          .update({ current_value: nextNumber })
+          .eq('entity_type', entityType)
+          .eq('user_id', userId);
+      }
+      continue; // Try again with next number
+    }
+
+    // ID doesn't exist, update or insert counter
+    if (needsInsert) {
+      const { error: insertError } = await supabase
         .from('id_counters')
         .insert({
           entity_type: entityType,
           prefix: PREFIXES[entityType],
           current_value: nextNumber,
           start_value: STARTING_VALUES[entityType],
-          user_id: user.id
+          user_id: userId
         });
-    } else if (counter) {
-      // Counter exists, increment it
-      nextNumber = counter.current_value + 1;
-      
-      await supabase
+        
+      if (insertError && insertError.code !== '23505') {
+        // Ignore duplicate key errors, someone else might have created it
+        throw insertError;
+      }
+    } else {
+      // Update existing counter with optimistic locking
+      const { error: updateError } = await supabase
         .from('id_counters')
         .update({ current_value: nextNumber })
         .eq('entity_type', entityType)
-        .eq('user_id', user.id);
-    } else {
-      throw new Error('Unexpected error fetching counter');
-    }
-
-    return `${PREFIXES[entityType]}-${nextNumber}`;
-  } catch (error) {
-    console.error(`Error generating ${entityType} ID:`, error);
-    // Fallback to random number if database operation fails
-    const fallbackNumber = Math.floor(Math.random() * 999) + STARTING_VALUES[entityType];
-    
-    if (entityType === 'estimate') {
-      return fallbackNumber.toString();
-    } else if (entityType === 'invoice') {
-      return `INV-${fallbackNumber}`;
+        .eq('user_id', userId)
+        .eq('current_value', counter!.current_value);
+        
+      if (updateError) {
+        console.log('Update failed, possibly due to concurrent modification, retrying...');
+        continue; // Retry
+      }
     }
     
-    return `${PREFIXES[entityType]}-${fallbackNumber}`;
+    console.log('Successfully generated unique ID:', generatedId);
+    return generatedId;
   }
-};
+  
+  throw new Error(`Failed to generate unique ${entityType} ID after ${maxRetries} attempts`);
+}
+
+// Helper function to format ID based on entity type
+function formatEntityId(entityType: string, number: number): string {
+  switch (entityType) {
+    case 'estimate':
+      return number.toString(); // No prefix for estimates
+    case 'invoice':
+      return `INV-${number}`;
+    case 'job':
+      return `J-${number}`;
+    case 'client':
+      return `C-${number}`;
+    default:
+      return `${PREFIXES[entityType] || ''}-${number}`;
+  }
+}
+
+// Helper function to get table name for entity type
+function getTableName(entityType: string): string {
+  switch (entityType) {
+    case 'job':
+      return 'jobs';
+    case 'client':
+      return 'clients';
+    case 'estimate':
+      return 'estimates';
+    case 'invoice':
+      return 'invoices';
+    default:
+      return `${entityType}s`; // Fallback pluralization
+  }
+}
 
 // Function for simple sequential numbers (used in estimate/invoice builders)
 export const generateSimpleNumber = async (entityType: 'estimate' | 'invoice'): Promise<string> => {
-  return await generateNextId(entityType);
+  return generateNextId(entityType);
 };

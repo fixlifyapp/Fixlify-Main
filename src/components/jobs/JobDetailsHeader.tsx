@@ -9,15 +9,21 @@ import { Wrench, Calendar, DollarSign, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export const JobDetailsHeader = () => {
-  const { job, isLoading, updateJobStatus } = useJobDetails();
+  const { job, isLoading, updateJobStatus, currentStatus } = useJobDetails();
   const navigate = useNavigate();
 
   const handleStatusChange = async (newStatus: string) => {
     try {
+      console.log('JobDetailsHeader: Initiating status change', { 
+        currentStatus: job?.status, 
+        newStatus,
+        jobId: job?.id 
+      });
+      
       await updateJobStatus(newStatus);
       toast.success('Job status updated successfully');
     } catch (error) {
-      console.error('Error updating job status:', error);
+      console.error('JobDetailsHeader: Error updating job status:', error);
       toast.error('Failed to update job status');
     }
   };
@@ -56,11 +62,12 @@ export const JobDetailsHeader = () => {
 
   // Format badges based on job data
   const badges = [];
-  if (job.status) {
+  const displayStatus = currentStatus || job.status;
+  if (displayStatus) {
     badges.push({ 
-      text: job.status.charAt(0).toUpperCase() + job.status.slice(1), 
+      text: displayStatus.charAt(0).toUpperCase() + displayStatus.slice(1), 
       icon: Clock, 
-      variant: job.status === 'completed' ? 'success' : job.status === 'scheduled' ? 'info' : 'warning' as any
+      variant: displayStatus === 'Completed' ? 'success' : displayStatus === 'New' ? 'info' : 'warning' as any
     });
   }
   if (job.total) {
@@ -87,7 +94,7 @@ export const JobDetailsHeader = () => {
       <div className="mt-6">
         <JobInfoSection
           job={job}
-          status={job.status || 'scheduled'}
+          status={currentStatus || job.status || 'scheduled'}
           onStatusChange={handleStatusChange}
           onEditClient={() => {
             if (job.clientId) {

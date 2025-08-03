@@ -14,6 +14,8 @@ export interface AutomationWorkflow {
   organization_id?: string;
   template_config: any;
   status: string;
+  is_active?: boolean;
+  trigger_type?: string;
   execution_count?: number;
   success_count?: number;
   last_triggered_at?: string;
@@ -41,13 +43,20 @@ export class AutomationService {
       .eq('id', user.id)
       .maybeSingle();
 
+    // Extract trigger type from workflow steps
+    const steps = workflow.template_config?.steps || [];
+    const triggerStep = steps.find((s: any) => s.type === 'trigger');
+    const triggerType = triggerStep?.config?.triggerType || 'manual';
+
     const { data, error } = await supabase
       .from('automation_workflows')
       .insert({
         name: workflow.name || 'New Workflow',
         description: workflow.description || '',
         template_config: workflow.template_config || {},
-        status: 'active',
+        status: workflow.status || 'active',
+        is_active: true,
+        trigger_type: triggerType,
         user_id: user.id,
         organization_id: profile?.organization_id || user.id
       })
@@ -104,9 +113,20 @@ export class AutomationService {
   }
 
   static async updateWorkflow(id: string, updates: Partial<AutomationWorkflow>) {
+    // Extract trigger type if updating template config
+    let triggerType = updates.trigger_type;
+    if (updates.template_config?.steps) {
+      const triggerStep = updates.template_config.steps.find((s: any) => s.type === 'trigger');
+      triggerType = triggerStep?.config?.triggerType || 'manual';
+    }
+
     const { data, error } = await supabase
       .from('automation_workflows')
-      .update(updates)
+      .update({
+        ...updates,
+        trigger_type: triggerType,
+        is_active: updates.status === 'active'
+      })
       .eq('id', id)
       .select()
       .single();
@@ -128,182 +148,13 @@ export class AutomationService {
 
   static async testWorkflow(workflowId: string, testData?: any) {
     toast.info('Testing workflow...');
-    await this.executeWorkflow(workflowId, testData);
+    await this.executeWorkflow(workflowId, { ...testData, is_test: true });
     toast.success('Workflow test completed!');
   }
 
   /**
-   * Advanced execution engine functionality
+   * Enhanced execution engine for multi-step workflows
    */
-  static async startEngine() {
-    if (this.isListening) return;
-    
-    console.log('🚀 Starting Automation Execution Engine...');
-    this.isListening = true;
-    
-    // Listen for real-time events
-    await this.setupRealtimeListeners();
-    
-    // Check for scheduled workflows
-    this.startScheduledWorkflowChecker();
-    
-    console.log('✅ Automation Engine is running');
-  }
-
-  static async stopEngine() {
-    console.log('🛑 Stopping Automation Execution Engine...');
-    this.isListening = false;
-    
-    // Remove all listeners
-    this.listeners.forEach((listener, key) => {
-      if (listener && typeof listener.unsubscribe === 'function') {
-        listener.unsubscribe();
-      }
-    });
-    this.listeners.clear();
-    
-    console.log('✅ Automation Engine stopped');
-  }
-
-  private static async setupRealtimeListeners() {
-    const triggers = [
-      { table: 'jobs', events: ['INSERT', 'UPDATE'] },
-      { table: 'clients', events: ['INSERT', 'UPDATE'] },
-      { table: 'estimates', events: ['INSERT', 'UPDATE'] },
-      { table: 'invoices', events: ['INSERT', 'UPDATE'] },
-      { table: 'communication_logs', events: ['INSERT'] }
-    ];
-
-    for (const trigger of triggers) {
-      const channel = supabase
-        .channel(`automation_${trigger.table}`)
-        .on('postgres_changes', {
-          event: '*',
-          schema: 'public',
-          table: trigger.table
-        }, (payload) => {
-          this.handleDatabaseEvent(trigger.table, payload);
-        })
-        .subscribe();
-
-      this.listeners.set(`${trigger.table}_listener`, channel);
-    }
-  }
-
-  private static async handleDatabaseEvent(table: string, payload: any) {
-    if (!this.isListening) return;
-
-    const eventType = payload.eventType;
-    const record = payload.new || payload.old;
-    
-    console.log(`🔔 Database event: ${table}.${eventType}`, record);
-
-    // Get active workflows that might be triggered by this event
-    const workflows = await this.getActiveWorkflows();
-    
-    for (const workflow of workflows) {
-      await this.checkAndExecuteWorkflow(workflow, table, eventType, record);
-    }
-  }
-
-  private static async getActiveWorkflows(): Promise<AutomationWorkflow[]> {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return [];
-
-      // Get user's organization
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('organization_id')
-        .eq('id', user.id)
-        .maybeSingle();
-
-      const orgId = profile?.organization_id || user.id;
-
-      const { data, error } = await supabase
-        .from('automation_workflows')
-        .select('*')
-        .eq('status', 'active')
-        .eq('organization_id', orgId);
-
-      if (error) throw error;
-      return (data || []) as any[];
-    } catch (error) {
-      console.error('Error fetching active workflows:', error);
-      return [];
-    }
-  }
-
-  private static async checkAndExecuteWorkflow(
-    workflow: AutomationWorkflow, 
-    table: string, 
-    eventType: string, 
-    record: any
-  ) {
-    try {
-      const config = workflow.template_config || {};
-      const triggers = Array.isArray(config.triggers) ? config.triggers : [];
-      
-      for (const trigger of triggers) {
-        if (this.doesTriggerMatch(trigger, table, eventType, record)) {
-          await this.executeWorkflow(workflow.id!, {
-            trigger_type: trigger.type,
-            table,
-            event_type: eventType,
-            record,
-            workflow_id: workflow.id
-          });
-        }
-      }
-    } catch (error) {
-      console.error(`Error checking workflow ${workflow.id}:`, error);
-    }
-  }
-
-  private static doesTriggerMatch(trigger: any, table: string, eventType: string, record: any): boolean {
-    if (!trigger || !trigger.type) return false;
-
-    // Map database events to trigger types
-    const triggerMappings: Record<string, string[]> = {
-      'job_created': ['jobs.INSERT'],
-      'job_status_changed': ['jobs.UPDATE'],
-      'client_created': ['clients.INSERT'],
-      'estimate_sent': ['estimates.INSERT', 'estimates.UPDATE'],
-      'invoice_sent': ['invoices.INSERT', 'invoices.UPDATE'],
-      'sms_received': ['communication_logs.INSERT']
-    };
-
-    const expectedEvents = triggerMappings[trigger.type] || [];
-    const currentEvent = `${table}.${eventType}`;
-    
-    if (!expectedEvents.includes(currentEvent)) return false;
-
-    // Additional condition checking
-    if (trigger.conditions) {
-      return this.evaluateConditions(trigger.conditions, record);
-    }
-
-    return true;
-  }
-
-  private static evaluateConditions(conditions: any[], record: any): boolean {
-    if (!conditions || conditions.length === 0) return true;
-
-    return conditions.every(condition => {
-      const { field, operator, value } = condition;
-      const recordValue = record[field];
-
-      switch (operator) {
-        case 'equals': return recordValue === value;
-        case 'not_equals': return recordValue !== value;
-        case 'contains': return String(recordValue || '').includes(value);
-        case 'greater_than': return Number(recordValue) > Number(value);
-        case 'less_than': return Number(recordValue) < Number(value);
-        default: return false;
-      }
-    });
-  }
-
   static async executeWorkflow(workflowId: string, context?: any): Promise<WorkflowExecution> {
     const execution: WorkflowExecution = {
       id: crypto.randomUUID(),
@@ -330,27 +181,44 @@ export class AutomationService {
         throw new Error(`Workflow ${workflowId} not found`);
       }
 
-      // Execute workflow steps
-      const config = workflow.template_config || {};
-      const configObj = typeof config === 'object' && config !== null && !Array.isArray(config) ? config : {};
-      const actions = Array.isArray((configObj as any).actions) ? (configObj as any).actions : [];
+      // Get workflow steps
+      const steps = workflow.template_config?.steps || [];
+      const startIndex = context?.resume_from_step || 0;
 
-      for (let i = 0; i < actions.length; i++) {
-        const action = actions[i];
-        const stepResult = await this.executeAction(action, context, workflow);
+      // Execute workflow steps sequentially
+      for (let i = startIndex; i < steps.length; i++) {
+        const step = steps[i];
         
-        execution.steps_executed.push({
-          step_id: `step_${i}`,
-          status: stepResult.success ? 'completed' : 'failed',
-          started_at: new Date().toISOString(),
-          completed_at: new Date().toISOString(),
-          output_data: stepResult.result,
-          error_message: stepResult.error
-        });
+        // Skip trigger steps during execution
+        if (step.type === 'trigger') continue;
 
-        if (!stepResult.success) {
-          execution.status = 'failed';
-          break;
+        console.log(`Executing step ${i}: ${step.type} - ${step.name}`);
+
+        if (step.type === 'delay') {
+          // Handle delay steps
+          const delayResult = await this.handleDelayStep(step, workflow, execution, i);
+          if (!delayResult.shouldContinue) {
+            // Workflow will resume later
+            return execution;
+          }
+        } else {
+          // Execute action steps
+          const stepResult = await this.executeStep(step, context, workflow);
+          
+          execution.steps_executed.push({
+            step_id: step.id || `step_${i}`,
+            step_index: i,
+            status: stepResult.success ? 'completed' : 'failed',
+            started_at: new Date().toISOString(),
+            completed_at: new Date().toISOString(),
+            output_data: stepResult.result,
+            error_message: stepResult.error
+          });
+
+          if (!stepResult.success) {
+            execution.status = 'failed';
+            break;
+          }
         }
       }
 
@@ -386,80 +254,254 @@ export class AutomationService {
     }
   }
 
-  private static async executeAction(action: any, context: any, workflow: any): Promise<{success: boolean, result?: any, error?: string}> {
+  private static async handleDelayStep(
+    step: any, 
+    workflow: any, 
+    execution: WorkflowExecution,
+    stepIndex: number
+  ): Promise<{ shouldContinue: boolean }> {
+    const config = step.config || {};
+    const delayType = config.delayType || 'minutes';
+    const delayValue = config.delayValue || 1;
+
+    // Calculate delay in milliseconds
+    let delayMs = 0;
+    switch (delayType) {
+      case 'minutes':
+        delayMs = delayValue * 60 * 1000;
+        break;
+      case 'hours':
+        delayMs = delayValue * 60 * 60 * 1000;
+        break;
+      case 'days':
+        delayMs = delayValue * 24 * 60 * 60 * 1000;
+        break;
+      case 'weeks':
+        delayMs = delayValue * 7 * 24 * 60 * 60 * 1000;
+        break;
+    }
+
+    // For testing or short delays (< 1 minute), wait immediately
+    if (execution.trigger_data?.is_test || delayMs < 60000) {
+      const testDelay = Math.min(delayMs, 5000); // Max 5 seconds for testing
+      await new Promise(resolve => setTimeout(resolve, testDelay));
+      return { shouldContinue: true };
+    }
+
+    // For longer delays, schedule the workflow to resume
+    const resumeAt = new Date(Date.now() + delayMs);
+    
+    await supabase.from('scheduled_workflow_executions').insert({
+      workflow_id: workflow.id,
+      execution_id: execution.id,
+      resume_at: resumeAt.toISOString(),
+      resume_from_step: stepIndex + 1,
+      context: execution.trigger_data,
+      status: 'pending'
+    });
+
+    execution.steps_executed.push({
+      step_id: step.id || `step_${stepIndex}`,
+      step_index: stepIndex,
+      status: 'completed',
+      started_at: new Date().toISOString(),
+      completed_at: new Date().toISOString(),
+      output_data: {
+        delay_type: delayType,
+        delay_value: delayValue,
+        resume_at: resumeAt.toISOString()
+      }
+    });
+
+    execution.status = 'paused';
+    execution.paused_at = new Date().toISOString();
+    execution.resume_at = resumeAt.toISOString();
+    
+    await this.logExecution(execution);
+    
+    console.log(`Workflow paused. Will resume at ${resumeAt.toISOString()}`);
+    return { shouldContinue: false };
+  }
+
+  private static async executeStep(step: any, context: any, workflow: any): Promise<{success: boolean, result?: any, error?: string}> {
     try {
-      switch (action.type) {
-        case 'send_sms':
-          return await this.executeSMSAction(action.config, context);
-        case 'send_email':
-          return await this.executeEmailAction(action.config, context);
-        case 'create_job':
-          return await this.executeCreateJobAction(action.config, context);
-        case 'update_job_status':
-          return await this.executeUpdateJobAction(action.config, context);
-        case 'create_task':
-          return await this.executeCreateTaskAction(action.config, context);
-        case 'wait':
-          return await this.executeWaitAction(action.config);
+      switch (step.type) {
+        case 'action':
+          return await this.executeActionStep(step, context, workflow);
+        case 'condition':
+          return await this.executeConditionStep(step, context);
+        case 'branch':
+          return await this.executeBranchStep(step, context, workflow);
         default:
-          console.warn(`Unknown action type: ${action.type}`);
-          return { success: true, result: 'Action skipped - unknown type' };
+          console.warn(`Unknown step type: ${step.type}`);
+          return { success: true, result: 'Step skipped - unknown type' };
       }
     } catch (error) {
       return { success: false, error: String(error) };
     }
   }
 
+  private static async executeActionStep(step: any, context: any, workflow: any): Promise<{success: boolean, result?: any, error?: string}> {
+    const config = step.config || {};
+    const actionType = config.actionType;
+
+    // Process message templates with variables
+    const processTemplate = (template: string) => {
+      if (!template) return '';
+      
+      // Replace variables in the template
+      return template.replace(/\{\{([^}]+)\}\}/g, (match, variable) => {
+        const value = this.getVariableValue(variable.trim(), context);
+        return value !== undefined ? String(value) : match;
+      });
+    };
+
+    switch (actionType) {
+      case 'email':
+        return await this.executeEmailAction({
+          to: context.client?.email || context.record?.client_email,
+          subject: processTemplate(config.subject),
+          message: processTemplate(config.message),
+          ...config
+        }, context);
+      
+      case 'sms':
+        return await this.executeSMSAction({
+          to: context.client?.phone || context.record?.client_phone,
+          message: processTemplate(config.message),
+          ...config
+        }, context);
+      
+      case 'notification':
+        return await this.executeNotificationAction(config, context);
+      
+      case 'task':
+        return await this.executeCreateTaskAction(config, context);
+      
+      default:
+        return { success: false, error: `Unknown action type: ${actionType}` };
+    }
+  }
+
+  private static getVariableValue(variable: string, context: any): any {
+    const parts = variable.split('.');
+    let value = context;
+    
+    for (const part of parts) {
+      if (value && typeof value === 'object') {
+        value = value[part];
+      } else {
+        return undefined;
+      }
+    }
+    
+    // Format dates nicely
+    if (variable.includes('Date') && value) {
+      return new Date(value).toLocaleDateString();
+    }
+    if (variable.includes('Time') && value) {
+      return new Date(value).toLocaleTimeString();
+    }
+    
+    return value;
+  }
+
+  private static async executeConditionStep(step: any, context: any): Promise<{success: boolean, result?: any, error?: string}> {
+    const config = step.config || {};
+    const fieldValue = this.getVariableValue(config.field, context);
+    const result = this.evaluateCondition(config, fieldValue);
+    
+    return { 
+      success: true, 
+      result: { 
+        condition_met: result,
+        field: config.field,
+        operator: config.operator,
+        value: config.value,
+        actual_value: fieldValue
+      }
+    };
+  }
+
+  private static evaluateCondition(condition: any, fieldValue: any): boolean {
+    const { operator, value } = condition;
+    
+    switch (operator) {
+      case 'equals': return fieldValue === value;
+      case 'not_equals': return fieldValue !== value;
+      case 'contains': return String(fieldValue || '').includes(value);
+      case 'greater_than': return Number(fieldValue) > Number(value);
+      case 'less_than': return Number(fieldValue) < Number(value);
+      default: return false;
+    }
+  }
+
+  private static async executeBranchStep(step: any, context: any, workflow: any): Promise<{success: boolean, result?: any, error?: string}> {
+    // Branch logic would be implemented here
+    return { success: true, result: 'Branch executed' };
+  }
+
   private static async executeSMSAction(config: any, context: any): Promise<{success: boolean, result?: any, error?: string}> {
-    // SMS implementation would go here
     console.log('📱 Executing SMS action:', config);
+    
+    // In production, integrate with SMS provider (Twilio, etc.)
     await this.logCommunication('sms', config.to || 'unknown', config.message || '', context);
+    
+    // For now, just log to communication_logs
+    if (!context.is_test) {
+      const { error } = await supabase.from('communication_logs').insert({
+        type: 'sms',
+        communication_type: 'sms',
+        direction: 'outbound',
+        from_address: 'automation',
+        to_address: config.to,
+        content: config.message,
+        metadata: { 
+          automation_context: context,
+          workflow_id: context.workflow_id
+        },
+        status: 'sent'
+      });
+      
+      if (error) throw error;
+    }
+    
     return { success: true, result: 'SMS sent' };
   }
 
   private static async executeEmailAction(config: any, context: any): Promise<{success: boolean, result?: any, error?: string}> {
-    // Email implementation would go here
     console.log('📧 Executing Email action:', config);
+    
+    // In production, integrate with email provider
     await this.logCommunication('email', config.to || 'unknown', config.subject || '', context);
+    
+    // For now, just log to communication_logs
+    if (!context.is_test) {
+      const { error } = await supabase.from('communication_logs').insert({
+        type: 'email',
+        communication_type: 'email',
+        direction: 'outbound',
+        from_address: 'automation@fixlify.app',
+        to_address: config.to,
+        subject: config.subject,
+        content: config.message,
+        metadata: { 
+          automation_context: context,
+          workflow_id: context.workflow_id
+        },
+        status: 'sent'
+      });
+      
+      if (error) throw error;
+    }
+    
     return { success: true, result: 'Email sent' };
   }
 
-  private static async executeCreateJobAction(config: any, context: any): Promise<{success: boolean, result?: any, error?: string}> {
-    try {
-      const { error } = await supabase
-        .from('jobs')
-        .insert({
-          id: crypto.randomUUID(),
-          client_id: context.client_id,
-          job_type: config.job_type,
-          status: config.status || 'new',
-          technician_id: config.technician_id,
-          date: config.scheduled_date,
-          notes: config.notes || `Created by automation: ${context.workflow_id}`
-        });
-
-      if (error) throw error;
-      return { success: true, result: 'Job created' };
-    } catch (error) {
-      return { success: false, error: String(error) };
-    }
-  }
-
-  private static async executeUpdateJobAction(config: any, context: any): Promise<{success: boolean, result?: any, error?: string}> {
-    try {
-      const { error } = await supabase
-        .from('jobs')
-        .update({
-          status: config.new_status,
-          notes: config.notes
-        })
-        .eq('id', context.job_id || context.record?.id);
-
-      if (error) throw error;
-      return { success: true, result: 'Job updated' };
-    } catch (error) {
-      return { success: false, error: String(error) };
-    }
+  private static async executeNotificationAction(config: any, context: any): Promise<{success: boolean, result?: any, error?: string}> {
+    // In-app notification implementation
+    console.log('🔔 Executing Notification action:', config);
+    return { success: true, result: 'Notification sent' };
   }
 
   private static async executeCreateTaskAction(config: any, context: any): Promise<{success: boolean, result?: any, error?: string}> {
@@ -472,8 +514,8 @@ export class AutomationService {
         .insert({
           title: config.title,
           description: config.description,
-          assigned_to: config.assign_to,
-          due_date: config.due_date,
+          assigned_to: config.assignTo === 'creator' ? user.id : config.assignTo,
+          due_date: config.dueDate,
           priority: config.priority || 'medium',
           created_by: user.id,
           status: 'pending'
@@ -484,12 +526,6 @@ export class AutomationService {
     } catch (error) {
       return { success: false, error: String(error) };
     }
-  }
-
-  private static async executeWaitAction(config: any): Promise<{success: boolean, result?: any, error?: string}> {
-    const waitTime = config.duration || 1000;
-    await new Promise(resolve => setTimeout(resolve, waitTime));
-    return { success: true, result: `Waited ${waitTime}ms` };
   }
 
   private static async logCommunication(commType: string, recipient: string, content: string, context: any) {
@@ -518,11 +554,17 @@ export class AutomationService {
       await supabase
         .from('automation_execution_logs')
         .upsert({
+          id: execution.id,
           workflow_id: execution.workflow_id,
           status: execution.status,
           started_at: execution.started_at,
           completed_at: execution.completed_at,
-          details: execution.trigger_data,
+          paused_at: (execution as any).paused_at,
+          resume_at: (execution as any).resume_at,
+          details: {
+            trigger_data: execution.trigger_data,
+            steps_executed: execution.steps_executed
+          },
           created_at: execution.started_at,
           trigger_type: execution.trigger_type
         });
@@ -531,16 +573,57 @@ export class AutomationService {
     }
   }
 
-  private static startScheduledWorkflowChecker() {
-    // REMOVED: Client-side scheduled checking is now handled by server-side CRON
-    // The database CRON job calls the process-scheduled-automations edge function every minute
-    // which processes time-based triggers like:
-    // - scheduled_time
-    // - invoice_overdue
-    // - job_follow_up
-    // - maintenance_reminder
-    // - client_check_in
-    console.log('⏰ Scheduled workflows are now handled by server-side CRON jobs');
+  /**
+   * Resume paused workflows (called by scheduled job or edge function)
+   */
+  static async resumePausedWorkflows() {
+    try {
+      // Get workflows that are ready to resume
+      const { data: scheduled, error } = await supabase
+        .from('scheduled_workflow_executions')
+        .select('*')
+        .eq('status', 'pending')
+        .lte('resume_at', new Date().toISOString())
+        .limit(10);
+
+      if (error) throw error;
+
+      for (const schedule of scheduled || []) {
+        try {
+          // Mark as processing
+          await supabase
+            .from('scheduled_workflow_executions')
+            .update({ status: 'processing' })
+            .eq('id', schedule.id);
+
+          // Resume workflow execution
+          await this.executeWorkflow(schedule.workflow_id, {
+            ...schedule.context,
+            resume_from_step: schedule.resume_from_step,
+            execution_id: schedule.execution_id
+          });
+
+          // Mark as completed
+          await supabase
+            .from('scheduled_workflow_executions')
+            .update({ status: 'completed' })
+            .eq('id', schedule.id);
+        } catch (error) {
+          console.error(`Error resuming workflow ${schedule.workflow_id}:`, error);
+          
+          // Mark as failed
+          await supabase
+            .from('scheduled_workflow_executions')
+            .update({ 
+              status: 'failed',
+              error: String(error)
+            })
+            .eq('id', schedule.id);
+        }
+      }
+    } catch (error) {
+      console.error('Error resuming paused workflows:', error);
+    }
   }
 
   /**
@@ -567,12 +650,14 @@ export class AutomationService {
       const successful = data?.filter(log => log.status === 'completed').length || 0;
       const failed = data?.filter(log => log.status === 'failed').length || 0;
       const running = data?.filter(log => log.status === 'running').length || 0;
+      const paused = data?.filter(log => log.status === 'paused').length || 0;
 
       return {
         total_executions: total,
         successful_executions: successful,
         failed_executions: failed,
         running_executions: running,
+        paused_executions: paused,
         success_rate: total > 0 ? (successful / total) * 100 : 0,
         recent_executions: data || []
       };
@@ -583,6 +668,7 @@ export class AutomationService {
         successful_executions: 0,
         failed_executions: 0,
         running_executions: 0,
+        paused_executions: 0,
         success_rate: 0,
         recent_executions: []
       };

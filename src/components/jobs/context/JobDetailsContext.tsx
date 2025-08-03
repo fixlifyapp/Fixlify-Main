@@ -26,6 +26,7 @@ export const JobDetailsProvider = ({
   const [financialRefreshTrigger, setFinancialRefreshTrigger] = useState(0);
   const isMountedRef = useRef(true);
   const subscriptionRef = useRef<any>(null);
+  const clientSubscriptionRef = useRef<any>(null);
   
   useEffect(() => {
     isMountedRef.current = true;
@@ -66,13 +67,17 @@ export const JobDetailsProvider = ({
     
     // Clean up any existing subscription
     if (subscriptionRef.current) {
+      console.log(`Cleaning up existing subscription for job ${jobId}`);
       supabase.removeChannel(subscriptionRef.current);
+      subscriptionRef.current = null;
     }
     
     console.log(`Setting up real-time subscription for job ${jobId}`);
     
+    const channelName = `job-details-${jobId}-${Date.now()}`;
+    
     const channel = supabase
-      .channel(`job-details-${jobId}`)
+      .channel(channelName)
       .on(
         'postgres_changes',
         {
@@ -83,6 +88,11 @@ export const JobDetailsProvider = ({
         },
         (payload) => {
           console.log('Job update detected:', payload);
+          // Check if this is a status update
+          if (payload.new && payload.new.status !== currentStatus) {
+            console.log('Status changed via real-time:', payload.new.status);
+            setCurrentStatus(payload.new.status);
+          }
           // Only refresh if this wasn't an optimistic update we just made
           if (isMountedRef.current) {
             // Small delay to prevent race conditions with optimistic updates
@@ -94,13 +104,49 @@ export const JobDetailsProvider = ({
           }
         }
       )
+      .subscribe((status, err) => {
+        if (err) {
+          console.error(`Real-time subscription error for job ${jobId}:`, err);
+        } else {
+          console.log(`Real-time subscription status for job ${jobId}:`, status);
+        }
+      });
+    
+    subscriptionRef.current = channel;
+    
+    return () => {
+      console.log(`Cleaning up real-time subscription for job ${jobId}`);
+      if (subscriptionRef.current) {
+        supabase.removeChannel(subscriptionRef.current);
+        subscriptionRef.current = null;
+      }
+    };
+  }, [jobId]);
+  
+  // Separate subscription for client updates
+  useEffect(() => {
+    if (!job?.clientId) return;
+    
+    // Clean up any existing client subscription
+    if (clientSubscriptionRef.current) {
+      console.log(`Cleaning up existing client subscription`);
+      supabase.removeChannel(clientSubscriptionRef.current);
+      clientSubscriptionRef.current = null;
+    }
+    
+    console.log(`Setting up client subscription for client ${job.clientId}`);
+    
+    const clientChannelName = `job-client-${job.clientId}-${Date.now()}`;
+    
+    const clientChannel = supabase
+      .channel(clientChannelName)
       .on(
         'postgres_changes',
         {
           event: '*',
           schema: 'public',
           table: 'clients',
-          filter: job?.clientId ? `id=eq.${job.clientId}` : undefined
+          filter: `id=eq.${job.clientId}`
         },
         (payload) => {
           console.log('Client update detected:', payload);
@@ -109,25 +155,43 @@ export const JobDetailsProvider = ({
           }
         }
       )
-      .subscribe();
+      .subscribe((status, err) => {
+        if (err) {
+          console.error(`Client subscription error:`, err);
+        } else {
+          console.log(`Client subscription status:`, status);
+        }
+      });
     
-    subscriptionRef.current = channel;
+    clientSubscriptionRef.current = clientChannel;
     
     return () => {
-      console.log(`Cleaning up real-time subscription for job ${jobId}`);
-      supabase.removeChannel(channel);
+      console.log(`Cleaning up client subscription`);
+      if (clientSubscriptionRef.current) {
+        supabase.removeChannel(clientSubscriptionRef.current);
+        clientSubscriptionRef.current = null;
+      }
     };
-  }, [jobId, job?.clientId]);
+  }, [job?.clientId]);
   
   const updateJobStatus = async (newStatus: string) => {
-    // Optimistic update - update UI immediately without waiting
+    if (!job) {
+      console.error('No job data available for status update');
+      return;
+    }
+    
+    // Optimistic update - update UI immediately
     const previousStatus = currentStatus;
     setCurrentStatus(newStatus);
     
     try {
       await handleUpdateJobStatus(newStatus, previousStatus);
       console.log(`✅ Job status updated from ${previousStatus} to ${newStatus}`);
-      // Status already updated optimistically, no need to refresh
+      
+      // Force a refresh to ensure UI is in sync with database
+      setTimeout(() => {
+        refreshJob();
+      }, 500);
     } catch (error) {
       console.error(`❌ Failed to update status from ${previousStatus} to ${newStatus}:`, error);
       // Revert optimistic update on error

@@ -10,6 +10,10 @@ import { AppProviders } from "@/components/ui/AppProviders";
 import { suppressSMSErrors } from "@/utils/suppressSMSErrors";
 import authMonitor from "@/utils/auth-monitor.js?raw";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+// Import real-time debug utility
+import "@/utils/realtimeDebug";
+// Import real-time error handler
+import "@/utils/realtimeErrorHandler";
 
 // Pages
 import AuthPage from "@/pages/AuthPage";

@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from "react";
 import { toast } from "sonner";
 import { JobInfo } from "./types";
@@ -9,7 +8,7 @@ import { getCachedJobData, setCachedJobData, hasCachedJobData } from "./utils/jo
 export const useJobData = (jobId: string, refreshTrigger: number) => {
   const [job, setJob] = useState<JobInfo | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [currentStatus, setCurrentStatus] = useState<string>("scheduled");
+  const [currentStatus, setCurrentStatus] = useState<string>("");
   const [invoiceAmount, setInvoiceAmount] = useState(0);
   const [balance, setBalance] = useState(0);
   
@@ -21,6 +20,14 @@ export const useJobData = (jobId: string, refreshTrigger: number) => {
       isMountedRef.current = false;
     };
   }, []);
+
+  // Sync currentStatus with job status when job updates
+  useEffect(() => {
+    if (job && job.status) {
+      console.log('📊 Syncing currentStatus with job.status:', job.status);
+      setCurrentStatus(job.status);
+    }
+  }, [job]);
 
   useEffect(() => {
     if (!jobId) {
@@ -75,7 +82,10 @@ export const useJobData = (jobId: string, refreshTrigger: number) => {
     requestPromise
       .then((result) => {
         if (isMountedRef.current) {
-          console.log("✅ Setting job data in state");
+          console.log("✅ Setting job data in state", {
+            jobId: result.jobInfo.id,
+            status: result.status
+          });
           setJob(result.jobInfo);
           setCurrentStatus(result.status);
           setInvoiceAmount(result.invoiceAmount);

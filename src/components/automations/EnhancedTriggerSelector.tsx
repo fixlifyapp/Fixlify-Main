@@ -11,6 +11,8 @@ import {
   Mail, Phone, Package, Clock, Calendar, ArrowRight
 } from 'lucide-react';
 import { TRIGGER_DEFINITIONS, TriggerTypes } from '@/types/automationFramework';
+import { TriggerStatusChangeConfig } from './TriggerStatusChangeConfig';
+import { useJobTypes } from '@/hooks/useConfigItems';
 
 interface EnhancedTriggerSelectorProps {
   onTriggerSelect: (trigger: { type: keyof TriggerTypes; config: any; name: string }) => void;
