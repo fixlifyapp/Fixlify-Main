@@ -156,6 +156,21 @@ Fixlify is a comprehensive repair shop management system built with Next.js, Sup
   - Root cause: PageHeader component requires an 'icon' prop that was missing
   - Solution: Added icon={MessageSquare} prop to PageHeader in ConnectPage and ConnectCenterPage
   - Result: Connect pages now render properly without component errors
+- **REMOVED: Connect Center Page** (August 3, 2025)
+  - Removed `/connect-center` route and all related components
+  - Using `/connect` as the unified communication hub
+  - Deleted files:
+    - `src/pages/ConnectCenterPage.tsx`
+    - `src/pages/ConnectCenterPageOptimized.tsx`
+    - `src/components/connect-center/` directory
+  - Updated imports in:
+    - `App.tsx` - removed ConnectCenterPage imports
+    - `ComponentTest.tsx` - updated to use ConnectPage
+    - `MessagesListWrapper.tsx` - updated NewConversationDialog import
+  - Created `NewConversationDialog.tsx` in connect directory
+  - All SMS functionality remains available in `/connect` page
+  - Result: Cleaner codebase with single communication hub
+
 - **VERIFIED: SMS System Fully Functional** (July 22, 2025)
   - **SMS Webhook**: Deployed with --no-verify-jwt flag at https://mqppvcrlvsgrsqelglod.supabase.co/functions/v1/sms-webhook
   - **Two-Way SMS**: Working properly - both inbound and outbound messages

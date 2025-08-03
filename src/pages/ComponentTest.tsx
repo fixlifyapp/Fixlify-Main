@@ -4,7 +4,7 @@ import { AuthProvider } from "@/hooks/use-auth";
 import { AppProviders } from "@/components/ui/AppProviders";
 import ProfileCompanyPage from "@/pages/ProfileCompanyPage";
 import IntegrationsPage from "@/pages/IntegrationsPage";
-import ConnectCenterPageOptimized from "@/pages/ConnectCenterPageOptimized";
+import ConnectPage from "@/pages/ConnectPage";
 import { DebugErrorBoundary } from "@/components/DebugErrorBoundary";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "@/components/ui/sonner";
@@ -62,9 +62,9 @@ export default function ComponentTest() {
               )}
               
               {currentComponent === 'connect' && (
-                <DebugErrorBoundary componentName="ConnectCenterPageOptimized">
+                <DebugErrorBoundary componentName="ConnectPage">
                   <AppProviders>
-                    <ConnectCenterPageOptimized />
+                    <ConnectPage />
                   </AppProviders>
                 </DebugErrorBoundary>
               )}

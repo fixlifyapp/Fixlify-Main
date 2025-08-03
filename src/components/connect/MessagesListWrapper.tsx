@@ -11,7 +11,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { useSMS } from "@/contexts/SMSContext";
 import { ConversationThread } from "./components/ConversationThread";
 import { MessageInput } from "./components/MessageInput";
-import { NewConversationDialog } from "@/components/connect-center/NewConversationDialog";
+import { NewConversationDialog } from "@/components/connect/NewConversationDialog";
 
 export const MessagesListWrapper = () => {
   const { user } = useAuth();

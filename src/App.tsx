@@ -26,8 +26,6 @@ import ClientsPage from "@/pages/ClientsPage";
 import ClientDetailPage from "@/pages/ClientDetailPage";
 import SchedulePage from "@/pages/SchedulePage";
 import FinancePage from "@/pages/FinancePage";
-import ConnectCenterPageOptimized from "@/pages/ConnectCenterPageOptimized";
-import ConnectCenterPage from "@/pages/ConnectCenterPage";
 import ConnectPage from "@/pages/ConnectPage";
 import AiCenterPage from "@/pages/AiCenterPage";
 import AutomationsPage from "@/pages/AutomationsPage";
