@@ -307,6 +307,43 @@ export const SMSProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       )
       .subscribe();
 
+    // Subscribe to ALL messages for this user's conversations
+    // This ensures we catch new messages even if not viewing that conversation
+    const allMessagesChannel = supabase
+      .channel('all-sms-messages')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'sms_messages'
+        },
+        async (payload) => {
+          console.log('New SMS message detected:', payload);
+          
+          // Check if this message belongs to one of our conversations
+          const conversationId = payload.new.conversation_id;
+          const isOurConversation = conversations.some(c => c.id === conversationId);
+          
+          if (isOurConversation) {
+            // Refresh conversations to update unread counts
+            await fetchConversations();
+            
+            // If viewing this conversation, refresh messages
+            if (activeConversation?.id === conversationId) {
+              await fetchMessages(conversationId);
+            }
+            
+            // Show a toast notification for inbound messages
+            if (payload.new.direction === 'inbound') {
+              const conversation = conversations.find(c => c.id === conversationId);
+              toast.success(`New message from ${conversation?.client?.name || 'Unknown'}`);
+            }
+          }
+        }
+      )
+      .subscribe();
+
     return () => {
       try {
         if (conversationsChannel) {
@@ -317,6 +354,47 @@ export const SMSProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       }
     };
   }, [user?.id, fetchConversations]);
+
+  // Global message listener for real-time updates
+  useEffect(() => {
+    if (!user?.id) return;
+
+    const allMessagesChannel = supabase
+      .channel('all-sms-messages-global')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'sms_messages'
+        },
+        async (payload) => {
+          console.log('New SMS message detected globally:', payload);
+          
+          // Always refresh conversations to catch new messages
+          fetchConversations();
+          
+          // If viewing the conversation where message arrived, refresh messages
+          if (activeConversation?.id === payload.new.conversation_id) {
+            fetchMessages(payload.new.conversation_id);
+          }
+          
+          // Show notification for inbound messages
+          if (payload.new.direction === 'inbound') {
+            toast.success('New SMS message received!');
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      try {
+        supabase.removeChannel(allMessagesChannel);
+      } catch (error) {
+        console.warn('Error removing global messages channel:', error);
+      }
+    };
+  }, [user?.id, activeConversation?.id, fetchConversations, fetchMessages]);
 
   // Set up realtime subscription for messages when viewing a conversation
   useEffect(() => {
