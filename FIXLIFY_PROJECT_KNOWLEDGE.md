@@ -18,7 +18,42 @@ Fixlify is a comprehensive repair shop management system built with Next.js, Sup
 - **AI Integration**: OpenAI, Claude, Perplexity APIs
 - **Deployment**: Vercel/Supabase Cloud
 
+## Context Engineering Documents
+- **Send Estimate/Invoice System**: See `CONTEXT_SEND_ESTIMATE_INVOICE.md`
+- **Automation System Plan**: See `FIXLIFY_AUTOMATION_SYSTEM_PLAN.md`
+
 ## Recent Fixes & Updates
+
+### August 2025 Updates
+
+- **FIXED: Two-Way SMS System Complete** (August 3, 2025)
+  - Issue: Incoming SMS messages were not appearing in the app
+  - Root causes:
+    - Webhook was looking for text in wrong payload location (data.payload.text instead of data.text)
+    - Webhook intermittently failing before logging
+    - Real-time updates not working for sms_messages table
+  - Solution:
+    - Updated webhook to handle Telnyx payload structure correctly
+    - Added robust error handling and logging to webhook
+    - Enabled real-time for sms_messages table in Supabase
+    - Enhanced SMSContext with global message listener
+    - Added toast notifications for new messages
+  - Result: Full two-way SMS working with instant real-time updates
+
+- **REMOVED: Connect Center Page** (August 3, 2025)
+  - Removed `/connect-center` route and all related components
+  - Using `/connect` as the unified communication hub
+  - Deleted files:
+    - `src/pages/ConnectCenterPage.tsx`
+    - `src/pages/ConnectCenterPageOptimized.tsx`
+    - `src/components/connect-center/` directory
+  - Updated imports in:
+    - `App.tsx` - removed ConnectCenterPage imports
+    - `ComponentTest.tsx` - updated to use ConnectPage
+    - `MessagesListWrapper.tsx` - updated NewConversationDialog import
+  - Created `NewConversationDialog.tsx` in connect directory
+  - All SMS functionality remains available in `/connect` page
+  - Result: Cleaner codebase with single communication hub
 
 ### July 2025 Updates
 
