@@ -212,7 +212,7 @@ const JobsPageOptimized = () => {
       </AnimatedContainer>
       
       <AnimatedContainer animation="fade-in" delay={150}>
-        <JobsKPICards className="mb-6" />
+        <JobsKPICards className="mb-6" jobs={jobs} isLoading={isLoading} />
       </AnimatedContainer>
       
       <AnimatedContainer animation="fade-in" delay={200}>

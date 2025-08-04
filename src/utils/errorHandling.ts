@@ -112,16 +112,10 @@ export const handleJobsError = (error: any, context: string) => {
     const errorMessage = error?.message || 'Unknown error occurred';
     
     if (errorMessage.includes('network') || errorMessage.includes('fetch')) {
-      // Network connection error toast disabled - too annoying for users
-      console.warn('Network connection issue detected but toast disabled');
-      /*
-      toast.error('Network connection issue. Please check your internet connection.', {
-        action: {
-          label: 'Retry',
-          onClick: () => window.location.reload()
-        }
-      });
-      */
+      // Network connection error - log only in debug mode
+      if (process.env.NODE_ENV === 'development') {
+        console.debug('Network connection issue detected');
+      }
     } else if (errorMessage.includes('permission') || errorMessage.includes('unauthorized')) {
       toast.error('Access denied. Please check your permissions.', {
         action: {
@@ -151,16 +145,10 @@ export const handleJobsError = (error: any, context: string) => {
         }
       });
     } else if (errorMessage.includes('timeout') || errorMessage.includes('Request timeout')) {
-      // Timeout error toast disabled - too annoying for users
-      console.warn('Request timeout detected but toast disabled');
-      /*
-      toast.error('Request timed out. Please check your connection.', {
-        action: {
-          label: 'Retry',
-          onClick: () => window.location.reload()
-        }
-      });
-      */
+      // Timeout error - log only in debug mode
+      if (process.env.NODE_ENV === 'development') {
+        console.debug('Request timeout detected');
+      }
     } else {
       // Only show generic error for non-network issues
       toast.error(`Failed to load jobs. Please try again.`, {

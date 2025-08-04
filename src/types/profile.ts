@@ -1,11 +1,6 @@
+// DEPRECATED: This file is kept for backward compatibility
+// Please use imports from '@/types' or '@/types/core/profile' instead
 
-export interface Profile {
-  id?: string;
-  name?: string;
-  avatar_url?: string;
-  created_at?: string;
-  updated_at?: string;
-  role?: string;
-  business_niche?: string;
-  referral_source?: string;
-}
+// Re-export everything from the new location
+export * from './core/profile';
+

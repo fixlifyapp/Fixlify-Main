@@ -64,7 +64,7 @@ const generateAIMessage = async (
             { name: 'job.title', label: 'Service Type' },
             { name: 'job.completedDate', label: 'Completion Date' },
             { name: 'job.technician', label: 'Technician Name' },
-            { name: 'job.total', label: 'Service Total' }
+            { name: 'job.revenue', label: 'Service Total' }
           ];
         case 'invoice_sent':
         case 'payment_overdue':

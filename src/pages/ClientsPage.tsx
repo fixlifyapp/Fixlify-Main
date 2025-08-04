@@ -4,7 +4,7 @@ import { PageHeader } from "@/components/ui/page-header";
 import { ModernCard } from "@/components/ui/modern-card";
 import { AnimatedContainer } from "@/components/ui/animated-container";
 import { Button } from "@/components/ui/button";
-import { Grid, List, Plus, Users, Target, Heart, TrendingUp, Search, Filter, Activity, UserCheck } from "lucide-react";
+import { Grid, List, Plus, Users, Target, Heart, TrendingUp, Search, Filter, Activity, UserCheck, DollarSign } from "lucide-react";
 import { ClientsList } from "@/components/clients/ClientsList";
 import { ClientsFilters } from "@/components/clients/ClientsFilters";
 import { ClientsCreateModal } from "@/components/clients/ClientsCreateModal";
@@ -19,9 +19,11 @@ import {
   PaginationPrevious,
 } from "@/components/ui/pagination";
 import { useRealtimeSync } from "@/hooks/useRealtimeSync";
-import { useClients } from "@/hooks/useClients";
+import { useClientsOptimized } from "@/hooks/useClientsOptimized";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { formatCurrency } from "@/lib/utils";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const ClientsPage = () => {
   const [isGridView, setIsGridView] = useState(false);
@@ -34,6 +36,7 @@ const ClientsPage = () => {
   
   const { 
     clients, 
+    statistics,
     isLoading, 
     totalCount, 
     totalPages, 
@@ -42,10 +45,19 @@ const ClientsPage = () => {
     refreshClients,
     updateClient,
     deleteClient
-  } = useClients({ 
+  } = useClientsOptimized({ 
     page: currentPage, 
-    pageSize 
+    pageSize,
+    searchQuery,
+    enableRealtime: true
   });
+  
+  // Debug log
+  useEffect(() => {
+    console.log('ClientsPage - Statistics:', statistics);
+    console.log('ClientsPage - Clients:', clients);
+    console.log('ClientsPage - Loading:', isLoading);
+  }, [statistics, clients, isLoading]);
   
   useRealtimeSync({
     tables: ['clients'],
@@ -74,21 +86,6 @@ const ClientsPage = () => {
     setSelectedClients(prev => prev.filter(id => clients.some(client => client.id === id)));
   }, [clients]);
 
-  // Filter clients based on search query
-  const filteredClients = clients.filter(client => {
-    if (!searchQuery) return true;
-    
-    const searchLower = searchQuery.toLowerCase();
-    return (
-      client.name?.toLowerCase().includes(searchLower) ||
-      client.email?.toLowerCase().includes(searchLower) ||
-      client.phone?.toLowerCase().includes(searchLower) ||
-      client.company?.toLowerCase().includes(searchLower) ||
-      client.address?.toLowerCase().includes(searchLower) ||
-      client.city?.toLowerCase().includes(searchLower)
-    );
-  });
-
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
   };
@@ -106,7 +103,7 @@ const ClientsPage = () => {
   };
 
   const handleSelectAllClients = (select: boolean) => {
-    setSelectedClients(select ? filteredClients.map(client => client.id) : []);
+    setSelectedClients(select ? clients.map(client => client.id) : []);
   };
 
   // Bulk action handlers
@@ -133,7 +130,7 @@ const ClientsPage = () => {
   };
 
   const handleBulkExport = (clientIds: string[]) => {
-    const selectedClientData = filteredClients.filter(client => clientIds.includes(client.id));
+    const selectedClientData = clients.filter(client => clientIds.includes(client.id));
     const csvData = selectedClientData.map(client => ({
       'Name': client.name || '',
       'Email': client.email || '',
@@ -184,7 +181,7 @@ const ClientsPage = () => {
         />
       </AnimatedContainer>
         
-        {/* Client Stats Summary - Improved Alignment */}
+        {/* Client Stats Summary - Using Pre-calculated Statistics */}
         <AnimatedContainer animation="fade-in" delay={150}>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
             {/* Total Clients */}
@@ -198,7 +195,11 @@ const ClientsPage = () => {
                   <span className="text-xs font-semibold text-fixlyfy/80 bg-fixlyfy/10 px-2.5 py-1 rounded-full">Total</span>
                 </div>
                 <div className="space-y-1">
-                  <p className="text-3xl font-bold text-foreground tracking-tight">{totalCount || 0}</p>
+                  {isLoading ? (
+                    <Skeleton className="h-9 w-16" />
+                  ) : (
+                    <p className="text-3xl font-bold text-foreground tracking-tight">{statistics.total}</p>
+                  )}
                   <p className="text-sm text-muted-foreground">Total Clients</p>
                 </div>
               </div>
@@ -215,9 +216,11 @@ const ClientsPage = () => {
                   <span className="text-xs font-semibold text-green-600/80 bg-green-500/10 px-2.5 py-1 rounded-full">Active</span>
                 </div>
                 <div className="space-y-1">
-                  <p className="text-3xl font-bold text-foreground tracking-tight">
-                    {clients?.filter(c => c.status === 'active').length || 0}
-                  </p>
+                  {isLoading ? (
+                    <Skeleton className="h-9 w-16" />
+                  ) : (
+                    <p className="text-3xl font-bold text-foreground tracking-tight">{statistics.active}</p>
+                  )}
                   <p className="text-sm text-muted-foreground">Active Clients</p>
                 </div>
               </div>
@@ -234,32 +237,33 @@ const ClientsPage = () => {
                   <span className="text-xs font-semibold text-blue-600/80 bg-blue-500/10 px-2.5 py-1 rounded-full">New</span>
                 </div>
                 <div className="space-y-1">
-                  <p className="text-3xl font-bold text-foreground tracking-tight">
-                    {clients?.filter(c => {
-                      const createdDate = new Date(c.created_at);
-                      const now = new Date();
-                      return createdDate.getMonth() === now.getMonth() && 
-                             createdDate.getFullYear() === now.getFullYear();
-                    }).length || 0}
-                  </p>
+                  {isLoading ? (
+                    <Skeleton className="h-9 w-16" />
+                  ) : (
+                    <p className="text-3xl font-bold text-foreground tracking-tight">{statistics.newThisMonth}</p>
+                  )}
                   <p className="text-sm text-muted-foreground">New This Month</p>
                 </div>
               </div>
             </div>
             
-            {/* Total Revenue */}
+            {/* Client Value */}
             <div className="group relative overflow-hidden bg-gradient-to-br from-purple-500/5 to-purple-500/10 rounded-2xl p-5 border border-purple-500/20 hover:border-purple-500/40 hover:shadow-lg hover:shadow-purple-500/10 transition-all duration-300">
               <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
               <div className="relative z-10">
                 <div className="flex items-center justify-between mb-3">
                   <div className="p-2 bg-purple-500/10 rounded-lg group-hover:scale-110 transition-transform duration-300">
-                    <Activity className="h-5 w-5 text-purple-600" />
+                    <DollarSign className="h-5 w-5 text-purple-600" />
                   </div>
-                  <span className="text-xs font-semibold text-purple-600/80 bg-purple-500/10 px-2.5 py-1 rounded-full">Growth</span>
+                  <span className="text-xs font-semibold text-purple-600/80 bg-purple-500/10 px-2.5 py-1 rounded-full">Value</span>
                 </div>
                 <div className="space-y-1">
-                  <p className="text-3xl font-bold text-foreground tracking-tight">92%</p>
-                  <p className="text-sm text-muted-foreground">Client Retention</p>
+                  {isLoading ? (
+                    <Skeleton className="h-9 w-20" />
+                  ) : (
+                    <p className="text-2xl font-bold text-foreground tracking-tight">{formatCurrency(statistics.averageClientValue)}</p>
+                  )}
+                  <p className="text-sm text-muted-foreground">Avg Client Value</p>
                 </div>
               </div>
             </div>
@@ -339,7 +343,7 @@ const ClientsPage = () => {
         {/* Clients List */}
         <AnimatedContainer animation="fade-in" delay={450}>
           <ClientsList 
-            clients={filteredClients} 
+            clients={clients} 
             isGridView={isGridView}
             isLoading={isLoading}
             selectedClients={selectedClients}

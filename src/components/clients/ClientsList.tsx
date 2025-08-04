@@ -18,7 +18,7 @@ import {
   Plus
 } from "lucide-react";
 import { format } from "date-fns";
-import { Client } from "@/utils/test-data/types";
+import { Client } from "@/types/client";
 
 interface ClientsListProps {
   clients: Client[];

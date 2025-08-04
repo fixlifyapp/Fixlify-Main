@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useClients } from "@/hooks/useClients";
+import { useClientsOptimized } from "@/hooks/useClientsOptimized";
 import { useJobTypes, useLeadSources, useTags } from "@/hooks/useConfigItems";
 import { useJobCustomFields } from "@/hooks/useJobCustomFields";
 import { useClientProperties } from "@/hooks/useClientProperties";
@@ -52,7 +52,7 @@ export const useScheduleJobForm = ({ preselectedClientId }: UseScheduleJobFormPr
   const [newTask, setNewTask] = useState("");
   
   // Configuration hooks with dynamic data from database
-  const { clients, isLoading: clientsLoading } = useClients();
+  const { clients, isLoading: clientsLoading } = useClientsOptimized();
   const { items: jobTypes, isLoading: jobTypesLoading } = useJobTypes();
   const { items: leadSources, isLoading: leadSourcesLoading } = useLeadSources();
   const { items: tags, isLoading: tagsLoading } = useTags();

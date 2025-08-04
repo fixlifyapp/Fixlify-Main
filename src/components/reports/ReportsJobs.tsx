@@ -7,24 +7,23 @@ import { format } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2 } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { Job as JobType } from "@/types/job";
 
 interface ReportsJobsProps {
   period: string;
   isLoading?: boolean;
 }
 
-interface Job {
-  id: string;
+// Use a local type that extends the base Job type for report-specific fields
+interface ReportJob extends JobType {
   client: string;
   service: string;
   technician: string;
-  date: Date;
   duration: number;
-  revenue: number;
 }
 
 export const ReportsJobs = ({ period, isLoading: externalLoading }: ReportsJobsProps) => {
-  const [jobs, setJobs] = useState<Job[]>([]);
+  const [jobs, setJobs] = useState<ReportJob[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const isMobile = useIsMobile();

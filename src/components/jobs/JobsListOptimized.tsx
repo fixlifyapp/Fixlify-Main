@@ -18,7 +18,7 @@ import {
   Link
 } from "lucide-react";
 import { format } from "date-fns";
-import { Job } from "@/hooks/useJobs";
+import { Job } from "@/types/job";
 import { useTags } from "@/hooks/useConfigItems";
 import { getTagColor } from "@/data/tags";
 import { usePortalLink } from "@/hooks/usePortalLink";

@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom";
 import { useJobDetails } from "./context/JobDetailsContext";
 import { PageHeader } from "@/components/ui/page-header";
 import { JobInfoSection } from "./header/JobInfoSection";
-import { toast } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Wrench, Calendar, DollarSign, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -21,10 +20,10 @@ export const JobDetailsHeader = () => {
       });
       
       await updateJobStatus(newStatus);
-      toast.success('Job status updated successfully');
+      // Don't show toast here - JobInfoSection will handle it
     } catch (error) {
       console.error('JobDetailsHeader: Error updating job status:', error);
-      toast.error('Failed to update job status');
+      // Don't show error toast here - JobInfoSection will handle it
     }
   };
 
@@ -70,8 +69,9 @@ export const JobDetailsHeader = () => {
       variant: displayStatus === 'Completed' ? 'success' : displayStatus === 'New' ? 'info' : 'warning' as any
     });
   }
-  if (job.total) {
-    badges.push({ text: `$${job.total.toFixed(2)}`, icon: DollarSign, variant: 'fixlyfy' as any });
+  if (job.revenue || job.total) {
+    const amount = job.revenue || job.total || 0;
+    badges.push({ text: `$${amount.toFixed(2)}`, icon: DollarSign, variant: 'fixlyfy' as any });
   }
   if (job.schedule_start) {
     badges.push({ 

@@ -50,13 +50,15 @@ export const transformJobData = (jobData: any, paymentsData: any[] | null) => {
   const jobInfo: JobInfo = {
     id: jobData.id,
     clientId: client.id || jobData.client_id || "",
+    client_id: jobData.client_id,
     client: clientName,
     clients: client, // Include the full client object
     service: jobData.job_type || "General Service",
     address: formattedAddress || jobData.address || "",
     phone: client.phone || "",
     email: client.email || "",
-    total: jobData.revenue || 0,
+    total: jobData.revenue || 0, // Deprecated: use revenue
+    revenue: jobData.revenue || 0, // Primary field
     status: jobData.status || "scheduled",
     description: jobData.description || "",
     tags: jobData.tags || [],
@@ -66,7 +68,19 @@ export const transformJobData = (jobData: any, paymentsData: any[] | null) => {
     job_type: jobData.job_type,
     lead_source: jobData.lead_source,
     tasks: tasksArray,
-    title: jobData.title
+    title: jobData.title,
+    // Add missing fields from Job interface
+    created_by: jobData.created_by,
+    user_id: jobData.user_id,
+    date: jobData.date,
+    property_id: jobData.property_id,
+    notes: jobData.notes,
+    created_at: jobData.created_at,
+    updated_at: jobData.updated_at,
+    deleted_at: jobData.deleted_at,
+    created_by_automation: jobData.created_by_automation,
+    automation_triggered_at: jobData.automation_triggered_at,
+    organization_id: jobData.organization_id
   };
   
   // Calculate financial data
