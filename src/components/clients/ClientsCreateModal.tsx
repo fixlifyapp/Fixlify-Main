@@ -19,7 +19,8 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { useState } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { useClients, Client } from "@/hooks/useClients";
+import { useClientsOptimized } from "@/hooks/useClientsOptimized";
+import type { Client } from "@/types/core/client";
 import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { User, Phone, Mail, MapPin, Building2, FileText } from "lucide-react";
@@ -33,7 +34,7 @@ interface ClientsCreateModalProps {
 
 export const ClientsCreateModal = ({ open, onOpenChange, onSuccess }: ClientsCreateModalProps) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { addClient } = useClients();
+  const { addClient } = useClientsOptimized();
   
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

@@ -3,7 +3,6 @@ import React from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { CheckCircle, Mail, Info } from 'lucide-react';
-import { MailgunTestPanel } from '@/components/connect/MailgunTestPanel';
 import { useCompanySettings } from '@/hooks/useCompanySettings';
 import { generateFromEmail } from '@/utils/emailUtils';
 
@@ -86,7 +85,9 @@ export const EmailConfiguration = () => {
           <CardTitle>Test Email System</CardTitle>
         </CardHeader>
         <CardContent>
-          <MailgunTestPanel />
+          <p className="text-sm text-muted-foreground">
+            Email configuration is managed automatically. Your emails will be sent from the address shown above.
+          </p>
         </CardContent>
       </Card>
     </div>

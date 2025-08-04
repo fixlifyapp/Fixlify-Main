@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { usePermissions } from "@/hooks/usePermissions";
-import { Job } from "@/hooks/useJobs";
+import { Job } from "@/types/job";
 import { localStorageCache } from "@/utils/cacheConfig";
 import { withRetry, handleJobsError } from "@/utils/errorHandling";
 import { RefreshThrottler } from "@/utils/refreshThrottler";

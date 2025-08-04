@@ -14,12 +14,12 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 import "@/utils/realtimeDebug";
 // Import real-time error handler
 import "@/utils/realtimeErrorHandler";
+// Import automation processor to start engine
+import "@/services/automationProcessor";
 
 // Pages
 import AuthPage from "@/pages/AuthPage";
 import Dashboard from "@/pages/Dashboard";
-import TestDashboard from "@/pages/TestDashboard";
-import TestPage from "@/pages/TestPage";
 import JobsPageOptimized from "@/pages/JobsPageOptimized";
 import JobDetailsPage from "@/pages/JobDetailsPage";
 import ClientsPage from "@/pages/ClientsPage";
@@ -49,13 +49,10 @@ import AdminRolesPage from "@/pages/AdminRolesPage";
 import TeamMemberProfilePage from "@/pages/TeamMemberProfilePage";
 import AcceptInvitationPage from "@/pages/AcceptInvitationPage";
 import ClientPortal from "@/pages/ClientPortal";
-import TestPortalAccessPage from "@/pages/TestPortalAccessPage";
 import EstimatePortal from "@/pages/EstimatePortal";
 import UniversalPortal from "@/pages/UniversalPortal";
 
 import EdgeFunctionsPage from "@/pages/EdgeFunctionsPage";
-import SMSTestPage from "@/pages/SMSTestPage"
-import EmailTestPage from "@/pages/EmailTestPage";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -113,17 +110,6 @@ function App() {
             <Route path="/portal/:token" element={
               <UniversalPortal />
             } />
-            
-            {/* Test Portal Access */}
-            <Route path="/test-portal-access" element={
-              <AuthProvider>
-                <ProtectedRouteWithProviders>
-                  <TestPortalAccessPage />
-                </ProtectedRouteWithProviders>
-              </AuthProvider>
-            } />
-            
-
 
             {/* Edge Functions Management */}
             <Route path="/edge-functions" element={
@@ -134,37 +120,11 @@ function App() {
               </AuthProvider>
             } />
             
-            {/* SMS Test Page */}
-            <Route path="/sms-test" element={
-              <AuthProvider>
-                <ProtectedRouteWithProviders>
-                  <SMSTestPage />
-                </ProtectedRouteWithProviders>
-              </AuthProvider>
-            } />
-            
-            {/* Email Test Page */}
-            <Route path="/email-test" element={
-              <AuthProvider>
-                <ProtectedRouteWithProviders>
-                  <EmailTestPage />
-                </ProtectedRouteWithProviders>
-              </AuthProvider>
-            } />
             
             {/* Root redirect */}
             <Route path="/" element={
               <AuthProvider>
                 <Navigate to="/dashboard" replace />
-              </AuthProvider>
-            } />
-            
-            {/* Test Page */}
-            <Route path="/test" element={
-              <AuthProvider>
-                <ProtectedRouteWithProviders>
-                  <TestPage />
-                </ProtectedRouteWithProviders>
               </AuthProvider>
             } />
             

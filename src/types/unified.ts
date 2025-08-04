@@ -1,127 +1,78 @@
-// UNIFIED TYPE DEFINITIONS
-// This file contains the single source of truth for all shared types
+// DEPRECATED: This file provides backward compatibility
+// Please use imports from '@/types' or '@/types/core/*' instead
 
-// Universal LineItem interface that supports all use cases
-export interface UnifiedLineItem {
-  id: string;
-  name?: string;
-  description?: string;
-  quantity: number;
-  unit_price?: number;
-  unitPrice?: number;
-  price?: number;
-  ourPrice?: number;
-  taxable: boolean;
-  total: number;
-  discount?: number;
-}
+// Re-export from new core types
+export type {
+  Client as UnifiedClient,
+  ClientFormData,
+  ClientWithMetadata
+} from './core/client';
 
-// Universal Document interfaces
-export interface UnifiedEstimate {
-  id: string;
-  job_id: string;
-  client_id?: string;
-  estimate_number: string;
-  number?: string;
-  status: 'draft' | 'sent' | 'approved' | 'rejected' | 'expired' | 'converted';
-  items: UnifiedLineItem[];
-  subtotal: number;
-  tax_rate: number;
-  tax_amount: number;
-  total: number;
-  notes?: string;
-  terms?: string;
-  valid_until?: string;
-  created_at: string;
-  updated_at: string;
-  created_by: string;
-}
+export type {
+  Estimate as UnifiedEstimate,
+  EstimateItem as UnifiedLineItem,
+  CreateEstimateInput
+} from './core/estimate';
 
-export interface UnifiedInvoice {
-  id: string;
-  job_id: string;
-  client_id?: string;
-  invoice_number: string;
-  number?: string;
-  status: 'draft' | 'sent' | 'paid' | 'overdue' | 'cancelled';
-  payment_status?: string;
-  items: UnifiedLineItem[];
-  subtotal: number;
-  tax_rate: number;
-  tax_amount: number;
-  total: number;
-  amount_paid?: number;
-  balance_due?: number;
-  issue_date: string;
-  due_date: string;
-  notes?: string;
-  terms?: string;
-  created_at: string;
-  updated_at: string;
-  created_by: string;
-}
+export type {
+  Invoice as UnifiedInvoice,
+  InvoiceItem,
+  CreateInvoiceInput
+} from './core/invoice';
 
-// Universal Client interface
-export interface UnifiedClient {
-  id: string;
-  name: string;
-  email?: string;
-  phone?: string;
-  address?: string;
-  city?: string;
-  state?: string;
-  zip?: string;
-  country?: string;
-  company?: string;
-  notes?: string;
-  status?: string;
-  type?: string;
-  tags?: string[];
-  created_at?: string;
-  updated_at?: string;
-  created_by?: string;
-  user_id?: string;
-}
+export type {
+  Job,
+  JobWithRelations,
+  CreateJobInput,
+  UpdateJobInput
+} from './core/job';
 
-// Universal Message interfaces
+export { JobStatus } from './core/job';
+
+// Legacy type aliases for backward compatibility
+export type LineItem = import('./core/estimate').EstimateItem;
+export type Estimate = import('./core/estimate').Estimate;
+export type Invoice = import('./core/invoice').Invoice;
+export type Client = import('./core/client').Client;
+
+// Message types (TODO: Move to core)
 export interface UnifiedMessage {
   id: string;
-  conversation_id?: string;
-  direction: 'inbound' | 'outbound';
   content: string;
-  from_address?: string;
-  to_address?: string;
-  created_at: string;
-  status?: string;
+  timestamp: string;
+  sender: string;
+  direction: 'inbound' | 'outbound';
+  status?: 'sent' | 'delivered' | 'failed' | 'read';
+  type: 'sms' | 'email' | 'call';
   metadata?: any;
 }
 
 export interface UnifiedConversation {
   id: string;
   client_id: string;
-  client_name: string;
-  client_phone?: string;
-  client_email?: string;
+  last_message: string;
   last_message_at: string;
   unread_count: number;
   type: 'sms' | 'email' | 'call';
-  client?: UnifiedClient;
+  messages?: UnifiedMessage[];
 }
 
-// Universal Modal types
+// Modal types for UI
 export type UnifiedModalType = 
-  | 'createEstimate'
-  | 'editEstimate' 
-  | 'createInvoice'
-  | 'editInvoice'
-  | 'clientSelection'
-  | 'deleteConfirm';
+  | 'estimate' 
+  | 'invoice' 
+  | 'payment' 
+  | 'message' 
+  | 'email' 
+  | 'view-estimate' 
+  | 'view-invoice' 
+  | 'client' 
+  | 'job-details' 
+  | 'expense' 
+  | 'time-entry' 
+  | 'note' 
+  | 'job-message';
 
-// Re-export for backward compatibility
-export type LineItem = UnifiedLineItem;
-export type Estimate = UnifiedEstimate;
-export type Invoice = UnifiedInvoice;
-export type Client = UnifiedClient;
+export type ModalType = UnifiedModalType;
 export type Message = UnifiedMessage;
 export type MessageConversation = UnifiedConversation;
-export type ModalType = UnifiedModalType;

@@ -6,40 +6,7 @@ import { useJobTypes, useJobStatuses } from "@/hooks/useConfigItems";
 import { generateNextId } from "@/utils/idGeneration";
 import { usePermissions } from "@/hooks/usePermissions";
 import { withRetry, handleJobsError } from "@/utils/errorHandling";
-
-export interface Job {
-  id: string;
-  title?: string;
-  client_id?: string;
-  description?: string;
-  job_type?: string;
-  lead_source?: string;
-  status: string;
-  service?: string;
-  date?: string;
-  schedule_start?: string;
-  schedule_end?: string;
-  technician_id?: string;
-  revenue?: number;
-  notes?: string;
-  tags?: string[];
-  tasks?: string[];
-  property_id?: string;
-  address?: string;
-  created_at?: string;
-  updated_at?: string;
-  created_by?: string;
-  client?: {
-    id: string;
-    name: string;
-    email?: string;
-    phone?: string;
-    address?: string;
-    city?: string;
-    state?: string;
-    zip?: string;
-  };
-}
+import { Job, JobStatus, CreateJobInput, UpdateJobInput, validateJob } from "@/types/job";
 
 export const useJobs = (clientId?: string, enableCustomFields?: boolean) => {
   const [jobs, setJobs] = useState<Job[]>([]);
@@ -57,11 +24,9 @@ export const useJobs = (clientId?: string, enableCustomFields?: boolean) => {
   // Memoize fetchJobs to prevent infinite loops
   const fetchJobs = useCallback(async () => {
     if (!isAuthenticated || !user?.id) {
-      console.log('❌ Not authenticated or no user ID:', { isAuthenticated, userId: user?.id });
       setIsLoading(false);
       if (!isAuthenticated) {
         setHasError(true);
-        handleJobsError(new Error('User not authenticated'), 'useJobs - authentication check');
       }
       return;
     }
@@ -174,6 +139,9 @@ export const useJobs = (clientId?: string, enableCustomFields?: boolean) => {
         console.warn(`Job status "${jobData.status}" not found in configuration, using default`);
         const defaultStatus = jobStatuses.find(js => js.is_default) || jobStatuses[0];
         jobData.status = defaultStatus?.name || 'New';
+      } else {
+        // Use the correct casing from the configuration
+        jobData.status = validStatus.name;
       }
     }
 
@@ -310,10 +278,14 @@ export const useJobs = (clientId?: string, enableCustomFields?: boolean) => {
     }
 
     try {
+      console.log('🔄 Starting job update:', { jobId, updates });
+      
       const validatedUpdates = validateJobData({
         ...updates,
         updated_at: new Date().toISOString()
       });
+      
+      console.log('✅ Validated updates:', validatedUpdates);
 
       const { data, error } = await supabase
         .from('jobs')
@@ -322,12 +294,15 @@ export const useJobs = (clientId?: string, enableCustomFields?: boolean) => {
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Supabase update error:', error);
+        throw error;
+      }
 
-      console.log('Job updated successfully:', data);
+      console.log('✅ Job updated successfully:', data);
       return data;
     } catch (error) {
-      console.error('Error updating job:', error);
+      console.error('❌ Error updating job:', error);
       throw error;
     }
   };

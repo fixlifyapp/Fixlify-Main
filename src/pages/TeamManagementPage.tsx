@@ -15,7 +15,6 @@ import { TeamFilters } from "@/components/team/TeamFilters";
 import { TeamMember } from "@/types/team";
 import { TeamMemberProfile } from "@/types/team-member";
 import { toast } from "sonner";
-import { generateTestTeamMembers } from "@/utils/test-data";
 import { supabase } from "@/integrations/supabase/client";
 import { TeamInvitations } from "@/components/team/TeamInvitations";
 import { RolesPermissionsTab } from "@/components/settings/team-tabs/RolesPermissionsTab";

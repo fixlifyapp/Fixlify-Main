@@ -1,22 +1,17 @@
-
 import { ModernCard, ModernCardContent, ModernCardHeader, ModernCardTitle } from "@/components/ui/modern-card";
 import { Badge } from "@/components/ui/badge";
 import { TrendingUp, Calendar, DollarSign, Wrench } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
+import { useClientStatsOptimized } from "@/hooks/useClientStatsOptimized";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface ClientStatsCardProps {
   clientId: string;
-  stats: {
-    totalJobs: number;
-    totalRevenue: number;
-    lastServiceDate?: string;
-    averageJobValue: number;
-    jobsThisYear: number;
-    revenueThisYear: number;
-  };
 }
 
-export const ClientStatsCard = ({ clientId, stats }: ClientStatsCardProps) => {
+export const ClientStatsCard = ({ clientId }: ClientStatsCardProps) => {
+  const { stats, isLoading } = useClientStatsOptimized(clientId);
+  
   const formatDate = (dateString?: string) => {
     if (!dateString) return 'Never';
     return new Date(dateString).toLocaleDateString();
@@ -39,8 +34,14 @@ export const ClientStatsCard = ({ clientId, stats }: ClientStatsCardProps) => {
               <Wrench className="h-4 w-4 text-blue-600 mr-1" />
               <span className="text-sm font-medium text-blue-600">Total Jobs</span>
             </div>
-            <div className="text-2xl font-bold text-blue-900">{stats.totalJobs}</div>
-            <div className="text-xs text-blue-600">{stats.jobsThisYear} this year</div>
+            {isLoading ? (
+              <Skeleton className="h-8 w-16 mx-auto" />
+            ) : (
+              <>
+                <div className="text-2xl font-bold text-blue-900">{stats.totalJobs}</div>
+                <div className="text-xs text-blue-600">{stats.jobsThisYear} this year</div>
+              </>
+            )}
           </div>
 
           <div className="text-center p-3 bg-green-50 rounded-lg">
@@ -48,8 +49,14 @@ export const ClientStatsCard = ({ clientId, stats }: ClientStatsCardProps) => {
               <DollarSign className="h-4 w-4 text-green-600 mr-1" />
               <span className="text-sm font-medium text-green-600">Total Revenue</span>
             </div>
-            <div className="text-2xl font-bold text-green-900">{formatCurrency(stats.totalRevenue)}</div>
-            <div className="text-xs text-green-600">{formatCurrency(stats.revenueThisYear)} this year</div>
+            {isLoading ? (
+              <Skeleton className="h-8 w-20 mx-auto" />
+            ) : (
+              <>
+                <div className="text-2xl font-bold text-green-900">{formatCurrency(stats.totalRevenue)}</div>
+                <div className="text-xs text-green-600">{formatCurrency(stats.revenueThisYear)} this year</div>
+              </>
+            )}
           </div>
 
           <div className="text-center p-3 bg-orange-50 rounded-lg">
@@ -57,7 +64,11 @@ export const ClientStatsCard = ({ clientId, stats }: ClientStatsCardProps) => {
               <TrendingUp className="h-4 w-4 text-orange-600 mr-1" />
               <span className="text-sm font-medium text-orange-600">Avg Job Value</span>
             </div>
-            <div className="text-2xl font-bold text-orange-900">{formatCurrency(stats.averageJobValue)}</div>
+            {isLoading ? (
+              <Skeleton className="h-8 w-20 mx-auto" />
+            ) : (
+              <div className="text-2xl font-bold text-orange-900">{formatCurrency(stats.averageJobValue)}</div>
+            )}
           </div>
 
           <div className="text-center p-3 bg-purple-50 rounded-lg">
@@ -65,10 +76,14 @@ export const ClientStatsCard = ({ clientId, stats }: ClientStatsCardProps) => {
               <Calendar className="h-4 w-4 text-purple-600 mr-1" />
               <span className="text-sm font-medium text-purple-600">Last Service</span>
             </div>
-            <div className="text-sm font-bold text-purple-900">{formatDate(stats.lastServiceDate)}</div>
+            {isLoading ? (
+              <Skeleton className="h-6 w-24 mx-auto" />
+            ) : (
+              <div className="text-sm font-bold text-purple-900">{formatDate(stats.lastServiceDate)}</div>
+            )}
           </div>
         </div>
       </ModernCardContent>
     </ModernCard>
   );
-}
+};

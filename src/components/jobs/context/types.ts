@@ -1,24 +1,18 @@
-export interface JobInfo {
-  id: string;
-  clientId: string;
-  client: string;
-  clients?: any; // Full client object
-  service: string;
-  address: string;
-  phone: string;
-  email: string;
-  total: number;
-  status?: string;
-  description?: string;
-  tags?: string[];
-  technician_id?: string;
-  schedule_start?: string;
-  schedule_end?: string;
-  job_type?: string;
-  lead_source?: string;
-  tasks?: string[];
-  title?: string;
-}
+import type { Job, JobWithRelations } from '@/types/core/job';
+import type { Client } from '@/types/core/client';
+
+// Extended Job type with UI-specific fields and backward compatibility
+export type JobInfo = JobWithRelations & {
+  // Backward compatibility aliases
+  clientId?: string; // Alias for client_id
+  client?: string | Client; // Can be client name string or full Client object
+  clients?: Client; // Legacy: Full client object (use client instead)
+  service?: string;
+  address?: string;
+  phone?: string;
+  email?: string;
+  total?: number; // Deprecated: Use revenue instead
+};
 
 export interface JobDetailsContextType {
   job: JobInfo | null;

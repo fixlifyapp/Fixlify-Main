@@ -19,7 +19,6 @@ import { ClientContactActions } from "./ClientContactActions";
 // Import custom hooks
 import { useClientData } from "./client-form/hooks/useClientData";
 import { useInvoiceCreation } from "./client-form/hooks/useInvoiceCreation";
-import { useClientStats } from "@/hooks/useClientStats";
 import { ClientJobs } from "./ClientJobs";
 
 interface ClientFormProps {
@@ -53,8 +52,6 @@ export const ClientForm = ({ clientId, onCreateJob }: ClientFormProps) => {
     handleCreateInvoice,
     handleInvoiceSubmit
   } = useInvoiceCreation(clientId);
-
-  const { stats, isLoading: statsLoading } = useClientStats(clientId);
   
   if (isLoading) {
     return (
@@ -134,8 +131,8 @@ export const ClientForm = ({ clientId, onCreateJob }: ClientFormProps) => {
           {/* Details Tab */}
           <TabsContent value="details" className="space-y-4 sm:space-y-6">
             {/* Client Statistics */}
-            {!statsLoading && (
-              <ClientStatsCard clientId={clientId || ''} stats={stats} />
+            {clientId && (
+              <ClientStatsCard clientId={clientId} />
             )}
             
             <ClientDetailsTab 

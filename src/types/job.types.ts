@@ -1,27 +1,9 @@
+// Job-related types are now in @/types/job.ts
+// This file is kept for backward compatibility only
 
-// Job-related types
-export interface JobInfo {
-  id: string;
-  clientId: string;
-  client: string;
-  clients?: any;
-  service: string; // Make required to match context type
-  address: string;
-  phone: string;
-  email: string;
-  total: number;
-  status?: string;
-  description?: string;
-  tags?: string[];
-  technician_id?: string;
-  schedule_start?: string;
-  schedule_end?: string;
-  job_type?: string;
-  lead_source?: string;
-  tasks?: string[];
-  title?: string;
-}
+export { Job, JobStatus, CreateJobInput, UpdateJobInput } from '@/types/job';
 
+// Task type remains here as it's not part of the core Job type
 export interface Task {
   id: string;
   job_id: string;

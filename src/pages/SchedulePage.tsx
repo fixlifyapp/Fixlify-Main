@@ -8,7 +8,7 @@ import { Plus, Calendar, Loader2, Clock, Users, CheckCircle } from "lucide-react
 import { AIInsightsPanel } from "@/components/schedule/AIInsightsPanel";
 import { useSearchParams } from "react-router-dom";
 import { ScheduleJobModal } from "@/components/schedule/ScheduleJobModal";
-import { Job } from "@/hooks/useJobs";
+import { Job } from "@/types/job";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/use-auth";
 import { useJobs } from "@/hooks/useJobs";

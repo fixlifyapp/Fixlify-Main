@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { AutomationService } from '@/services/automationService';
+import { AutomationProcessor } from '@/services/automationProcessor';
 import { PlayCircle, PauseCircle, Activity, Clock, CheckCircle, XCircle } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -19,6 +20,9 @@ export const WorkflowExecutionMonitor: React.FC<WorkflowExecutionMonitorProps> =
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
+    // Check if engine is already running
+    setIsEngineRunning(AutomationProcessor.isRunning());
+    
     if (workflowId) {
       loadExecutionLogs();
     }
@@ -41,7 +45,7 @@ export const WorkflowExecutionMonitor: React.FC<WorkflowExecutionMonitorProps> =
 
   const handleStartEngine = async () => {
     try {
-      await AutomationService.startEngine();
+      await AutomationProcessor.startEngine();
       setIsEngineRunning(true);
       toast.success('Automation engine started');
     } catch (error) {
@@ -52,7 +56,7 @@ export const WorkflowExecutionMonitor: React.FC<WorkflowExecutionMonitorProps> =
 
   const handleStopEngine = async () => {
     try {
-      await AutomationService.stopEngine();
+      await AutomationProcessor.stopEngine();
       setIsEngineRunning(false);
       toast.success('Automation engine stopped');
     } catch (error) {

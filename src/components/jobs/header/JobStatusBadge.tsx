@@ -10,7 +10,6 @@ import {
   DropdownMenuTrigger 
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
-import { toast } from "sonner";
 import { useJobStatuses } from "@/hooks/useConfigItems";
 
 interface JobStatusBadgeProps {
@@ -96,8 +95,18 @@ export const JobStatusBadge = ({
   };
 
   const handleStatusChange = async (newStatus: string) => {
-    if (status === newStatus || isUpdating) {
-      console.log('JobStatusBadge: Skipping update - same status or already updating', { status, newStatus, isUpdating });
+    // Normalize status values for comparison
+    const normalizedCurrent = status.toLowerCase().replace(/[\s_-]/g, '');
+    const normalizedNew = newStatus.toLowerCase().replace(/[\s_-]/g, '');
+    
+    if (normalizedCurrent === normalizedNew || isUpdating) {
+      console.log('JobStatusBadge: Skipping update - same status or already updating', { 
+        status, 
+        newStatus, 
+        normalizedCurrent,
+        normalizedNew,
+        isUpdating 
+      });
       return;
     }
     
@@ -111,10 +120,10 @@ export const JobStatusBadge = ({
     try {
       // Call the onStatusChange callback immediately for optimistic update
       await onStatusChange(newStatus);
-      toast.success(`Status updated to ${getStatusLabel(newStatus)}`);
+      // Don't show toast here - useJobStatusUpdate will handle it
     } catch (error) {
       console.error("JobStatusBadge: Error updating job status:", error);
-      toast.error("Failed to update status. Please try again.");
+      // Don't show error toast here - useJobStatusUpdate will handle it
     } finally {
       setIsUpdating(false);
     }

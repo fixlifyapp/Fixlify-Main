@@ -80,6 +80,7 @@ export const useJobStatusUpdate = (jobId: string, refreshJob: () => void) => {
   const updateJobStatus = async (newStatus: string, oldStatus?: string) => {
     if (!jobId) {
       console.error('No jobId provided for status update');
+      toast.error('Cannot update status: Job ID is missing');
       return;
     }
     
@@ -97,10 +98,20 @@ export const useJobStatusUpdate = (jobId: string, refreshJob: () => void) => {
           
         if (fetchError) {
           console.error('Error fetching current status:', fetchError);
+          toast.error('Failed to fetch current job status');
           throw fetchError;
         }
         
         currentStatus = jobData?.status || 'unknown';
+      }
+      
+      // Normalize status for comparison
+      const normalizedCurrent = currentStatus.toLowerCase().replace(/[\s_-]/g, '');
+      const normalizedNew = newStatus.toLowerCase().replace(/[\s_-]/g, '');
+      
+      if (normalizedCurrent === normalizedNew) {
+        console.log('📊 Status unchanged, skipping update');
+        return;
       }
       
       console.log('📊 Current status:', currentStatus, '→ New status:', newStatus);

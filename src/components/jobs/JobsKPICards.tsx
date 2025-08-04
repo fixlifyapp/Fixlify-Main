@@ -1,17 +1,23 @@
 import { useMemo } from "react";
-import { useJobs } from "@/hooks/use-jobs";
 import { Briefcase, CheckCircle, Clock, TrendingUp } from "lucide-react";
+import { useJobs } from "@/hooks/use-jobs";
+import type { Job } from "@/types/job";
 
 interface JobsKPICardsProps {
   className?: string;
+  jobs?: Job[];
+  isLoading?: boolean;
 }
 
-export const JobsKPICards = ({ className }: JobsKPICardsProps) => {
-  const { data: jobs, isLoading: jobsLoading } = useJobs();
+export const JobsKPICards = ({ className, jobs: propJobs, isLoading: propLoading }: JobsKPICardsProps) => {
+  // Use useJobs only if jobs not provided as props
+  const hookData = propJobs === undefined ? useJobs() : null;
+  const jobs = propJobs || hookData?.jobs || [];
+  const isLoading = propLoading !== undefined ? propLoading : (hookData?.isLoading || false);
 
   // Calculate stats directly from jobs data using useMemo for performance
   const stats = useMemo(() => {
-    if (!jobs || jobs.length === 0 || jobsLoading) {
+    if (!jobs || jobs.length === 0 || isLoading) {
       return {
         totalJobs: 0,
         activeJobs: 0,
@@ -63,7 +69,7 @@ export const JobsKPICards = ({ className }: JobsKPICardsProps) => {
       completedThisMonth,
       completionRate
     };
-  }, [jobs, jobsLoading]);
+  }, [jobs, isLoading]);
 
   const kpiCards = [
     {
@@ -104,57 +110,27 @@ export const JobsKPICards = ({ className }: JobsKPICardsProps) => {
     }
   ];
 
-  if (jobsLoading) {
-    return (
-      <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 ${className}`}>
-        {[...Array(4)].map((_, index) => (
-          <div
-            key={index}
-            className="relative overflow-hidden rounded-xl border border-gray-200 bg-gray-50 p-6 animate-pulse"
-          >
-            <div className="space-y-3">
-              <div className="flex items-center gap-2">
-                <div className="h-5 w-5 bg-gray-200 rounded" />
-                <div className="h-4 w-16 bg-gray-200 rounded" />
-              </div>
-              <div className="h-8 w-20 bg-gray-200 rounded" />
-              <div className="h-4 w-24 bg-gray-200 rounded" />
-            </div>
-          </div>
-        ))}
-      </div>
-    );
-  }
-
   return (
-    <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 ${className}`}>
+    <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 ${className || ''}`}>
       {kpiCards.map((card, index) => {
         const Icon = card.icon;
         return (
           <div
             key={index}
-            className={`relative overflow-hidden rounded-xl border ${card.borderColor} ${card.bgColor} p-6 transition-all hover:shadow-md`}
+            className={`rounded-xl border ${card.borderColor} ${card.bgColor} p-6 transition-all duration-300 hover:shadow-lg hover:scale-105`}
           >
             <div className="flex items-start justify-between">
-              <div className="space-y-2">
-                <div className="flex items-center gap-2">
+              <div>
+                <div className="flex items-center gap-2 mb-2">
                   <Icon className={`h-5 w-5 ${card.iconColor}`} />
-                  <p className={`text-sm font-medium ${card.iconColor}`}>
-                    {card.title}
-                  </p>
+                  <p className="text-sm font-medium text-gray-600">{card.title}</p>
                 </div>
-                <p className="text-3xl font-bold text-gray-900">
-                  {card.value}
-                </p>
-                <p className="text-sm text-gray-600">
-                  {card.label}
-                </p>
+                <h3 className="text-2xl lg:text-3xl font-bold text-gray-900">
+                  {isLoading ? '-' : card.value}
+                </h3>
+                <p className="text-sm text-gray-500 mt-1">{card.label}</p>
               </div>
             </div>
-            {/* Decorative background element */}
-            <div 
-              className={`absolute -right-4 -top-4 h-24 w-24 rounded-full ${card.bgColor} opacity-50`}
-            />
           </div>
         );
       })}
