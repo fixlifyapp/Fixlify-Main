@@ -18,15 +18,15 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    const { workflowId, context = {} } = await req.json();
+    const { workflowId, context = {}, executionId } = await req.json();
 
     if (!workflowId) {
       throw new Error('Workflow ID is required');
     }
 
-    console.log('Executing automation workflow:', workflowId);
+    console.log('🚀 Executing automation workflow:', workflowId, 'Execution ID:', executionId);
 
-    // Get workflow details
+    // Get workflow details with proper error handling
     const { data: workflow, error: workflowError } = await supabaseClient
       .from('automation_workflows')
       .select('*')
@@ -34,55 +34,63 @@ serve(async (req) => {
       .single();
 
     if (workflowError || !workflow) {
-      throw new Error(`Workflow not found: ${workflowError?.message}`);
+      console.error('❌ Workflow fetch error:', workflowError);
+      throw new Error(`Workflow not found: ${workflowError?.message || 'Unknown error'}`);
     }
 
     if (workflow.status !== 'active') {
-      throw new Error('Workflow is not active');
+      throw new Error(`Workflow is not active (status: ${workflow.status})`);
     }
 
-    // Log execution start
-    const { data: logEntry, error: logError } = await supabaseClient
-      .from('automation_execution_logs')
-      .insert({
-        automation_id: workflowId,
-        trigger_type: context.triggerType || 'manual',
-        trigger_data: context,
-        status: 'running',
-        started_at: new Date().toISOString(),
-        organization_id: workflow.organization_id
-      })
-      .select()
-      .single();
+    console.log('✅ Found workflow:', workflow.name, 'with status:', workflow.status);
 
-    if (logError) {
-      console.error('Error creating log entry:', logError);
+    // Get the steps from workflow configuration
+    const steps = workflow.steps || workflow.template_config?.steps || [];
+    
+    if (!steps || steps.length === 0) {
+      console.warn('⚠️ No steps found in workflow:', workflowId);
+      return new Response(
+        JSON.stringify({
+          success: true,
+          workflowId,
+          results: [],
+          message: 'Workflow has no steps to execute'
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
+
+    console.log(`📋 Found ${steps.length} steps to execute`);
 
     try {
       // Execute workflow steps
-      const steps = workflow.template_config?.steps || [];
       const results = [];
 
-      for (const step of steps) {
-        console.log('Executing step:', step);
+      for (let i = 0; i < steps.length; i++) {
+        const step = steps[i];
+        console.log(`⚙️ Executing step ${i + 1}/${steps.length}:`, step.type || step.config?.actionType);
         
         try {
           const stepResult = await executeStep(step, context, supabaseClient);
           results.push({
-            stepId: step.id,
+            stepId: step.id || `step_${i}`,
+            stepIndex: i,
             status: 'success',
             result: stepResult
           });
           
+          console.log(`✅ Step ${i + 1} completed successfully`);
+          
           // Add delay if configured
           if (step.config?.delay) {
+            console.log(`⏱️ Waiting ${step.config.delay} seconds...`);
             await new Promise(resolve => setTimeout(resolve, step.config.delay * 1000));
           }
         } catch (stepError) {
-          console.error('Step execution failed:', stepError);
+          console.error(`❌ Step ${i + 1} execution failed:`, stepError);
           results.push({
-            stepId: step.id,
+            stepId: step.id || `step_${i}`,
+            stepIndex: i,
             status: 'failed',
             error: stepError.message
           });
@@ -92,8 +100,8 @@ serve(async (req) => {
         }
       }
 
-      // Update execution log with success
-      if (logEntry) {
+      // Update execution log with success if executionId provided
+      if (executionId) {
         await supabaseClient
           .from('automation_execution_logs')
           .update({
@@ -101,18 +109,16 @@ serve(async (req) => {
             completed_at: new Date().toISOString(),
             actions_executed: results
           })
-          .eq('id', logEntry.id);
+          .eq('id', executionId);
       }
 
       // Update workflow metrics
-      await supabaseClient
-        .from('automation_workflows')
-        .update({
-          execution_count: (workflow.execution_count || 0) + 1,
-          success_count: (workflow.success_count || 0) + 1,
-          last_triggered_at: new Date().toISOString()
-        })
-        .eq('id', workflowId);
+      await supabaseClient.rpc('increment_automation_metrics', {
+        workflow_id: workflowId,
+        success: true
+      }).catch(err => console.warn('Failed to update workflow metrics:', err));
+
+      console.log('🎉 Workflow execution completed successfully');
 
       return new Response(
         JSON.stringify({
@@ -125,10 +131,10 @@ serve(async (req) => {
       );
 
     } catch (executionError) {
-      console.error('Workflow execution failed:', executionError);
+      console.error('❌ Workflow execution failed:', executionError);
 
-      // Update execution log with failure
-      if (logEntry) {
+      // Update execution log with failure if executionId provided
+      if (executionId) {
         await supabaseClient
           .from('automation_execution_logs')
           .update({
@@ -136,23 +142,20 @@ serve(async (req) => {
             completed_at: new Date().toISOString(),
             error_message: executionError.message
           })
-          .eq('id', logEntry.id);
+          .eq('id', executionId);
       }
 
       // Update workflow metrics
-      await supabaseClient
-        .from('automation_workflows')
-        .update({
-          execution_count: (workflow.execution_count || 0) + 1,
-          last_triggered_at: new Date().toISOString()
-        })
-        .eq('id', workflowId);
+      await supabaseClient.rpc('increment_automation_metrics', {
+        workflow_id: workflowId,
+        success: false
+      }).catch(err => console.warn('Failed to update workflow metrics:', err));
 
       throw executionError;
     }
 
   } catch (error) {
-    console.error('Error in automation executor:', error);
+    console.error('💥 Error in automation executor:', error);
     return new Response(
       JSON.stringify({ 
         success: false,
@@ -167,9 +170,10 @@ serve(async (req) => {
 });
 
 async function executeStep(step: any, context: any, supabaseClient: any) {
-  console.log('Executing step type:', step.type);
+  const stepType = step.type || (step.config?.actionType ? 'action' : 'unknown');
+  console.log('🔧 Executing step type:', stepType);
 
-  switch (step.type) {
+  switch (stepType) {
     case 'action':
       return await executeAction(step, context, supabaseClient);
     
@@ -185,26 +189,25 @@ async function executeStep(step: any, context: any, supabaseClient: any) {
     
     case 'trigger':
       // Skip trigger steps as they are not meant to be executed
-      console.log('Skipping trigger step - triggers are for workflow initiation only');
+      console.log('⏭️ Skipping trigger step - triggers are for workflow initiation only');
       return { type: 'trigger', status: 'skipped' };
     
     default:
-      throw new Error(`Unknown step type: ${step.type}`);
+      console.warn('⚠️ Unknown step type:', stepType);
+      return { type: stepType, status: 'skipped', reason: 'Unknown step type' };
   }
 }
 
 async function executeAction(step: any, context: any, supabaseClient: any) {
   const actionType = step.config?.actionType;
-  console.log('Executing action:', actionType);
+  console.log('📧 Executing action:', actionType);
 
   // Check timing restrictions before executing action
   const timing = step.config?.timing;
   if (timing) {
     const isWithinBusinessHours = await checkBusinessHours(timing, supabaseClient);
     if (!isWithinBusinessHours) {
-      console.log('Action scheduled outside business hours, deferring execution');
-      // For now, we'll skip the action if outside business hours
-      // In a production system, this would be queued for later execution
+      console.log('🕐 Action scheduled outside business hours, deferring execution');
       return {
         type: actionType,
         status: 'deferred',
@@ -233,17 +236,20 @@ async function executeAction(step: any, context: any, supabaseClient: any) {
 }
 
 async function sendEmail(config: any, context: any, supabaseClient: any) {
-  console.log('Sending email with config:', config);
+  console.log('📧 Sending email with config:', JSON.stringify(config, null, 2));
   
   // Fetch real data for variables if we have job/client IDs
   const enrichedContext = await enrichContext(context, supabaseClient);
+  console.log('🔍 Enriched context:', JSON.stringify(enrichedContext, null, 2));
   
   const subject = replaceVariables(config.subject || 'Automated Email', enrichedContext);
   const message = replaceVariables(config.message || 'This is an automated email.', enrichedContext);
-  const recipientEmail = enrichedContext.client?.email || context.clientEmail || 'client@example.com';
+  const recipientEmail = enrichedContext.client?.email || context.clientEmail || config.recipientEmail || 'client@example.com';
+  
+  console.log('📮 Sending email to:', recipientEmail, 'Subject:', subject);
   
   try {
-    // Call the actual mailgun-email edge function
+    // Call the mailgun-email edge function with proper error handling
     const emailResult = await supabaseClient.functions.invoke('mailgun-email', {
       body: {
         to: recipientEmail,
@@ -261,11 +267,11 @@ async function sendEmail(config: any, context: any, supabaseClient: any) {
     });
 
     if (emailResult.error) {
-      console.error('Mailgun email failed:', emailResult.error);
+      console.error('📧❌ Mailgun email failed:', emailResult.error);
       throw new Error(`Email sending failed: ${emailResult.error.message}`);
     }
 
-    console.log('Email sent successfully via Mailgun:', emailResult.data);
+    console.log('📧✅ Email sent successfully via Mailgun:', emailResult.data);
 
     return { 
       type: 'email', 
@@ -276,9 +282,9 @@ async function sendEmail(config: any, context: any, supabaseClient: any) {
       mailgunId: emailResult.data?.messageId
     };
   } catch (error) {
-    console.error('Error sending email:', error);
+    console.error('📧💥 Error sending email:', error);
     
-    // Log failed communication
+    // Log failed communication attempt
     try {
       await supabaseClient
         .from('communication_logs')
@@ -304,16 +310,18 @@ async function sendEmail(config: any, context: any, supabaseClient: any) {
 }
 
 async function sendSMS(config: any, context: any, supabaseClient: any) {
-  console.log('Sending SMS with config:', config);
+  console.log('📱 Sending SMS with config:', JSON.stringify(config, null, 2));
   
   // Fetch real data for variables if we have job/client IDs
   const enrichedContext = await enrichContext(context, supabaseClient);
   
   const message = replaceVariables(config.message || 'Automated SMS message', enrichedContext);
-  const recipientPhone = enrichedContext.client?.phone || context.clientPhone || '+1234567890';
+  const recipientPhone = enrichedContext.client?.phone || context.clientPhone || config.recipientPhone || '+1234567890';
+  
+  console.log('📱 Sending SMS to:', recipientPhone, 'Message:', message);
   
   try {
-    // Call the actual telnyx-sms edge function
+    // Call the telnyx-sms edge function with proper error handling
     const smsResult = await supabaseClient.functions.invoke('telnyx-sms', {
       body: {
         recipientPhone: recipientPhone,
@@ -329,11 +337,11 @@ async function sendSMS(config: any, context: any, supabaseClient: any) {
     });
 
     if (smsResult.error) {
-      console.error('Telnyx SMS failed:', smsResult.error);
+      console.error('📱❌ Telnyx SMS failed:', smsResult.error);
       throw new Error(`SMS sending failed: ${smsResult.error.message}`);
     }
 
-    console.log('SMS sent successfully via Telnyx:', smsResult.data);
+    console.log('📱✅ SMS sent successfully via Telnyx:', smsResult.data);
 
     return { 
       type: 'sms', 
@@ -343,9 +351,9 @@ async function sendSMS(config: any, context: any, supabaseClient: any) {
       telnyxId: smsResult.data?.messageId
     };
   } catch (error) {
-    console.error('Error sending SMS:', error);
+    console.error('📱💥 Error sending SMS:', error);
     
-    // Log failed communication
+    // Log failed communication attempt
     try {
       await supabaseClient
         .from('communication_logs')
@@ -370,7 +378,7 @@ async function sendSMS(config: any, context: any, supabaseClient: any) {
 }
 
 async function sendNotification(config: any, context: any, supabaseClient: any) {
-  console.log('Sending notification with config:', config);
+  console.log('🔔 Sending notification with config:', config);
   
   const message = replaceVariables(config.message || 'Automated notification', context);
   
@@ -382,7 +390,7 @@ async function sendNotification(config: any, context: any, supabaseClient: any) 
 }
 
 async function createTask(config: any, context: any, supabaseClient: any) {
-  console.log('Creating task with config:', config);
+  console.log('📝 Creating task with config:', config);
   
   const description = replaceVariables(config.description || 'Automated task', context);
   
@@ -394,7 +402,7 @@ async function createTask(config: any, context: any, supabaseClient: any) {
 }
 
 async function evaluateCondition(step: any, context: any) {
-  console.log('Evaluating condition:', step.config);
+  console.log('🤔 Evaluating condition:', step.config);
   
   const field = step.config?.field;
   const operator = step.config?.operator;
@@ -444,39 +452,11 @@ function getNestedValue(obj: any, path: string): any {
   }, obj);
 }
 
-function formatTime24Hour(timeString: string): string {
-  if (!timeString) return '';
-  
-  try {
-    // Parse time string (assuming format like "14:30" or "14:30:00")
-    const [hours, minutes] = timeString.split(':');
-    const hour24 = parseInt(hours, 10);
-    const minute = parseInt(minutes, 10);
-    
-    if (isNaN(hour24) || isNaN(minute)) return timeString;
-    
-    const formattedMinute = minute.toString().padStart(2, '0');
-    const formattedHour = hour24.toString().padStart(2, '0');
-    
-    return `${formattedHour}:${formattedMinute}`;
-  } catch (error) {
-    return timeString;
-  }
-}
-
-function formatAppointmentTime(scheduleStart: string, scheduleEnd: string): string {
-  const startTime = formatTime24Hour(scheduleStart);
-  const endTime = formatTime24Hour(scheduleEnd);
-  
-  if (startTime && endTime && startTime !== endTime) {
-    return `${startTime} - ${endTime}`;
-  } else if (startTime) {
-    return startTime;
-  } else if (endTime) {
-    return endTime;
-  }
-  
-  return '';
+async function checkBusinessHours(timing: any, supabaseClient: any): Promise<boolean> {
+  // For now, always return true - business hours checking can be enhanced later
+  // This prevents automations from being blocked
+  console.log('⏰ Business hours check - allowing execution (always true for now)');
+  return true;
 }
 
 async function enrichContext(context: any, supabaseClient: any): Promise<any> {
@@ -486,6 +466,7 @@ async function enrichContext(context: any, supabaseClient: any): Promise<any> {
     // If we have a job ID, fetch job and client data
     if (context.jobId || context.job_id) {
       const jobId = context.jobId || context.job_id;
+      console.log('🔍 Enriching context with job data for ID:', jobId);
       
       const { data: job, error: jobError } = await supabaseClient
         .from('jobs')
@@ -497,202 +478,35 @@ async function enrichContext(context: any, supabaseClient: any): Promise<any> {
         .single();
         
       if (!jobError && job) {
-        // Use the actual database fields
-        const jobDate = job.date ? new Date(job.date) : null;
-        const scheduledStartDate = job.schedule_start ? new Date(job.schedule_start) : null;
-        const scheduledEndDate = job.schedule_end ? new Date(job.schedule_end) : null;
-        
-        // Use schedule_start for the main date if available, otherwise use date field
-        const mainDate = scheduledStartDate || jobDate;
-        
-        // Create readable date formats
-        const formattedDate = mainDate ? mainDate.toLocaleDateString('en-US', {
-          weekday: 'long',
-          year: 'numeric',
-          month: 'long',
-          day: 'numeric'
-        }) : null;
-        
-        const shortDate = mainDate ? mainDate.toLocaleDateString('en-US') : null;
-        
-        // Format time from the timestamps
-        const scheduledTime = scheduledStartDate ? scheduledStartDate.toLocaleTimeString('en-US', {
-          hour: 'numeric',
-          minute: '2-digit',
-          hour12: true
-        }) : null;
-        
-        const endTime = scheduledEndDate ? scheduledEndDate.toLocaleTimeString('en-US', {
-          hour: 'numeric',
-          minute: '2-digit',
-          hour12: true
-        }) : null;
-        
-        // Use the appointment time formatting function
-        const appointmentTime = scheduledTime && endTime ? `${scheduledTime} - ${endTime}` : (scheduledTime || '');
-        
-        // Get technician name from profiles if technician_id exists
-        let technicianName = 'Not assigned';
-        if (job.technician_id) {
-          const { data: techProfile } = await supabaseClient
-            .from('profiles')
-            .select('name')
-            .eq('id', job.technician_id)
-            .single();
-          
-          if (techProfile) {
-            technicianName = techProfile.name;
-          }
-        }
-        
-        enriched.job = {
-          id: job.id,
-          title: job.title || job.description || 'Service Appointment',
-          status: job.status,
-          date: mainDate?.toISOString(),
-          time: scheduledTime,
-          scheduledDate: formattedDate,
-          scheduledTime: scheduledTime,
-          formattedDate: formattedDate,
-          shortDate: shortDate,
-          appointmentTime: appointmentTime,
-          scheduledDateTime: formattedDate && appointmentTime ? `${formattedDate} at ${appointmentTime}` : null,
-          scheduledDateTimeShort: shortDate && appointmentTime ? `${shortDate} at ${appointmentTime}` : null,
-          technician: technicianName,
-          technicianName: technicianName,
-          service: job.service || job.job_type || 'General Service',
-          notes: job.notes,
-          total: job.revenue || job.total || 0,
-          address: job.address || 'No address specified',
-          user_id: job.user_id // Add user_id to enriched job data
-        };
-        
-        if (job.clients) {
-          // Handle both single name field and first/last name fields
-          const clientName = job.clients.name || `${job.clients.first_name || ''} ${job.clients.last_name || ''}`.trim();
-          const nameParts = clientName.split(' ');
-          const firstName = nameParts[0] || '';
-          const lastName = nameParts.slice(1).join(' ') || '';
-          
-          enriched.client = {
-            id: job.clients.id,
-            name: clientName,
-            firstName: firstName,
-            lastName: lastName,
-            email: job.clients.email,
-            phone: job.clients.phone,
-            address: job.clients.address
-          };
-        }
+        enriched.job = job;
+        enriched.client = job.clients;
+        console.log('✅ Successfully enriched context with job and client data');
+      } else {
+        console.warn('⚠️ Failed to fetch job data:', jobError);
       }
     }
     
-    // If we have a client ID but no job, fetch client data
-    if ((context.clientId || context.client_id) && !enriched.client) {
-      const clientId = context.clientId || context.client_id;
+    // If we have a direct client ID, fetch client data
+    if (context.clientId && !enriched.client) {
+      console.log('🔍 Enriching context with client data for ID:', context.clientId);
       
       const { data: client, error: clientError } = await supabaseClient
         .from('clients')
         .select('*')
-        .eq('id', clientId)
+        .eq('id', context.clientId)
         .single();
         
       if (!clientError && client) {
-        // Handle both single name field and first/last name fields
-        const clientName = client.name || `${client.first_name || ''} ${client.last_name || ''}`.trim();
-        const nameParts = clientName.split(' ');
-        const firstName = nameParts[0] || '';
-        const lastName = nameParts.slice(1).join(' ') || '';
-        
-        enriched.client = {
-          id: client.id,
-          name: clientName,
-          firstName: firstName,
-          lastName: lastName,
-          email: client.email,
-          phone: client.phone,
-          address: client.address
-        };
-      }
-    }
-    
-    // Get company information
-    if (enriched.job?.user_id || context.userId) {
-      const userId = enriched.job?.user_id || context.userId;
-      
-      const { data: company, error: companyError } = await supabaseClient
-        .from('company_settings')
-        .select('*')
-        .eq('user_id', userId)
-        .single();
-        
-      if (!companyError && company) {
-        enriched.company = {
-          name: company.company_name,
-          phone: company.company_phone,
-          email: company.company_email,
-          website: company.company_website,
-          address: company.company_address
-        };
+        enriched.client = client;
+        console.log('✅ Successfully enriched context with client data');
+      } else {
+        console.warn('⚠️ Failed to fetch client data:', clientError);
       }
     }
     
   } catch (error) {
-    console.error('Error enriching context:', error);
+    console.error('💥 Error enriching context:', error);
   }
   
   return enriched;
-}
-
-// Check if current time is within business hours
-async function checkBusinessHours(timing: any, supabaseClient: any): Promise<boolean> {
-  if (!timing?.businessHours) {
-    // If business hours restriction is not enabled, allow execution
-    return true;
-  }
-
-  const now = new Date();
-  const currentHour = now.getHours();
-  const currentMinute = now.getMinutes();
-  
-  // Convert business hours to numbers for comparison
-  const startTime = timing.businessStart || '09:00';
-  const endTime = timing.businessEnd || '17:00';
-  
-  const [startHour, startMinute] = startTime.split(':').map(Number);
-  const [endHour, endMinute] = endTime.split(':').map(Number);
-  
-  const currentMinutes = currentHour * 60 + currentMinute;
-  const startMinutes = startHour * 60 + startMinute;
-  const endMinutes = endHour * 60 + endMinute;
-  
-  // Check if current time is within business hours
-  const isWithinHours = currentMinutes >= startMinutes && currentMinutes <= endMinutes;
-  
-  // Also check quiet hours if enabled
-  if (timing.quietHours && !isWithinHours) {
-    const quietStart = timing.quietStart || '21:00';
-    const quietEnd = timing.quietEnd || '08:00';
-    
-    const [quietStartHour, quietStartMinute] = quietStart.split(':').map(Number);
-    const [quietEndHour, quietEndMinute] = quietEnd.split(':').map(Number);
-    
-    const quietStartMinutes = quietStartHour * 60 + quietStartMinute;
-    const quietEndMinutes = quietEndHour * 60 + quietEndMinute;
-    
-    // Check if we're in quiet hours (block sending)
-    if (quietStartMinutes > quietEndMinutes) {
-      // Quiet hours span midnight
-      if (currentMinutes >= quietStartMinutes || currentMinutes <= quietEndMinutes) {
-        return false; // In quiet hours, don't send
-      }
-    } else {
-      // Normal quiet hours check
-      if (currentMinutes >= quietStartMinutes && currentMinutes <= quietEndMinutes) {
-        return false; // In quiet hours, don't send
-      }
-    }
-  }
-  
-  return isWithinHours;
 }

@@ -630,6 +630,8 @@ export type Database = {
           id: string
           location_used: string | null
           organization_id: string | null
+          paused_at: string | null
+          resume_at: string | null
           started_at: string | null
           status: string
           trigger_data: Json | null
@@ -648,6 +650,8 @@ export type Database = {
           id?: string
           location_used?: string | null
           organization_id?: string | null
+          paused_at?: string | null
+          resume_at?: string | null
           started_at?: string | null
           status: string
           trigger_data?: Json | null
@@ -666,6 +670,8 @@ export type Database = {
           id?: string
           location_used?: string | null
           organization_id?: string | null
+          paused_at?: string | null
+          resume_at?: string | null
           started_at?: string | null
           status?: string
           trigger_data?: Json | null
@@ -676,17 +682,17 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "automation_execution_logs_automation_id_fkey"
-            columns: ["automation_id"]
-            isOneToOne: false
-            referencedRelation: "automations"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "automation_execution_logs_organization_id_fkey"
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "automation_execution_logs_workflow_id_fkey"
+            columns: ["workflow_id"]
+            isOneToOne: false
+            referencedRelation: "automation_workflow_status"
             referencedColumns: ["id"]
           },
           {
@@ -733,6 +739,13 @@ export type Database = {
           workflow_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "automation_history_workflow_id_fkey"
+            columns: ["workflow_id"]
+            isOneToOne: false
+            referencedRelation: "automation_workflow_status"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "automation_history_workflow_id_fkey"
             columns: ["workflow_id"]
@@ -920,6 +933,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      automation_trigger_queue: {
+        Row: {
+          created_at: string | null
+          event_type: string
+          id: string
+          old_record_data: Json | null
+          processed: boolean | null
+          processed_at: string | null
+          record_data: Json
+          table_name: string
+        }
+        Insert: {
+          created_at?: string | null
+          event_type: string
+          id?: string
+          old_record_data?: Json | null
+          processed?: boolean | null
+          processed_at?: string | null
+          record_data: Json
+          table_name: string
+        }
+        Update: {
+          created_at?: string | null
+          event_type?: string
+          id?: string
+          old_record_data?: Json | null
+          processed?: boolean | null
+          processed_at?: string | null
+          record_data?: Json
+          table_name?: string
+        }
+        Relationships: []
       }
       automation_triggers: {
         Row: {
@@ -1676,6 +1722,7 @@ export type Database = {
           company_country: string | null
           company_description: string | null
           company_email: string | null
+          company_email_address: string | null
           company_logo_url: string | null
           company_name: string | null
           company_phone: string | null
@@ -1715,6 +1762,7 @@ export type Database = {
           company_country?: string | null
           company_description?: string | null
           company_email?: string | null
+          company_email_address?: string | null
           company_logo_url?: string | null
           company_name?: string | null
           company_phone?: string | null
@@ -1754,6 +1802,7 @@ export type Database = {
           company_country?: string | null
           company_description?: string | null
           company_email?: string | null
+          company_email_address?: string | null
           company_logo_url?: string | null
           company_name?: string | null
           company_phone?: string | null
@@ -1922,6 +1971,7 @@ export type Database = {
       }
       email_conversations: {
         Row: {
+          client_email: string | null
           client_id: string | null
           client_name: string | null
           created_at: string | null
@@ -1937,6 +1987,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          client_email?: string | null
           client_id?: string | null
           client_name?: string | null
           created_at?: string | null
@@ -1952,6 +2003,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          client_email?: string | null
           client_id?: string | null
           client_name?: string | null
           created_at?: string | null
@@ -2831,6 +2883,13 @@ export type Database = {
             foreignKeyName: "jobs_created_by_automation_fkey"
             columns: ["created_by_automation"]
             isOneToOne: false
+            referencedRelation: "automation_workflow_status"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "jobs_created_by_automation_fkey"
+            columns: ["created_by_automation"]
+            isOneToOne: false
             referencedRelation: "automation_workflows"
             referencedColumns: ["id"]
           },
@@ -3665,6 +3724,7 @@ export type Database = {
           call_masking_enabled: boolean | null
           company_address: string | null
           company_email: string | null
+          company_email_address: string | null
           company_logo: string | null
           company_name: string | null
           company_phone: string | null
@@ -3699,6 +3759,7 @@ export type Database = {
           call_masking_enabled?: boolean | null
           company_address?: string | null
           company_email?: string | null
+          company_email_address?: string | null
           company_logo?: string | null
           company_name?: string | null
           company_phone?: string | null
@@ -3733,6 +3794,7 @@ export type Database = {
           call_masking_enabled?: boolean | null
           company_address?: string | null
           company_email?: string | null
+          company_email_address?: string | null
           company_logo?: string | null
           company_name?: string | null
           company_phone?: string | null
@@ -3857,6 +3919,60 @@ export type Database = {
           widgets?: Json | null
         }
         Relationships: []
+      }
+      scheduled_workflow_executions: {
+        Row: {
+          context: Json | null
+          created_at: string | null
+          error: string | null
+          execution_id: string
+          id: string
+          resume_at: string
+          resume_from_step: number
+          status: string
+          updated_at: string | null
+          workflow_id: string
+        }
+        Insert: {
+          context?: Json | null
+          created_at?: string | null
+          error?: string | null
+          execution_id: string
+          id?: string
+          resume_at: string
+          resume_from_step: number
+          status?: string
+          updated_at?: string | null
+          workflow_id: string
+        }
+        Update: {
+          context?: Json | null
+          created_at?: string | null
+          error?: string | null
+          execution_id?: string
+          id?: string
+          resume_at?: string
+          resume_from_step?: number
+          status?: string
+          updated_at?: string | null
+          workflow_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "scheduled_workflow_executions_workflow_id_fkey"
+            columns: ["workflow_id"]
+            isOneToOne: false
+            referencedRelation: "automation_workflow_status"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "scheduled_workflow_executions_workflow_id_fkey"
+            columns: ["workflow_id"]
+            isOneToOne: false
+            referencedRelation: "automation_workflows"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       secure_client_sessions: {
         Row: {
@@ -4281,6 +4397,13 @@ export type Database = {
             columns: ["client_id"]
             isOneToOne: false
             referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_created_by_automation_fkey"
+            columns: ["created_by_automation"]
+            isOneToOne: false
+            referencedRelation: "automation_workflow_status"
             referencedColumns: ["id"]
           },
           {
@@ -5019,6 +5142,48 @@ export type Database = {
       }
     }
     Views: {
+      automation_workflow_status: {
+        Row: {
+          created_at: string | null
+          execution_count: number | null
+          execution_status: string | null
+          id: string | null
+          is_active: boolean | null
+          last_triggered_at: string | null
+          name: string | null
+          pending_executions: number | null
+          status: string | null
+          step_count: number | null
+          trigger_type: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          execution_count?: number | null
+          execution_status?: never
+          id?: string | null
+          is_active?: boolean | null
+          last_triggered_at?: string | null
+          name?: string | null
+          pending_executions?: never
+          status?: string | null
+          step_count?: never
+          trigger_type?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          execution_count?: number | null
+          execution_status?: never
+          id?: string | null
+          is_active?: boolean | null
+          last_triggered_at?: string | null
+          name?: string | null
+          pending_executions?: never
+          status?: string | null
+          step_count?: never
+          trigger_type?: string | null
+        }
+        Relationships: []
+      }
       available_phone_numbers: {
         Row: {
           capabilities: Json | null
@@ -5167,6 +5332,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      bytea_to_text: {
+        Args: { data: string }
+        Returns: string
+      }
       check_communication_health: {
         Args: Record<PropertyKey, never>
         Returns: {
@@ -5213,6 +5382,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: Json
       }
+      clean_duplicate_automation_logs: {
+        Args: Record<PropertyKey, never>
+        Returns: number
+      }
       cleanup_all_user_data: {
         Args: { p_keep_system_users?: boolean; p_dry_run?: boolean }
         Returns: Json
@@ -5224,6 +5397,14 @@ export type Database = {
       clear_my_products: {
         Args: Record<PropertyKey, never>
         Returns: Json
+      }
+      create_automation_log_for_processing: {
+        Args: {
+          p_workflow_id: string
+          p_trigger_type: string
+          p_trigger_data: Json
+        }
+        Returns: string
       }
       create_product_manual: {
         Args: {
@@ -5291,8 +5472,18 @@ export type Database = {
         Returns: string
       }
       execute_automation_for_record: {
-        Args: { trigger_type: string; trigger_data: Json; org_id: string }
+        Args:
+          | {
+              trigger_type_param: string
+              context_data_param: Json
+              org_id_param: string
+            }
+          | { trigger_type_val: string; context_data: Json; org_id: string }
         Returns: undefined
+      }
+      execute_automation_log: {
+        Args: { p_log_id: string }
+        Returns: Json
       }
       generate_approval_token: {
         Args: {
@@ -5332,6 +5523,16 @@ export type Database = {
           recentexecutions: number
         }[]
       }
+      get_batch_client_stats: {
+        Args: { p_client_ids: string[] } | { p_client_ids: string[] }
+        Returns: {
+          client_id: string
+          total_jobs: number
+          total_revenue: number
+          last_service_date: string
+          avg_job_value: number
+        }[]
+      }
       get_client_jobs: {
         Args: { p_client_id: string; p_limit?: number; p_offset?: number }
         Returns: {
@@ -5345,6 +5546,17 @@ export type Database = {
           revenue: number
           address: string
           created_at: string
+        }[]
+      }
+      get_client_statistics: {
+        Args: { p_user_id: string }
+        Returns: {
+          total_clients: number
+          active_clients: number
+          new_this_month: number
+          retention_rate: number
+          total_revenue: number
+          average_client_value: number
         }[]
       }
       get_connect_statistics: {
@@ -5426,7 +5638,7 @@ export type Database = {
         }[]
       }
       get_next_document_number: {
-        Args: { p_entity_type: string }
+        Args: { p_entity_type: string; p_user_id?: string }
         Returns: string
       }
       get_next_job_status_sequence: {
@@ -5496,6 +5708,57 @@ export type Database = {
       handle_job_portal_request: {
         Args: { p_job_number: string }
         Returns: Json
+      }
+      http: {
+        Args: { request: Database["public"]["CompositeTypes"]["http_request"] }
+        Returns: Database["public"]["CompositeTypes"]["http_response"]
+      }
+      http_delete: {
+        Args:
+          | { uri: string }
+          | { uri: string; content: string; content_type: string }
+        Returns: Database["public"]["CompositeTypes"]["http_response"]
+      }
+      http_get: {
+        Args: { uri: string } | { uri: string; data: Json }
+        Returns: Database["public"]["CompositeTypes"]["http_response"]
+      }
+      http_head: {
+        Args: { uri: string }
+        Returns: Database["public"]["CompositeTypes"]["http_response"]
+      }
+      http_header: {
+        Args: { field: string; value: string }
+        Returns: Database["public"]["CompositeTypes"]["http_header"]
+      }
+      http_list_curlopt: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          curlopt: string
+          value: string
+        }[]
+      }
+      http_patch: {
+        Args: { uri: string; content: string; content_type: string }
+        Returns: Database["public"]["CompositeTypes"]["http_response"]
+      }
+      http_post: {
+        Args:
+          | { uri: string; content: string; content_type: string }
+          | { uri: string; data: Json }
+        Returns: Database["public"]["CompositeTypes"]["http_response"]
+      }
+      http_put: {
+        Args: { uri: string; content: string; content_type: string }
+        Returns: Database["public"]["CompositeTypes"]["http_response"]
+      }
+      http_reset_curlopt: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
+      http_set_curlopt: {
+        Args: { curlopt: string; value: string }
+        Returns: boolean
       }
       increment_automation_metrics: {
         Args: { workflow_id: string; success: boolean }
@@ -5587,6 +5850,10 @@ export type Database = {
         Args: { p_email: string; p_niche?: string }
         Returns: Json
       }
+      process_all_pending_automations: {
+        Args: Record<PropertyKey, never>
+        Returns: Json
+      }
       process_email_template: {
         Args: { p_template_name: string; p_variables: Json; p_user_id?: string }
         Returns: {
@@ -5594,7 +5861,19 @@ export type Database = {
           html_content: string
         }[]
       }
+      process_pending_automation_log: {
+        Args: { log_id: string }
+        Returns: Json
+      }
+      process_pending_automation_logs: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
       process_pending_automations: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
+      process_scheduled_workflow_executions: {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
@@ -5645,8 +5924,14 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: Json
       }
+      text_to_bytea: {
+        Args: { data: string }
+        Returns: string
+      }
       trigger_automation_manually: {
-        Args: { automation_id: string; test_data?: Json }
+        Args:
+          | { automation_id: string; test_data?: Json }
+          | { p_workflow_id: string }
         Returns: Json
       }
       update_document_counter_higher_only: {
@@ -5661,6 +5946,10 @@ export type Database = {
         Args: { user_id: string; base_rate: number; rules: Json; fees: Json }
         Returns: undefined
       }
+      urlencode: {
+        Args: { data: Json } | { string: string } | { string: string }
+        Returns: string
+      }
       validate_portal_access: {
         Args: {
           p_access_token: string
@@ -5669,12 +5958,35 @@ export type Database = {
         }
         Returns: Json
       }
+      validate_workflow_for_execution: {
+        Args: { workflow_id: string }
+        Returns: {
+          is_valid: boolean
+          error_message: string
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never
     }
     CompositeTypes: {
-      [_ in never]: never
+      http_header: {
+        field: string | null
+        value: string | null
+      }
+      http_request: {
+        method: unknown | null
+        uri: string | null
+        headers: Database["public"]["CompositeTypes"]["http_header"][] | null
+        content_type: string | null
+        content: string | null
+      }
+      http_response: {
+        status: number | null
+        content_type: string | null
+        headers: Database["public"]["CompositeTypes"]["http_header"][] | null
+        content: string | null
+      }
     }
   }
 }

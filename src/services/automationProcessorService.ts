@@ -47,17 +47,13 @@ class AutomationProcessorService {
     this.isProcessing = true;
 
     try {
-      // Get pending logs created in the last 5 minutes only
-      // This prevents processing old logs that might have been stuck
-      const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
-      
+      // Get all pending logs (remove time restriction to process stuck logs)
       const { data: pendingLogs, error: fetchError } = await supabase
         .from('automation_execution_logs')
         .select('*')
         .eq('status', 'pending')
-        .gte('created_at', fiveMinutesAgo) // Only recent logs
         .order('created_at', { ascending: true })
-        .limit(5);
+        .limit(10);
 
       if (fetchError) {
         console.error('Error fetching pending logs:', fetchError);
@@ -65,10 +61,11 @@ class AutomationProcessorService {
       }
 
       if (!pendingLogs || pendingLogs.length === 0) {
+        console.log('✅ No pending automations found');
         return; // No pending logs
       }
 
-      console.log(`📋 Found ${pendingLogs.length} recent pending automations...`);
+      console.log(`📋 Found ${pendingLogs.length} pending automations to process...`);
 
       // Process each log
       for (const log of pendingLogs) {
