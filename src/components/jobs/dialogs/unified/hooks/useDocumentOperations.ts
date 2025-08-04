@@ -114,11 +114,12 @@ export const useDocumentOperations = ({
       console.log('✅ Job validated:', jobExists.id);
       
       // Create document data - ensure job_id is always a string
-      const baseDocumentData = {
+      const baseDocumentData: any = {
         job_id: String(jobId), // Explicitly convert to string
         total: calculateGrandTotal(),
         status: formData.status || (documentType === 'estimate' ? 'draft' : 'unpaid'),
-        notes: notes || ''
+        notes: notes || '',
+        user_id: user.id // Use the already authenticated user from line 64
         // Removed 'date' field as it doesn't exist in estimates table
       };
 
@@ -127,7 +128,12 @@ export const useDocumentOperations = ({
             ...baseDocumentData,
             estimate_number: documentNumber,
             subtotal: calculateGrandTotal(), // Add required subtotal
-            items: [] // Add required items array
+            items: JSON.stringify(lineItems.map(item => ({
+              description: item.description,
+              quantity: item.quantity,
+              unit_price: item.unitPrice,
+              taxable: item.taxable
+            }))) // Store items as JSON string
           }
         : {
             ...baseDocumentData,
@@ -136,7 +142,12 @@ export const useDocumentOperations = ({
             issue_date: new Date().toISOString().split('T')[0], // Add required issue_date
             payment_status: 'unpaid', // Add required payment_status
             subtotal: calculateGrandTotal(), // Add required subtotal
-            items: [] // Add required items array
+            items: JSON.stringify(lineItems.map(item => ({
+              description: item.description,
+              quantity: item.quantity,
+              unit_price: item.unitPrice,
+              taxable: item.taxable
+            }))) // Store items as JSON string
             // Removed 'balance' field as it's a generated column
           };
 
@@ -392,9 +403,9 @@ export const useDocumentOperations = ({
       console.log('🔄 Converting estimate to invoice:', existingDocument.id);
       
       // Check authentication first
-      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      const { data: { user: authUser }, error: authError } = await supabase.auth.getUser();
       
-      if (authError || !user) {
+      if (authError || !authUser) {
         throw new Error('Authentication required to convert estimate to invoice.');
       }
       

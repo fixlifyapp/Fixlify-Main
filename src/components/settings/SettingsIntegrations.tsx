@@ -7,6 +7,7 @@ import { Phone, MessageSquare, Mail, Zap, ExternalLink, Bot, Settings } from 'lu
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { EmailConfiguration } from './EmailConfiguration';
+import CompanyEmailSettings from './CompanyEmailSettings';
 export const SettingsIntegrations = () => {
   // Get both Telnyx numbers and regular phone numbers
   const {
@@ -56,15 +57,25 @@ export const SettingsIntegrations = () => {
       </div>
 
       <Tabs defaultValue="phone" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="phone" className="flex items-center gap-2">
             <Phone className="h-4 w-4" />
             Phone Numbers
           </TabsTrigger>
           
+          <TabsTrigger value="email" className="flex items-center gap-2">
+            <Mail className="h-4 w-4" />
+            Email
+          </TabsTrigger>
+          
           <TabsTrigger value="messaging" className="flex items-center gap-2">
             <MessageSquare className="h-4 w-4" />
             Messaging
+          </TabsTrigger>
+          
+          <TabsTrigger value="api" className="flex items-center gap-2">
+            <Zap className="h-4 w-4" />
+            API & Webhooks
           </TabsTrigger>
         </TabsList>
 
@@ -198,7 +209,21 @@ export const SettingsIntegrations = () => {
         </TabsContent>
 
         <TabsContent value="email" className="space-y-6">
-          <EmailConfiguration />
+          <div className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Mail className="h-5 w-5" />
+                  Two-Way Email System
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <CompanyEmailSettings />
+              </CardContent>
+            </Card>
+            
+            <EmailConfiguration />
+          </div>
         </TabsContent>
 
         <TabsContent value="messaging" className="space-y-6">
@@ -232,6 +257,46 @@ export const SettingsIntegrations = () => {
                     <li>• Customer notifications</li>
                     <li>• Integration with your CRM</li>
                   </ul>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+        <TabsContent value="api" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Zap className="h-5 w-5" />
+                API & Webhooks Configuration
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="p-4 bg-gray-50 rounded-lg">
+                  <h4 className="font-medium mb-2">Mailgun Email Webhook</h4>
+                  <p className="text-sm text-gray-600 mb-2">
+                    Configure Mailgun to forward incoming emails to your Fixlify account.
+                  </p>
+                  <div className="bg-white p-3 rounded border">
+                    <p className="text-xs font-mono break-all">
+                      https://mqppvcrlvsgrsqelglod.supabase.co/functions/v1/email-webhook
+                    </p>
+                  </div>
+                  <p className="text-xs text-gray-500 mt-2">
+                    Add this URL as a route action in your Mailgun dashboard for .*@fixlify.app
+                  </p>
+                </div>
+                
+                <div className="p-4 bg-gray-50 rounded-lg">
+                  <h4 className="font-medium mb-2">SMS Webhook</h4>
+                  <p className="text-sm text-gray-600 mb-2">
+                    Telnyx webhook for incoming SMS messages.
+                  </p>
+                  <div className="bg-white p-3 rounded border">
+                    <p className="text-xs font-mono break-all">
+                      https://mqppvcrlvsgrsqelglod.supabase.co/functions/v1/sms-webhook
+                    </p>
+                  </div>
                 </div>
               </div>
             </CardContent>

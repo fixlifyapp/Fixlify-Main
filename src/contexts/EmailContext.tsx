@@ -154,7 +154,11 @@ export const EmailProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             user_id: user.id,
             client_id: clientId || null,
             email_address: to,
-            subject: subject || 'No Subject'
+            client_email: to,
+            subject: subject || 'No Subject',
+            last_message_at: new Date().toISOString(),
+            last_message_preview: body.substring(0, 100),
+            unread_count: 0
           })
           .select()
           .single();
@@ -163,30 +167,15 @@ export const EmailProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         conversation = newConv;
       }
 
-      // Create message
-      const { data: newMessage, error: msgError } = await supabase
-        .from('email_messages')
-        .insert({
-          conversation_id: conversation.id,
-          user_id: user.id,
-          direction: 'outbound',
-          from_email: user.email || '',
-          to_email: to,
-          subject,
-          body,
-          status: 'sent'
-        })
-        .select()
-        .single();
-
-      if (msgError) throw msgError;
-      // Call edge function to send actual email
+      // Call edge function to send actual email with conversation tracking
       const { error: sendError } = await supabase.functions.invoke('send-email', {
         body: {
           to,
           subject,
-          body,
-          from: user.email
+          text: body,
+          userId: user.id,
+          clientId,
+          conversationId: conversation.id
         }
       });
 
@@ -196,6 +185,10 @@ export const EmailProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       } else {
         toast.success('Email sent successfully');
         await fetchConversations();
+        // Refresh messages if this conversation is selected
+        if (selectedConversation?.id === conversation.id) {
+          await fetchMessages(conversation.id);
+        }
       }
     } catch (error) {
       console.error('Error in sendEmail:', error);

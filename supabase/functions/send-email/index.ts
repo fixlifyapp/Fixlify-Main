@@ -10,9 +10,12 @@ const corsHeaders = {
 interface SendEmailRequest {
   to: string;
   subject: string;
-  content: string;
+  html?: string;
+  text?: string;
+  content?: string; // Legacy support
   userId: string;
   clientId?: string;
+  conversationId?: string;
   metadata?: any;
 }
 
@@ -27,37 +30,18 @@ const handler = async (req: Request): Promise<Response> => {
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    const { to, subject, content, userId, clientId, metadata }: SendEmailRequest = await req.json();
+    const { to, subject, html, text, content, userId, clientId, conversationId, metadata }: SendEmailRequest = await req.json();
 
-    if (!to || !subject || !content || !userId) {
-      throw new Error('Missing required fields: to, subject, content, userId');
+    if (!to || !subject || !userId) {
+      throw new Error('Missing required fields: to, subject, userId');
     }
 
-    // Get user's email settings for from address
-    const { data: userProfile } = await supabase
-      .from('profiles')
-      .select('business_email, display_name, business_name')
-      .eq('id', userId)
-      .single();
-
-    const fromEmail = userProfile?.business_email || 'noreply@fixlify.com';
-    const fromName = userProfile?.display_name || userProfile?.business_name || 'Fixlify';
-
-    console.log(`Sending email from ${fromEmail} to ${to}`);
-
-    // Get Mailgun credentials
-    const mailgunApiKey = Deno.env.get('MAILGUN_API_KEY');
-    const mailgunDomain = Deno.env.get('MAILGUN_DOMAIN') || 'mg.fixlify.com';
-
-    if (!mailgunApiKey) {
-      throw new Error('Mailgun API key not configured');
-    }
-
-    // Prepare email content
-    const htmlContent = `
+    // Use content as fallback for text if not provided
+    const textContent = text || content || '';
+    const htmlContent = html || `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
         <div style="background: #f8f9fa; padding: 20px; border-radius: 8px;">
-          ${content.replace(/\n/g, '<br>')}
+          ${textContent.replace(/\n/g, '<br>')}
         </div>
         <div style="margin-top: 20px; padding: 20px; background: #f1f3f4; border-radius: 8px; text-align: center;">
           <p style="margin: 0; color: #666; font-size: 14px;">
@@ -67,13 +51,51 @@ const handler = async (req: Request): Promise<Response> => {
       </div>
     `;
 
+    // Get user's company email settings
+    const { data: companySettings } = await supabase
+      .from('company_settings')
+      .select('company_email_address, company_name, company_email, mailgun_domain')
+      .eq('user_id', userId)
+      .single();
+
+    const { data: userProfile } = await supabase
+      .from('profiles')
+      .select('company_email_address, company_name, email, name')
+      .eq('user_id', userId)
+      .single();
+
+    // Determine from email address - prioritize company email address
+    let fromEmail = 'noreply@fixlify.app';
+    let fromName = 'Fixlify';
+    
+    if (companySettings?.company_email_address) {
+      fromEmail = companySettings.company_email_address;
+      fromName = companySettings.company_name || 'Fixlify';
+    } else if (userProfile?.company_email_address) {
+      fromEmail = userProfile.company_email_address;
+      fromName = userProfile.company_name || userProfile.name || 'Fixlify';
+    } else if (companySettings?.company_email) {
+      fromEmail = companySettings.company_email;
+      fromName = companySettings.company_name || 'Fixlify';
+    }
+
+    console.log(`Sending email from ${fromEmail} to ${to}`);
+
+    // Get Mailgun credentials
+    const mailgunApiKey = Deno.env.get('MAILGUN_API_KEY');
+    const mailgunDomain = companySettings?.mailgun_domain || Deno.env.get('MAILGUN_DOMAIN') || 'mg.fixlify.com';
+
+    if (!mailgunApiKey) {
+      throw new Error('Mailgun API key not configured');
+    }
+
     // Prepare form data for Mailgun
     const formData = new FormData();
     formData.append('from', `${fromName} <${fromEmail}>`);
     formData.append('to', to);
     formData.append('subject', subject);
     formData.append('html', htmlContent);
-    formData.append('text', content);
+    formData.append('text', textContent);
 
     // Send email via Mailgun
     const mailgunUrl = `https://api.mailgun.net/v3/${mailgunDomain}/messages`;
@@ -94,6 +116,45 @@ const handler = async (req: Request): Promise<Response> => {
     const mailgunResult = await emailResponse.json();
     console.log("Email sent successfully:", mailgunResult);
 
+    // Store email message if conversationId is provided
+    if (conversationId) {
+      try {
+        await supabase
+          .from('email_messages')
+          .insert({
+            conversation_id: conversationId,
+            user_id: userId,
+            direction: 'outbound',
+            from_email: fromEmail,
+            to_email: to,
+            subject: subject,
+            body: textContent,
+            html_body: htmlContent,
+            is_read: true,
+            email_id: mailgunResult.id,
+            status: 'sent',
+            metadata: {
+              mailgun_id: mailgunResult.id,
+              from_name: fromName,
+              ...metadata
+            }
+          });
+
+        // Update conversation
+        await supabase
+          .from('email_conversations')
+          .update({
+            last_message_at: new Date().toISOString(),
+            last_message_preview: textContent.substring(0, 100),
+            unread_count: 0, // Reset since we sent it
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', conversationId);
+      } catch (msgError) {
+        console.error('Failed to store email message:', msgError);
+      }
+    }
+
     // Log to communication_logs table
     try {
       await supabase.from('communication_logs').insert({
@@ -104,13 +165,14 @@ const handler = async (req: Request): Promise<Response> => {
         to_address: to,
         recipient: to,
         subject: subject,
-        content: content,
+        content: textContent,
         status: 'sent',
         external_id: mailgunResult.id,
         client_id: clientId,
         metadata: {
           mailgun_id: mailgunResult.id,
           from_name: fromName,
+          conversation_id: conversationId,
           ...metadata
         }
       });
