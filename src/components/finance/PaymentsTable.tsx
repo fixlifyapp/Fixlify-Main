@@ -49,12 +49,14 @@ export function PaymentsTable({
 
   const getStatusBadgeColor = (status: Payment['status']) => {
     switch (status) {
-      case 'paid':
+      case 'completed':
         return "bg-green-100 text-green-800 hover:bg-green-200";
       case 'refunded':
         return "bg-amber-100 text-amber-800 hover:bg-amber-200";
-      case 'disputed':
+      case 'failed':
         return "bg-red-100 text-red-800 hover:bg-red-200";
+      case 'pending':
+        return "bg-blue-100 text-blue-800 hover:bg-blue-200";
       default:
         return "";
     }
@@ -102,19 +104,19 @@ export function PaymentsTable({
           ) : (
             payments.map((payment) => (
               <TableRow key={payment.id}>
-                <TableCell>{format(new Date(payment.date), 'MMM d, yyyy')}</TableCell>
+                <TableCell>{format(new Date(payment.payment_date), 'MMM d, yyyy')}</TableCell>
                 <TableCell>
-                  <Link to={`/clients/${payment.clientId}`} className="text-blue-600 hover:underline">
-                    {payment.clientName}
+                  <Link to={`/clients/${payment.client_id}`} className="text-blue-600 hover:underline">
+                    {payment.client?.name || 'Unknown Client'}
                   </Link>
                 </TableCell>
                 <TableCell>
-                  <Link to={`/jobs/${payment.jobId}`} className="text-blue-600 hover:underline">
-                    #{payment.jobId}
+                  <Link to={`/jobs/${payment.job_id}`} className="text-blue-600 hover:underline">
+                    #{payment.job_id || 'N/A'}
                   </Link>
                 </TableCell>
                 <TableCell className="font-medium">{formatCurrency(payment.amount)}</TableCell>
-                <TableCell className="capitalize">{payment.method.replace("-", " ")}</TableCell>
+                <TableCell className="capitalize">{payment.payment_method.replace("_", " ")}</TableCell>
                 <TableCell>
                   <Badge variant="outline" className={`${getStatusBadgeColor(payment.status)} capitalize`}>
                     {payment.status}
@@ -125,7 +127,7 @@ export function PaymentsTable({
                     <Receipt className="h-4 w-4 mr-1" />
                     <span>Invoice</span>
                   </Button>
-                  {payment.status === 'paid' && canRefund && (
+                  {payment.status === 'completed' && canRefund && (
                     <Button 
                       variant="outline" 
                       size="sm" 

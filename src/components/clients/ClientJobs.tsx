@@ -90,7 +90,7 @@ export const ClientJobs = ({ clientId }: ClientJobsProps) => {
   // Bulk action handlers with optimized refresh
   const handleUpdateJobsStatus = useCallback(async (jobIds: string[], newStatus: string) => {
     try {
-      await Promise.all(jobIds.map(id => updateJob(id, { status: newStatus })));
+      await Promise.all(jobIds.map(id => updateJob(id, { status: newStatus as any })));
       toast.success(`Updated ${jobIds.length} jobs to "${newStatus}"`);
       setSelectedJobs([]);
       refreshOptimized();
