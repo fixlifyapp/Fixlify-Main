@@ -89,9 +89,9 @@ export const JobDetailsProvider = ({
         (payload) => {
           console.log('Job update detected:', payload);
           // Check if this is a status update
-          if (payload.new && payload.new.status !== currentStatus) {
+          if (payload.new && typeof payload.new === 'object' && 'status' in payload.new && payload.new.status !== currentStatus) {
             console.log('Status changed via real-time:', payload.new.status);
-            setCurrentStatus(payload.new.status);
+            setCurrentStatus(payload.new.status as string);
           }
           // Only refresh if this wasn't an optimistic update we just made
           if (isMountedRef.current) {

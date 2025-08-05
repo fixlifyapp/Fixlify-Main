@@ -107,12 +107,12 @@ export const ClientsCreateModal = ({ open, onOpenChange, onSuccess }: ClientsCre
       
       // Log the client data that was attempted
       console.error("Attempted client data:", {
-        name,
-        phone: formData.get('phone'),
-        formattedPhone: formatPhoneForTelnyx(formData.get('phone') as string || ''),
-        email: formData.get('email'),
-        clientType: formData.get('clientType'),
-        status: formData.get('status')
+        name: (e.target as HTMLFormElement).name?.value || 'N/A',
+        phone: (e.target as HTMLFormElement).phone?.value || 'N/A',
+        formattedPhone: formatPhoneForTelnyx((e.target as HTMLFormElement).phone?.value || ''),
+        email: (e.target as HTMLFormElement).email?.value || 'N/A',
+        clientType: (e.target as HTMLFormElement).clientType?.value || 'N/A',
+        status: (e.target as HTMLFormElement).status?.value || 'N/A'
       });
       
       toast.error("Failed to add client - Check console for details");

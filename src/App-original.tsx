@@ -6,14 +6,12 @@ import { Toaster } from "@/components/ui/sonner";
 import { AuthProvider } from "@/hooks/use-auth";
 import AuthPage from "@/pages/AuthPage";
 import Dashboard from "@/pages/Dashboard";
-import TestPage from "@/pages/TestPage";
 import JobsPageOptimized from "@/pages/JobsPageOptimized";
 import JobDetailsPage from "@/pages/JobDetailsPage";
 import ClientsPage from "@/pages/ClientsPage";
 import ClientDetailPage from "@/pages/ClientDetailPage";
 import SchedulePage from "@/pages/SchedulePage";
 import FinancePage from "@/pages/FinancePage";
-import ConnectCenterPageOptimized from "@/pages/ConnectCenterPageOptimized";
 // import CommunicationsSettingsPage from "@/pages/CommunicationsSettingsPage";
 import AiCenterPage from "@/pages/AiCenterPage";
 import AutomationsPage from "@/pages/AutomationsPage";
@@ -71,8 +69,7 @@ function App() {
           {/* Legacy login route redirects to auth */}
           <Route path="/login" element={<Navigate to="/auth" replace />} />
           
-          {/* Test route for debugging */}
-          <Route path="/test" element={<TestPage />} />
+          {/* Test route for debugging - Removed as TestPage no longer exists */}
           
           {/* Protected routes */}
           <Route path="/dashboard" element={
@@ -134,7 +131,7 @@ function App() {
           <Route path="/connect" element={
             <AuthProvider>
               <ProtectedRouteWithProviders>
-                <ConnectCenterPageOptimized />
+                <div>Connect Center - Page Removed</div>
               </ProtectedRouteWithProviders>
             </AuthProvider>
           } />
@@ -142,7 +139,7 @@ function App() {
           <Route path="/communications" element={
             <AuthProvider>
               <ProtectedRouteWithProviders>
-                <ConnectCenterPageOptimized />
+                <div>Communications - Page Removed</div>
               </ProtectedRouteWithProviders>
             </AuthProvider>
           } />
@@ -304,7 +301,7 @@ function App() {
           <Route path="/settings/telnyx" element={
             <AuthProvider>
               <ProtectedRouteWithProviders>
-                <ConnectCenterPageOptimized />
+                <div>Telnyx Settings - Page Removed</div>
               </ProtectedRouteWithProviders>
             </AuthProvider>
           } />
@@ -312,7 +309,7 @@ function App() {
           <Route path="/settings/ai" element={
             <AuthProvider>
               <ProtectedRouteWithProviders>
-                <ConnectCenterPageOptimized />
+                <div>AI Settings - Page Removed</div>
               </ProtectedRouteWithProviders>
             </AuthProvider>
           } />
@@ -320,7 +317,7 @@ function App() {
           <Route path="/ai-settings" element={
             <AuthProvider>
               <ProtectedRouteWithProviders>
-                <ConnectCenterPageOptimized />
+                <div>AI Settings - Page Removed</div>
               </ProtectedRouteWithProviders>
             </AuthProvider>
           } />
