@@ -35,9 +35,11 @@ export const AutomationEngineStatus = () => {
   const handleStartEngine = async () => {
     setLoading(true);
     try {
+      // Stop existing engine first, then restart
+      await AutomationProcessor.stopEngine();
       await AutomationProcessor.startEngine();
       setIsRunning(true);
-      toast.success('Automation engine started successfully');
+      toast.success('Automation engine restarted with latest fixes');
     } catch (error) {
       console.error('Failed to start automation engine:', error);
       toast.error('Failed to start automation engine');

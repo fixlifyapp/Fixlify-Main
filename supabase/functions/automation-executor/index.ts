@@ -112,11 +112,15 @@ serve(async (req) => {
           .eq('id', executionId);
       }
 
-      // Update workflow metrics
-      await supabaseClient.rpc('increment_automation_metrics', {
-        workflow_id: workflowId,
-        success: true
-      }).catch(err => console.warn('Failed to update workflow metrics:', err));
+      // Update workflow metrics with proper error handling
+      try {
+        await supabaseClient.rpc('increment_automation_metrics', {
+          workflow_id: workflowId,
+          success: true
+        });
+      } catch (err) {
+        console.warn('Failed to update workflow metrics:', err);
+      }
 
       console.log('🎉 Workflow execution completed successfully');
 
@@ -145,11 +149,15 @@ serve(async (req) => {
           .eq('id', executionId);
       }
 
-      // Update workflow metrics
-      await supabaseClient.rpc('increment_automation_metrics', {
-        workflow_id: workflowId,
-        success: false
-      }).catch(err => console.warn('Failed to update workflow metrics:', err));
+      // Update workflow metrics with proper error handling
+      try {
+        await supabaseClient.rpc('increment_automation_metrics', {
+          workflow_id: workflowId,
+          success: false
+        });
+      } catch (err) {
+        console.warn('Failed to update workflow metrics:', err);
+      }
 
       throw executionError;
     }
@@ -199,8 +207,15 @@ async function executeStep(step: any, context: any, supabaseClient: any) {
 }
 
 async function executeAction(step: any, context: any, supabaseClient: any) {
-  const actionType = step.config?.actionType;
-  console.log('📧 Executing action:', actionType);
+  // Handle both old format (subType) and new format (actionType)
+  const actionType = step.config?.actionType || step.subType || step.type;
+  console.log('📧 Executing action with type:', actionType);
+  console.log('📧 Step config:', JSON.stringify(step.config, null, 2));
+  
+  if (!actionType) {
+    console.error('❌ No action type found in step:', JSON.stringify(step, null, 2));
+    throw new Error('No action type specified in step configuration');
+  }
 
   // Check timing restrictions before executing action
   const timing = step.config?.timing;
@@ -231,7 +246,9 @@ async function executeAction(step: any, context: any, supabaseClient: any) {
       return await createTask(step.config, context, supabaseClient);
     
     default:
-      throw new Error(`Unknown action type: ${actionType}`);
+      console.error('❌ Unknown action type:', actionType);
+      console.error('📋 Available action types: email, sms, notification, task');
+      throw new Error(`Unknown action type: ${actionType}. Available types: email, sms, notification, task`);
   }
 }
 

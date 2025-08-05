@@ -70,7 +70,8 @@ export class AutomationProcessor {
           const { data, error } = await supabase.functions.invoke('automation-executor', {
             body: {
               workflowId: log.workflow_id,
-              context: log.trigger_data
+              context: log.trigger_data,
+              executionId: log.id
             }
           });
 
