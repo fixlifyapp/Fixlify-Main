@@ -60,6 +60,7 @@ export const useUnifiedDocumentViewer = ({
             name: item.description || '',
             description: item.description || '',
             quantity: item.quantity || 1,
+            price: Number(item.unit_price) || 0,
             unit_price: Number(item.unit_price) || 0,
             unitPrice: Number(item.unit_price) || 0,
             taxable: item.taxable !== false,
@@ -89,10 +90,11 @@ export const useUnifiedDocumentViewer = ({
         name: item.description || item.name || '',
         description: item.description || item.name || '',
         quantity: item.quantity || 1,
-        unit_price: item.unitPrice || item.unit_price || 0,
-        unitPrice: item.unitPrice || item.unit_price || 0,
+        price: item.unitPrice || item.unit_price || item.price || 0,
+        unit_price: item.unitPrice || item.unit_price || item.price || 0,
+        unitPrice: item.unitPrice || item.unit_price || item.price || 0,
         taxable: item.taxable !== false,
-        total: (item.quantity || 1) * (item.unitPrice || item.unit_price || 0),
+        total: (item.quantity || 1) * (item.unitPrice || item.unit_price || item.price || 0),
         discount: item.discount || 0
       })));
     }

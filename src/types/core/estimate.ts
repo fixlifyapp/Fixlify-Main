@@ -7,6 +7,21 @@ export interface EstimateItem {
   quantity: number;
   price: number;
   total: number;
+  
+  // Additional properties for UI compatibility
+  name?: string;
+  unitPrice?: number;
+  ourPrice?: number;
+  unit_price?: number;
+  our_price?: number | null;
+  discount?: number;
+  taxable?: boolean;
+  
+  // Database fields
+  created_at?: string;
+  updated_at?: string;
+  parent_id?: string;
+  parent_type?: string;
 }
 
 export interface Estimate extends BaseOrganizationEntity, Metadata {
