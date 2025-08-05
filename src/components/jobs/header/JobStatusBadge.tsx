@@ -112,12 +112,12 @@ export const JobStatusBadge = ({
       areEqual: normalizedCurrent === normalizedNew
     });
     
-    if (normalizedCurrent === normalizedNew || isUpdating) {
-      console.log('❌ JobStatusBadge: Skipping update - same status or already updating', { 
+    // TEMPORARILY DISABLED FOR DEBUGGING
+    console.log('🚨 DEBUGGING: Bypassing status comparison check');
+    if (isUpdating) {
+      console.log('❌ JobStatusBadge: Skipping update - already updating', { 
         status, 
         newStatus, 
-        normalizedCurrent,
-        normalizedNew,
         isUpdating 
       });
       return;
