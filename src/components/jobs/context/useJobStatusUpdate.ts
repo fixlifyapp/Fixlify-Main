@@ -78,14 +78,16 @@ export const useJobStatusUpdate = (jobId: string, refreshJob: () => void) => {
   };
 
   const updateJobStatus = async (newStatus: string, oldStatus?: string) => {
+    console.log('🚀 useJobStatusUpdate: updateJobStatus called', { jobId, newStatus, oldStatus });
+    
     if (!jobId) {
-      console.error('No jobId provided for status update');
+      console.error('❌ useJobStatusUpdate: No jobId provided for status update');
       toast.error('Cannot update status: Job ID is missing');
       return;
     }
     
     try {
-      console.log('🔄 Updating job status:', { jobId, newStatus, oldStatus });
+      console.log('🔄 useJobStatusUpdate: Starting status update process:', { jobId, newStatus, oldStatus });
       
       // Get current status if not provided
       let currentStatus = oldStatus;
