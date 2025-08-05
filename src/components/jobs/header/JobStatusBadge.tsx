@@ -95,9 +95,22 @@ export const JobStatusBadge = ({
   };
 
   const handleStatusChange = async (newStatus: string) => {
+    console.log('🚀 JobStatusBadge: handleStatusChange called', {
+      currentStatus: status,
+      newStatus,
+      jobId,
+      isUpdating
+    });
+    
     // Normalize status values for comparison
     const normalizedCurrent = status.toLowerCase().replace(/[\s_-]/g, '');
     const normalizedNew = newStatus.toLowerCase().replace(/[\s_-]/g, '');
+    
+    console.log('🔍 JobStatusBadge: Normalized comparison', {
+      normalizedCurrent,
+      normalizedNew,
+      areEqual: normalizedCurrent === normalizedNew
+    });
     
     if (normalizedCurrent === normalizedNew || isUpdating) {
       console.log('JobStatusBadge: Skipping update - same status or already updating', { 
@@ -118,14 +131,17 @@ export const JobStatusBadge = ({
     
     setIsUpdating(true);
     try {
+      console.log('🔄 JobStatusBadge: Calling onStatusChange with:', newStatus);
       // Call the onStatusChange callback immediately for optimistic update
       await onStatusChange(newStatus);
+      console.log('✅ JobStatusBadge: onStatusChange completed successfully');
       // Don't show toast here - useJobStatusUpdate will handle it
     } catch (error) {
-      console.error("JobStatusBadge: Error updating job status:", error);
+      console.error("❌ JobStatusBadge: Error updating job status:", error);
       // Don't show error toast here - useJobStatusUpdate will handle it
     } finally {
       setIsUpdating(false);
+      console.log('🏁 JobStatusBadge: setIsUpdating(false) called');
     }
   };
 
