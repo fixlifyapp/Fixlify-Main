@@ -112,7 +112,7 @@ export const UnifiedDocumentViewer = ({
   };
 
   const issueDate = documentType === "invoice" 
-    ? formatDateTime((document as Invoice).issue_date || (document as Invoice).created_at)
+    ? formatDateTime((document as Invoice).created_at)
     : formatDateTime((document as Estimate).created_at);
 
   const dueDate = documentType === "invoice" 

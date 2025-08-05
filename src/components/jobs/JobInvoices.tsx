@@ -161,9 +161,9 @@ export const JobInvoices = ({ jobId }: JobInvoicesProps) => {
                         Paid: {formatCurrency(invoice.amount_paid)}
                       </p>
                     )}
-                    {(invoice.balance_due || 0) > 0 && (
+                    {((invoice.total || 0) - (invoice.amount_paid || 0)) > 0 && (
                       <p className="text-sm text-red-600">
-                        Balance: {formatCurrency(invoice.balance_due || 0)}
+                        Balance: {formatCurrency((invoice.total || 0) - (invoice.amount_paid || 0))}
                       </p>
                     )}
                   </div>

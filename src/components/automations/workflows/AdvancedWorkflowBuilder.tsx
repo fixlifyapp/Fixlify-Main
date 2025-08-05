@@ -292,7 +292,7 @@ export const AdvancedWorkflowBuilder: React.FC<AdvancedWorkflowBuilderProps> = (
             className="bg-gray-50"
           >
             <Controls />
-            <Background variant="dots" gap={12} size={1} />
+            <Background />
           </ReactFlow>
 
           {nodes.length === 0 && (

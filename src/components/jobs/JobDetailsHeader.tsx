@@ -93,15 +93,24 @@ export const JobDetailsHeader = () => {
       {/* Additional job info section below header */}
       <div className="mt-6">
         <JobInfoSection
-          job={job}
+          job={{
+            id: job.id,
+            clientId: job.clientId || job.client_id || '',
+            client: typeof job.client === 'string' ? job.client : job.client?.name || 'Unknown Client',
+            service: job.description || 'Service Job',
+            address: job.address || '',
+            phone: job.phone || '',
+            email: job.email || '',
+            total: job.total || job.revenue || 0
+          }}
           status={currentStatus || job.status || 'scheduled'}
           onStatusChange={handleStatusChange}
           onEditClient={() => {
-            if (job.clientId) {
-              navigate(`/clients/${job.clientId}`);
+            if (job.clientId || job.client_id) {
+              navigate(`/clients/${job.clientId || job.client_id}`);
             }
           }}
-          clientName={job.client || 'Unknown Client'}
+          clientName={typeof job.client === 'string' ? job.client : job.client?.name || 'Unknown Client'}
           jobType={job.description || 'Service Job'}
         />
       </div>
