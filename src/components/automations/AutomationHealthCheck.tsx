@@ -85,8 +85,18 @@ export function AutomationHealthCheck() {
       const hasEmailConfig = edgeFunctionChecks[1]; // If email service responds, it's likely configured
       const hasSmsConfig = edgeFunctionChecks[2]; // If SMS service responds, it's likely configured
       
+      // Fix type issues by ensuring proper number types
+      const healthData = {
+        isRunning: processorHealth.isRunning,
+        isProcessing: processorHealth.isProcessing,
+        pendingCount: typeof processorHealth.pendingCount === 'number' ? processorHealth.pendingCount : (processorHealth.pendingCount?.length || 0),
+        recentFailures: typeof processorHealth.recentFailures === 'number' ? processorHealth.recentFailures : (processorHealth.recentFailures?.length || 0),
+        cacheSize: processorHealth.cacheSize,
+        processedInSession: processorHealth.processedInSession
+      };
+
       setHealth({
-        processor: processorHealth,
+        processor: healthData,
         edgeFunctions: {
           automationExecutor: edgeFunctionChecks[0],
           emailService: edgeFunctionChecks[1],

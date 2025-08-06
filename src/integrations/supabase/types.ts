@@ -6185,6 +6185,17 @@ export type Database = {
         Args: { p_user_id: string; p_business_niche: string }
         Returns: Json
       }
+      test_job_status_automation: {
+        Args: { p_job_id: string; p_new_status: string; p_user_id?: string }
+        Returns: {
+          workflow_id: string
+          workflow_name: string
+          execution_id: string
+          steps_count: number
+          has_conditions: boolean
+          conditions_met: boolean
+        }[]
+      }
       test_products_functionality: {
         Args: Record<PropertyKey, never>
         Returns: Json
