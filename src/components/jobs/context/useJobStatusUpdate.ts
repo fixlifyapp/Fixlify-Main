@@ -86,14 +86,8 @@ export function useJobStatusUpdate(jobId?: string, refreshJob?: () => void) {
       toast.success(`Job status updated to ${newStatus}`);
       
       // Automation triggers are handled by the database trigger
-      // The database trigger creates pending logs automatically
-      // Start the automation processor to handle them
+      // The unified automation system will process pending automations automatically
       console.log('📮 Database trigger will handle automation workflows');
-      
-      // Ensure automation processor is running
-      import('@/services/automation-processor').then(({ automationProcessor }) => {
-        automationProcessor.start();
-      });
       
       // Refresh job data after a small delay to allow database triggers to complete
       setTimeout(() => {

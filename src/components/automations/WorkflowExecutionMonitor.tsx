@@ -18,10 +18,11 @@ export const WorkflowExecutionMonitor: React.FC<WorkflowExecutionMonitorProps> =
   const [isEngineRunning, setIsEngineRunning] = useState(false);
   const [executionLogs, setExecutionLogs] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+  const { processNow } = useAutomationProcessor();
 
   useEffect(() => {
     // Check if engine is already running
-    setIsEngineRunning(AutomationProcessor.isRunning());
+    setIsEngineRunning(true); // The unified system is always running via cron
     
     if (workflowId) {
       loadExecutionLogs();
@@ -45,24 +46,18 @@ export const WorkflowExecutionMonitor: React.FC<WorkflowExecutionMonitorProps> =
 
   const handleStartEngine = async () => {
     try {
-      await AutomationProcessor.startEngine();
+      await processNow();
       setIsEngineRunning(true);
-      toast.success('Automation engine started');
+      toast.success('Automation processing triggered');
     } catch (error) {
-      console.error('Error starting engine:', error);
-      toast.error('Failed to start automation engine');
+      console.error('Error starting processing:', error);
+      toast.error('Failed to trigger automation processing');
     }
   };
 
   const handleStopEngine = async () => {
-    try {
-      await AutomationProcessor.stopEngine();
-      setIsEngineRunning(false);
-      toast.success('Automation engine stopped');
-    } catch (error) {
-      console.error('Error stopping engine:', error);
-      toast.error('Failed to stop automation engine');
-    }
+    // The unified system runs via cron and cannot be stopped from the UI
+    toast.info('The automation system is managed by the server and cannot be stopped from here');
   };
 
   const handleTestWorkflow = async () => {
