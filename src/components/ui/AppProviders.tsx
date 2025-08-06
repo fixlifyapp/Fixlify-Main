@@ -1,4 +1,3 @@
-
 import { ReactNode } from 'react';
 import { RBACProvider } from '@/components/auth/RBACProvider';
 import { SMSProvider } from '@/contexts/SMSContext';
@@ -7,8 +6,7 @@ import { MessageProvider } from '@/contexts/MessageContext';
 import { GlobalRealtimeProvider } from '@/contexts/GlobalRealtimeProvider';
 import { ModalProvider } from '@/components/ui/modal-provider';
 import { OrganizationProvider } from '@/contexts/OrganizationContext';
-import { AutomationProcessorProvider } from '@/contexts/AutomationProcessorContext';
-// import { AutomationScheduler } from '@/components/automations/AutomationScheduler';
+// REMOVED: AutomationProcessorProvider - now handled by database triggers
 
 interface AppProvidersProps {
   children: ReactNode;
@@ -19,18 +17,16 @@ export const AppProviders = ({ children }: AppProvidersProps) => {
     <RBACProvider>
       <GlobalRealtimeProvider>
         <OrganizationProvider>
-          <AutomationProcessorProvider>
-            <MessageProvider>
-              <SMSProvider>
-                <EmailProvider>
-                  <ModalProvider>
-                    {/* <AutomationScheduler /> */}
-                    {children}
-                  </ModalProvider>
-                </EmailProvider>
-              </SMSProvider>
-            </MessageProvider>
-          </AutomationProcessorProvider>
+          {/* Automation processing now handled by database triggers - no frontend dependency */}
+          <MessageProvider>
+            <SMSProvider>
+              <EmailProvider>
+                <ModalProvider>
+                  {children}
+                </ModalProvider>
+              </EmailProvider>
+            </SMSProvider>
+          </MessageProvider>
         </OrganizationProvider>
       </GlobalRealtimeProvider>
     </RBACProvider>
