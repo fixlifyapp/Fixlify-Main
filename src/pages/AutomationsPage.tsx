@@ -20,7 +20,7 @@ export default function AutomationsPage() {
       
       <AnimatedContainer>
         <Tabs defaultValue="workflows" className="space-y-4">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="workflows" className="flex items-center gap-2">
               <Workflow className="h-4 w-4" />
               Workflows
@@ -32,10 +32,6 @@ export default function AutomationsPage() {
             <TabsTrigger value="monitor" className="flex items-center gap-2">
               <Monitor className="h-4 w-4" />
               Monitor
-            </TabsTrigger>
-            <TabsTrigger value="health" className="flex items-center gap-2">
-              <Heart className="h-4 w-4" />
-              Health
             </TabsTrigger>
           </TabsList>
           
@@ -51,21 +47,6 @@ export default function AutomationsPage() {
             <AutomationMonitor />
           </TabsContent>
           
-          <TabsContent value="health" className="mt-6">
-            <Card className="p-6">
-              <div className="space-y-6">
-                <div>
-                  <h3 className="text-lg font-semibold mb-4">System Health Check</h3>
-                  <AutomationHealthCheck />
-                </div>
-                
-                <div>
-                  <h3 className="text-lg font-semibold mb-4">Test Runner</h3>
-                  <AutomationTestRunner />
-                </div>
-              </div>
-            </Card>
-          </TabsContent>
         </Tabs>
       </AnimatedContainer>
     </PageLayout>
