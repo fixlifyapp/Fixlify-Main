@@ -29,11 +29,6 @@ export const useJobsStable = (clientId?: string, enableCustomFields?: boolean) =
       return;
     }
 
-    if (hasError) {
-      setIsLoading(false);
-      return;
-    }
-
     setIsLoading(true);
     setHasError(false);
     
@@ -101,10 +96,11 @@ export const useJobsStable = (clientId?: string, enableCustomFields?: boolean) =
     } catch (error) {
       console.error('❌ Failed to fetch jobs after retries:', error);
       setJobs([]);
+      setHasError(true);
     } finally {
       setIsLoading(false);
     }
-  }, [clientId, user?.id, isAuthenticated, getJobViewScope, hasError]);
+  }, [clientId, user?.id, isAuthenticated, getJobViewScope]);
 
   // Only trigger fetch when dependencies actually change
   useEffect(() => {
