@@ -7,21 +7,8 @@ const ongoingAutomations = new Set<string>();
 export function useJobStatusUpdate(jobId?: string, refreshJob?: () => void) {
 
   const logStatusChange = async (oldStatus: string, newStatus: string) => {
-    if (!jobId) return;
-    
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
-
-    await supabase.from('job_history').insert({
-      job_id: jobId,
-      action: 'status_changed',
-      details: {
-        from: oldStatus,
-        to: newStatus
-      },
-      performed_by: user.id,
-      performed_at: new Date().toISOString()
-    });
+    // Job history logging is handled by database triggers
+    console.log(`📝 Status changed: ${oldStatus} → ${newStatus}`);
   };
 
   const updateJobStatus = async (newStatus: string, oldStatus?: string) => {
@@ -98,11 +85,15 @@ export function useJobStatusUpdate(jobId?: string, refreshJob?: () => void) {
       
       toast.success(`Job status updated to ${newStatus}`);
       
-      // NOTE: Automation triggers are handled by the database trigger
-      // The database trigger (handle_job_automation_triggers) will create pending logs
-      // These logs are then processed by the automation processor service
-      // We don't need to trigger automations here to avoid duplicates
+      // Automation triggers are handled by the database trigger
+      // The database trigger creates pending logs automatically
+      // Start the automation processor to handle them
       console.log('📮 Database trigger will handle automation workflows');
+      
+      // Ensure automation processor is running
+      import('@/services/automation-processor').then(({ automationProcessor }) => {
+        automationProcessor.start();
+      });
       
       // Refresh job data after a small delay to allow database triggers to complete
       setTimeout(() => {

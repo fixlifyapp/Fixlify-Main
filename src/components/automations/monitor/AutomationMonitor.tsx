@@ -99,6 +99,12 @@ export const AutomationMonitor: React.FC = () => {
   useEffect(() => {
     refreshStatus();
     const interval = setInterval(refreshStatus, 30000); // Refresh every 30 seconds
+    
+    // Start automation processor
+    import('@/services/automation-processor').then(({ automationProcessor }) => {
+      automationProcessor.start();
+    });
+    
     return () => clearInterval(interval);
   }, []);
 

@@ -581,6 +581,66 @@ export type Database = {
           },
         ]
       }
+      automation_analytics: {
+        Row: {
+          avg_execution_time: number | null
+          created_at: string | null
+          date: string
+          execution_count: number | null
+          failure_count: number | null
+          id: string
+          revenue_impact: number | null
+          success_count: number | null
+          success_rate: number | null
+          total_execution_time: number | null
+          updated_at: string | null
+          workflow_id: string | null
+        }
+        Insert: {
+          avg_execution_time?: number | null
+          created_at?: string | null
+          date: string
+          execution_count?: number | null
+          failure_count?: number | null
+          id?: string
+          revenue_impact?: number | null
+          success_count?: number | null
+          success_rate?: number | null
+          total_execution_time?: number | null
+          updated_at?: string | null
+          workflow_id?: string | null
+        }
+        Update: {
+          avg_execution_time?: number | null
+          created_at?: string | null
+          date?: string
+          execution_count?: number | null
+          failure_count?: number | null
+          id?: string
+          revenue_impact?: number | null
+          success_count?: number | null
+          success_rate?: number | null
+          total_execution_time?: number | null
+          updated_at?: string | null
+          workflow_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "automation_analytics_workflow_id_fkey"
+            columns: ["workflow_id"]
+            isOneToOne: false
+            referencedRelation: "automation_workflow_status"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "automation_analytics_workflow_id_fkey"
+            columns: ["workflow_id"]
+            isOneToOne: false
+            referencedRelation: "automation_workflows"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       automation_conditions: {
         Row: {
           automation_id: string | null
@@ -619,6 +679,33 @@ export type Database = {
           },
         ]
       }
+      automation_deduplication: {
+        Row: {
+          created_at: string | null
+          execution_hash: string
+          id: string
+          job_id: string
+          new_status: string
+          workflow_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          execution_hash: string
+          id?: string
+          job_id: string
+          new_status: string
+          workflow_id: string
+        }
+        Update: {
+          created_at?: string | null
+          execution_hash?: string
+          id?: string
+          job_id?: string
+          new_status?: string
+          workflow_id?: string
+        }
+        Relationships: []
+      }
       automation_execution_logs: {
         Row: {
           actions_executed: Json | null
@@ -627,6 +714,7 @@ export type Database = {
           created_at: string | null
           details: Json | null
           error_message: string | null
+          execution_time_ms: number | null
           id: string
           location_used: string | null
           organization_id: string | null
@@ -647,6 +735,7 @@ export type Database = {
           created_at?: string | null
           details?: Json | null
           error_message?: string | null
+          execution_time_ms?: number | null
           id?: string
           location_used?: string | null
           organization_id?: string | null
@@ -667,6 +756,7 @@ export type Database = {
           created_at?: string | null
           details?: Json | null
           error_message?: string | null
+          execution_time_ms?: number | null
           id?: string
           location_used?: string | null
           organization_id?: string | null
@@ -697,6 +787,48 @@ export type Database = {
           },
           {
             foreignKeyName: "automation_execution_logs_workflow_id_fkey"
+            columns: ["workflow_id"]
+            isOneToOne: false
+            referencedRelation: "automation_workflows"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      automation_execution_tracker: {
+        Row: {
+          created_at: string | null
+          execution_minute: string
+          id: string
+          job_id: string
+          status_change: string
+          workflow_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          execution_minute: string
+          id?: string
+          job_id: string
+          status_change: string
+          workflow_id: string
+        }
+        Update: {
+          created_at?: string | null
+          execution_minute?: string
+          id?: string
+          job_id?: string
+          status_change?: string
+          workflow_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "automation_execution_tracker_workflow_id_fkey"
+            columns: ["workflow_id"]
+            isOneToOne: false
+            referencedRelation: "automation_workflow_status"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "automation_execution_tracker_workflow_id_fkey"
             columns: ["workflow_id"]
             isOneToOne: false
             referencedRelation: "automation_workflows"
@@ -823,6 +955,60 @@ export type Database = {
           trigger_data?: Json | null
         }
         Relationships: []
+      }
+      automation_schedules: {
+        Row: {
+          created_at: string | null
+          cron_expression: string
+          cron_job_name: string | null
+          id: string
+          is_active: boolean | null
+          last_run: string | null
+          metadata: Json | null
+          next_run: string | null
+          updated_at: string | null
+          workflow_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          cron_expression: string
+          cron_job_name?: string | null
+          id?: string
+          is_active?: boolean | null
+          last_run?: string | null
+          metadata?: Json | null
+          next_run?: string | null
+          updated_at?: string | null
+          workflow_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          cron_expression?: string
+          cron_job_name?: string | null
+          id?: string
+          is_active?: boolean | null
+          last_run?: string | null
+          metadata?: Json | null
+          next_run?: string | null
+          updated_at?: string | null
+          workflow_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "automation_schedules_workflow_id_fkey"
+            columns: ["workflow_id"]
+            isOneToOne: false
+            referencedRelation: "automation_workflow_status"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "automation_schedules_workflow_id_fkey"
+            columns: ["workflow_id"]
+            isOneToOne: false
+            referencedRelation: "automation_workflows"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       automation_template_usage: {
         Row: {
@@ -1147,13 +1333,6 @@ export type Database = {
             columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "automation_workflows_organization_id_fkey"
-            columns: ["organization_id"]
-            isOneToOne: false
-            referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
         ]
@@ -1550,7 +1729,9 @@ export type Database = {
           created_at: string | null
           created_by: string | null
           email: string | null
+          first_name: string | null
           id: string
+          last_name: string | null
           name: string
           notes: string | null
           phone: string | null
@@ -1570,7 +1751,9 @@ export type Database = {
           created_at?: string | null
           created_by?: string | null
           email?: string | null
+          first_name?: string | null
           id?: string
+          last_name?: string | null
           name: string
           notes?: string | null
           phone?: string | null
@@ -1590,7 +1773,9 @@ export type Database = {
           created_at?: string | null
           created_by?: string | null
           email?: string | null
+          first_name?: string | null
           id?: string
+          last_name?: string | null
           name?: string
           notes?: string | null
           phone?: string | null
@@ -1620,6 +1805,7 @@ export type Database = {
           from_address: string
           from_number: string | null
           id: string
+          idempotency_key: string | null
           job_id: string | null
           metadata: Json | null
           recipient: string | null
@@ -1645,6 +1831,7 @@ export type Database = {
           from_address: string
           from_number?: string | null
           id?: string
+          idempotency_key?: string | null
           job_id?: string | null
           metadata?: Json | null
           recipient?: string | null
@@ -1670,6 +1857,7 @@ export type Database = {
           from_address?: string
           from_number?: string | null
           id?: string
+          idempotency_key?: string | null
           job_id?: string | null
           metadata?: Json | null
           recipient?: string | null
@@ -3728,6 +3916,7 @@ export type Database = {
           company_logo: string | null
           company_name: string | null
           company_phone: string | null
+          company_website: string | null
           created_at: string | null
           custom_role_id: string | null
           email: string | null
@@ -3763,6 +3952,7 @@ export type Database = {
           company_logo?: string | null
           company_name?: string | null
           company_phone?: string | null
+          company_website?: string | null
           created_at?: string | null
           custom_role_id?: string | null
           email?: string | null
@@ -3798,6 +3988,7 @@ export type Database = {
           company_logo?: string | null
           company_name?: string | null
           company_phone?: string | null
+          company_website?: string | null
           created_at?: string | null
           custom_role_id?: string | null
           email?: string | null
@@ -5142,6 +5333,31 @@ export type Database = {
       }
     }
     Views: {
+      automation_cron_status: {
+        Row: {
+          failed_runs: number | null
+          is_active: boolean | null
+          job_name: string | null
+          last_run: string | null
+          last_run_ended: string | null
+          schedule: string | null
+          success_rate: number | null
+          successful_runs: number | null
+          total_runs: number | null
+        }
+        Relationships: []
+      }
+      automation_health: {
+        Row: {
+          completed_last_hour: number | null
+          currently_pending: number | null
+          currently_processing: number | null
+          failed_last_hour: number | null
+          last_failed_at: string | null
+          last_successful_at: string | null
+        }
+        Relationships: []
+      }
       automation_workflow_status: {
         Row: {
           created_at: string | null
@@ -5336,6 +5552,10 @@ export type Database = {
         Args: { data: string }
         Returns: string
       }
+      check_automation_triggers: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
       check_communication_health: {
         Args: Record<PropertyKey, never>
         Returns: {
@@ -5345,6 +5565,18 @@ export type Database = {
           total_24h: number
           success_rate: number
         }[]
+      }
+      check_condition_triggers: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
+      check_invoice_overdue_triggers: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
+      check_maintenance_triggers: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
       }
       check_overdue_tasks: {
         Args: Record<PropertyKey, never>
@@ -5361,6 +5593,18 @@ export type Database = {
           p_max_attempts?: number
           p_window_minutes?: number
         }
+        Returns: boolean
+      }
+      check_recent_automation_execution: {
+        Args: {
+          p_workflow_id: string
+          p_job_id: string
+          p_trigger_type: string
+        }
+        Returns: boolean
+      }
+      check_schedule_condition: {
+        Args: { workflow: Record<string, unknown> }
         Returns: boolean
       }
       check_time_based_automations: {
@@ -5390,7 +5634,15 @@ export type Database = {
         Args: { p_keep_system_users?: boolean; p_dry_run?: boolean }
         Returns: Json
       }
+      cleanup_old_automation_logs: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
       cleanup_old_communication_logs: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
+      cleanup_stuck_automations: {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
@@ -5494,6 +5746,15 @@ export type Database = {
           p_client_name?: string
           p_client_email?: string
           p_client_phone?: string
+        }
+        Returns: string
+      }
+      generate_execution_hash: {
+        Args: {
+          p_workflow_id: string
+          p_job_id: string
+          p_new_status: string
+          p_time_window?: number
         }
         Returns: string
       }
@@ -5658,6 +5919,10 @@ export type Database = {
         Args: { product_row: Database["public"]["Tables"]["products"]["Row"] }
         Returns: Json
       }
+      get_secret_keys: {
+        Args: Record<PropertyKey, never>
+        Returns: string[]
+      }
       get_service_areas: {
         Args: { p_team_member_id: string }
         Returns: {
@@ -5665,6 +5930,10 @@ export type Database = {
           name: string
           zip_code: string
         }[]
+      }
+      get_service_role_key: {
+        Args: Record<PropertyKey, never>
+        Returns: string
       }
       get_task_context: {
         Args: { task_id: string }
@@ -5933,6 +6202,10 @@ export type Database = {
           | { automation_id: string; test_data?: Json }
           | { p_workflow_id: string }
         Returns: Json
+      }
+      update_automation_analytics: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
       }
       update_document_counter_higher_only: {
         Args: {
