@@ -14,6 +14,7 @@ interface EmailRequest {
   from?: string;
   replyTo?: string;
   userId?: string;
+  clientId?: string;
   template?: string;
   variables?: Record<string, any>;
   attachments?: Array<{
@@ -21,6 +22,7 @@ interface EmailRequest {
     content: string;
     contentType?: string;
   }>;
+  metadata?: Record<string, any>;
 }
 
 serve(async (req) => {
@@ -30,14 +32,38 @@ serve(async (req) => {
   }
 
   try {
-    const emailRequest: EmailRequest = await req.json();
+    const requestData = await req.json();
+    
+    // Handle test requests
+    if (requestData.test === true) {
+      console.log('Test request received for mailgun-email');
+      return new Response(
+        JSON.stringify({ 
+          success: true, 
+          message: 'Mailgun email service is accessible',
+          version: '1.0.0'
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    
+    const emailRequest: EmailRequest = requestData;
     console.log('Received email request for:', emailRequest.to);
     
-    // Get Mailgun API key (the only global setting we need)
+    // Get Mailgun configuration from environment
     const mailgunApiKey = Deno.env.get('MAILGUN_API_KEY');
+    const mailgunDomain = Deno.env.get('MAILGUN_DOMAIN') || 'fixlify.app';
+    const mailgunFromEmail = Deno.env.get('MAILGUN_FROM_EMAIL') || `noreply@${mailgunDomain}`;
     
     // For testing purposes, if Mailgun is not configured, we'll simulate the email
     const isTestMode = !mailgunApiKey;
+    
+    console.log('Mailgun configuration:', {
+      hasApiKey: !!mailgunApiKey,
+      domain: mailgunDomain,
+      fromEmail: mailgunFromEmail,
+      isTestMode
+    });
     
     if (isTestMode) {
       console.log('WARNING: Mailgun not configured, running in test mode');
@@ -53,8 +79,7 @@ serve(async (req) => {
     }
     
     // Get user-specific email settings
-    let userEmailDomain = 'fixlify.app';
-    let fromEmail = emailRequest.from || 'noreply@fixlify.app';
+    let fromEmail = emailRequest.from || mailgunFromEmail;
     
     if (supabase && emailRequest.userId) {
       try {
@@ -64,7 +89,7 @@ serve(async (req) => {
           .eq('id', emailRequest.userId)
           .single();
           
-        if (profile?.company_name) {
+        if (profile?.company_name && !emailRequest.from) {
           // Generate dynamic email based on company name
           const formattedCompanyName = profile.company_name
             .toLowerCase()
@@ -75,7 +100,7 @@ serve(async (req) => {
             .replace(/^_+|_+$/g, '')
             .substring(0, 30) || 'support';
           
-          fromEmail = emailRequest.from || `${formattedCompanyName}@fixlify.app`;
+          fromEmail = `${formattedCompanyName}@${mailgunDomain}`;
         }
         
         // Use company_email if they have one set
@@ -85,7 +110,8 @@ serve(async (req) => {
       } catch (error) {
         console.log('Could not fetch user profile, using default email');
       }
-    }    
+    }
+    
     // Build email data with dynamic from address
     const formData = new FormData();
     formData.append('from', fromEmail);
@@ -131,26 +157,29 @@ serve(async (req) => {
       console.log('From:', fromEmail);
       
       mailgunResult = {
-        id: `test-${Date.now()}@fixlify.com`,
+        id: `test-${Date.now()}@${mailgunDomain}`,
         message: 'Test mode - email simulated'
       };
       
       // Log the simulated email
-      if (supabase && emailRequest.userId) {
+      if (supabase) {
         try {
           await supabase
             .from('communication_logs')
             .insert({
-              user_id: emailRequest.userId,
+              user_id: emailRequest.userId || '00000000-0000-0000-0000-000000000000',
+              client_id: emailRequest.clientId,
               type: 'email',
-              recipient: emailRequest.to,
-              subject: emailRequest.subject,
-              message: emailRequest.text || emailRequest.html,
+              direction: 'outbound',
               status: 'sent',
+              from_address: fromEmail,
+              to_address: emailRequest.to,
+              subject: emailRequest.subject,
+              content: emailRequest.text || emailRequest.html,
               metadata: {
+                ...emailRequest.metadata,
                 test_mode: true,
-                mailgun_id: mailgunResult.id,
-                  from: fromEmail
+                mailgun_id: mailgunResult.id
               }
             });
         } catch (logError) {
@@ -158,8 +187,10 @@ serve(async (req) => {
         }
       }
     } else {
-      // Real Mailgun API call using fixlify.app domain
-      const mailgunUrl = `https://api.mailgun.net/v3/fixlify.app/messages`;
+      // Real Mailgun API call using configured domain
+      const mailgunUrl = `https://api.mailgun.net/v3/${mailgunDomain}/messages`;
+      
+      console.log('Calling Mailgun API:', mailgunUrl);
       
       const mailgunResponse = await fetch(mailgunUrl, {
         method: 'POST',
@@ -176,21 +207,24 @@ serve(async (req) => {
         console.error('Mailgun API error:', responseText);
         
         // Log failure if Supabase is available
-        if (supabase && emailRequest.userId) {
+        if (supabase) {
           try {
             await supabase
               .from('communication_logs')
               .insert({
-                user_id: emailRequest.userId,
+                user_id: emailRequest.userId || '00000000-0000-0000-0000-000000000000',
+                client_id: emailRequest.clientId,
                 type: 'email',
-                recipient: emailRequest.to,
-                subject: emailRequest.subject,
-                message: emailRequest.text || emailRequest.html,
+                direction: 'outbound',
                 status: 'failed',
-                error: responseText,
+                from_address: fromEmail,
+                to_address: emailRequest.to,
+                subject: emailRequest.subject,
+                content: emailRequest.text || emailRequest.html,
+                error_message: responseText,
                 metadata: {
-                  mailgun_status: mailgunResponse.status,
-                  from: fromEmail
+                  ...emailRequest.metadata,
+                  mailgun_status: mailgunResponse.status
                 }
               });
           } catch (logError) {
@@ -202,22 +236,28 @@ serve(async (req) => {
       }
       
       mailgunResult = JSON.parse(responseText);
+      console.log('Email sent successfully:', mailgunResult);
       
       // Log success if Supabase is available
-      if (supabase && emailRequest.userId) {
+      if (supabase) {
         try {
           await supabase
             .from('communication_logs')
             .insert({
-              user_id: emailRequest.userId,
+              user_id: emailRequest.userId || '00000000-0000-0000-0000-000000000000',
+              client_id: emailRequest.clientId,
               type: 'email',
-              recipient: emailRequest.to,
-              subject: emailRequest.subject,
-              message: emailRequest.text || emailRequest.html,
+              direction: 'outbound',
               status: 'sent',
+              from_address: fromEmail,
+              to_address: emailRequest.to,
+              subject: emailRequest.subject,
+              content: emailRequest.text || emailRequest.html,
+              external_id: mailgunResult.id,
+              sent_at: new Date().toISOString(),
               metadata: {
-                mailgun_id: mailgunResult.id,
-                  from: fromEmail
+                ...emailRequest.metadata,
+                mailgun_id: mailgunResult.id
               }
             });
         } catch (logError) {
@@ -230,7 +270,7 @@ serve(async (req) => {
       JSON.stringify({ 
         success: true, 
         message: 'Email sent successfully',
-        mailgunId: mailgunResult.id,
+        messageId: mailgunResult.id,
         recipient: emailRequest.to
       }),
       {

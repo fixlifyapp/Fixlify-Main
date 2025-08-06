@@ -1,80 +1,27 @@
-import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
-import { useJobHistoryIntegration } from "@/hooks/useJobHistoryIntegration";
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from '@/hooks/use-toast';
 
-export const useJobStatusUpdate = (jobId: string, refreshJob: () => void) => {
-  const { logStatusChange } = useJobHistoryIntegration(jobId);
+// Track ongoing automations to prevent duplicates
+const ongoingAutomations = new Set<string>();
 
-  const triggerAutomationWorkflows = async (jobId: string, oldStatus: string, newStatus: string) => {
-    try {
-      console.log('🤖 Triggering automation workflows for status change:', { jobId, oldStatus, newStatus });
-      
-      // Get all pending automation logs for this job's status change
-      const { data: pendingLogs, error: fetchError } = await supabase
-        .from('automation_execution_logs')
-        .select('*')
-        .eq('status', 'pending')
-        .eq('trigger_type', 'job_status_changed')
-        .filter('trigger_data->job->id', 'eq', jobId)
-        .order('created_at', { ascending: false })
-        .limit(10);
+export function useJobStatusUpdate(jobId?: string, refreshJob?: () => void) {
 
-      if (fetchError) {
-        console.error('Error fetching pending automation logs:', fetchError);
-        return;
-      }
+  const logStatusChange = async (oldStatus: string, newStatus: string) => {
+    if (!jobId) return;
+    
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
 
-      if (!pendingLogs || pendingLogs.length === 0) {
-        console.log('No pending automation logs found for this job');
-        return;
-      }
-
-      console.log(`Found ${pendingLogs.length} pending automation logs to process`);
-
-      // Process each pending automation log
-      for (const log of pendingLogs) {
-        try {
-          console.log('Processing automation log:', log.id, 'for workflow:', log.workflow_id);
-          
-          // Call the automation executor edge function
-          const { data, error } = await supabase.functions.invoke('automation-executor', {
-            body: {
-              workflowId: log.workflow_id,
-              context: log.trigger_data
-            }
-          });
-
-          if (error) {
-            console.error('Error executing automation:', error);
-            // Update log to failed
-            await supabase
-              .from('automation_execution_logs')
-              .update({
-                status: 'failed',
-                completed_at: new Date().toISOString(),
-                error_message: error.message
-              })
-              .eq('id', log.id);
-          } else {
-            console.log('Automation executed successfully:', data);
-            // Update log to completed
-            await supabase
-              .from('automation_execution_logs')
-              .update({
-                status: 'completed',
-                completed_at: new Date().toISOString(),
-                actions_executed: data?.results || []
-              })
-              .eq('id', log.id);
-          }
-        } catch (err) {
-          console.error('Error processing automation log:', err);
-        }
-      }
-    } catch (error) {
-      console.error('Error in triggerAutomationWorkflows:', error);
-      // Don't throw - this shouldn't break the status update
-    }
+    await supabase.from('job_history').insert({
+      job_id: jobId,
+      action: 'status_changed',
+      details: {
+        from: oldStatus,
+        to: newStatus
+      },
+      performed_by: user.id,
+      performed_at: new Date().toISOString()
+    });
   };
 
   const updateJobStatus = async (newStatus: string, oldStatus?: string) => {
@@ -118,11 +65,14 @@ export const useJobStatusUpdate = (jobId: string, refreshJob: () => void) => {
       
       console.log('📊 Current status:', currentStatus, '→ New status:', newStatus);
       
-      // Update job status in database
+      // Normalize status to lowercase for consistency
+      const normalizedNewStatus = newStatus.toLowerCase();
+      
+      // Update job status in database with normalized status
       const { data: updateData, error: updateError } = await supabase
         .from('jobs')
         .update({ 
-          status: newStatus,
+          status: normalizedNewStatus,
           updated_at: new Date().toISOString() 
         })
         .eq('id', jobId)
@@ -148,15 +98,18 @@ export const useJobStatusUpdate = (jobId: string, refreshJob: () => void) => {
       
       toast.success(`Job status updated to ${newStatus}`);
       
-      // Trigger automation workflows after a small delay to ensure database triggers have created the logs
-      setTimeout(async () => {
-        await triggerAutomationWorkflows(jobId, currentStatus, newStatus);
-      }, 1000);
+      // NOTE: Automation triggers are handled by the database trigger
+      // The database trigger (handle_job_automation_triggers) will create pending logs
+      // These logs are then processed by the automation processor service
+      // We don't need to trigger automations here to avoid duplicates
+      console.log('📮 Database trigger will handle automation workflows');
       
       // Refresh job data after a small delay to allow database triggers to complete
       setTimeout(() => {
         console.log('🔄 Refreshing job data...');
-        refreshJob();
+        if (refreshJob) {
+          refreshJob();
+        }
       }, 500);
       
     } catch (error) {
@@ -167,4 +120,4 @@ export const useJobStatusUpdate = (jobId: string, refreshJob: () => void) => {
   };
 
   return { updateJobStatus };
-};
+}

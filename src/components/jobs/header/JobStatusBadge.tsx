@@ -90,8 +90,8 @@ export const JobStatusBadge = ({
   };
 
   const getStatusLabel = (statusValue: string) => {
-    // Always return the properly formatted status name
-    return statusValue;
+    // Return status in uppercase
+    return statusValue.toUpperCase();
   };
 
   const handleStatusChange = async (newStatus: string) => {

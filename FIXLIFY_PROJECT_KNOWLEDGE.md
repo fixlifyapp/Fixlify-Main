@@ -277,3 +277,26 @@ Fixlify is a comprehensive repair shop management system built with Next.js, Sup
   - `CLIENT_OPTIMIZATION_QUICKSTART.md` - Migration guide
   - `CLIENT_OPTIMIZATION_SUMMARY.md` - Implementation summary
 - **Status**: ✅ FULLY OPTIMIZED - All phases complete, matching job system optimization level
+
+#### Automation System Configuration (August 5, 2025)
+- **Issue**: Automation workflows not sending emails/SMS when job status changes
+- **Investigation**:
+  1. Workflow triggers are working correctly ✅
+  2. Edge functions are accessible and responding ✅
+  3. Execution logs show workflows are completing ✅
+  4. BUT: Emails/SMS not being sent due to missing API keys
+- **Root Cause**: 
+  - Mailgun API key not configured in Supabase
+  - Telnyx API key not configured in Supabase
+  - Edge functions detecting missing keys and running in test mode
+- **Solution**: 
+  1. Add required API keys to Supabase Edge Function secrets:
+     - `MAILGUN_API_KEY` and `MAILGUN_DOMAIN` for email
+     - `TELNYX_API_KEY` and `TELNYX_MESSAGING_PROFILE_ID` for SMS
+  2. Created `SETUP_API_KEYS.md` with detailed instructions
+- **Current Status**: 
+  - ✅ Automation system fully functional
+  - ✅ Workflows trigger on job status changes
+  - ✅ Edge functions deployed and working
+  - ⚠️ Actual email/SMS sending requires API keys to be configured
+- **Next Steps**: Add API keys via Supabase dashboard to enable real email/SMS sending
