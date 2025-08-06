@@ -6123,6 +6123,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: Json
       }
+      process_automation_system: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
       process_email_template: {
         Args: { p_template_name: string; p_variables: Json; p_user_id?: string }
         Returns: {
