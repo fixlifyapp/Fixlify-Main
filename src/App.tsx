@@ -20,7 +20,7 @@ import "@/services/automationProcessor";
 // Pages
 import AuthPage from "@/pages/AuthPage";
 import Dashboard from "@/pages/Dashboard";
-import JobsPageOptimized from "@/pages/JobsPageOptimized";
+import JobsPage from "@/pages/JobsPage";
 import JobDetailsPage from "@/pages/JobDetailsPage";
 import ClientsPage from "@/pages/ClientsPage";
 import ClientDetailPage from "@/pages/ClientDetailPage";
@@ -142,7 +142,7 @@ function App() {
             <Route path="/jobs" element={
               <AuthProvider>
                 <ProtectedRouteWithProviders>
-                  <JobsPageOptimized />
+                  <JobsPage />
                 </ProtectedRouteWithProviders>
               </AuthProvider>
             } />
