@@ -14,8 +14,7 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 import "@/utils/realtimeDebug";
 // Import real-time error handler
 import "@/utils/realtimeErrorHandler";
-// Import automation processor to start engine
-import "@/services/automationProcessor";
+// Automation now handled by database triggers and cron jobs
 
 // Pages
 import AuthPage from "@/pages/AuthPage";

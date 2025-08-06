@@ -1,12 +1,10 @@
-import React, { createContext, useContext, useEffect, useRef } from 'react';
-import { automationProcessor } from '@/services/automationProcessorService';
-import { AutomationRetryService } from '@/services/automationRetryService';
-import { useAuth } from '@/hooks/use-auth';
+import React, { createContext, useContext } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 
 interface AutomationProcessorContextType {
   processNow: () => Promise<void>;
-  retryFailed: (options?: any) => Promise<{ retried: number; errors: number }>;
-  getRetryStats: () => Promise<any>;
+  getSystemHealth: () => Promise<any>;
+  testJobAutomation: (jobId: string, oldStatus?: string, newStatus?: string) => Promise<any>;
 }
 
 const AutomationProcessorContext = createContext<AutomationProcessorContextType | undefined>(undefined);
@@ -20,45 +18,45 @@ export const useAutomationProcessor = () => {
 };
 
 export const AutomationProcessorProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { user } = useAuth();
-  const autoRetryStop = useRef<(() => void) | null>(null);
-
-  useEffect(() => {
-    if (user) {
-      // Start the processor when user is authenticated
-      console.log('🚀 Starting automation processor for user:', user.id);
-      automationProcessor.start();
-      
-      // Start auto-retry service (checks every 5 minutes)
-      autoRetryStop.current = AutomationRetryService.startAutoRetry();
-    } else {
-      // Stop the processor when user logs out
-      console.log('🛑 Stopping automation processor (no user)');
-      automationProcessor.stop();
-      
-      // Stop auto-retry
-      if (autoRetryStop.current) {
-        autoRetryStop.current();
-        autoRetryStop.current = null;
-      }
-    }
-
-    return () => {
-      // Cleanup on unmount
-      automationProcessor.stop();
-      
-      // Stop auto-retry
-      if (autoRetryStop.current) {
-        autoRetryStop.current();
-        autoRetryStop.current = null;
-      }
-    };
-  }, [user]);
-
   const value = {
-    processNow: () => automationProcessor.processNow(),
-    retryFailed: (options?: any) => AutomationRetryService.retryFailedAutomations(options),
-    getRetryStats: () => AutomationRetryService.getRetryStats()
+    processNow: async () => {
+      // Trigger the unified automation processor
+      const { error } = await supabase.rpc('process_automation_system');
+      if (error) {
+        console.error('Failed to trigger automation processing:', error);
+        throw error;
+      }
+      console.log('✅ Manual automation processing triggered');
+    },
+    
+    getSystemHealth: async () => {
+      const { data, error } = await supabase
+        .from('automation_system_health')
+        .select('*')
+        .single();
+      
+      if (error) {
+        console.error('Failed to get system health:', error);
+        throw error;
+      }
+      
+      return data;
+    },
+    
+    testJobAutomation: async (jobId: string, oldStatus = 'pending', newStatus = 'completed') => {
+      const { data, error } = await supabase.rpc('test_job_status_automation', {
+        p_job_id: jobId,
+        p_old_status: oldStatus,
+        p_new_status: newStatus
+      });
+      
+      if (error) {
+        console.error('Failed to test job automation:', error);
+        throw error;
+      }
+      
+      return data;
+    }
   };
 
   return (

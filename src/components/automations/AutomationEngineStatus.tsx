@@ -3,26 +3,31 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Activity, PlayCircle, AlertCircle } from 'lucide-react';
-import { AutomationProcessor } from '@/services/automationProcessor';
+import { useAutomationProcessor } from '@/contexts/AutomationProcessorContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 export const AutomationEngineStatus = () => {
-  const [isRunning, setIsRunning] = useState(false);
+  const { getSystemHealth, processNow } = useAutomationProcessor();
+  const [isRunning, setIsRunning] = useState(true); // Always running via cron
   const [pendingCount, setPendingCount] = useState(0);
   const [loading, setLoading] = useState(false);
 
   // Check engine status and pending automations
   const checkStatus = async () => {
-    setIsRunning(AutomationProcessor.isRunning());
-    
-    // Check pending automations
-    const { count } = await supabase
-      .from('automation_execution_logs')
-      .select('*', { count: 'exact', head: true })
-      .eq('status', 'pending');
-    
-    setPendingCount(count || 0);
+    try {
+      const health = await getSystemHealth();
+      setPendingCount(health.pending_count || 0);
+    } catch (error) {
+      console.error('Failed to get system health:', error);
+      // Fallback to direct query
+      const { count } = await supabase
+        .from('automation_execution_logs')
+        .select('*', { count: 'exact', head: true })
+        .eq('status', 'pending');
+      
+      setPendingCount(count || 0);
+    }
   };
 
   useEffect(() => {
@@ -35,14 +40,12 @@ export const AutomationEngineStatus = () => {
   const handleStartEngine = async () => {
     setLoading(true);
     try {
-      // Stop existing engine first, then restart
-      await AutomationProcessor.stopEngine();
-      await AutomationProcessor.startEngine();
-      setIsRunning(true);
-      toast.success('Automation engine restarted with latest fixes');
+      await processNow();
+      await checkStatus();
+      toast.success('Manual automation processing triggered');
     } catch (error) {
-      console.error('Failed to start automation engine:', error);
-      toast.error('Failed to start automation engine');
+      console.error('Failed to trigger automation processing:', error);
+      toast.error('Failed to trigger automation processing');
     } finally {
       setLoading(false);
     }

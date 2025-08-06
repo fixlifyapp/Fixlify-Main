@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { automationProcessor } from '@/services/automationProcessorService';
+import { useAutomationProcessor } from '@/contexts/AutomationProcessorContext';
 import { supabase } from '@/integrations/supabase/client';
 import { 
   Activity, 
@@ -44,6 +44,7 @@ interface HealthStatus {
 }
 
 export function AutomationHealthCheck() {
+  const { getSystemHealth, processNow } = useAutomationProcessor();
   const [health, setHealth] = useState<HealthStatus | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -52,8 +53,8 @@ export function AutomationHealthCheck() {
     try {
       setRefreshing(true);
       
-      // Get processor health
-      const processorHealth = await automationProcessor.getHealthStatus();
+      // Get system health from new unified system
+      const systemHealth = await getSystemHealth();
       
       // Check database connectivity and stats
       const [workflowsResult, executionsResult] = await Promise.all([
@@ -85,14 +86,14 @@ export function AutomationHealthCheck() {
       const hasEmailConfig = edgeFunctionChecks[1]; // If email service responds, it's likely configured
       const hasSmsConfig = edgeFunctionChecks[2]; // If SMS service responds, it's likely configured
       
-      // Fix type issues by ensuring proper number types
+      // Use system health data
       const healthData = {
-        isRunning: processorHealth.isRunning,
-        isProcessing: processorHealth.isProcessing,
-        pendingCount: typeof processorHealth.pendingCount === 'number' ? processorHealth.pendingCount : (processorHealth.pendingCount?.length || 0),
-        recentFailures: typeof processorHealth.recentFailures === 'number' ? processorHealth.recentFailures : (processorHealth.recentFailures?.length || 0),
-        cacheSize: processorHealth.cacheSize,
-        processedInSession: processorHealth.processedInSession
+        isRunning: true, // System is always running via cron
+        isProcessing: systemHealth.running_count > 0,
+        pendingCount: systemHealth.pending_count || 0,
+        recentFailures: systemHealth.failed_last_hour || 0,
+        cacheSize: 0, // No cache in unified system
+        processedInSession: systemHealth.completed_last_hour || 0
       };
 
       setHealth({
@@ -274,7 +275,7 @@ export function AutomationHealthCheck() {
             <Button 
               className="w-full" 
               onClick={async () => {
-                await automationProcessor.processNow();
+                await processNow();
                 toast.success('Triggered manual processing');
                 checkHealth();
               }}

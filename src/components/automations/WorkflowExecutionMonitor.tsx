@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { AutomationService } from '@/services/automationService';
-import { AutomationProcessor } from '@/services/automationProcessor';
+import { useAutomationProcessor } from '@/contexts/AutomationProcessorContext';
 import { PlayCircle, PauseCircle, Activity, Clock, CheckCircle, XCircle } from 'lucide-react';
 import { toast } from 'sonner';
 

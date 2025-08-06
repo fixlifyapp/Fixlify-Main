@@ -4,7 +4,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { StopCircle, Loader2, AlertTriangle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { automationProcessor } from '@/services/automationProcessorService';
+import { useAutomationProcessor } from '@/contexts/AutomationProcessorContext';
 
 export const EmergencyAutomationStop: React.FC = () => {
   const [stopping, setStopping] = useState(false);
@@ -17,10 +17,7 @@ export const EmergencyAutomationStop: React.FC = () => {
 
     setStopping(true);
     try {
-      // Stop the processor
-      automationProcessor.stop();
-      
-      // Clear old pending logs
+      // Clear old pending logs (cron system can't be stopped from frontend)
       const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
       
       const { error } = await supabase

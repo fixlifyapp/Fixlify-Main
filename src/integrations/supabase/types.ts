@@ -5358,6 +5358,18 @@ export type Database = {
         }
         Relationships: []
       }
+      automation_system_health: {
+        Row: {
+          active_workflows: number | null
+          completed_last_hour: number | null
+          failed_last_hour: number | null
+          last_failure: string | null
+          last_success: string | null
+          pending_count: number | null
+          running_count: number | null
+        }
+        Relationships: []
+      }
       automation_workflow_status: {
         Row: {
           created_at: string | null
@@ -6190,7 +6202,9 @@ export type Database = {
         Returns: Json
       }
       test_job_status_automation: {
-        Args: { p_job_id: string; p_new_status: string; p_user_id?: string }
+        Args:
+          | { p_job_id: string; p_new_status: string; p_user_id?: string }
+          | { p_job_id: string; p_old_status?: string; p_new_status?: string }
         Returns: {
           workflow_id: string
           workflow_name: string
