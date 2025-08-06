@@ -7,7 +7,6 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
-  // Handle CORS
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -15,46 +14,71 @@ serve(async (req) => {
   try {
     console.log('🤖 Automation Scheduler started at', new Date().toISOString());
     
-    // Create Supabase client with service role key
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    // Get all pending automation logs (max 10 at a time to prevent overload)
+    // First, cleanup any stuck automations (running for more than 5 minutes)
+    const { error: cleanupError } = await supabaseClient
+      .from('automation_execution_logs')
+      .update({
+        status: 'failed',
+        completed_at: new Date().toISOString(),
+        error_message: 'Automation timed out - exceeded 5 minute limit'
+      })
+      .eq('status', 'running')
+      .lt('created_at', new Date(Date.now() - 5 * 60 * 1000).toISOString());
+
+    if (cleanupError) {
+      console.warn('⚠️ Failed to cleanup stuck automations:', cleanupError);
+    }
+
+    // Get pending automation logs (limit 5 to process faster)
     const { data: pendingLogs, error: fetchError } = await supabaseClient
       .from('automation_execution_logs')
       .select('*')
       .eq('status', 'pending')
       .order('created_at', { ascending: true })
-      .limit(10);
+      .limit(5); // Reduced from 10 to 5 for faster processing
 
     if (fetchError) {
       console.error('❌ Error fetching pending logs:', fetchError);
       throw fetchError;
     }
 
-    console.log(`📋 Found ${pendingLogs?.length || 0} pending automations to process`);
+    console.log(`📋 Found ${pendingLogs?.length || 0} pending automations`);
 
     const results = [];
     
-    // Process each pending log
     for (const log of pendingLogs || []) {
-      console.log(`⚙️ Processing automation log ${log.id} for workflow ${log.workflow_id}`);
+      console.log(`⚙️ Processing automation ${log.id}`);
       
       try {
-        // Mark as running to prevent duplicate processing
-        await supabaseClient
+        // Use a transaction-like approach: update to running with a check
+        const { data: updateData, error: updateError } = await supabaseClient
           .from('automation_execution_logs')
           .update({ 
             status: 'running',
             started_at: new Date().toISOString()
           })
           .eq('id', log.id)
-          .eq('status', 'pending'); // Only update if still pending
-        
-        // Call the automation executor
-        const { data, error } = await supabaseClient.functions.invoke('automation-executor', {
+          .eq('status', 'pending') // Only update if still pending
+          .select()
+          .single();
+
+        if (updateError || !updateData) {
+          console.log(`⏭️ Skipping ${log.id} - already being processed`);
+          continue;
+        }
+
+        // Set a timeout for the automation execution (30 seconds max)
+        const timeoutPromise = new Promise((_, reject) => {
+          setTimeout(() => reject(new Error('Execution timeout after 30 seconds')), 30000);
+        });
+
+        // Execute the automation with timeout
+        const executionPromise = supabaseClient.functions.invoke('automation-executor', {
           body: {
             workflowId: log.workflow_id,
             executionId: log.id,
@@ -62,30 +86,55 @@ serve(async (req) => {
           }
         });
 
+        // Race between execution and timeout
+        const { data, error } = await Promise.race([
+          executionPromise,
+          timeoutPromise
+        ]).catch(err => ({ data: null, error: err }));
+
         if (error) {
-          console.error(`❌ Failed to execute automation ${log.id}:`, error);
+          console.error(`❌ Failed ${log.id}:`, error.message);
           
-          // Mark as failed
           await supabaseClient
             .from('automation_execution_logs')
             .update({
               status: 'failed',
               completed_at: new Date().toISOString(),
-              error_message: error.message
+              error_message: error.message || 'Unknown error'
             })
             .eq('id', log.id);
             
           results.push({ id: log.id, status: 'failed', error: error.message });
         } else {
-          console.log(`✅ Successfully executed automation ${log.id}`);
+          console.log(`✅ Completed ${log.id}`);
+          
+          // The automation-executor should have updated the status
+          // But let's ensure it's marked as completed
+          await supabaseClient
+            .from('automation_execution_logs')
+            .update({
+              status: 'completed',
+              completed_at: new Date().toISOString()
+            })
+            .eq('id', log.id)
+            .eq('status', 'running'); // Only update if still running
+            
           results.push({ id: log.id, status: 'success' });
         }
         
-        // Add small delay between executions to prevent overwhelming the system
-        await new Promise(resolve => setTimeout(resolve, 500));
-        
       } catch (error) {
-        console.error(`💥 Unexpected error processing log ${log.id}:`, error);
+        console.error(`💥 Error processing ${log.id}:`, error);
+        
+        // Mark as failed
+        await supabaseClient
+          .from('automation_execution_logs')
+          .update({
+            status: 'failed',
+            completed_at: new Date().toISOString(),
+            error_message: error.message || 'Unexpected error'
+          })
+          .eq('id', log.id);
+          
         results.push({ id: log.id, status: 'error', error: error.message });
       }
     }
