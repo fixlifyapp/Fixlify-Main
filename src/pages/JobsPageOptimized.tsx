@@ -1,9 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { PageLayout } from "@/components/layout/PageLayout";
 import { PageHeader } from "@/components/ui/page-header";
 import { ModernCard } from "@/components/ui/modern-card";
 import { AnimatedContainer } from "@/components/ui/animated-container";
 import { Button } from "@/components/ui/button";
+import { LoadingSkeleton } from "@/components/ui/LoadingSkeleton";
 import { 
   Grid, 
   List, 
@@ -12,19 +13,19 @@ import {
   Target, 
   TrendingUp,
   RefreshCw,
-  WifiOff,
-  Wifi
+  Bug
 } from "lucide-react";
 import { JobsList } from "@/components/jobs/JobsList";
 import { JobsFilters } from "@/components/jobs/JobsFilters";
 import { BulkActionsBar } from "@/components/jobs/BulkActionsBar";
 import { ScheduleJobModal } from "@/components/schedule/ScheduleJobModal";
-import { useJobsOptimized } from "@/hooks/useJobsOptimized";
+import { JobsKPICards } from "@/components/jobs/JobsKPICards";
+import { useJobsConsolidated } from "@/hooks/useJobsConsolidated";
 import { useJobs } from "@/hooks/useJobs";
 import { toast } from "sonner";
-import { useGlobalRealtime } from "@/contexts/GlobalRealtimeProvider";
+import { debugJobCreation } from "@/utils/debug-job-creation";
 
-const JobsPage = () => {
+const JobsPageOptimized = () => {
   const [isGridView, setIsGridView] = useState(false);
   const [isCreateJobModalOpen, setIsCreateJobModalOpen] = useState(false);
   const [selectedJobs, setSelectedJobs] = useState<string[]>([]);
@@ -38,25 +39,23 @@ const JobsPage = () => {
     tags: [] as string[]
   });
   
-  // Use optimized hook for display
+  // Use consolidated optimized hook
   const { 
-    jobs: optimizedJobs, 
-    isLoading: isOptimizedLoading,
-    hasError: hasOptimizedError,
+    jobs, 
+    isLoading,
     totalCount,
     totalPages,
     hasNextPage,
     hasPreviousPage,
-    refreshJobs: refreshOptimized,
-    clearError: clearOptimizedError,
+    refreshJobs,
     canCreate,
     canEdit,
-    canDelete,
-    realtimeConnected
-  } = useJobsOptimized({
+    canDelete
+  } = useJobsConsolidated({
     page: currentPage,
     pageSize: 50,
-    enableRealtime: true
+    enableRealtime: false,  // Temporarily disabled to prevent resource exhaustion
+    filters
   });
 
   // Keep original hook for mutations only
@@ -64,61 +63,16 @@ const JobsPage = () => {
   
   // Clear selected jobs when jobs change
   useEffect(() => {
-    setSelectedJobs(prev => prev.filter(id => optimizedJobs.some(job => job.id === id)));
-  }, [optimizedJobs]);
+    setSelectedJobs(prev => prev.filter(id => jobs.some(job => job.id === id)));
+  }, [jobs]);
 
-  // Filter jobs based on current filters
-  const filteredJobs = optimizedJobs.filter(job => {
-    // Search filter - search in client name, job ID, title, and description
-    if (filters.search) {
-      const searchTerm = filters.search.toLowerCase();
-      const searchableFields = [
-        job.client?.name || '',
-        job.id || '',
-        job.title || '',
-        job.description || ''
-      ];
-      
-      if (!searchableFields.some(field => field.toLowerCase().includes(searchTerm))) {
-        return false;
-      }
-    }
-    
-    // Status filter - compare exact match since statuses are now standardized
-    if (filters.status !== "all" && job.status !== filters.status) {
-      return false;
-    }
-    
-    // Type filter
-    if (filters.type !== "all" && job.job_type?.toLowerCase() !== filters.type.toLowerCase()) {
-      return false;
-    }
-    
-    // Date range filter
-    if (filters.dateRange.start && job.date && new Date(job.date) < filters.dateRange.start) {
-      return false;
-    }
-    if (filters.dateRange.end && job.date && new Date(job.date) > filters.dateRange.end) {
-      return false;
-    }
-    
-    // Tags filter - check if job has any of the selected tags
-    if (filters.tags.length > 0) {
-      if (!job.tags || !filters.tags.some(tag => job.tags?.includes(tag))) {
-        return false;
-      }
-    }
-    
-    return true;
-  });
-  
   const handleJobCreated = async (jobData: any) => {
     try {
       const createdJob = await addJob(jobData);
       if (createdJob) {
         // Toast notification removed - already shown in ScheduleJobModal
         // Refresh optimized jobs immediately
-        refreshOptimized();
+        refreshJobs();
         return createdJob;
       }
     } catch (error) {
@@ -137,16 +91,16 @@ const JobsPage = () => {
   };
 
   const handleSelectAllJobs = (select: boolean) => {
-    setSelectedJobs(select ? filteredJobs.map(job => job.id) : []);
+    setSelectedJobs(select ? jobs.map(job => job.id) : []);
   };
 
-  // Bulk action handlers with optimized refresh
+  // Bulk action handlers
   const handleBulkUpdateStatus = async (jobIds: string[], newStatus: string) => {
     try {
       await Promise.all(jobIds.map(id => updateJob(id, { status: newStatus })));
       toast.success(`Updated ${jobIds.length} jobs to ${newStatus}`);
       setSelectedJobs([]);
-      refreshOptimized();
+      refreshJobs();
     } catch (error) {
       toast.error('Failed to update job statuses');
     }
@@ -157,7 +111,7 @@ const JobsPage = () => {
       await Promise.all(jobIds.map(id => updateJob(id, { technician_id: technicianId })));
       toast.success(`Assigned ${jobIds.length} jobs to ${technicianName}`);
       setSelectedJobs([]);
-      refreshOptimized();
+      refreshJobs();
     } catch (error) {
       toast.error('Failed to assign technician');
     }
@@ -168,14 +122,14 @@ const JobsPage = () => {
       await Promise.all(jobIds.map(id => deleteJob(id)));
       toast.success(`Deleted ${jobIds.length} jobs`);
       setSelectedJobs([]);
-      refreshOptimized();
+      refreshJobs();
     } catch (error) {
       toast.error('Failed to delete jobs');
     }
   };
 
   const handleBulkExport = (jobIds: string[]) => {
-    const selectedJobData = filteredJobs.filter(job => jobIds.includes(job.id));
+    const selectedJobData = jobs.filter(job => jobIds.includes(job.id));
     const csvData = selectedJobData.map(job => ({
       'Job ID': job.id,
       'Client': job.client?.name || '',
@@ -206,27 +160,36 @@ const JobsPage = () => {
   const handleBulkTagJobs = async (jobIds: string[], tags: string[]) => {
     try {
       await Promise.all(jobIds.map(id => {
-        const job = filteredJobs.find(j => j.id === id);
+        const job = jobs.find(j => j.id === id);
         const existingTags = job?.tags || [];
         const newTags = [...new Set([...existingTags, ...tags])];
         return updateJob(id, { tags: newTags });
       }));
       toast.success(`Tagged ${jobIds.length} jobs`);
       setSelectedJobs([]);
-      refreshOptimized();
+      refreshJobs();
     } catch (error) {
       toast.error('Failed to tag jobs');
     }
   };
 
   const handleRefreshJobs = () => {
-    if (hasOptimizedError) {
-      clearOptimizedError();
-    } else {
-      refreshOptimized();
-    }
+    refreshJobs();
     setSelectedJobs([]);
     toast.success('Jobs refreshed');
+  };
+
+  const handleDebugJobCreation = async () => {
+    const results = await debugJobCreation();
+    console.log('Debug results:', results);
+    
+    // Show toast with summary
+    const failures = Object.entries(results).filter(([_, result]) => !result.success);
+    if (failures.length === 0) {
+      toast.success('All job creation checks passed! ✅');
+    } else {
+      toast.error(`${failures.length} checks failed. See console for details.`);
+    }
   };
 
   return (
@@ -248,6 +211,10 @@ const JobsPage = () => {
         />
       </AnimatedContainer>
       
+      <AnimatedContainer animation="fade-in" delay={150}>
+        <JobsKPICards className="mb-6" jobs={jobs} isLoading={isLoading} />
+      </AnimatedContainer>
+      
       <AnimatedContainer animation="fade-in" delay={200}>
         <div className="space-y-6">
           <ModernCard variant="glass" className="p-4">
@@ -257,28 +224,25 @@ const JobsPage = () => {
                 filters={filters}
               />
               <div className="flex items-center gap-2">
-                {/* Real-time connection status */}
-                <div className="flex items-center gap-2 px-3 py-1 rounded-lg text-sm">
-                  {realtimeConnected ? (
-                    <>
-                      <Wifi size={16} className="text-green-500" />
-                      <span className="text-green-600">Live</span>
-                    </>
-                  ) : (
-                    <>
-                      <WifiOff size={16} className="text-red-500" />
-                      <span className="text-red-600">Offline</span>
-                    </>
-                  )}
-                </div>
+                {process.env.NODE_ENV === 'development' && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleDebugJobCreation}
+                    className="flex gap-2 rounded-xl"
+                    title="Debug job creation"
+                  >
+                    <Bug size={18} />
+                  </Button>
+                )}
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={handleRefreshJobs}
                   className="flex gap-2 rounded-xl"
-                  disabled={isOptimizedLoading}
+                  disabled={isLoading}
                 >
-                  <RefreshCw size={18} className={isOptimizedLoading ? "animate-spin" : ""} /> 
+                  <RefreshCw size={18} className={isLoading ? "animate-spin" : ""} /> 
                   Refresh
                 </Button>
                 <Button
@@ -301,14 +265,21 @@ const JobsPage = () => {
             </div>
           </ModernCard>
           
-          <JobsList 
-            isGridView={isGridView}
-            jobs={filteredJobs}
-            selectedJobs={selectedJobs}
-            onSelectJob={handleSelectJob}
-            onSelectAllJobs={handleSelectAllJobs}
-            onRefresh={handleRefreshJobs}
-          />
+          {isLoading ? (
+            <LoadingSkeleton 
+              type={isGridView ? "job-card" : "job-list"} 
+              count={6} 
+            />
+          ) : (
+            <JobsList 
+              isGridView={isGridView}
+              jobs={jobs}
+              selectedJobs={selectedJobs}
+              onSelectJob={handleSelectJob}
+              onSelectAllJobs={handleSelectAllJobs}
+              onRefresh={handleRefreshJobs}
+            />
+          )}
         </div>
       </AnimatedContainer>
       
@@ -326,9 +297,10 @@ const JobsPage = () => {
         open={isCreateJobModalOpen} 
         onOpenChange={setIsCreateJobModalOpen}
         onJobCreated={handleJobCreated}
+
       />
     </PageLayout>
   );
 };
 
-export default JobsPage;
+export default JobsPageOptimized;

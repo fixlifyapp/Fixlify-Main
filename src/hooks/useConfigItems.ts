@@ -43,13 +43,11 @@ export function useConfigItems<T extends ConfigItem>(tableName: string) {
   const [items, setItems] = useState<T[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
-  const [hasError, setHasError] = useState(false);
   const { hasPermission } = useRBAC();
   const { user } = useAuth();
   
   const fetchItems = async () => {
     setIsLoading(true);
-    setHasError(false);
     try {
       console.log(`[useConfigItems] Fetching ${tableName} for user:`, user?.id);
       
@@ -75,19 +73,15 @@ export function useConfigItems<T extends ConfigItem>(tableName: string) {
       
       if (error) {
         console.error(`[useConfigItems] Error fetching ${tableName}:`, error);
-        setHasError(true);
         throw error;
       }
       
       console.log(`[useConfigItems] Fetched ${tableName}:`, data?.length || 0, 'items');
       
       setItems(data as unknown as T[]);
-      setHasError(false);
     } catch (error) {
       console.error(`Error fetching ${tableName}:`, error);
-      setHasError(true);
-      // Don't show toast on every error to prevent spam
-      // toast.error(`Failed to load ${tableName}`);
+      toast.error(`Failed to load ${tableName}`);
     } finally {
       setIsLoading(false);
     }
@@ -97,15 +91,10 @@ export function useConfigItems<T extends ConfigItem>(tableName: string) {
   useUnifiedRealtime({
     tables: [tableName as any],
     onUpdate: () => {
-      // Only trigger refresh if we don't have an error state
-      if (!hasError) {
-        console.log(`Real-time update for ${tableName}`);
-        setRefreshTrigger(prev => prev + 1);
-      } else {
-        console.log(`Skipping real-time update for ${tableName} due to error state`);
-      }
+      console.log(`Real-time update for ${tableName}`);
+      setRefreshTrigger(prev => prev + 1);
     },
-    enabled: !hasError // Disable realtime when there are errors
+    enabled: true
   });
   
   useEffect(() => {
