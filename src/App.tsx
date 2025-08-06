@@ -60,8 +60,9 @@ const queryClient = new QueryClient({
       retry: 1,
       refetchOnWindowFocus: false,
       refetchOnReconnect: false,
-      staleTime: 5 * 60 * 1000,
-      gcTime: 10 * 60 * 1000,
+      staleTime: 10 * 60 * 1000, // 10 minutes
+      gcTime: 20 * 60 * 1000, // 20 minutes
+      refetchInterval: false, // Disable automatic refetching
     },
   },
 });

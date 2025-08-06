@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, ReactNode, useRef } from 'react';
+import { createContext, useContext, useEffect, useState, ReactNode, useRef, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { RealtimeChannel } from '@supabase/supabase-js';
@@ -21,7 +21,6 @@ interface GlobalRealtimeContextType {
   refreshCallbacks?: any;
 }
 
-// Export the context for use in other files
 export const GlobalRealtimeContext = createContext<GlobalRealtimeContextType | undefined>(undefined);
 
 export const useGlobalRealtime = () => {
@@ -57,314 +56,217 @@ export const GlobalRealtimeProvider = ({ children }: GlobalRealtimeProviderProps
   const channelRef = useRef<RealtimeChannel | null>(null);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const reconnectAttemptsRef = useRef(0);
+  const lastRefreshRef = useRef<Record<string, number>>({});
+  
+  // Debounce refresh calls to prevent excessive updates
+  const debounceRefresh = useCallback((tableName: string, callbacks: Set<() => void>) => {
+    const now = Date.now();
+    const lastRefresh = lastRefreshRef.current[tableName] || 0;
+    
+    // Skip if refreshed within last 500ms
+    if (now - lastRefresh < 500) {
+      return;
+    }
+    
+    lastRefreshRef.current[tableName] = now;
+    
+    // Use requestAnimationFrame for smoother updates
+    requestAnimationFrame(() => {
+      callbacks.forEach(callback => {
+        try {
+          callback();
+        } catch (error) {
+          console.error(`Error in ${tableName} callback:`, error);
+        }
+      });
+    });
+  }, []);
 
   useEffect(() => {
-    console.log('🔌 Setting up global realtime channels...');
+    console.log('🔌 Setting up optimized realtime channel...');
     
-    const setupRealtimeChannels = () => {
-      // Clean up existing channel if any
+    const setupRealtimeChannel = () => {
+      // Clean up existing channel
       if (channelRef.current) {
-        console.log('🧹 Cleaning up existing channel before creating new one');
         supabase.removeChannel(channelRef.current);
         channelRef.current = null;
       }
 
       try {
-        // Create a unique channel name with timestamp to avoid conflicts
-        const channelName = `global-db-changes-${Date.now()}`;
-        console.log(`📡 Creating new channel: ${channelName}`);
+        // Create a single consolidated channel for all tables
+        const channelName = `global-realtime-${Date.now()}`;
+        console.log(`📡 Creating optimized channel: ${channelName}`);
         
         const channel = supabase
           .channel(channelName, {
             config: {
-              broadcast: { self: true },
+              broadcast: { self: false }, // Don't receive own broadcasts
               presence: { key: 'global' }
             }
           })
-          .on(
-            'postgres_changes',
-            {
-              event: '*',
-              schema: 'public',
-              table: 'jobs'
-            },
-            (payload) => {
-              console.log('📊 Jobs table changed:', {
-                event: payload.eventType,
-                id: payload.new?.id || payload.old?.id,
-                callbacks: refreshCallbacksRef.current.jobs.size
-              });
-              refreshCallbacksRef.current.jobs.forEach(callback => {
-                try {
-                  callback();
-                } catch (error) {
-                  console.error('Error in jobs callback:', error);
-                }
-              });
-            }
-          )
-          .on(
-            'postgres_changes',
-            {
-              event: '*',
-              schema: 'public',
-              table: 'clients'
-            },
-            (payload) => {
-              console.log('Clients table changed:', payload);
-              refreshCallbacksRef.current.clients.forEach(callback => {
-                try {
-                  callback();
-                } catch (error) {
-                  console.error('Error in clients callback:', error);
-                }
-              });
-            }
-          )
-          .on(
-            'postgres_changes',
-            {
-              event: '*',
-              schema: 'public',
-              table: 'invoices'
-            },
-            (payload) => {
-              console.log('Invoices table changed:', payload);
-              refreshCallbacksRef.current.invoices.forEach(callback => {
-                try {
-                  callback();
-                } catch (error) {
-                  console.error('Error in invoices callback:', error);
-                }
-              });
-            }
-          )
-          .on(
-            'postgres_changes',
-            {
-              event: '*',
-              schema: 'public',
-              table: 'estimates'
-            },
-            (payload) => {
-              console.log('Estimates table changed:', payload);
-              refreshCallbacksRef.current.estimates.forEach(callback => {
-                try {
-                  callback();
-                } catch (error) {
-                  console.error('Error in estimates callback:', error);
-                }
-              });
-            }
-          )
-          .subscribe((status, err) => {
-            console.log('✅ Global realtime subscription status:', status, err);
+          // Jobs table
+          .on('postgres_changes', {
+            event: '*',
+            schema: 'public',
+            table: 'jobs'
+          }, () => debounceRefresh('jobs', refreshCallbacksRef.current.jobs))
+          // Clients table
+          .on('postgres_changes', {
+            event: '*',
+            schema: 'public',
+            table: 'clients'
+          }, () => debounceRefresh('clients', refreshCallbacksRef.current.clients))
+          // Messages table
+          .on('postgres_changes', {
+            event: '*',
+            schema: 'public',
+            table: 'messages'
+          }, () => debounceRefresh('messages', refreshCallbacksRef.current.messages))
+          // Invoices table
+          .on('postgres_changes', {
+            event: '*',
+            schema: 'public',
+            table: 'invoices'
+          }, () => debounceRefresh('invoices', refreshCallbacksRef.current.invoices))
+          // Subscribe to channel
+          .subscribe((status) => {
+            console.log('📡 Channel status:', status);
             
-            if (err) {
-              console.error('❌ Realtime subscription error:', err);
-              setIsConnected(false);
-              
-              // Implement reconnection logic
-              if (reconnectAttemptsRef.current < 5) {
-                const delay = Math.min(1000 * Math.pow(2, reconnectAttemptsRef.current), 30000);
-                reconnectAttemptsRef.current++;
-                
-                console.log(`🔄 Attempting to reconnect in ${delay}ms (attempt ${reconnectAttemptsRef.current})`);
-                
-                reconnectTimeoutRef.current = setTimeout(() => {
-                  setupRealtimeChannels();
-                }, delay);
-              } else {
-                toast.error('Unable to connect to realtime updates. Please refresh the page.');
-              }
-            } else if (status === 'SUBSCRIBED') {
-              console.log('🎉 Successfully connected to realtime updates');
+            if (status === 'SUBSCRIBED') {
+              console.log('✅ Realtime channel connected');
               setIsConnected(true);
               reconnectAttemptsRef.current = 0;
-            } else if (status === 'CHANNEL_ERROR') {
-              console.error('❌ Realtime channel error');
+              
+              if (reconnectTimeoutRef.current) {
+                clearTimeout(reconnectTimeoutRef.current);
+                reconnectTimeoutRef.current = null;
+              }
+            } else if (status === 'CHANNEL_ERROR' || status === 'CLOSED') {
+              console.error('❌ Channel error or closed:', status);
               setIsConnected(false);
-              // Don't show toast for every channel error to avoid spam
-            } else if (status === 'CLOSED') {
-              console.log('📪 Channel closed');
+              handleReconnect();
+            } else if (status === 'TIMED_OUT') {
+              console.warn('⏱️ Channel subscription timed out');
               setIsConnected(false);
+              handleReconnect();
             }
           });
 
         channelRef.current = channel;
-        return channel;
+        
       } catch (error) {
-        console.error('❌ Error setting up realtime channels:', error);
-        setIsConnected(false);
-        return null;
+        console.error('❌ Error setting up realtime channel:', error);
+        handleReconnect();
       }
     };
 
-    const channel = setupRealtimeChannels();
+    const handleReconnect = () => {
+      if (reconnectTimeoutRef.current) {
+        return; // Already attempting to reconnect
+      }
 
+      reconnectAttemptsRef.current++;
+      const delay = Math.min(1000 * Math.pow(2, reconnectAttemptsRef.current), 30000);
+      
+      console.log(`🔄 Attempting to reconnect in ${delay}ms (attempt ${reconnectAttemptsRef.current})`);
+      
+      reconnectTimeoutRef.current = setTimeout(() => {
+        reconnectTimeoutRef.current = null;
+        setupRealtimeChannel();
+      }, delay);
+    };
+
+    setupRealtimeChannel();
+
+    // Cleanup function
     return () => {
-      console.log('🔌 Cleaning up global realtime provider...');
+      console.log('🧹 Cleaning up realtime channel...');
+      
       if (reconnectTimeoutRef.current) {
         clearTimeout(reconnectTimeoutRef.current);
+        reconnectTimeoutRef.current = null;
       }
+      
       if (channelRef.current) {
         supabase.removeChannel(channelRef.current);
         channelRef.current = null;
       }
     };
+  }, [debounceRefresh]);
+
+  // Memoized refresh functions to prevent unnecessary re-renders
+  const refreshJobs = useCallback(() => {
+    refreshCallbacksRef.current.jobs.forEach(callback => callback());
   }, []);
 
-  const refreshJobs = () => {
-    console.log('🔄 Manual refresh triggered for jobs');
-    refreshCallbacksRef.current.jobs.forEach(callback => {
-      try {
-        callback();
-      } catch (error) {
-        console.error('Error in manual jobs refresh:', error);
-      }
-    });
-  };
+  const refreshClients = useCallback(() => {
+    refreshCallbacksRef.current.clients.forEach(callback => callback());
+  }, []);
 
-  const refreshClients = () => {
-    refreshCallbacksRef.current.clients.forEach(callback => {
-      try {
-        callback();
-      } catch (error) {
-        console.error('Error in manual clients refresh:', error);
-      }
-    });
-  };
+  const refreshMessages = useCallback(() => {
+    refreshCallbacksRef.current.messages.forEach(callback => callback());
+  }, []);
 
-  const refreshMessages = () => {
-    refreshCallbacksRef.current.messages.forEach(callback => {
-      try {
-        callback();
-      } catch (error) {
-        console.error('Error in manual messages refresh:', error);
-      }
-    });
-  };
+  const refreshInvoices = useCallback(() => {
+    refreshCallbacksRef.current.invoices.forEach(callback => callback());
+  }, []);
 
-  const refreshInvoices = () => {
-    refreshCallbacksRef.current.invoices.forEach(callback => {
-      try {
-        callback();
-      } catch (error) {
-        console.error('Error in manual invoices refresh:', error);
-      }
-    });
-  };
+  const refreshPayments = useCallback(() => {
+    refreshCallbacksRef.current.payments.forEach(callback => callback());
+  }, []);
 
-  const refreshPayments = () => {
-    refreshCallbacksRef.current.payments.forEach(callback => {
-      try {
-        callback();
-      } catch (error) {
-        console.error('Error in manual payments refresh:', error);
-      }
-    });
-  };
+  const refreshEstimates = useCallback(() => {
+    refreshCallbacksRef.current.estimates.forEach(callback => callback());
+  }, []);
 
-  const refreshEstimates = () => {
-    refreshCallbacksRef.current.estimates.forEach(callback => {
-      try {
-        callback();
-      } catch (error) {
-        console.error('Error in manual estimates refresh:', error);
-      }
-    });
-  };
+  const refreshJobHistory = useCallback(() => {
+    refreshCallbacksRef.current.jobhistory.forEach(callback => callback());
+  }, []);
 
-  const refreshJobHistory = () => {
-    refreshCallbacksRef.current.jobhistory.forEach(callback => {
-      try {
-        callback();
-      } catch (error) {
-        console.error('Error in manual job history refresh:', error);
-      }
-    });
-  };
+  const refreshJobStatuses = useCallback(() => {
+    refreshCallbacksRef.current.jobstatuses.forEach(callback => callback());
+  }, []);
 
-  const refreshJobStatuses = () => {
-    refreshCallbacksRef.current.jobstatuses.forEach(callback => {
-      try {
-        callback();
-      } catch (error) {
-        console.error('Error in manual job statuses refresh:', error);
-      }
-    });
-  };
+  const refreshJobTypes = useCallback(() => {
+    refreshCallbacksRef.current.jobtypes.forEach(callback => callback());
+  }, []);
 
-  const refreshJobTypes = () => {
-    refreshCallbacksRef.current.jobtypes.forEach(callback => {
-      try {
-        callback();
-      } catch (error) {
-        console.error('Error in manual job types refresh:', error);
-      }
-    });
-  };
+  const refreshCustomFields = useCallback(() => {
+    refreshCallbacksRef.current.customfields.forEach(callback => callback());
+  }, []);
 
-  const refreshCustomFields = () => {
-    refreshCallbacksRef.current.customfields.forEach(callback => {
-      try {
-        callback();
-      } catch (error) {
-        console.error('Error in manual custom fields refresh:', error);
-      }
-    });
-  };
+  const refreshTags = useCallback(() => {
+    refreshCallbacksRef.current.tags.forEach(callback => callback());
+  }, []);
 
-  const refreshTags = () => {
-    refreshCallbacksRef.current.tags.forEach(callback => {
-      try {
-        callback();
-      } catch (error) {
-        console.error('Error in manual tags refresh:', error);
-      }
-    });
-  };
+  const refreshLeadSources = useCallback(() => {
+    refreshCallbacksRef.current.leadsources.forEach(callback => callback());
+  }, []);
 
-  const refreshLeadSources = () => {
-    refreshCallbacksRef.current.leadsources.forEach(callback => {
-      try {
-        callback();
-      } catch (error) {
-        console.error('Error in manual lead sources refresh:', error);
-      }
-    });
-  };
+  const refreshJobCustomFieldValues = useCallback(() => {
+    refreshCallbacksRef.current.jobcustomfieldvalues.forEach(callback => callback());
+  }, []);
 
-  const refreshJobCustomFieldValues = () => {
-    refreshCallbacksRef.current.jobcustomfieldvalues.forEach(callback => {
-      try {
-        callback();
-      } catch (error) {
-        console.error('Error in manual job custom field values refresh:', error);
-      }
-    });
+  const value = {
+    refreshJobs,
+    refreshClients,
+    refreshMessages,
+    refreshInvoices,
+    refreshPayments,
+    refreshEstimates,
+    refreshJobHistory,
+    refreshJobStatuses,
+    refreshJobTypes,
+    refreshCustomFields,
+    refreshTags,
+    refreshLeadSources,
+    refreshJobCustomFieldValues,
+    isConnected,
+    refreshCallbacks: refreshCallbacksRef.current
   };
 
   return (
-    <GlobalRealtimeContext.Provider
-      value={{
-        refreshJobs,
-        refreshClients,
-        refreshMessages,
-        refreshInvoices,
-        refreshPayments,
-        refreshEstimates,
-        refreshJobHistory,
-        refreshJobStatuses,
-        refreshJobTypes,
-        refreshCustomFields,
-        refreshTags,
-        refreshLeadSources,
-        refreshJobCustomFieldValues,
-        isConnected,
-        refreshCallbacks: refreshCallbacksRef.current
-      }}
-    >
+    <GlobalRealtimeContext.Provider value={value}>
       {children}
     </GlobalRealtimeContext.Provider>
   );
