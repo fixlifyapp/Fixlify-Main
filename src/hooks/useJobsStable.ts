@@ -109,10 +109,10 @@ export const useJobsStable = (clientId?: string, enableCustomFields?: boolean) =
 
   // NO REAL-TIME UPDATES - only manual refresh
 
-  const validateJobData = (jobData: any) => {
+  const validateJobData = useCallback((jobData: any) => {
     console.log("🔍 validateJobData input:", jobData);
     
-    // Validate job type against configuration
+    // Only validate if we have the config data
     if (jobData.job_type && jobTypes.length > 0) {
       const validJobType = jobTypes.find(jt => jt.name === jobData.job_type);
       if (!validJobType) {
@@ -143,7 +143,7 @@ export const useJobsStable = (clientId?: string, enableCustomFields?: boolean) =
     }
 
     return jobData;
-  };
+  }, [jobTypes, jobStatuses]);
 
   const refreshJobs = useCallback(() => {
     console.log('🔄 Manual refresh triggered');
@@ -204,7 +204,7 @@ export const useJobsStable = (clientId?: string, enableCustomFields?: boolean) =
     } finally {
       isCreatingJobRef.current = false;
     }
-  }, [user?.id, fetchJobs, validateJobData, jobTypes, jobStatuses]);
+  }, [user?.id, fetchJobs, validateJobData]);
 
   const updateJob = useCallback(async (jobId: string, updates: UpdateJobInput) => {
     console.log(`🔄 Updating job ${jobId} with:`, updates);
