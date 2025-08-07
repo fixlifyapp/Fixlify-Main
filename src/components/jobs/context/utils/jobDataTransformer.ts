@@ -80,7 +80,11 @@ export const transformJobData = (jobData: any, paymentsData: any[] | null) => {
     deleted_at: jobData.deleted_at,
     created_by_automation: jobData.created_by_automation,
     automation_triggered_at: jobData.automation_triggered_at,
-    organization_id: jobData.organization_id
+    organization_id: jobData.organization_id,
+    // Add required relations with empty arrays
+    estimates: [],
+    invoices: [],
+    payments: []
   };
   
   // Calculate financial data

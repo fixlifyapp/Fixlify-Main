@@ -82,7 +82,7 @@ export const JobInfoSection = ({
       currentStatus: status,
       newStatus,
       jobId: job.id,
-      jobStatus: job.status
+      hasJobStatus: 'status' in job
     });
     
     // Check if status is actually changing
@@ -94,7 +94,7 @@ export const JobInfoSection = ({
     setCurrentStatus(newStatus);
     
     try {
-      await onStatusChange(newStatus, status); // Pass old status as well
+      await onStatusChange(newStatus); // Pass new status
       console.log('JobInfoSection: Status change successful');
     } catch (error) {
       console.error('JobInfoSection: Status change failed, reverting', error);
