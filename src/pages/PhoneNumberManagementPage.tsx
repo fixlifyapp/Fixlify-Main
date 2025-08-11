@@ -4,7 +4,7 @@ import { PageLayout } from "@/components/layout/PageLayout";
 import { PageHeader } from "@/components/ui/page-header";
 import { ModernCard } from "@/components/ui/modern-card";
 import { AnimatedContainer } from "@/components/ui/animated-container";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
@@ -25,7 +25,8 @@ import {
   Loader2,
   Activity,
   ShoppingCart,
-  TrendingUp
+  TrendingUp,
+  Wifi
 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/use-auth";
@@ -191,23 +192,27 @@ export default function PhoneNumberManagementPage() {
 
   return (
     <PageLayout>
-      <PageHeader
-        title="Phone Numbers"
-        description="Manage your phone numbers, configure AI features, and monitor usage"
-        actions={
-          <Button 
-            onClick={() => navigate('/settings/phone-numbers/purchase')}
-            className="bg-fixlyfy hover:bg-fixlyfy/90"
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Get New Number
-          </Button>
-        }
-      />
+      <AnimatedContainer animation="fade-in">
+        <PageHeader
+          title="Phone Numbers"
+          subtitle="Manage your phone numbers, configure AI features, and monitor usage"
+          icon={Phone}
+          badges={[
+            { text: "Multi-line Support", icon: Wifi, variant: "fixlyfy" },
+            { text: "AI Integration", icon: Bot, variant: "success" },
+            { text: "Free Beta", icon: TrendingUp, variant: "info" }
+          ]}
+          actionButton={{
+            text: "Get New Number",
+            icon: Plus,
+            onClick: () => navigate('/settings/phone-numbers/purchase')
+          }}
+        />
+      </AnimatedContainer>
 
       {/* Statistics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-        <AnimatedContainer animation="fade-in" delay={0.1}>
+        <AnimatedContainer animation="fade-in" delay={100}>
           <ModernCard className="border-l-4 border-l-blue-500">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
@@ -221,7 +226,7 @@ export default function PhoneNumberManagementPage() {
           </ModernCard>
         </AnimatedContainer>
 
-        <AnimatedContainer animation="fade-in" delay={0.2}>
+        <AnimatedContainer animation="fade-in" delay={200}>
           <ModernCard className="border-l-4 border-l-green-500">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
@@ -235,7 +240,7 @@ export default function PhoneNumberManagementPage() {
           </ModernCard>
         </AnimatedContainer>
 
-        <AnimatedContainer animation="fade-in" delay={0.3}>
+        <AnimatedContainer animation="fade-in" delay={300}>
           <ModernCard className="border-l-4 border-l-purple-500">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
@@ -249,7 +254,7 @@ export default function PhoneNumberManagementPage() {
           </ModernCard>
         </AnimatedContainer>
 
-        <AnimatedContainer animation="fade-in" delay={0.4}>
+        <AnimatedContainer animation="fade-in" delay={400}>
           <ModernCard className="border-l-4 border-l-emerald-500">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
@@ -268,7 +273,7 @@ export default function PhoneNumberManagementPage() {
       </div>
 
       {/* Phone Numbers List */}
-      <AnimatedContainer animation="slide-up" delay={0.5}>
+      <AnimatedContainer animation="slide-up" delay={500}>
         {isLoading ? (
           <div className="space-y-4">
             {[1, 2, 3].map((i) => (
@@ -299,7 +304,7 @@ export default function PhoneNumberManagementPage() {
         ) : (
           <div className="space-y-4">
             {phoneNumbers.map((number, index) => (
-              <AnimatedContainer key={number.id} animation="fade-in" delay={0.1 * index}>
+              <AnimatedContainer key={number.id} animation="fade-in" delay={100 * index}>
                 <ModernCard>
                   <CardContent className="p-6">
                     <div className="flex flex-col md:flex-row justify-between gap-4">
