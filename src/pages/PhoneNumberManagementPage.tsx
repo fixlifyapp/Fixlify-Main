@@ -20,7 +20,7 @@ import {
   Loader2
 } from "lucide-react";
 import { toast } from "sonner";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/hooks/use-auth";
 import { useNavigate } from "react-router-dom";
 import { formatPhoneNumber } from "@/utils/phone-utils";
 import {
