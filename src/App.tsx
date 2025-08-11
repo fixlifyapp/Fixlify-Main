@@ -36,9 +36,6 @@ import ProfileCompanyPage from "@/pages/ProfileCompanyPage";
 import ConfigurationPage from "@/pages/ConfigurationPage";
 import ProductsPage from "@/pages/ProductsPage";
 import IntegrationsPage from "@/pages/IntegrationsPage";
-import PhoneNumbersPage from "@/pages/PhoneNumbersPage";
-import PhoneNumbersSettingsPage from "@/pages/settings/PhoneNumbersSettingsPage";
-import PhoneManagementPage from "@/pages/PhoneManagementPage";
 import PhoneNumberManagementPage from "@/pages/PhoneNumberManagementPage";
 import PhoneNumberPurchasePage from "@/pages/PhoneNumberPurchasePage";
 import EstimatesPage from "@/pages/EstimatesPage";
@@ -373,14 +370,6 @@ function App() {
             <Route path="/settings/phone-numbers" element={
               <AuthProvider>
                 <ProtectedRouteWithProviders>
-                  <PhoneNumbersSettingsPage />
-                </ProtectedRouteWithProviders>
-              </AuthProvider>
-            } />
-            
-            <Route path="/settings/phone-numbers/manage" element={
-              <AuthProvider>
-                <ProtectedRouteWithProviders>
                   <PhoneNumberManagementPage />
                 </ProtectedRouteWithProviders>
               </AuthProvider>
@@ -390,22 +379,6 @@ function App() {
               <AuthProvider>
                 <ProtectedRouteWithProviders>
                   <PhoneNumberPurchasePage />
-                </ProtectedRouteWithProviders>
-              </AuthProvider>
-            } />
-            
-            <Route path="/phone-numbers" element={
-              <AuthProvider>
-                <ProtectedRouteWithProviders>
-                  <PhoneNumbersPage />
-                </ProtectedRouteWithProviders>
-              </AuthProvider>
-            } />
-            
-            <Route path="/phone-management" element={
-              <AuthProvider>
-                <ProtectedRouteWithProviders>
-                  <PhoneManagementPage />
                 </ProtectedRouteWithProviders>
               </AuthProvider>
             } />

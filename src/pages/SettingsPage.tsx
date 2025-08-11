@@ -84,7 +84,7 @@ const SettingsPage = () => {
         </Link>
         
         {/* Phone Numbers Card */}
-        <Link to="/settings/phone-numbers/manage">
+        <Link to="/settings/phone-numbers">
           <div className="h-full hover:shadow-md transition-shadow fixlyfy-card cursor-pointer">
             <div className="flex items-center p-6 space-x-4">
               <div className="bg-fixlyfy/10 p-3 rounded-full">
