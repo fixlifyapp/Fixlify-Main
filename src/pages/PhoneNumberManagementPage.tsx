@@ -20,7 +20,7 @@ import {
   Loader2
 } from "lucide-react";
 import { toast } from "sonner";
-import { useUser } from "@supabase/auth-helpers-react";
+import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { formatPhoneNumber } from "@/utils/phone-utils";
 import {
@@ -62,7 +62,7 @@ export default function PhoneNumberManagementPage() {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [numberToDelete, setNumberToDelete] = useState<PhoneNumber | null>(null);
   
-  const user = useUser();
+  const { user } = useAuth();
   const navigate = useNavigate();
 
   // Fetch user's phone numbers

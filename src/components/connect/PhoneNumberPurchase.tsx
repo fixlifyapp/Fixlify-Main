@@ -16,7 +16,7 @@ import {
   Loader2
 } from "lucide-react";
 import { toast } from "sonner";
-import { useUser } from "@supabase/auth-helpers-react";
+import { useAuth } from "@/contexts/AuthContext";
 import {
   Dialog,
   DialogContent,
@@ -50,7 +50,7 @@ export const PhoneNumberPurchase = () => {
   const [isPurchasing, setIsPurchasing] = useState(false);
   const [selectedNumber, setSelectedNumber] = useState<AvailableNumber | null>(null);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
-  const user = useUser();
+  const { user } = useAuth();
 
   // Search for available numbers
   const searchNumbers = async () => {
