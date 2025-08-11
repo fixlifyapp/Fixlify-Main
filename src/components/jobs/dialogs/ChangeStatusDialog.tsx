@@ -15,6 +15,7 @@ import { Check, Clock, Loader2, XCircle, Calendar, AlertTriangle } from "lucide-
 import { cn } from "@/lib/utils";
 import { useJobStatuses } from "@/hooks/useConfigItems";
 import { useJobHistoryIntegration } from "@/hooks/useJobHistoryIntegration";
+import { AutomationService } from "@/services/automationService";
 
 interface ChangeStatusDialogProps {
   selectedJobs: string[];
@@ -98,6 +99,15 @@ export function ChangeStatusDialog({ selectedJobs, onOpenChange, onSuccess }: Ch
         for (const job of jobsData) {
           const { logStatusChange } = useJobHistoryIntegration(job.id);
           await logStatusChange(job.status, status);
+          
+          // Process automations for each job
+          AutomationService.processJobStatusChange(
+            job.id,
+            job.status,
+            status
+          ).catch(error => {
+            console.error(`Automation processing error for job ${job.id}:`, error);
+          });
         }
       }
       

@@ -235,15 +235,15 @@ export function AutomationTestRunner() {
         addResult('Email Service', 'failure', 'Mailgun edge function not accessible');
       }
       
-      // Test SMS service
+      // Test SMS service  
       try {
-        const { data, error } = await supabase.functions.invoke('telnyx-sms', {
+        const { data, error } = await supabase.functions.invoke('send-sms', {
           body: { test: true }
         });
         if (error) throw error;
-        addResult('SMS Service', 'success', 'Telnyx edge function is accessible');
+        addResult('SMS Service', 'success', 'SMS edge function is accessible');
       } catch (error) {
-        addResult('SMS Service', 'failure', 'Telnyx edge function not accessible');
+        addResult('SMS Service', 'failure', 'SMS edge function not accessible');
       }
       
       toast.info('Edge function test completed');

@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(find:*)",
+      "Bash(supabase status:*)",
+      "Bash(supabase secrets:*)",
+      "Bash(supabase db:*)"
+    ],
+    "deny": []
+  }
+}

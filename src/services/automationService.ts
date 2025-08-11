@@ -444,12 +444,32 @@ export class AutomationService {
   private static async executeSMSAction(config: any, context: any): Promise<{success: boolean, result?: any, error?: string}> {
     console.log('📱 Executing SMS action:', config);
     
-    // In production, integrate with SMS provider (Twilio, etc.)
-    await this.logCommunication('sms', config.to || 'unknown', config.message || '', context);
+    if (!config.to) {
+      return { success: false, error: 'No recipient phone number' };
+    }
     
-    // For now, just log to communication_logs
+    // Actually send SMS via edge function
+    const { data, error } = await supabase.functions.invoke('send-sms', {
+      body: {
+        to: config.to,
+        message: config.message,
+        userId: context.user_id,
+        metadata: {
+          source: 'automation',
+          workflow_id: context.workflow_id,
+          job_id: context.job_id
+        }
+      }
+    });
+    
+    if (error) {
+      console.error('SMS send error:', error);
+      return { success: false, error: error.message };
+    }
+    
+    // Log to communication_logs
     if (!context.is_test) {
-      const { error } = await supabase.from('communication_logs').insert({
+      await supabase.from('communication_logs').insert({
         type: 'sms',
         communication_type: 'sms',
         direction: 'outbound',
@@ -462,8 +482,6 @@ export class AutomationService {
         },
         status: 'sent'
       });
-      
-      if (error) throw error;
     }
     
     return { success: true, result: 'SMS sent' };
@@ -472,12 +490,29 @@ export class AutomationService {
   private static async executeEmailAction(config: any, context: any): Promise<{success: boolean, result?: any, error?: string}> {
     console.log('📧 Executing Email action:', config);
     
-    // In production, integrate with email provider
-    await this.logCommunication('email', config.to || 'unknown', config.subject || '', context);
+    if (!config.to) {
+      return { success: false, error: 'No recipient email' };
+    }
     
-    // For now, just log to communication_logs
+    // Actually send email via edge function
+    const { data, error } = await supabase.functions.invoke('mailgun-email', {
+      body: {
+        to: config.to,
+        subject: config.subject,
+        html: config.message,
+        text: config.message.replace(/<[^>]*>/g, ''),
+        userId: context.user_id
+      }
+    });
+    
+    if (error) {
+      console.error('Email send error:', error);
+      return { success: false, error: error.message };
+    }
+    
+    // Log to communication_logs (only once)
     if (!context.is_test) {
-      const { error } = await supabase.from('communication_logs').insert({
+      await supabase.from('communication_logs').insert({
         type: 'email',
         communication_type: 'email',
         direction: 'outbound',
@@ -491,8 +526,6 @@ export class AutomationService {
         },
         status: 'sent'
       });
-      
-      if (error) throw error;
     }
     
     return { success: true, result: 'Email sent' };
@@ -672,6 +705,126 @@ export class AutomationService {
         success_rate: 0,
         recent_executions: []
       };
+    }
+  }
+
+  /**
+   * Process pending automations after job status change
+   * This is the main method to call after updating job status
+   */
+  static async processJobStatusChange(
+    jobId: string,
+    oldStatus: string,
+    newStatus: string
+  ): Promise<void> {
+    try {
+      console.log(`Processing automation for job ${jobId}: ${oldStatus} -> ${newStatus}`);
+      
+      // Wait a bit for database trigger to create the log
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // Find pending automation logs for this job
+      const { data: logs, error } = await supabase
+        .from('automation_execution_logs')
+        .select('*')
+        .or(`trigger_data->job_id.eq.${jobId},trigger_data->>job_id.eq.${jobId}`)
+        .in('status', ['pending', 'completed'])
+        .gte('created_at', new Date(Date.now() - 10000).toISOString())
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching automation logs:', error);
+        return;
+      }
+
+      console.log(`Found ${logs?.length || 0} automation logs for job ${jobId}`);
+
+      // Process each log that hasn't been executed
+      for (const log of logs || []) {
+        // Check if actions have been executed
+        if (!log.actions_executed || 
+            log.actions_executed.length === 0 || 
+            (Array.isArray(log.actions_executed) && log.actions_executed.length === 0)) {
+          
+          console.log(`Executing automation log ${log.id}`);
+          await this.executeAutomationLog(log);
+        }
+      }
+    } catch (error) {
+      console.error('Error in processJobStatusChange:', error);
+      // Don't throw - we don't want to break the UI if automation fails
+    }
+  }
+
+  /**
+   * Execute a specific automation log by calling the edge function
+   */
+  private static async executeAutomationLog(log: any): Promise<void> {
+    try {
+      console.log('Calling automation-executor edge function for log:', log.id);
+      
+      // Call the edge function
+      const { data, error } = await supabase.functions.invoke(
+        'automation-executor',
+        {
+          body: {
+            workflowId: log.workflow_id,
+            context: log.trigger_data,
+            executionId: log.id
+          }
+        }
+      );
+
+      if (error) {
+        console.error('Edge function error:', error);
+        throw error;
+      }
+
+      console.log('Automation executed successfully:', data);
+      
+      // Show success notification
+      if (data?.results && Array.isArray(data.results)) {
+        const successCount = data.results.filter((r: any) => r.status === 'success').length;
+        if (successCount > 0) {
+          toast.success(`Automation completed: ${successCount} action(s) executed`);
+        }
+      }
+      
+    } catch (error: any) {
+      console.error('Failed to execute automation:', log.id, error);
+      
+      // Update log as failed
+      await supabase
+        .from('automation_execution_logs')
+        .update({
+          status: 'failed',
+          error_message: error.message || 'Edge function execution failed',
+          completed_at: new Date().toISOString()
+        })
+        .eq('id', log.id);
+      
+      // Don't show error toast for every automation failure
+      console.error('Automation failed silently:', error.message);
+    }
+  }
+
+  /**
+   * Helper method to process any job-related automation
+   */
+  static async handleJobUpdate(
+    jobId: string,
+    oldData: any,
+    newData: any
+  ): Promise<void> {
+    // Check if status changed
+    if (oldData?.status !== newData?.status) {
+      await this.processJobStatusChange(jobId, oldData.status, newData.status);
+    }
+    
+    // Check for job completion
+    if (newData?.status === 'completed' && oldData?.status !== 'completed') {
+      // Additional processing for completed jobs if needed
+      console.log('Job completed, checking for completion-specific automations');
     }
   }
 }

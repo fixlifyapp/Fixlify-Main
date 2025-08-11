@@ -1,5 +1,6 @@
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
+import { AutomationService } from '@/services/automationService';
 
 // Track ongoing automations to prevent duplicates
 const ongoingAutomations = new Set<string>();
@@ -85,9 +86,16 @@ export function useJobStatusUpdate(jobId?: string, refreshJob?: () => void) {
       
       toast.success(`Job status updated to ${newStatus}`);
       
-      // Automation triggers are handled by the database trigger
-      // The unified automation system will process pending automations automatically
-      console.log('📮 Database trigger will handle automation workflows');
+      // Process automations through the frontend service
+      console.log('🤖 Processing automations for job status change...');
+      AutomationService.processJobStatusChange(
+        jobId,
+        currentStatus,
+        normalizedNewStatus
+      ).catch(error => {
+        console.error('⚠️ Automation processing error:', error);
+        // Don't show error to user - automations run in background
+      });
       
       // Refresh job data after a small delay to allow database triggers to complete
       setTimeout(() => {
