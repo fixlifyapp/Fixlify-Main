@@ -13,7 +13,9 @@ import {
   AlertCircle,
   MapPin,
   DollarSign,
-  Loader2
+  Loader2,
+  RefreshCw,
+  Wifi
 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/use-auth";
@@ -26,6 +28,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { formatPhoneNumber } from "@/utils/phone-utils";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface AvailableNumber {
   id: string;
@@ -41,53 +44,71 @@ interface AvailableNumber {
   };
   price: number;
   monthly_price: number;
+  telnyx_id?: string;
+  metadata?: any;
 }
 
 export const PhoneNumberPurchase = () => {
   const [availableNumbers, setAvailableNumbers] = useState<AvailableNumber[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearching, setIsSearching] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [isPurchasing, setIsPurchasing] = useState(false);
   const [selectedNumber, setSelectedNumber] = useState<AvailableNumber | null>(null);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const { user } = useAuth();
 
-  // Search for available numbers
-  const searchNumbers = async () => {
+  // Search for available numbers from Telnyx
+  const searchNumbers = async (refreshFromTelnyx = false) => {
     if (!user?.id) {
       toast.error("Please login to search for phone numbers");
       return;
     }
 
-    setIsSearching(true);
+    if (refreshFromTelnyx) {
+      setIsRefreshing(true);
+    } else {
+      setIsSearching(true);
+    }
+    
     try {
-      // For now, get from database (mock numbers)
-      // In production, this would call Telnyx API
-      const { data, error } = await supabase
-        .from('phone_numbers')
-        .select('*')
-        .eq('status', 'available')
-        .ilike('phone_number', `%${searchQuery}%`)
-        .limit(20);
+      // Call edge function to search numbers
+      const { data: functionData, error: functionError } = await supabase.functions.invoke(
+        'telnyx-phone-search',
+        {
+          body: {
+            areaCode: searchQuery,
+            refreshFromTelnyx: refreshFromTelnyx,
+            limit: 50
+          }
+        }
+      );
 
-      if (error) throw error;
+      if (functionError) throw functionError;
       
-      setAvailableNumbers(data || []);
-      
-      if (data?.length === 0) {
-        toast.info("No numbers found. Try a different search.");
+      if (functionData?.success && functionData?.numbers) {
+        setAvailableNumbers(functionData.numbers);
+        
+        if (refreshFromTelnyx) {
+          toast.success(`Refreshed ${functionData.numbers.length} numbers from Telnyx`);
+        } else if (functionData.numbers.length === 0) {
+          toast.info("No numbers found. Try refreshing from Telnyx.");
+        }
+      } else {
+        throw new Error(functionData?.error || 'Failed to fetch numbers');
       }
     } catch (error) {
       console.error('Error searching numbers:', error);
       toast.error('Failed to search phone numbers');
     } finally {
       setIsSearching(false);
+      setIsRefreshing(false);
     }
   };
 
   // Load initial available numbers
   useEffect(() => {
-    searchNumbers();
+    searchNumbers(false);
   }, [user]);
 
   // Purchase a phone number
@@ -96,50 +117,35 @@ export const PhoneNumberPurchase = () => {
 
     setIsPurchasing(true);
     try {
-      // Update the phone number record to mark it as purchased
-      const { error: updateError } = await supabase
-        .from('phone_numbers')
-        .update({
-          status: 'purchased',
-          purchased_by: user.id,
-          user_id: user.id,
-          purchased_at: new Date().toISOString(),
-          friendly_name: `My Number ${selectedNumber.phone_number}`,
-          // Set as primary if user has no other numbers
-          is_primary: await checkIfFirstNumber()
-        })
-        .eq('id', selectedNumber.id)
-        .eq('status', 'available'); // Extra safety check
-
-      if (updateError) throw updateError;
-
-      // Log the purchase
-      await supabase
-        .from('communication_logs')
-        .insert({
-          user_id: user.id,
-          type: 'system',
-          direction: 'internal',
-          status: 'completed',
-          content: `Phone number ${selectedNumber.phone_number} purchased`,
-          metadata: {
-            phone_number: selectedNumber.phone_number,
-            price: selectedNumber.price,
-            monthly_price: selectedNumber.monthly_price
+      // Call edge function to purchase/assign number
+      const { data: functionData, error: functionError } = await supabase.functions.invoke(
+        'telnyx-phone-purchase',
+        {
+          body: {
+            phoneNumber: selectedNumber.phone_number,
+            userId: user.id,
+            telnyxId: selectedNumber.telnyx_id
           }
-        });
+        }
+      );
 
-      toast.success(`Successfully purchased ${formatPhoneNumber(selectedNumber.phone_number)}!`);
+      if (functionError) throw functionError;
       
-      // Refresh the list
-      setShowConfirmDialog(false);
-      setSelectedNumber(null);
-      searchNumbers();
-      
-      // Redirect to phone management page
-      setTimeout(() => {
-        window.location.href = '/settings/phone-numbers';
-      }, 2000);
+      if (functionData?.success) {
+        toast.success(`Successfully assigned ${formatPhoneNumber(selectedNumber.phone_number)}!`);
+        
+        // Refresh the list
+        setShowConfirmDialog(false);
+        setSelectedNumber(null);
+        searchNumbers(false);
+        
+        // Redirect to phone management page
+        setTimeout(() => {
+          window.location.href = '/settings/phone-numbers';
+        }, 2000);
+      } else {
+        throw new Error(functionData?.error || 'Failed to purchase number');
+      }
       
     } catch (error) {
       console.error('Error purchasing number:', error);
@@ -149,25 +155,23 @@ export const PhoneNumberPurchase = () => {
     }
   };
 
-  // Check if this is the user's first number
-  const checkIfFirstNumber = async () => {
-    const { count } = await supabase
-      .from('phone_numbers')
-      .select('*', { count: 'exact', head: true })
-      .eq('user_id', user?.id)
-      .eq('status', 'purchased');
-    
-    return count === 0;
-  };
-
   return (
     <div className="space-y-6">
+      {/* Telnyx Profile Alert */}
+      <Alert className="border-blue-200 bg-blue-50">
+        <Wifi className="h-4 w-4" />
+        <AlertDescription>
+          <strong>Telnyx Integration Active</strong><br/>
+          Showing numbers from your Telnyx messaging profile. All numbers are pre-configured for SMS and voice.
+        </AlertDescription>
+      </Alert>
+
       {/* Search Section */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Phone className="h-5 w-5" />
-            Search Available Phone Numbers
+            Search Telnyx Phone Numbers
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -179,12 +183,12 @@ export const PhoneNumberPurchase = () => {
                 placeholder="e.g., 415 or leave empty for all"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && searchNumbers()}
+                onKeyPress={(e) => e.key === 'Enter' && searchNumbers(false)}
               />
             </div>
-            <div className="flex items-end">
+            <div className="flex items-end gap-2">
               <Button 
-                onClick={searchNumbers} 
+                onClick={() => searchNumbers(false)} 
                 disabled={isSearching}
               >
                 {isSearching ? (
@@ -194,27 +198,54 @@ export const PhoneNumberPurchase = () => {
                 )}
                 <span className="ml-2">Search</span>
               </Button>
+              
+              <Button 
+                onClick={() => searchNumbers(true)}
+                disabled={isRefreshing}
+                variant="outline"
+                title="Refresh from Telnyx"
+              >
+                {isRefreshing ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <RefreshCw className="h-4 w-4" />
+                )}
+                <span className="ml-2">Refresh</span>
+              </Button>
             </div>
           </div>
+          <p className="text-xs text-muted-foreground mt-2">
+            Click "Refresh" to fetch the latest available numbers from your Telnyx profile
+          </p>
         </CardContent>
       </Card>
 
       {/* Available Numbers List */}
       <Card>
         <CardHeader>
-          <CardTitle>Available Numbers</CardTitle>
+          <CardTitle>Available Numbers from Telnyx</CardTitle>
           <p className="text-sm text-muted-foreground">
-            All numbers are currently free ($0/month) during beta
+            {availableNumbers.length} numbers available • Free during beta ($0/month)
           </p>
         </CardHeader>
         <CardContent>
-          {isSearching ? (
+          {isSearching || isRefreshing ? (
             <div className="flex justify-center py-8">
               <Loader2 className="h-8 w-8 animate-spin" />
             </div>
           ) : availableNumbers.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              No available numbers found. Try searching with different criteria.
+            <div className="text-center py-8">
+              <AlertCircle className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+              <p className="text-muted-foreground mb-4">
+                No available numbers found in your Telnyx profile.
+              </p>
+              <Button 
+                onClick={() => searchNumbers(true)}
+                variant="outline"
+              >
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Refresh from Telnyx
+              </Button>
             </div>
           ) : (
             <div className="grid gap-4 md:grid-cols-2">
@@ -230,19 +261,19 @@ export const PhoneNumberPurchase = () => {
                         {number.locality && (
                           <div className="flex items-center gap-1 text-sm text-muted-foreground">
                             <MapPin className="h-3 w-3" />
-                            {number.locality}, {number.region}
+                            {number.locality}, {number.region || 'US'}
                           </div>
                         )}
                         
                         <div className="flex gap-2">
-                          {number.capabilities?.sms && (
-                            <Badge variant="secondary" className="text-xs">SMS</Badge>
-                          )}
-                          {number.capabilities?.voice && (
-                            <Badge variant="secondary" className="text-xs">Voice</Badge>
-                          )}
-                          {number.capabilities?.mms && (
-                            <Badge variant="secondary" className="text-xs">MMS</Badge>
+                          <Badge variant="secondary" className="text-xs">SMS</Badge>
+                          <Badge variant="secondary" className="text-xs">Voice</Badge>
+                          <Badge variant="secondary" className="text-xs">MMS</Badge>
+                          {number.metadata?.from_profile && (
+                            <Badge variant="default" className="text-xs">
+                              <Wifi className="h-3 w-3 mr-1" />
+                              Profile
+                            </Badge>
                           )}
                         </div>
                         
@@ -250,9 +281,6 @@ export const PhoneNumberPurchase = () => {
                           <DollarSign className="h-3 w-3" />
                           <span className="font-medium text-green-600">
                             FREE (Beta)
-                          </span>
-                          <span className="text-muted-foreground line-through ml-2">
-                            ${number.monthly_price}/mo
                           </span>
                         </div>
                       </div>
@@ -263,6 +291,7 @@ export const PhoneNumberPurchase = () => {
                           setSelectedNumber(number);
                           setShowConfirmDialog(true);
                         }}
+                        className="bg-fixlyfy hover:bg-fixlyfy/90"
                       >
                         <ShoppingCart className="h-4 w-4 mr-1" />
                         Get Number
@@ -280,9 +309,9 @@ export const PhoneNumberPurchase = () => {
       <Dialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Confirm Phone Number Purchase</DialogTitle>
+            <DialogTitle>Confirm Phone Number Assignment</DialogTitle>
             <DialogDescription>
-              You're about to purchase this phone number. It will be added to your account immediately.
+              This Telnyx number will be assigned to your account for SMS and voice communications.
             </DialogDescription>
           </DialogHeader>
           
@@ -296,7 +325,7 @@ export const PhoneNumberPurchase = () => {
                 {selectedNumber.locality && (
                   <div className="flex justify-between">
                     <span className="font-medium">Location:</span>
-                    <span>{selectedNumber.locality}, {selectedNumber.region}</span>
+                    <span>{selectedNumber.locality}, {selectedNumber.region || 'US'}</span>
                   </div>
                 )}
                 <div className="flex justify-between">
@@ -311,10 +340,9 @@ export const PhoneNumberPurchase = () => {
               
               <div className="rounded-lg bg-blue-50 p-3">
                 <div className="flex gap-2">
-                  <AlertCircle className="h-4 w-4 text-blue-600 mt-0.5" />
+                  <CheckCircle className="h-4 w-4 text-blue-600 mt-0.5" />
                   <div className="text-sm text-blue-900">
-                    This number will be configured for SMS and voice calls. 
-                    You can enable AI features after purchase.
+                    This number is from your Telnyx messaging profile and is ready for immediate use with SMS, voice calls, and AI features.
                   </div>
                 </div>
               </div>
@@ -332,16 +360,17 @@ export const PhoneNumberPurchase = () => {
             <Button
               onClick={purchaseNumber}
               disabled={isPurchasing}
+              className="bg-fixlyfy hover:bg-fixlyfy/90"
             >
               {isPurchasing ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                  Purchasing...
+                  Assigning...
                 </>
               ) : (
                 <>
                   <CheckCircle className="h-4 w-4 mr-2" />
-                  Confirm Purchase
+                  Confirm Assignment
                 </>
               )}
             </Button>
