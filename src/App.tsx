@@ -38,6 +38,7 @@ import ProductsPage from "@/pages/ProductsPage";
 import IntegrationsPage from "@/pages/IntegrationsPage";
 import PhoneNumberManagementPage from "@/pages/PhoneNumberManagementPage";
 import PhoneNumberPurchasePage from "@/pages/PhoneNumberPurchasePage";
+import PhoneNumberConfigPage from "@/pages/settings/PhoneNumberConfigPage";
 import EstimatesPage from "@/pages/EstimatesPage";
 import InvoicesPage from "@/pages/InvoicesPage";
 import ReportsPage from "@/pages/ReportsPage";
@@ -379,6 +380,14 @@ function App() {
               <AuthProvider>
                 <ProtectedRouteWithProviders>
                   <PhoneNumberPurchasePage />
+                </ProtectedRouteWithProviders>
+              </AuthProvider>
+            } />
+            
+            <Route path="/settings/phone-numbers/:phoneId/configure" element={
+              <AuthProvider>
+                <ProtectedRouteWithProviders>
+                  <PhoneNumberConfigPage />
                 </ProtectedRouteWithProviders>
               </AuthProvider>
             } />
