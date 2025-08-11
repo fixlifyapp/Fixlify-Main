@@ -27,23 +27,29 @@ serve(async (req) => {
     // Initialize Supabase client
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-    let supabase = null;
     
-    if (supabaseUrl && supabaseServiceKey) {
-      supabase = createClient(supabaseUrl, supabaseServiceKey);
+    if (!supabaseUrl || !supabaseServiceKey) {
+      throw new Error('Supabase configuration missing');
     }
+    
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
     
     // Get Telnyx configuration from environment
     const telnyxApiKey = Deno.env.get('TELNYX_API_KEY');
     const telnyxMessagingProfileId = Deno.env.get('TELNYX_MESSAGING_PROFILE_ID');
     
+    if (!telnyxApiKey) {
+      throw new Error('Telnyx API key not configured');
+    }
+    
     // Determine the sender phone number
     let fromPhone = smsRequest.from;
     
-    // If no sender provided, fetch user's primary Telnyx phone number
-    if (!fromPhone && smsRequest.user_id && supabase) {
+    // If no sender provided, fetch user's primary phone number
+    if (!fromPhone && smsRequest.user_id) {
       console.log('Fetching user phone number for user:', smsRequest.user_id);
       
+      // First try to get primary phone number
       const { data: phoneNumbers } = await supabase
         .from('phone_numbers')
         .select('phone_number')
@@ -71,6 +77,30 @@ serve(async (req) => {
       }
     }
     
+    // If still no phone number, check if organization has a default number
+    if (!fromPhone && smsRequest.user_id) {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('organization_id')
+        .eq('id', smsRequest.user_id)
+        .single();
+      
+      if (profile?.organization_id) {
+        const { data: orgPhone } = await supabase
+          .from('phone_numbers')
+          .select('phone_number')
+          .eq('organization_id', profile.organization_id)
+          .eq('status', 'purchased')
+          .eq('is_primary', true)
+          .limit(1);
+        
+        if (orgPhone && orgPhone.length > 0) {
+          fromPhone = orgPhone[0].phone_number;
+          console.log('Using organization\'s phone number:', fromPhone);
+        }
+      }
+    }
+    
     // If still no phone number, return error
     if (!fromPhone) {
       console.error('No phone number found for user:', smsRequest.user_id);
@@ -81,141 +111,87 @@ serve(async (req) => {
         }),
         { 
           status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
         }
       );
     }
     
-    // Check if Telnyx is configured
-    const isTelnyxConfigured = telnyxApiKey && telnyxMessagingProfileId;
+    console.log('Sending SMS via Telnyx API');
+    console.log('From:', fromPhone, 'To:', smsRequest.recipientPhone);
     
-    if (isTelnyxConfigured) {
-      console.log('Sending SMS via Telnyx API');
-      console.log('From:', fromPhone, 'To:', smsRequest.recipientPhone);
-      
-      // Send SMS via Telnyx API
-      const telnyxResponse = await fetch('https://api.telnyx.com/v2/messages', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${telnyxApiKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          from: fromPhone,
-          to: smsRequest.recipientPhone,
-          text: smsRequest.message,
-          messaging_profile_id: telnyxMessagingProfileId,
-          webhook_url: `${Deno.env.get('SUPABASE_URL')}/functions/v1/telnyx-webhook`,
-          webhook_failover_url: `${Deno.env.get('SUPABASE_URL')}/functions/v1/telnyx-webhook`,
-          use_profile_webhooks: false
-        }),
-      });
-      
-      const telnyxResult = await telnyxResponse.json();
-      
-      if (!telnyxResponse.ok) {
-        console.error('Telnyx API error:', telnyxResult);
-        throw new Error(telnyxResult.errors?.[0]?.detail || 'Failed to send SMS via Telnyx');
-      }
-      
-      console.log('SMS sent successfully via Telnyx:', telnyxResult.data?.id);
-      
-      // Log the SMS in database
-      if (supabase) {
-        try {
-          await supabase
-            .from('communication_logs')
-            .insert({
-              user_id: smsRequest.user_id || '00000000-0000-0000-0000-000000000000',
-              type: 'sms',
-              direction: 'outbound',
-              status: 'sent',
-              from_address: fromPhone,
-              to_address: smsRequest.recipientPhone,
-              content: smsRequest.message,
-              metadata: {
-                ...smsRequest.metadata,
-                telnyx_message_id: telnyxResult.data?.id,
-                messaging_profile_id: telnyxMessagingProfileId
-              }
-            });
-        } catch (logError) {
-          console.error('Failed to log SMS:', logError);
-        }
-      }
-      
-      return new Response(
-        JSON.stringify({ 
-          success: true, 
-          messageId: telnyxResult.data?.id,
-          from: fromPhone,
-          to: smsRequest.recipientPhone,
-          status: 'sent'
-        }),
-        { 
-          status: 200,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        }
-      );
-      
-    } else {
-      // Telnyx not configured - simulate SMS for testing
-      console.log('WARNING: Telnyx not configured, simulating SMS send');
-      console.log('From:', fromPhone, 'To:', smsRequest.recipientPhone);
-      console.log('Message:', smsRequest.message);
-      
-      const simulatedId = `sim-${Date.now()}`;
-      
-      // Log the simulated SMS
-      if (supabase) {
-        try {
-          await supabase
-            .from('communication_logs')
-            .insert({
-              user_id: smsRequest.user_id || '00000000-0000-0000-0000-000000000000',
-              type: 'sms',
-              direction: 'outbound',
-              status: 'simulated',
-              from_address: fromPhone,
-              to_address: smsRequest.recipientPhone,
-              content: smsRequest.message,
-              metadata: {
-                ...smsRequest.metadata,
-                simulated: true,
-                simulated_id: simulatedId
-              }
-            });
-        } catch (logError) {
-          console.error('Failed to log simulated SMS:', logError);
-        }
-      }
-      
-      return new Response(
-        JSON.stringify({ 
-          success: true, 
-          messageId: simulatedId,
-          from: fromPhone,
-          to: smsRequest.recipientPhone,
-          status: 'simulated',
-          warning: 'Telnyx not configured - SMS simulated only'
-        }),
-        { 
-          status: 200,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        }
-      );
+    // Send SMS via Telnyx API
+    const telnyxResponse = await fetch('https://api.telnyx.com/v2/messages', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${telnyxApiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        from: fromPhone,
+        to: smsRequest.recipientPhone,
+        text: smsRequest.message,
+        messaging_profile_id: telnyxMessagingProfileId,
+        webhook_url: `${supabaseUrl}/functions/v1/telnyx-webhook`,
+        webhook_failover_url: `${supabaseUrl}/functions/v1/telnyx-webhook`,
+        use_profile_webhooks: false
+      }),
+    });
+    
+    const telnyxResult = await telnyxResponse.json();
+    
+    if (!telnyxResponse.ok) {
+      console.error('Telnyx API error:', telnyxResult);
+      throw new Error(telnyxResult.errors?.[0]?.detail || 'Failed to send SMS via Telnyx');
     }
     
+    console.log('SMS sent successfully via Telnyx:', telnyxResult.data?.id);
+    
+    // Log the SMS in database
+    try {
+      await supabase
+        .from('communication_logs')
+        .insert({
+          user_id: smsRequest.user_id || '00000000-0000-0000-0000-000000000000',
+          type: 'sms',
+          direction: 'outbound',
+          status: 'sent',
+          from_address: fromPhone,
+          to_address: smsRequest.recipientPhone,
+          content: smsRequest.message,
+          metadata: {
+            ...smsRequest.metadata,
+            telnyx_message_id: telnyxResult.data?.id,
+            messaging_profile_id: telnyxMessagingProfileId
+          }
+        });
+      
+      console.log('SMS logged in database');
+    } catch (dbError) {
+      console.error('Failed to log SMS in database:', dbError);
+      // Don't fail the request if logging fails
+    }
+    
+    return new Response(
+      JSON.stringify({ 
+        success: true, 
+        messageId: telnyxResult.data?.id,
+        from: fromPhone,
+        to: smsRequest.recipientPhone
+      }),
+      { 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      }
+    );
   } catch (error) {
     console.error('Error in telnyx-sms function:', error);
     return new Response(
       JSON.stringify({ 
         success: false, 
-        error: error.message || 'Failed to send SMS' 
+        error: error.message 
       }),
       { 
         status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
       }
     );
   }

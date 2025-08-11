@@ -39,6 +39,8 @@ import IntegrationsPage from "@/pages/IntegrationsPage";
 import PhoneNumbersPage from "@/pages/PhoneNumbersPage";
 import PhoneNumbersSettingsPage from "@/pages/settings/PhoneNumbersSettingsPage";
 import PhoneManagementPage from "@/pages/PhoneManagementPage";
+import PhoneNumberManagementPage from "@/pages/PhoneNumberManagementPage";
+import PhoneNumberPurchasePage from "@/pages/PhoneNumberPurchasePage";
 import EstimatesPage from "@/pages/EstimatesPage";
 import InvoicesPage from "@/pages/InvoicesPage";
 import ReportsPage from "@/pages/ReportsPage";
@@ -372,6 +374,22 @@ function App() {
               <AuthProvider>
                 <ProtectedRouteWithProviders>
                   <PhoneNumbersSettingsPage />
+                </ProtectedRouteWithProviders>
+              </AuthProvider>
+            } />
+            
+            <Route path="/settings/phone-numbers/manage" element={
+              <AuthProvider>
+                <ProtectedRouteWithProviders>
+                  <PhoneNumberManagementPage />
+                </ProtectedRouteWithProviders>
+              </AuthProvider>
+            } />
+            
+            <Route path="/settings/phone-numbers/purchase" element={
+              <AuthProvider>
+                <ProtectedRouteWithProviders>
+                  <PhoneNumberPurchasePage />
                 </ProtectedRouteWithProviders>
               </AuthProvider>
             } />

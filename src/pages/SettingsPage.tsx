@@ -84,7 +84,7 @@ const SettingsPage = () => {
         </Link>
         
         {/* Phone Numbers Card */}
-        <Link to="/settings/phone-numbers">
+        <Link to="/settings/phone-numbers/manage">
           <div className="h-full hover:shadow-md transition-shadow fixlyfy-card cursor-pointer">
             <div className="flex items-center p-6 space-x-4">
               <div className="bg-fixlyfy/10 p-3 rounded-full">
@@ -92,7 +92,7 @@ const SettingsPage = () => {
               </div>
               <div>
                 <h3 className="font-medium">Phone Numbers</h3>
-                <p className="text-sm text-muted-foreground">Purchase, claim, and manage your phone numbers</p>
+                <p className="text-sm text-muted-foreground">Buy, manage, and configure your phone numbers</p>
               </div>
             </div>
           </div>
