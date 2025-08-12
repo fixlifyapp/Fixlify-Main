@@ -1,0 +1,77 @@
+{
+  "mcpServers": {
+    "supabase": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-supabase"
+      ],
+      "env": {
+        "SUPABASE_URL": "https://mqppvcrlvsgrsqelglod.supabase.co",
+        "SUPABASE_SERVICE_ROLE_KEY": "YOUR_SERVICE_ROLE_KEY_HERE"
+      },
+      "capabilities": {
+        "database": {
+          "enabled": true,
+          "operations": ["select", "insert", "update", "delete", "rpc"],
+          "tables": "*"
+        },
+        "auth": {
+          "enabled": true,
+          "operations": ["users", "sessions"]
+        },
+        "storage": {
+          "enabled": true,
+          "buckets": "*"
+        },
+        "realtime": {
+          "enabled": true
+        },
+        "functions": {
+          "enabled": true,
+          "invoke": true
+        }
+      }
+    },
+    "filesystem": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-filesystem",
+        "C:\\Users\\petru\\Downloads\\TEST FIX SITE\\3\\Fixlify-Main-main"
+      ]
+    }
+  },
+  "globalShortcuts": {
+    "db": "supabase",
+    "fs": "filesystem"
+  },
+  "agents": {
+    "autoLoad": true,
+    "paths": [
+      "C:\\Users\\petru\\.claude\\agents",
+      ".claude\\agents"
+    ],
+    "defaultAgents": [
+      "supabase-architect",
+      "frontend-specialist",
+      "mobile-specialist",
+      "ai-integration-expert",
+      "security-auditor",
+      "test-engineer",
+      "devops-engineer",
+      "performance-optimizer",
+      "code-reviewer",
+      "automation-engineer"
+    ]
+  },
+  "claude": {
+    "model": "claude-3-opus-20240229",
+    "temperature": 0.7,
+    "maxTokens": 4000,
+    "contextWindow": 200000,
+    "parallelExecution": true,
+    "autoSave": true,
+    "dangerouslySkipPermissions": true
+  }
+}

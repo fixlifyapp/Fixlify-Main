@@ -135,10 +135,18 @@ export default function PhoneNumberManagementPage() {
   const toggleAIDispatcher = async (numberId: string, enabled: boolean) => {
     setUpdatingId(numberId);
     try {
-      const { error } = await supabase
-        .from('phone_numbers')
-        .update({ ai_dispatcher_enabled: enabled })
-        .eq('id', numberId);
+      // Use the ai-dispatcher-handler edge function
+      const { data, error } = await supabase.functions.invoke('ai-dispatcher-handler', {
+        body: {
+          action: enabled ? 'enable' : 'disable',
+          phoneNumberId: numberId,
+          config: enabled ? {
+            business_name: 'Fixlify Service',
+            business_type: 'HVAC/Repair Service',
+            business_greeting: 'Thank you for calling Fixlify. How can I help you today?'
+          } : undefined
+        }
+      });
 
       if (error) throw error;
 

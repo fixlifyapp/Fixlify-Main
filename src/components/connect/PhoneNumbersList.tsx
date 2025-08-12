@@ -77,28 +77,22 @@ export const PhoneNumbersList = () => {
       
       console.log(`Toggling AI dispatcher for ${phoneNumber.phone_number} to ${newStatus}`);
       
-      if (newStatus) {
-        // Configure the number for AI
-        const { data, error } = await supabase.functions.invoke('telnyx-phone-numbers', {
-          body: {
-            action: 'configure',
-            phone_number: phoneNumber.phone_number
-          }
-        });
+      // Call the ai-dispatcher-handler function
+      const { data, error } = await supabase.functions.invoke('ai-dispatcher-handler', {
+        body: {
+          action: newStatus ? 'enable' : 'disable',
+          phoneNumberId: phoneNumber.id,
+          config: newStatus ? {
+            business_name: 'Fixlify Service',
+            business_type: 'HVAC/Repair Service',
+            business_greeting: 'Thank you for calling Fixlify. How can I help you today?',
+            user_id: phoneNumber.user_id || phoneNumber.purchased_by
+          } : undefined
+        }
+      });
 
-        if (error) throw error;
-        console.log('Configure response:', data);
-      } else {
-        // Call the manage-ai-dispatcher function to disable
-        const { error } = await supabase.functions.invoke('manage-ai-dispatcher', {
-          body: {
-            action: 'disable',
-            phoneNumberId: phoneNumber.id
-          }
-        });
-
-        if (error) throw error;
-      }
+      if (error) throw error;
+      console.log('AI Dispatcher toggle response:', data);
 
       // Update local state
       setPhoneNumbers(prev => prev.map(pn => 
