@@ -29,6 +29,24 @@ serve(async (req) => {
                        body.data?.payload?.telnyx_end_user_target
     
     console.log('Called:', calledNumber, 'Caller:', callerNumber)
+    
+    // Get Toronto timezone date/time
+    const torontoDate = new Date().toLocaleDateString("en-US", {
+      timeZone: "America/Toronto",
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    })
+    const torontoTime = new Date().toLocaleTimeString("en-US", {
+      timeZone: "America/Toronto",
+      hour: '2-digit',
+      minute: '2-digit'
+    })
+    const dayOfWeek = new Date().toLocaleDateString("en-US", {
+      timeZone: "America/Toronto",
+      weekday: 'long'
+    })
+    
     // Default values
     let variables = {
       agent_name: 'Assistant',
@@ -36,10 +54,20 @@ serve(async (req) => {
       hours_of_operation: 'Monday-Friday 9am-6pm',
       services_offered: 'Professional services',
       business_phone: calledNumber || '',
-      current_date: new Date().toLocaleDateString(),
-      current_time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
+      current_date: torontoDate,
+      current_time: torontoTime,
+      day_of_week: dayOfWeek,
       greeting: 'Thank you for calling. How can I help you today?',
-      caller_number: callerNumber || 'unknown'
+      caller_number: callerNumber || 'unknown',
+      business_niche: 'Professional services',
+      capabilities: 'General service capabilities',
+      diagnostic_fee: '$89',
+      emergency_fee: '$150',
+      hourly_rate: '$125',
+      service_area: 'Greater Toronto Area',
+      payment_methods: 'Credit Card, Cash, E-Transfer',
+      warranty_info: '90-day parts and labor warranty',
+      scheduling_rules: 'Same-day service available'
     }
 
     if (calledNumber) {
@@ -63,6 +91,7 @@ serve(async (req) => {
           .select('*')
           .eq('phone_number_id', phoneData.id)
           .single()
+
         if (aiConfig) {
           console.log('Found config for:', aiConfig.agent_name, '/', aiConfig.company_name)
           
@@ -91,16 +120,29 @@ serve(async (req) => {
                         aiConfig.dynamic_variables?.greeting ||
                         `Thank you for calling ${aiConfig.company_name || 'our company'}. How can I help you today?`
           
-          // Set actual values
+          // Set actual values with Toronto timezone and enhanced fields
           variables = {
             agent_name: aiConfig.agent_name || 'Assistant',
-            company_name: aiConfig.company_name || 'Our Company',            hours_of_operation: aiConfig.hours_of_operation || 'Monday-Friday 9am-6pm',
+            company_name: aiConfig.company_name || 'Our Company',
+            hours_of_operation: aiConfig.hours_of_operation || 'Monday-Friday 9am-6pm',
             services_offered: servicesText,
             business_phone: phoneData.phone_number || calledNumber,
-            current_date: new Date().toLocaleDateString(),
-            current_time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
+            current_date: torontoDate,
+            current_time: torontoTime,
+            day_of_week: dayOfWeek,
             greeting: greeting,
-            caller_number: callerNumber || 'unknown'
+            caller_number: callerNumber || 'unknown',
+            business_niche: aiConfig.business_type || 'Professional services',
+            // Enhanced capability fields
+            capabilities: aiConfig.capabilities || 'General service capabilities',
+            diagnostic_fee: aiConfig.diagnostic_fee ? `$${aiConfig.diagnostic_fee}` : '$89',
+            emergency_fee: aiConfig.emergency_surcharge ? `$${aiConfig.emergency_surcharge}` : '$150',
+            hourly_rate: aiConfig.hourly_rate ? `$${aiConfig.hourly_rate}` : '$125',
+            service_area: aiConfig.service_area || 'Greater Toronto Area',
+            payment_methods: aiConfig.payment_methods || 'Credit Card, Cash, E-Transfer',
+            warranty_info: aiConfig.warranty_info || '90-day parts and labor warranty',
+            scheduling_rules: aiConfig.scheduling_rules || 'Same-day service available',
+            emergency_hours: aiConfig.emergency_hours || '24/7 emergency service'
           }
         }
       }
@@ -135,7 +177,19 @@ serve(async (req) => {
   } catch (error) {
     console.error('Error:', error)
     
-    // Return default in correct format
+    // Return default in correct format with Toronto time
+    const torontoDate = new Date().toLocaleDateString("en-US", {
+      timeZone: "America/Toronto",
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    })
+    const torontoTime = new Date().toLocaleTimeString("en-US", {
+      timeZone: "America/Toronto",
+      hour: '2-digit',
+      minute: '2-digit'
+    })
+    
     return new Response(
       JSON.stringify({
         dynamic_variables: {
@@ -144,9 +198,13 @@ serve(async (req) => {
           hours_of_operation: 'Monday-Friday 9am-6pm',
           services_offered: 'Professional services',
           business_phone: '',
-          current_date: new Date().toLocaleDateString(),
-          current_time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
-          greeting: 'Thank you for calling. How can I help you today?'
+          current_date: torontoDate,
+          current_time: torontoTime,
+          greeting: 'Thank you for calling. How can I help you today?',
+          capabilities: 'General service capabilities',
+          diagnostic_fee: '$89',
+          emergency_fee: '$150',
+          hourly_rate: '$125'
         }
       }),
       { 
