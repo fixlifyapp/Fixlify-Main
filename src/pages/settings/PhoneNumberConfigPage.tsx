@@ -674,6 +674,7 @@ ${capabilities}
           )}
         </Button>
       </div>
+    </div>
     </PageLayout>
   );
 }
