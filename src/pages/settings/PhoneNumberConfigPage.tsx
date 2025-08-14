@@ -500,14 +500,17 @@ ${capabilities}
                         <SelectValue placeholder="Select your business type" />
                       </SelectTrigger>
                       <SelectContent>
-                        {businessNiches.map((niche) => (
-                          <SelectItem key={niche.id} value={niche.dbValue}>
-                            <div className="flex items-center gap-2">
-                              <niche.icon className="h-4 w-4" />
-                              <span>{niche.label}</span>
-                            </div>
-                          </SelectItem>
-                        ))}
+                        {businessNiches.map((niche) => {
+                          const Icon = niche.icon;
+                          return (
+                            <SelectItem key={niche.id} value={niche.dbValue}>
+                              <div className="flex items-center gap-2">
+                                {Icon && <Icon className="h-4 w-4" />}
+                                <span>{niche.label}</span>
+                              </div>
+                            </SelectItem>
+                          );
+                        })}
                       </SelectContent>
                     </Select>
                     <p className="text-xs text-muted-foreground mt-1">
