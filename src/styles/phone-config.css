@@ -1,0 +1,181 @@
+/* Enhanced styles for Phone Configuration Page */
+
+/* Container and Layout */
+.phone-config-container {
+  @apply max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6;
+}
+
+/* Card Spacing */
+.config-card {
+  @apply mb-6 shadow-sm;
+}
+
+.config-card-header {
+  @apply px-4 sm:px-6 py-4 border-b bg-gray-50 dark:bg-gray-800/50;
+}
+
+.config-card-content {
+  @apply p-4 sm:p-6 space-y-6;
+}
+
+/* Form Elements */
+.config-form-group {
+  @apply space-y-2;
+}
+
+.config-label {
+  @apply text-sm sm:text-base font-medium text-gray-900 dark:text-gray-100;
+}
+
+.config-input {
+  @apply w-full text-sm sm:text-base px-3 py-2 sm:px-4 sm:py-2.5;
+  @apply bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100;
+  @apply border-gray-300 dark:border-gray-600;
+  @apply focus:ring-2 focus:ring-primary focus:border-primary;
+}
+
+.config-textarea {
+  @apply w-full text-sm sm:text-base px-3 py-2 sm:px-4 sm:py-2.5;
+  @apply bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100;
+  @apply border-gray-300 dark:border-gray-600;
+  @apply focus:ring-2 focus:ring-primary focus:border-primary;
+  @apply min-h-[100px] sm:min-h-[120px] resize-y;
+}
+
+.config-select-trigger {
+  @apply w-full text-sm sm:text-base h-10 sm:h-11;
+  @apply bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100;
+  @apply border-gray-300 dark:border-gray-600;
+}
+
+/* Helper Text */
+.config-helper-text {
+  @apply text-xs sm:text-sm text-gray-600 dark:text-gray-400 mt-1.5;
+  @apply leading-relaxed;
+}
+
+/* Switch Controls */
+.config-switch-container {
+  @apply flex items-start sm:items-center justify-between;
+  @apply py-3 sm:py-4;
+}
+
+.config-switch-label-group {
+  @apply flex-1 mr-4;
+}
+
+.config-switch-label {
+  @apply text-sm sm:text-base font-medium text-gray-900 dark:text-gray-100;
+}
+
+.config-switch-description {
+  @apply text-xs sm:text-sm text-gray-600 dark:text-gray-400 mt-0.5;
+}
+
+/* Capabilities Section */
+.capabilities-textarea {
+  @apply font-mono text-xs sm:text-sm;
+  @apply whitespace-pre-wrap;
+  @apply min-h-[150px] sm:min-h-[200px];
+  @apply leading-relaxed;
+}
+
+/* Badges */
+.config-badge {
+  @apply text-xs sm:text-sm px-2 py-1 sm:px-2.5 sm:py-1.5;
+  @apply inline-flex items-center gap-1 sm:gap-1.5;
+}
+
+/* Buttons */
+.config-button {
+  @apply text-sm sm:text-base px-4 py-2 sm:px-6 sm:py-2.5;
+  @apply font-medium;
+}
+
+.config-test-button {
+  @apply w-full sm:w-auto;
+  @apply bg-primary hover:bg-primary/90;
+  @apply text-white;
+  @apply flex items-center justify-center gap-2;
+}
+
+.config-save-button {
+  @apply w-full;
+  @apply bg-primary hover:bg-primary/90;
+  @apply text-white;
+  @apply flex items-center justify-center gap-2;
+  @apply h-12 sm:h-14 text-base sm:text-lg font-semibold;
+}
+
+/* Mobile Specific Adjustments */
+@media (max-width: 640px) {
+  /* Stack badges vertically on mobile */
+  .badge-container {
+    @apply flex-col items-start gap-2;
+  }
+  
+  /* Full width selects on mobile */
+  .config-select-content {
+    @apply w-full min-w-[280px];
+  }
+  
+  /* Better touch targets */
+  .config-input,
+  .config-textarea,
+  .config-select-trigger {
+    @apply min-h-[44px];
+  }
+  
+  /* Improved spacing on mobile */
+  .config-form-group {
+    @apply space-y-3;
+  }
+  
+  /* Larger text for better readability */
+  .config-label {
+    @apply text-base font-semibold;
+  }
+  
+  .config-helper-text {
+    @apply text-sm;
+  }
+}
+
+/* Tablet Adjustments */
+@media (min-width: 641px) and (max-width: 1024px) {
+  .config-container {
+    @apply px-6;
+  }
+  
+  .config-card-content {
+    @apply p-6;
+  }
+}
+
+/* Improved Focus States */
+.config-input:focus,
+.config-textarea:focus {
+  @apply ring-2 ring-primary ring-offset-2;
+  @apply outline-none;
+}
+
+/* Better Contrast for Readability */
+.config-input::placeholder,
+.config-textarea::placeholder {
+  @apply text-gray-500 dark:text-gray-400;
+}
+
+/* Animation for Loading States */
+.config-loading {
+  @apply animate-pulse bg-gray-100 dark:bg-gray-800;
+}
+
+/* Success State */
+.config-success {
+  @apply border-green-500 bg-green-50 dark:bg-green-900/20;
+}
+
+/* Error State */
+.config-error {
+  @apply border-red-500 bg-red-50 dark:bg-red-900/20;
+}

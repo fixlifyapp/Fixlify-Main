@@ -344,8 +344,9 @@ ${capabilities}
 
   return (
     <PageLayout>
-      <AnimatedContainer animation="fade-in">
-        <PageHeader
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+        <AnimatedContainer animation="fade-in">
+          <PageHeader
           title="Configure Phone Number"
           subtitle={formatPhoneNumber(config.phone_number)}
           icon={Phone}
@@ -426,8 +427,8 @@ ${capabilities}
 
               {config.ai_dispatcher_enabled && (
                 <div className="pt-4 border-t space-y-4">
-                  <div>
-                    <Label htmlFor="business-niche">Business Niche</Label>
+                  <div className="space-y-2">
+                    <Label htmlFor="business-niche" className="text-base font-medium">Business Niche</Label>
                     <Select
                       value={config.ai_config?.business_niche || ''}
                       onValueChange={(value) => {
@@ -470,15 +471,16 @@ ${capabilities}
                         })}
                       </SelectContent>
                     </Select>
-                    <p className="text-xs text-muted-foreground mt-1">
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
                       Selecting a niche will auto-populate capabilities and settings
                     </p>
                   </div>
 
-                  <div>
-                    <Label htmlFor="agent-name">Agent Name</Label>
+                  <div className="space-y-2">
+                    <Label htmlFor="agent-name" className="text-base font-medium">Agent Name</Label>
                     <Input
                       id="agent-name"
+                      className="text-base"
                       value={config.ai_config?.agent_name || 'Sarah'}
                       onChange={(e) => setConfig({
                         ...config,
@@ -488,10 +490,11 @@ ${capabilities}
                     />
                   </div>
 
-                  <div>
-                    <Label htmlFor="company-name">Company Name</Label>
+                  <div className="space-y-2">
+                    <Label htmlFor="company-name" className="text-base font-medium">Company Name</Label>
                     <Input
                       id="company-name"
+                      className="text-base"
                       value={config.ai_config?.company_name || ''}
                       onChange={(e) => setConfig({
                         ...config,
@@ -501,10 +504,11 @@ ${capabilities}
                     />
                   </div>
 
-                  <div>
-                    <Label htmlFor="hours">Hours of Operation</Label>
+                  <div className="space-y-2">
+                    <Label htmlFor="hours" className="text-base font-medium">Hours of Operation</Label>
                     <Input
                       id="hours"
+                      className="text-base"
                       value={config.ai_config?.hours_of_operation || 'Monday-Friday 9am-6pm, Saturday 10am-4pm'}
                       onChange={(e) => setConfig({
                         ...config,
@@ -514,9 +518,10 @@ ${capabilities}
                     />
                   </div>
 
-                  <div>
-                    <Label>Services Offered</Label>
+                  <div className="space-y-2">
+                    <Label className="text-base font-medium">Services Offered</Label>
                     <Textarea
+                      className="text-base min-h-[100px] leading-relaxed"
                       value={Array.isArray(config.ai_config?.services_offered) 
                         ? config.ai_config.services_offered.join(', ') 
                         : config.ai_config?.services_offered || ''}
@@ -536,15 +541,16 @@ ${capabilities}
                       placeholder="e.g., Phone repair, Computer repair, Tablet repair"
                       rows={2}
                     />
-                    <p className="text-xs text-muted-foreground mt-1">
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
                       Separate multiple services with commas
                     </p>
                   </div>
 
-                  <div>
-                    <Label htmlFor="capabilities">AI Capabilities</Label>
+                  <div className="space-y-2">
+                    <Label htmlFor="capabilities" className="text-base font-medium">AI Capabilities</Label>
                     <Textarea
                       id="capabilities"
+                      className="text-base min-h-[150px] font-mono leading-relaxed"
                       value={config.ai_config?.capabilities || ''}
                       onChange={(e) => setConfig({
                         ...config,
@@ -553,15 +559,16 @@ ${capabilities}
                       placeholder="List the key capabilities of your AI assistant..."
                       rows={5}
                     />
-                    <p className="text-xs text-muted-foreground mt-1">
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
                       These capabilities tell the AI what it can help customers with
                     </p>
                   </div>
 
-                  <div>
-                    <Label htmlFor="greeting">Greeting Message (Telnyx Variable)</Label>
+                  <div className="space-y-2">
+                    <Label htmlFor="greeting" className="text-base font-medium">Greeting Message (Telnyx Variable)</Label>
                     <Textarea
                       id="greeting"
+                      className="text-base min-h-[100px] leading-relaxed"
                       value={config.ai_config?.business_greeting || 'Thank you for calling. How can I help you today?'}
                       onChange={(e) => setConfig({
                         ...config,
@@ -570,15 +577,16 @@ ${capabilities}
                       placeholder="Thank you for calling. How can I help you today?"
                       rows={3}
                     />
-                    <p className="text-xs text-muted-foreground mt-1">
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
                       Available Telnyx variables: {`{{agent_name}}, {{company_name}}, {{hours_of_operation}}, {{services_offered}}, {{business_phone}}, {{current_date}}, {{current_time}}, {{greeting}}`}
                     </p>
                   </div>
 
-                  <div>
-                    <Label htmlFor="personality">Agent Personality</Label>
+                  <div className="space-y-2">
+                    <Label htmlFor="personality" className="text-base font-medium">Agent Personality</Label>
                     <Textarea
                       id="personality"
+                      className="text-base min-h-[120px] leading-relaxed"
                       value={config.ai_config?.agent_personality || ''}
                       onChange={(e) => setConfig({
                         ...config,
@@ -614,8 +622,8 @@ ${capabilities}
                   </div>
 
                   <div className="pt-4 border-t">
-                    <Button onClick={testAIAssistant} className="w-full">
-                      <TestTube className="h-4 w-4 mr-2" />
+                    <Button onClick={testAIAssistant} className="w-full px-6 py-3 text-base font-medium bg-primary hover:bg-primary/90">
+                      <TestTube className="h-5 w-5 mr-2" />
                       Test AI Assistant
                     </Button>
                   </div>
@@ -627,42 +635,44 @@ ${capabilities}
       </Tabs>
 
       {/* Action Buttons */}
-      <div className="flex justify-between items-center mt-6">
-        <Button
-          variant="outline"
-          onClick={() => navigate('/settings/phone-numbers')}
-        >
-          Cancel
-        </Button>
-        
-        <div className="flex gap-2">
+      <div className="mt-8 pb-6 space-y-4">
+        <div className="flex flex-col sm:flex-row gap-3">
+          <Button
+            variant="outline"
+            onClick={() => navigate('/settings/phone-numbers')}
+            className="flex-1 sm:flex-none px-6 py-3 text-base font-medium"
+          >
+            Cancel
+          </Button>
+          
           <Button
             variant="outline"
             onClick={loadPhoneConfig}
             disabled={isLoading}
+            className="flex-1 sm:flex-none px-6 py-3 text-base font-medium"
           >
-            <RefreshCw className="h-4 w-4 mr-2" />
+            <RefreshCw className="h-5 w-5 mr-2" />
             Refresh
           </Button>
-          
-          <Button
-            onClick={saveConfig}
-            disabled={isSaving}
-            className="bg-fixlyfy hover:bg-fixlyfy/90"
-          >
-            {isSaving ? (
-              <>
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                Saving...
-              </>
-            ) : (
-              <>
-                <Save className="h-4 w-4 mr-2" />
-                Save Configuration
-              </>
-            )}
-          </Button>
         </div>
+        
+        <Button
+          onClick={saveConfig}
+          disabled={isSaving}
+          className="w-full px-6 py-4 text-lg font-semibold bg-primary hover:bg-primary/90"
+        >
+          {isSaving ? (
+            <>
+              <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+              Saving...
+            </>
+          ) : (
+            <>
+              <Save className="h-5 w-5 mr-2" />
+              Save Configuration
+            </>
+          )}
+        </Button>
       </div>
     </PageLayout>
   );
