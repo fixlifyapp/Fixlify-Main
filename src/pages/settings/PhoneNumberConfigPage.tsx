@@ -28,6 +28,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { businessNiches } from "@/utils/business-niches";
+import { nicheCapabilities, nicheServices, nicheGreetings, nichePersonalities } from "@/config/niche-capabilities";
 
 const TELNYX_AI_ASSISTANT_ID = 'assistant-2a8a396c-e975-4ea5-90bf-3297f1350775';
 
@@ -158,7 +160,15 @@ export default function PhoneNumberConfigPage() {
                 ? aiConfig.services_offered 
                 : typeof aiConfig.services_offered === 'string' && aiConfig.services_offered
                   ? aiConfig.services_offered.split(',').map(s => s.trim())
-                  : []
+                  : [],
+              // Load new fields
+              business_niche: aiConfig.business_niche || aiConfig.business_type || '',
+              capabilities: aiConfig.capabilities || '',
+              service_area: aiConfig.service_area || '',
+              payment_methods: aiConfig.payment_methods || '',
+              warranty_info: aiConfig.warranty_info || '',
+              scheduling_rules: aiConfig.scheduling_rules || '',
+              emergency_hours: aiConfig.emergency_hours || ''
             };
           }
         }
@@ -204,20 +214,43 @@ export default function PhoneNumberConfigPage() {
   const generateInstructions = () => {
     if (!config?.ai_config) return '';
     
-    const businessNiche = config.ai_config.business_niche || 'repair shop';
+    const businessNiche = config.ai_config.business_niche || 'professional service';
     const personality = config.ai_config.agent_personality || 'Be professional, friendly, and helpful';
+    const capabilities = config.ai_config.capabilities || `1. Check repair status
+2. Book appointments
+3. Provide repair quotes
+4. Answer service questions
+5. Transfer to human agent when needed`;
     
-    let instructions = 'You are {{agent_name}} for {{company_name}}, a professional ' + businessNiche + ' AI assistant.\n\n';
-    instructions += 'Business Information:\n';
-    instructions += '- Hours: {{hours_of_operation}}\n';
-    instructions += '- Services: {{services_offered}}\n';
-    instructions += 'Your Capabilities:\n';
-    instructions += '1. Check repair status\n';
-    instructions += '2. Book appointments\n';
-    instructions += '3. Provide repair quotes\n';
-    instructions += '4. Answer service questions\n';
-    instructions += '5. Transfer to human agent when needed\n\n';
-    instructions += 'Special Characteristics:\n' + personality;
+    let instructions = `You are {{agent_name}} for {{company_name}}, a professional ${businessNiche} AI assistant.
+
+## Business Information
+- Hours: {{hours_of_operation}}
+- Services: {{services_offered}}
+- Phone: {{business_phone}}
+- Current Time: {{current_date}} {{current_time}} (Toronto/EST)
+
+## Your Core Capabilities
+${capabilities}
+
+## Speech Characteristics
+- Use clear, concise language with natural contractions
+- Speak at a measured pace, especially when confirming dates and times
+- Include occasional conversational elements like "Let me check that for you"
+- Pronounce names and technical terms correctly and clearly
+
+## Conversation Flow
+1. Greet warmly and ask how you can help
+2. Listen actively and confirm understanding
+3. Provide helpful information or take action
+4. Confirm next steps before ending call
+5. Always offer additional assistance
+
+## Important Guidelines
+- If caller seems frustrated, remain calm and empathetic
+- Always confirm appointment details before booking
+- If unsure, offer to transfer to a human technician
+- ${personality}`;
     
     return instructions;
   };
@@ -265,6 +298,14 @@ export default function PhoneNumberConfigPage() {
           agent_personality: config.ai_config.agent_personality || '',
           call_transfer_message: config.ai_config.call_transfer_message || '',
           voicemail_detection_message: config.ai_config.voicemail_detection_message || '',
+          business_type: config.ai_config.business_niche || 'Professional Services',
+          business_niche: config.ai_config.business_niche || '',
+          capabilities: config.ai_config.capabilities || '',
+          service_area: config.ai_config.service_area || 'Greater Toronto Area',
+          payment_methods: config.ai_config.payment_methods || 'Credit Card, Cash, E-Transfer',
+          warranty_info: config.ai_config.warranty_info || '90-day parts and labor warranty',
+          scheduling_rules: config.ai_config.scheduling_rules || 'Same-day service available',
+          emergency_hours: config.ai_config.emergency_hours || '24/7 emergency service',
           dynamic_variables: dynamicVariables,
           webhook_url: window.location.origin + '/api/ai-assistant-webhook',
           instructions: generateInstructions(),
@@ -429,6 +470,52 @@ export default function PhoneNumberConfigPage() {
               {config.ai_dispatcher_enabled && (
                 <div className="pt-4 border-t space-y-4">
                   <div>
+                    <Label htmlFor="business-niche">Business Niche</Label>
+                    <Select
+                      value={config.ai_config?.business_niche || ''}
+                      onValueChange={(value) => {
+                        const niche = businessNiches.find(n => n.dbValue === value);
+                        if (niche) {
+                          const currentCompany = config.ai_config?.company_name || 'our company';
+                          const currentAgent = config.ai_config?.agent_name || 'Sarah';
+                          
+                          setConfig({
+                            ...config,
+                            ai_config: {
+                              ...config.ai_config,
+                              business_niche: value,
+                              capabilities: nicheCapabilities[niche.id] || '',
+                              services_offered: nicheServices[niche.id]?.split(', ') || [],
+                              business_greeting: nicheGreetings[niche.id]
+                                ?.replace('{{company_name}}', currentCompany)
+                                .replace('{{agent_name}}', currentAgent) || '',
+                              agent_personality: nichePersonalities[niche.id] || ''
+                            }
+                          });
+                          toast.success(`Applied ${niche.label} template`);
+                        }
+                      }}
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Select your business type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {businessNiches.map((niche) => (
+                          <SelectItem key={niche.id} value={niche.dbValue}>
+                            <div className="flex items-center gap-2">
+                              <niche.icon className="h-4 w-4" />
+                              <span>{niche.label}</span>
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Selecting a niche will auto-populate capabilities and settings
+                    </p>
+                  </div>
+
+                  <div>
                     <Label htmlFor="agent-name">Agent Name</Label>
                     <Input
                       id="agent-name"
@@ -491,6 +578,23 @@ export default function PhoneNumberConfigPage() {
                     />
                     <p className="text-xs text-muted-foreground mt-1">
                       Separate multiple services with commas
+                    </p>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="capabilities">AI Capabilities</Label>
+                    <Textarea
+                      id="capabilities"
+                      value={config.ai_config?.capabilities || ''}
+                      onChange={(e) => setConfig({
+                        ...config,
+                        ai_config: {...config.ai_config, capabilities: e.target.value}
+                      })}
+                      placeholder="List the key capabilities of your AI assistant..."
+                      rows={5}
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      These capabilities tell the AI what it can help customers with
                     </p>
                   </div>
 
