@@ -73,60 +73,17 @@ export default function PhoneNumberConfigPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [activeTab, setActiveTab] = useState("ai-voice");
-  const [businessNiches, setBusinessNiches] = useState<Array<{value: string, label: string}>>([]);
+  // Business niches are imported from utils/business-niches.ts - no need for state
 
   useEffect(() => {
     if (phoneId && user?.id) {
       loadPhoneConfig();
-      loadBusinessNiches();
+      // No need to load business niches from database - we use the hardcoded list
     }
   }, [phoneId, user?.id]);
 
-  const loadBusinessNiches = async () => {
-    if (!user?.id) return;
-    
-    try {
-      // Try to load from business_niches table first
-      const { data, error } = await supabase
-        .from('business_niches')
-        .select('name')
-        .eq('user_id', user.id)
-        .order('name');
-      
-      if (!error && data && data.length > 0) {
-        const niches = data.map(n => ({
-          value: n.name.toLowerCase().replace(/\s+/g, '_'),
-          label: n.name
-        }));
-        setBusinessNiches(niches);
-      } else {
-        // Fallback to default niches if table doesn't exist or is empty
-        const defaultNiches = [
-          { value: "hvac", label: "HVAC" },
-          { value: "plumbing", label: "Plumbing" },
-          { value: "electrical", label: "Electrical" },
-          { value: "appliance", label: "Appliance Repair" },
-          { value: "computer", label: "Computer Repair" },
-          { value: "phone", label: "Phone Repair" },
-          { value: "general", label: "General Repair" }
-        ];
-        setBusinessNiches(defaultNiches);
-      }
-    } catch (error) {
-      console.error('Error loading business niches:', error);
-      // Use default niches on error
-      const defaultNiches = [
-        { value: "hvac", label: "HVAC" },
-        { value: "plumbing", label: "Plumbing" },
-        { value: "electrical", label: "Electrical" },
-        { value: "appliance", label: "Appliance Repair" },
-        { value: "computer", label: "Computer Repair" },
-        { value: "phone", label: "Phone Repair" },
-        { value: "general", label: "General Repair" }
-      ];
-      setBusinessNiches(defaultNiches);
-    }
-  };
+  // Removed loadBusinessNiches function - using hardcoded list from utils/business-niches.ts
+  
   const loadPhoneConfig = async () => {
     if (!phoneId || !user?.id) return;
 
