@@ -5,114 +5,126 @@ import { PageLayout } from "@/components/layout/PageLayout";
 import { PageHeader } from "@/components/ui/page-header";
 import { ModernCard } from "@/components/ui/modern-card";
 import { AnimatedContainer } from "@/components/ui/animated-container";
+import { CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
+  Phone, Bot, MessageSquare, PhoneCall,
+  ChevronLeft, Save, RefreshCw,
+  CheckCircle, Loader2, TestTube
+} from "lucide-react";
+import { toast } from "sonner";
+import { useAuth } from "@/hooks/use-auth";
+import { formatPhoneNumber } from "@/utils/phone-utils";
+import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { 
-  Phone, 
-  Settings,
-  ArrowLeft,
-  Bot,
-  Mic,
-  Save,
-  Loader2,
-  Volume2,
-  MessageSquare,
-  PhoneCall,
-  AlertCircle,
-  CheckCircle,
-  Wifi
-} from "lucide-react";
-import { toast } from "sonner";
-import { useAuth } from "@/hooks/use-auth";
-import { formatPhoneNumber } from "@/utils/phone-utils";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Badge } from "@/components/ui/badge";
 
-interface PhoneNumberConfig {
+const TELNYX_AI_ASSISTANT_ID = 'assistant-2a8a396c-e975-4ea5-90bf-3297f1350775';
+
+interface PhoneConfig {
   id: string;
   phone_number: string;
   friendly_name?: string;
+  status: string;
+  is_primary: boolean;
+  is_active: boolean;
   ai_dispatcher_enabled: boolean;
-  ai_voice_settings?: {
-    voice: string;
-    language: string;
-    speed: number;
-    pitch: number;
-    greeting_message?: string;
-    voicemail_message?: string;
+  capabilities?: {
+    sms?: boolean;
+    voice?: boolean;
+    mms?: boolean;
+  };
+  ai_config?: {
+    assistant_id?: string;
+    company_name?: string;
+    business_niche?: string;
+    business_greeting?: string;
+    agent_name?: string;
+    agent_personality?: string;
+    voice_id?: string;
+    hours_of_operation?: string;
+    services_offered?: string[];
     call_transfer_message?: string;
-    hold_music_url?: string;
-    max_call_duration?: number;
-    record_calls?: boolean;
-    transcribe_calls?: boolean;
-  };
-  sms_settings?: {
-    auto_reply_enabled: boolean;
-    auto_reply_message?: string;
-    forward_to_email?: boolean;
-    forward_email?: string;
-  };
-  webhook_settings?: {
-    webhook_url?: string;
-    webhook_events?: string[];
-  };
-  telnyx_settings?: {
-    telnyx_app_id?: string;
-    voice_profile_id?: string;
-    messaging_profile_id?: string;
-    connection_id?: string;
+    voicemail_detection_message?: string;
+    instructions?: string;
+    current_date?: string;
+    current_time?: string;
+    greeting?: string;
   };
 }
-
-const AVAILABLE_VOICES = [
-  { id: 'alloy', name: 'Alloy', gender: 'neutral', description: 'Balanced and versatile' },
-  { id: 'echo', name: 'Echo', gender: 'male', description: 'Warm and conversational' },
-  { id: 'fable', name: 'Fable', gender: 'neutral', description: 'Expressive and dynamic' },
-  { id: 'onyx', name: 'Onyx', gender: 'male', description: 'Deep and authoritative' },
-  { id: 'nova', name: 'Nova', gender: 'female', description: 'Energetic and bright' },
-  { id: 'shimmer', name: 'Shimmer', gender: 'female', description: 'Soft and pleasant' }
-];
-
-const AVAILABLE_LANGUAGES = [
-  { code: 'en-US', name: 'English (US)' },
-  { code: 'en-GB', name: 'English (UK)' },
-  { code: 'es-ES', name: 'Spanish' },
-  { code: 'fr-FR', name: 'French' },
-  { code: 'de-DE', name: 'German' },
-  { code: 'it-IT', name: 'Italian' },
-  { code: 'pt-BR', name: 'Portuguese (Brazil)' },
-  { code: 'ru-RU', name: 'Russian' },
-  { code: 'zh-CN', name: 'Chinese (Mandarin)' },
-  { code: 'ja-JP', name: 'Japanese' }
-];
-
 export default function PhoneNumberConfigPage() {
   const { phoneId } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
   
-  const [config, setConfig] = useState<PhoneNumberConfig | null>(null);
+  const [config, setConfig] = useState<PhoneConfig | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const [isTestingVoice, setIsTestingVoice] = useState(false);
-  const [activeTab, setActiveTab] = useState("general");
+  const [activeTab, setActiveTab] = useState("ai-voice");
+  const [businessNiches, setBusinessNiches] = useState<Array<{value: string, label: string}>>([]);
 
-  // Load phone number configuration
   useEffect(() => {
-    loadPhoneConfig();
-  }, [phoneId, user]);
+    if (phoneId && user?.id) {
+      loadPhoneConfig();
+      loadBusinessNiches();
+    }
+  }, [phoneId, user?.id]);
 
+  const loadBusinessNiches = async () => {
+    if (!user?.id) return;
+    
+    try {
+      // Try to load from business_niches table first
+      const { data, error } = await supabase
+        .from('business_niches')
+        .select('name')
+        .eq('user_id', user.id)
+        .order('name');
+      
+      if (!error && data && data.length > 0) {
+        const niches = data.map(n => ({
+          value: n.name.toLowerCase().replace(/\s+/g, '_'),
+          label: n.name
+        }));
+        setBusinessNiches(niches);
+      } else {
+        // Fallback to default niches if table doesn't exist or is empty
+        const defaultNiches = [
+          { value: "hvac", label: "HVAC" },
+          { value: "plumbing", label: "Plumbing" },
+          { value: "electrical", label: "Electrical" },
+          { value: "appliance", label: "Appliance Repair" },
+          { value: "computer", label: "Computer Repair" },
+          { value: "phone", label: "Phone Repair" },
+          { value: "general", label: "General Repair" }
+        ];
+        setBusinessNiches(defaultNiches);
+      }
+    } catch (error) {
+      console.error('Error loading business niches:', error);
+      // Use default niches on error
+      const defaultNiches = [
+        { value: "hvac", label: "HVAC" },
+        { value: "plumbing", label: "Plumbing" },
+        { value: "electrical", label: "Electrical" },
+        { value: "appliance", label: "Appliance Repair" },
+        { value: "computer", label: "Computer Repair" },
+        { value: "phone", label: "Phone Repair" },
+        { value: "general", label: "General Repair" }
+      ];
+      setBusinessNiches(defaultNiches);
+    }
+  };
   const loadPhoneConfig = async () => {
     if (!phoneId || !user?.id) return;
 
@@ -125,70 +137,179 @@ export default function PhoneNumberConfigPage() {
         .single();
 
       if (error) throw error;
-
-      setConfig({
-        ...data,
-        ai_voice_settings: data.ai_voice_settings || {
-          voice: 'alloy',
-          language: 'en-US',
-          speed: 1.0,
-          pitch: 1.0,
-          greeting_message: 'Hello, how can I help you today?',
-          voicemail_message: 'Please leave a message after the tone.',
-          call_transfer_message: 'Please hold while I transfer your call.',
-          max_call_duration: 3600,
-          record_calls: false,
-          transcribe_calls: true
-        },
-        sms_settings: data.sms_settings || {
-          auto_reply_enabled: false,
-          auto_reply_message: '',
-          forward_to_email: false,
-          forward_email: ''
-        },
-        webhook_settings: data.webhook_settings || {
-          webhook_url: '',
-          webhook_events: []
-        },
-        telnyx_settings: data.telnyx_settings || {
-          messaging_profile_id: '400197fa-ac3b-4052-8c14-6da54bf7e800',
-          connection_id: '2709100729850660858'
+      
+      if (data) {
+        let configData: PhoneConfig = data;
+        
+        // Load AI config
+        if (data.ai_dispatcher_enabled) {
+          const { data: aiConfig } = await supabase
+            .from('ai_dispatcher_configs')
+            .select('*')
+            .eq('phone_number_id', phoneId)
+            .single();
+          
+          if (aiConfig) {
+            configData.ai_config = {
+              ...aiConfig,
+              assistant_id: TELNYX_AI_ASSISTANT_ID,
+              // Ensure services_offered is always an array
+              services_offered: Array.isArray(aiConfig.services_offered) 
+                ? aiConfig.services_offered 
+                : typeof aiConfig.services_offered === 'string' && aiConfig.services_offered
+                  ? aiConfig.services_offered.split(',').map(s => s.trim())
+                  : []
+            };
+          }
         }
-      });
+
+        // Load from profiles
+        const { data: profileData } = await supabase
+          .from('profiles')
+          .select('company_name, business_niche')
+          .eq('id', user.id)
+          .single();
+
+        // Apply defaults from settings
+        if (!configData.ai_config) {
+          configData.ai_config = {};
+        }
+        
+        configData.ai_config.company_name = configData.ai_config.company_name || profileData?.company_name || 'Fixlify Service';
+        configData.ai_config.business_niche = configData.ai_config.business_niche || profileData?.business_niche || '';
+
+        setConfig(configData);
+      }
     } catch (error) {
-      console.error('Error loading phone config:', error);
-      toast.error('Failed to load phone number configuration');
+      console.error('Error loading config:', error);
+      toast.error('Failed to load phone configuration');
+      navigate('/settings/phone-numbers');
     } finally {
       setIsLoading(false);
     }
   };
 
+  const handleNicheChange = (niche: string) => {
+    if (config) {
+      setConfig({
+        ...config,
+        ai_config: {
+          ...config.ai_config,
+          business_niche: niche,
+          business_greeting: 'Thank you for calling ' + (config.ai_config?.company_name || 'our company') + '. I am ' + (config.ai_config?.agent_name || 'your assistant') + ', how can I help you today?'
+        }
+      });
+    }
+  };
+  const generateInstructions = () => {
+    if (!config?.ai_config) return '';
+    
+    const businessNiche = config.ai_config.business_niche || 'repair shop';
+    const personality = config.ai_config.agent_personality || 'Be professional, friendly, and helpful';
+    
+    let instructions = 'You are {{agent_name}} for {{company_name}}, a professional ' + businessNiche + ' AI assistant.\n\n';
+    instructions += 'Business Information:\n';
+    instructions += '- Hours: {{hours_of_operation}}\n';
+    instructions += '- Services: {{services_offered}}\n';
+    instructions += 'Your Capabilities:\n';
+    instructions += '1. Check repair status\n';
+    instructions += '2. Book appointments\n';
+    instructions += '3. Provide repair quotes\n';
+    instructions += '4. Answer service questions\n';
+    instructions += '5. Transfer to human agent when needed\n\n';
+    instructions += 'Special Characteristics:\n' + personality;
+    
+    return instructions;
+  };
+
   const saveConfig = async () => {
-    if (!config || !phoneId || !user?.id) return;
+    if (!config || !phoneId) return;
 
     setIsSaving(true);
     try {
-      const { error } = await supabase
+      const { error: phoneError } = await supabase
         .from('phone_numbers')
         .update({
           friendly_name: config.friendly_name,
           ai_dispatcher_enabled: config.ai_dispatcher_enabled,
-          ai_voice_settings: config.ai_voice_settings,
-          sms_settings: config.sms_settings,
-          webhook_settings: config.webhook_settings,
-          telnyx_settings: config.telnyx_settings
+          updated_at: new Date().toISOString()
         })
-        .eq('id', phoneId)
-        .eq('user_id', user.id);
+        .eq('id', phoneId);
 
-      if (error) throw error;
+      if (phoneError) throw phoneError;
 
-      // If AI is enabled, try to assign to TeXML voice app
-      if (config.ai_dispatcher_enabled) {
-        await assignToVoiceApp();
+      if (config.ai_dispatcher_enabled && config.ai_config) {
+        const now = new Date();
+        const dynamicVariables = {
+          agent_name: config.ai_config.agent_name || 'Sarah',
+          company_name: config.ai_config.company_name || 'Fixlify',
+          hours_of_operation: config.ai_config.hours_of_operation || 'Monday-Friday 9am-6pm',
+          services_offered: Array.isArray(config.ai_config.services_offered) 
+            ? config.ai_config.services_offered.join(', ') 
+            : config.ai_config.services_offered || '',
+          current_date: now.toLocaleDateString(),
+          current_time: now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
+          greeting: config.ai_config.business_greeting || 'Thank you for calling. How can I help you today?',
+          business_phone: config.phone_number || ''
+        };
+
+        // Prepare AI config data
+        const aiConfigData = {
+          phone_number_id: phoneId,
+          assistant_id: TELNYX_AI_ASSISTANT_ID,
+          agent_name: config.ai_config.agent_name || 'Sarah',
+          company_name: config.ai_config.company_name || 'Fixlify',
+          hours_of_operation: config.ai_config.hours_of_operation || 'Monday-Friday 9am-6pm',
+          services_offered: config.ai_config.services_offered || [],
+          business_greeting: config.ai_config.business_greeting || '',
+          agent_personality: config.ai_config.agent_personality || '',
+          call_transfer_message: config.ai_config.call_transfer_message || '',
+          voicemail_detection_message: config.ai_config.voicemail_detection_message || '',
+          dynamic_variables: dynamicVariables,
+          webhook_url: window.location.origin + '/api/ai-assistant-webhook',
+          instructions: generateInstructions(),
+          updated_at: new Date().toISOString()
+        };
+
+        // Delete existing config first if exists
+        await supabase
+          .from('ai_dispatcher_configs')
+          .delete()
+          .eq('phone_number_id', phoneId);
+
+        // Insert new config
+        const { error: aiConfigError } = await supabase
+          .from('ai_dispatcher_configs')
+          .insert(aiConfigData);
+
+        if (aiConfigError) {
+          console.error('Error saving AI config:', aiConfigError);
+          toast.error('Failed to save AI configuration');
+          return;
+        }
+
+        // Try to invoke edge function if it exists
+        try {
+          await supabase.functions.invoke('ai-dispatcher-handler', {
+            body: {
+              action: 'update_config',
+              phoneNumberId: phoneId,
+              config: aiConfigData
+            }
+          });
+        } catch (funcError) {
+          console.log('Edge function not available, config saved to database');
+        }
+      } else if (!config.ai_dispatcher_enabled) {
+        // If AI is disabled, delete the config
+        await supabase
+          .from('ai_dispatcher_configs')
+          .delete()
+          .eq('phone_number_id', phoneId);
       }
 
       toast.success('Configuration saved successfully');
+      await loadPhoneConfig();
     } catch (error) {
       console.error('Error saving config:', error);
       toast.error('Failed to save configuration');
@@ -197,59 +318,13 @@ export default function PhoneNumberConfigPage() {
     }
   };
 
-  const assignToVoiceApp = async () => {
-    if (!config) return;
-
-    try {
-      const { data: functionData, error: functionError } = await supabase.functions.invoke(
-        'telnyx-voice-config',
-        {
-          body: {
-            action: 'assign_to_voice_app',
-            phoneNumber: config.phone_number,
-            settings: config.ai_voice_settings
-          }
-        }
-      );
-
-      if (functionError) throw functionError;
-      
-      if (functionData?.success) {
-        toast.success('Phone number assigned to AI voice app');
-      } else {
-        toast.warning('Could not assign to voice app. Number may be assigned to another profile.');
-      }
-    } catch (error) {
-      console.error('Error assigning to voice app:', error);
-    }
+  const testAIAssistant = async () => {
+    toast.info('Test call feature coming soon');
   };
-
-  const testVoice = async () => {
-    if (!config) return;
-
-    setIsTestingVoice(true);
-    try {
-      // Play a sample of the selected voice
-      const utterance = new SpeechSynthesisUtterance(
-        config.ai_voice_settings?.greeting_message || 'Hello, this is a test of the AI voice.'
-      );
-      utterance.rate = config.ai_voice_settings?.speed || 1.0;
-      utterance.pitch = config.ai_voice_settings?.pitch || 1.0;
-      
-      window.speechSynthesis.speak(utterance);
-      toast.success('Playing voice sample');
-    } catch (error) {
-      console.error('Error testing voice:', error);
-      toast.error('Failed to play voice sample');
-    } finally {
-      setIsTestingVoice(false);
-    }
-  };
-
   if (isLoading) {
     return (
       <PageLayout>
-        <div className="flex justify-center items-center h-64">
+        <div className="flex items-center justify-center min-h-[400px]">
           <Loader2 className="h-8 w-8 animate-spin" />
         </div>
       </PageLayout>
@@ -259,12 +334,12 @@ export default function PhoneNumberConfigPage() {
   if (!config) {
     return (
       <PageLayout>
-        <Alert>
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription>
-            Phone number not found or you don't have permission to configure it.
-          </AlertDescription>
-        </Alert>
+        <div className="text-center">
+          <p>Phone number not found</p>
+          <Button onClick={() => navigate('/settings/phone-numbers')} className="mt-4">
+            Go Back
+          </Button>
+        </div>
       </PageLayout>
     );
   }
@@ -274,454 +349,238 @@ export default function PhoneNumberConfigPage() {
       <AnimatedContainer animation="fade-in">
         <PageHeader
           title="Configure Phone Number"
-          subtitle={`Settings for ${formatPhoneNumber(config.phone_number)}`}
-          icon={Settings}
+          subtitle={formatPhoneNumber(config.phone_number)}
+          icon={Phone}
           badges={[
-            { text: "AI Voice", icon: Bot, variant: "fixlyfy" },
-            { text: "SMS", icon: MessageSquare, variant: "success" },
-            { text: "Telnyx", icon: Wifi, variant: "info" }
-          ]}
+            config.is_primary && { text: "Primary", icon: CheckCircle, variant: "default" },
+            config.ai_dispatcher_enabled && { text: "AI Voice", icon: Bot, variant: "success" },
+            config.capabilities?.sms && { text: "SMS", icon: MessageSquare, variant: "info" }
+          ].filter(Boolean)}
           actionButton={{
             text: "Back to Numbers",
-            icon: ArrowLeft,
-            onClick: () => navigate('/settings/phone-numbers')
+            icon: ChevronLeft,
+            onClick: () => navigate('/settings/phone-numbers'),
+            variant: "outline"
           }}
         />
       </AnimatedContainer>
 
-      <AnimatedContainer animation="slide-up" delay={200}>
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid grid-cols-4 w-full max-w-2xl">
-            <TabsTrigger value="general">General</TabsTrigger>
-            <TabsTrigger value="ai-voice">AI Voice</TabsTrigger>
-            <TabsTrigger value="sms">SMS Settings</TabsTrigger>
-            <TabsTrigger value="advanced">Advanced</TabsTrigger>
-          </TabsList>
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-6">
+        <TabsList className="grid w-full grid-cols-1">
+          <TabsTrigger value="ai-voice">AI Voice Configuration</TabsTrigger>
+        </TabsList>        {/* Single AI Voice Tab with all settings */}
+        <TabsContent value="ai-voice" className="space-y-4">
+          {/* Basic Settings */}
+          <ModernCard>
+            <CardHeader>
+              <CardTitle>Phone Configuration</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <Label htmlFor="friendly-name">Friendly Name</Label>
+                <Input
+                  id="friendly-name"
+                  value={config.friendly_name || ''}
+                  onChange={(e) => setConfig({...config, friendly_name: e.target.value})}
+                  placeholder="e.g., Main Business Line"
+                />
+              </div>
 
-          <TabsContent value="general" className="space-y-6">
-            <ModernCard>
-              <CardContent className="p-6 space-y-4">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="is-active">Active Status</Label>
+                <Switch
+                  id="is-active"
+                  checked={config.is_active}
+                  onCheckedChange={(checked) => setConfig({...config, is_active: checked})}
+                />
+              </div>
+
+              <div className="flex items-center justify-between">
+                <Label htmlFor="is-primary">Set as Primary</Label>
+                <Switch
+                  id="is-primary"
+                  checked={config.is_primary}
+                  onCheckedChange={(checked) => setConfig({...config, is_primary: checked})}
+                />
+              </div>
+            </CardContent>
+          </ModernCard>
+
+          {/* AI Configuration */}
+          <ModernCard>
+            <CardHeader>
+              <CardTitle>AI Voice Settings</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center justify-between">
                 <div>
-                  <Label htmlFor="friendly-name">Friendly Name</Label>
-                  <Input
-                    id="friendly-name"
-                    value={config.friendly_name || ''}
-                    onChange={(e) => setConfig({...config, friendly_name: e.target.value})}
-                    placeholder="e.g., Main Business Line"
-                  />
+                  <Label htmlFor="ai-enabled">Enable AI Dispatcher</Label>
+                  <p className="text-sm text-muted-foreground">
+                    AI will answer calls and handle customer interactions
+                  </p>
                 </div>
+                <Switch
+                  id="ai-enabled"
+                  checked={config.ai_dispatcher_enabled}
+                  onCheckedChange={(checked) => setConfig({...config, ai_dispatcher_enabled: checked})}
+                />
+              </div>
 
-                <div className="flex items-center justify-between">
+              {config.ai_dispatcher_enabled && (
+                <div className="pt-4 border-t space-y-4">
                   <div>
-                    <Label htmlFor="ai-enabled">AI Dispatcher</Label>
-                    <p className="text-sm text-muted-foreground">
-                      Enable AI to handle calls and messages
-                    </p>
-                  </div>
-                  <Switch
-                    id="ai-enabled"
-                    checked={config.ai_dispatcher_enabled}
-                    onCheckedChange={(checked) => 
-                      setConfig({...config, ai_dispatcher_enabled: checked})
-                    }
-                  />
-                </div>
-
-                {config.ai_dispatcher_enabled && (
-                  <Alert>
-                    <Bot className="h-4 w-4" />
-                    <AlertDescription>
-                      AI Dispatcher will answer calls, transcribe conversations, and can transfer calls to team members.
-                    </AlertDescription>
-                  </Alert>
-                )}
-              </CardContent>
-            </ModernCard>
-          </TabsContent>
-
-          <TabsContent value="ai-voice" className="space-y-6">
-            <ModernCard>
-              <CardContent className="p-6 space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="voice">AI Voice</Label>
-                    <Select
-                      value={config.ai_voice_settings?.voice}
-                      onValueChange={(value) => 
-                        setConfig({
-                          ...config,
-                          ai_voice_settings: {...config.ai_voice_settings!, voice: value}
-                        })
-                      }
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {AVAILABLE_VOICES.map(voice => (
-                          <SelectItem key={voice.id} value={voice.id}>
-                            <div>
-                              <div className="font-medium">{voice.name}</div>
-                              <div className="text-xs text-muted-foreground">
-                                {voice.description}
-                              </div>
-                            </div>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div>
-                    <Label htmlFor="language">Language</Label>
-                    <Select
-                      value={config.ai_voice_settings?.language}
-                      onValueChange={(value) => 
-                        setConfig({
-                          ...config,
-                          ai_voice_settings: {...config.ai_voice_settings!, language: value}
-                        })
-                      }
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {AVAILABLE_LANGUAGES.map(lang => (
-                          <SelectItem key={lang.code} value={lang.code}>
-                            {lang.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="speed">Speed ({config.ai_voice_settings?.speed}x)</Label>
+                    <Label htmlFor="agent-name">Agent Name</Label>
                     <Input
-                      id="speed"
-                      type="range"
-                      min="0.5"
-                      max="2"
-                      step="0.1"
-                      value={config.ai_voice_settings?.speed}
-                      onChange={(e) => 
-                        setConfig({
-                          ...config,
-                          ai_voice_settings: {
-                            ...config.ai_voice_settings!, 
-                            speed: parseFloat(e.target.value)
-                          }
-                        })
-                      }
+                      id="agent-name"
+                      value={config.ai_config?.agent_name || 'Sarah'}
+                      onChange={(e) => setConfig({
+                        ...config,
+                        ai_config: {...config.ai_config, agent_name: e.target.value}
+                      })}
+                      placeholder="e.g., Sarah"
                     />
                   </div>
 
                   <div>
-                    <Label htmlFor="pitch">Pitch ({config.ai_voice_settings?.pitch})</Label>
+                    <Label htmlFor="company-name">Company Name</Label>
                     <Input
-                      id="pitch"
-                      type="range"
-                      min="0.5"
-                      max="2"
-                      step="0.1"
-                      value={config.ai_voice_settings?.pitch}
-                      onChange={(e) => 
-                        setConfig({
-                          ...config,
-                          ai_voice_settings: {
-                            ...config.ai_voice_settings!, 
-                            pitch: parseFloat(e.target.value)
-                          }
-                        })
-                      }
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <Label htmlFor="greeting">Greeting Message</Label>
-                  <Textarea
-                    id="greeting"
-                    value={config.ai_voice_settings?.greeting_message}
-                    onChange={(e) => 
-                      setConfig({
+                      id="company-name"
+                      value={config.ai_config?.company_name || ''}
+                      onChange={(e) => setConfig({
                         ...config,
-                        ai_voice_settings: {
-                          ...config.ai_voice_settings!, 
-                          greeting_message: e.target.value
-                        }
-                      })
-                    }
-                    placeholder="Hello, thank you for calling..."
-                    rows={3}
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="voicemail">Voicemail Message</Label>
-                  <Textarea
-                    id="voicemail"
-                    value={config.ai_voice_settings?.voicemail_message}
-                    onChange={(e) => 
-                      setConfig({
-                        ...config,
-                        ai_voice_settings: {
-                          ...config.ai_voice_settings!, 
-                          voicemail_message: e.target.value
-                        }
-                      })
-                    }
-                    placeholder="We're unable to take your call..."
-                    rows={3}
-                  />
-                </div>
-
-                <div className="flex gap-4">
-                  <Button
-                    variant="outline"
-                    onClick={testVoice}
-                    disabled={isTestingVoice}
-                  >
-                    {isTestingVoice ? (
-                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                    ) : (
-                      <Volume2 className="h-4 w-4 mr-2" />
-                    )}
-                    Test Voice
-                  </Button>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="flex items-center space-x-2">
-                    <Switch
-                      id="record-calls"
-                      checked={config.ai_voice_settings?.record_calls}
-                      onCheckedChange={(checked) => 
-                        setConfig({
-                          ...config,
-                          ai_voice_settings: {
-                            ...config.ai_voice_settings!, 
-                            record_calls: checked
-                          }
-                        })
-                      }
+                        ai_config: {...config.ai_config, company_name: e.target.value}
+                      })}
+                      placeholder="e.g., Fixlify Service"
                     />
-                    <Label htmlFor="record-calls">Record Calls</Label>
                   </div>
 
-                  <div className="flex items-center space-x-2">
-                    <Switch
-                      id="transcribe-calls"
-                      checked={config.ai_voice_settings?.transcribe_calls}
-                      onCheckedChange={(checked) => 
-                        setConfig({
-                          ...config,
-                          ai_voice_settings: {
-                            ...config.ai_voice_settings!, 
-                            transcribe_calls: checked
-                          }
-                        })
-                      }
-                    />
-                    <Label htmlFor="transcribe-calls">Transcribe Calls</Label>
-                  </div>
-                </div>
-              </CardContent>
-            </ModernCard>
-          </TabsContent>
-
-          <TabsContent value="sms" className="space-y-6">
-            <ModernCard>
-              <CardContent className="p-6 space-y-4">
-                <div className="flex items-center justify-between">
                   <div>
-                    <Label htmlFor="auto-reply">Auto Reply</Label>
-                    <p className="text-sm text-muted-foreground">
-                      Automatically reply to incoming SMS
-                    </p>
-                  </div>
-                  <Switch
-                    id="auto-reply"
-                    checked={config.sms_settings?.auto_reply_enabled}
-                    onCheckedChange={(checked) => 
-                      setConfig({
+                    <Label htmlFor="hours">Hours of Operation</Label>
+                    <Input
+                      id="hours"
+                      value={config.ai_config?.hours_of_operation || 'Monday-Friday 9am-6pm, Saturday 10am-4pm'}
+                      onChange={(e) => setConfig({
                         ...config,
-                        sms_settings: {
-                          ...config.sms_settings!, 
-                          auto_reply_enabled: checked
-                        }
-                      })
-                    }
-                  />
-                </div>
+                        ai_config: {...config.ai_config, hours_of_operation: e.target.value}
+                      })}
+                      placeholder="e.g., Monday-Friday 9am-6pm"
+                    />
+                  </div>
 
-                {config.sms_settings?.auto_reply_enabled && (
                   <div>
-                    <Label htmlFor="auto-reply-message">Auto Reply Message</Label>
+                    <Label>Services Offered</Label>
                     <Textarea
-                      id="auto-reply-message"
-                      value={config.sms_settings?.auto_reply_message}
-                      onChange={(e) => 
+                      value={Array.isArray(config.ai_config?.services_offered) 
+                        ? config.ai_config.services_offered.join(', ') 
+                        : config.ai_config?.services_offered || ''}
+                      onChange={(e) => {
+                        // If the value contains commas, split by comma
+                        // Otherwise, keep it as a single item with spaces preserved
+                        const value = e.target.value;
+                        const services = value.includes(',') 
+                          ? value.split(',').map(s => s.trim()).filter(s => s)
+                          : value.trim() ? [value.trim()] : [];
+                        
                         setConfig({
                           ...config,
-                          sms_settings: {
-                            ...config.sms_settings!, 
-                            auto_reply_message: e.target.value
-                          }
-                        })
-                      }
-                      placeholder="Thanks for your message. We'll get back to you soon!"
+                          ai_config: {...config.ai_config, services_offered: services}
+                        });
+                      }}
+                      placeholder="e.g., Phone repair, Computer repair, Tablet repair"
+                      rows={2}
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Separate multiple services with commas
+                    </p>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="greeting">Greeting Message (Telnyx Variable)</Label>
+                    <Textarea
+                      id="greeting"
+                      value={config.ai_config?.business_greeting || 'Thank you for calling. How can I help you today?'}
+                      onChange={(e) => setConfig({
+                        ...config,
+                        ai_config: {...config.ai_config, business_greeting: e.target.value}
+                      })}
+                      placeholder="Thank you for calling. How can I help you today?"
+                      rows={3}
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Available Telnyx variables: {`{{agent_name}}, {{company_name}}, {{hours_of_operation}}, {{services_offered}}, {{business_phone}}, {{current_date}}, {{current_time}}, {{greeting}}`}
+                    </p>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="personality">Agent Personality</Label>
+                    <Textarea
+                      id="personality"
+                      value={config.ai_config?.agent_personality || ''}
+                      onChange={(e) => setConfig({
+                        ...config,
+                        ai_config: {...config.ai_config, agent_personality: e.target.value}
+                      })}
+                      placeholder="Describe the personality traits of your AI agent..."
                       rows={3}
                     />
                   </div>
-                )}
 
-                <div className="flex items-center justify-between">
                   <div>
-                    <Label htmlFor="forward-email">Forward to Email</Label>
-                    <p className="text-sm text-muted-foreground">
-                      Forward SMS messages to email
-                    </p>
-                  </div>
-                  <Switch
-                    id="forward-email"
-                    checked={config.sms_settings?.forward_to_email}
-                    onCheckedChange={(checked) => 
-                      setConfig({
-                        ...config,
-                        sms_settings: {
-                          ...config.sms_settings!, 
-                          forward_to_email: checked
-                        }
-                      })
-                    }
-                  />
-                </div>
-
-                {config.sms_settings?.forward_to_email && (
-                  <div>
-                    <Label htmlFor="forward-email-address">Forward Email Address</Label>
+                    <Label htmlFor="transfer-msg">Call Transfer Message</Label>
                     <Input
-                      id="forward-email-address"
-                      type="email"
-                      value={config.sms_settings?.forward_email}
-                      onChange={(e) => 
-                        setConfig({
-                          ...config,
-                          sms_settings: {
-                            ...config.sms_settings!, 
-                            forward_email: e.target.value
-                          }
-                        })
-                      }
-                      placeholder="admin@example.com"
+                      id="transfer-msg"
+                      value={config.ai_config?.call_transfer_message || 'Let me transfer you to a team member who can better assist you. Please hold.'}
+                      onChange={(e) => setConfig({
+                        ...config,
+                        ai_config: {...config.ai_config, call_transfer_message: e.target.value}
+                      })}
                     />
                   </div>
-                )}
-              </CardContent>
-            </ModernCard>
-          </TabsContent>
 
-          <TabsContent value="advanced" className="space-y-6">
-            <ModernCard>
-              <CardContent className="p-6 space-y-4">
-                <Alert>
-                  <Wifi className="h-4 w-4" />
-                  <AlertDescription>
-                    <strong>Telnyx Integration</strong><br/>
-                    This number is connected to Telnyx messaging profile: {config.telnyx_settings?.messaging_profile_id}
-                  </AlertDescription>
-                </Alert>
-
-                <div>
-                  <Label htmlFor="webhook-url">Webhook URL</Label>
-                  <Input
-                    id="webhook-url"
-                    value={config.webhook_settings?.webhook_url}
-                    onChange={(e) => 
-                      setConfig({
+                  <div>
+                    <Label htmlFor="voicemail-msg">Voicemail Detection Message</Label>
+                    <Input
+                      id="voicemail-msg"
+                      value={config.ai_config?.voicemail_detection_message || 'Please leave a message after the tone and we will get back to you as soon as possible.'}
+                      onChange={(e) => setConfig({
                         ...config,
-                        webhook_settings: {
-                          ...config.webhook_settings!, 
-                          webhook_url: e.target.value
-                        }
-                      })
-                    }
-                    placeholder="https://your-domain.com/webhook"
-                  />
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Receive real-time events for calls and messages
-                  </p>
-                </div>
+                        ai_config: {...config.ai_config, voicemail_detection_message: e.target.value}
+                      })}
+                    />
+                  </div>
 
-                <div>
-                  <Label>Webhook Events</Label>
-                  <div className="space-y-2 mt-2">
-                    {['call.initiated', 'call.answered', 'call.ended', 'sms.received', 'sms.sent'].map(event => (
-                      <div key={event} className="flex items-center space-x-2">
-                        <Switch
-                          id={event}
-                          checked={config.webhook_settings?.webhook_events?.includes(event)}
-                          onCheckedChange={(checked) => {
-                            const events = config.webhook_settings?.webhook_events || [];
-                            if (checked) {
-                              setConfig({
-                                ...config,
-                                webhook_settings: {
-                                  ...config.webhook_settings!,
-                                  webhook_events: [...events, event]
-                                }
-                              });
-                            } else {
-                              setConfig({
-                                ...config,
-                                webhook_settings: {
-                                  ...config.webhook_settings!,
-                                  webhook_events: events.filter(e => e !== event)
-                                }
-                              });
-                            }
-                          }}
-                        />
-                        <Label htmlFor={event}>{event}</Label>
-                      </div>
-                    ))}
+                  <div className="pt-4 border-t">
+                    <Button onClick={testAIAssistant} className="w-full">
+                      <TestTube className="h-4 w-4 mr-2" />
+                      Test AI Assistant
+                    </Button>
                   </div>
                 </div>
+              )}
+            </CardContent>
+          </ModernCard>
+        </TabsContent>
+      </Tabs>
 
-                <div>
-                  <Label htmlFor="max-duration">Max Call Duration (seconds)</Label>
-                  <Input
-                    id="max-duration"
-                    type="number"
-                    value={config.ai_voice_settings?.max_call_duration}
-                    onChange={(e) => 
-                      setConfig({
-                        ...config,
-                        ai_voice_settings: {
-                          ...config.ai_voice_settings!, 
-                          max_call_duration: parseInt(e.target.value)
-                        }
-                      })
-                    }
-                    placeholder="3600"
-                  />
-                </div>
-              </CardContent>
-            </ModernCard>
-          </TabsContent>
-        </Tabs>
-
-        <div className="flex justify-end gap-4 mt-6">
+      {/* Action Buttons */}
+      <div className="flex justify-between items-center mt-6">
+        <Button
+          variant="outline"
+          onClick={() => navigate('/settings/phone-numbers')}
+        >
+          Cancel
+        </Button>
+        
+        <div className="flex gap-2">
           <Button
             variant="outline"
-            onClick={() => navigate('/settings/phone-numbers')}
+            onClick={loadPhoneConfig}
+            disabled={isLoading}
           >
-            Cancel
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Refresh
           </Button>
+          
           <Button
             onClick={saveConfig}
             disabled={isSaving}
@@ -729,7 +588,7 @@ export default function PhoneNumberConfigPage() {
           >
             {isSaving ? (
               <>
-                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                 Saving...
               </>
             ) : (
@@ -740,7 +599,7 @@ export default function PhoneNumberConfigPage() {
             )}
           </Button>
         </div>
-      </AnimatedContainer>
+      </div>
     </PageLayout>
   );
 }

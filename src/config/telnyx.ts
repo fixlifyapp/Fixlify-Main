@@ -15,8 +15,10 @@ export const TELNYX_CONFIG = {
   AUDIO_FORMAT: 'pcm16',
   SAMPLE_RATE: 8000,
   
-  // AI Voice settings
-  DEFAULT_AI_VOICE: 'alloy',
+  // AI Voice settings - Using Telnyx AI Assistant
+  DEFAULT_AI_VOICE: 'Heart', // KokoroTTS voice model
+  AI_VOICE_PROVIDER: 'telnyx',
+  AI_VOICE_MODEL: 'KokoroTTS',
   AI_VOICE_SPEED: '100%',
   AI_VOICE_PITCH: 'medium',
 };

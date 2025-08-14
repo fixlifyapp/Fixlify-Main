@@ -115,6 +115,24 @@ Fixlify-Main-main/
 - **Performance**: Core Web Vitals targets met
 - **Accessibility**: WCAG 2.1 AA compliance
 
+## 🚨 EXTREMELY IMPORTANT: Code Quality Checks
+
+**MANDATORY: Run diagnostics before completing ANY code task:**
+
+**YOU MUST ALWAYS:**
+1. Check for linting and type errors using IDE diagnostics
+2. Run diagnostics on ALL files you create or modify
+3. Fix any errors found before considering the task complete
+4. NEVER skip this step - it is CRITICAL for code quality
+
+**This applies to:**
+- Every file creation
+- Every file modification
+- Every code review
+- Every deployment preparation
+
+**NO EXCEPTIONS - This is a non-negotiable requirement**
+
 ### Git Workflow
 ```bash
 # Feature development

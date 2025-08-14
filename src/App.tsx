@@ -384,7 +384,7 @@ function App() {
               </AuthProvider>
             } />
             
-            <Route path="/settings/phone-numbers/:phoneId/configure" element={
+            <Route path="/settings/phone-config/:phoneId" element={
               <AuthProvider>
                 <ProtectedRouteWithProviders>
                   <PhoneNumberConfigPage />

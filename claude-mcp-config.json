@@ -1,14 +1,12 @@
 {
   "mcpServers": {
     "supabase": {
-      "command": "npx",
+      "command": "mcp-server-supabase",
       "args": [
-        "-y",
-        "@modelcontextprotocol/server-supabase"
+        "--project-ref=mqppvcrlvsgrsqelglod"
       ],
       "env": {
-        "SUPABASE_URL": "https://mqppvcrlvsgrsqelglod.supabase.co",
-        "SUPABASE_SERVICE_ROLE_KEY": "YOUR_SERVICE_ROLE_KEY_HERE"
+        "SUPABASE_ACCESS_TOKEN": "sbp_cb907e8566ebad6a7f369a8359e96dc5c8a768fb"
       },
       "capabilities": {
         "database": {

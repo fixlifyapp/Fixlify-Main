@@ -3,7 +3,7 @@ color 0A
 cls
 echo ================================================================================
 echo                         FIXLIFY CLAUDE CODE LAUNCHER                          
-echo                     12 Elite Agents + Supabase MCP Ready                      
+echo                     17 Elite Agents + Supabase MCP Ready                      
 echo ================================================================================
 echo.
 
@@ -34,7 +34,7 @@ if not exist "%CLAUDE_AGENTS_PATH%" (
 
 echo [OK] Claude Code Ready
 echo [OK] Project: %CLAUDE_PROJECT_ROOT%
-echo [OK] Agents: 12 specialists loaded
+echo [OK] Agents: 17 specialists loaded
 echo [OK] MCP: Supabase connected
 echo.
 echo ================================================================================
@@ -53,6 +53,11 @@ echo   9. code-reviewer         - Code quality guardian
 echo  10. automation-engineer   - Workflow automation architect
 echo  11. orchestra-conductor   - Multi-agent workflow coordinator
 echo  12. integration-guardian  - Feature integration validator
+echo  13. data-migration-specialist - Safe database migrations
+echo  14. customer-success-agent - UX and user experience expert
+echo  15. business-intelligence-agent - Analytics and insights
+echo  16. supabase-functions-inspector - Edge functions manager
+echo  17. context-engineering-specialist - Documentation keeper
 echo.
 echo ================================================================================
 echo                            QUICK START COMMANDS                               
