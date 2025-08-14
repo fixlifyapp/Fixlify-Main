@@ -109,15 +109,25 @@ export default function PhoneNumberConfigPage() {
             .single();
           
           if (aiConfig) {
+            // Parse services_offered if it's a string representation of an array
+            let services = aiConfig.services_offered;
+            if (typeof services === 'string') {
+              try {
+                // If it's a JSON string like '["Service1", "Service2"]'
+                services = JSON.parse(services);
+              } catch {
+                // If it's a comma-separated string
+                services = services.split(',').map(s => s.trim());
+              }
+            }
+            
             configData.ai_config = {
               ...aiConfig,
               assistant_id: TELNYX_AI_ASSISTANT_ID,
               // Ensure services_offered is always an array
-              services_offered: Array.isArray(aiConfig.services_offered) 
-                ? aiConfig.services_offered 
-                : typeof aiConfig.services_offered === 'string' && aiConfig.services_offered
-                  ? aiConfig.services_offered.split(',').map(s => s.trim())
-                  : [],
+              services_offered: Array.isArray(services) 
+                ? services 
+                : [],
               // Load new fields
               business_niche: aiConfig.business_niche || aiConfig.business_type || '',
               capabilities: aiConfig.capabilities || '',
