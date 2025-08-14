@@ -48,6 +48,25 @@
 - **Actions**: `enable`, `disable`, `handle_call`, `get_config`
 - **Endpoint**: `POST /ai-dispatcher-handler`
 
+#### 4.1. **ai-assistant-webhook** ✅ NEW
+- **Purpose**: Dynamic variables for Telnyx AI Assistants (Multi-tenant)
+- **Status**: Production Ready
+- **No JWT**: Public endpoint for Telnyx
+- **Endpoint**: `POST /ai-assistant-webhook`
+- **Multi-Tenant**: Each phone number gets its own configuration
+- **Response Format**:
+```json
+{
+  "dynamic_variables": {
+    "agent_name": "Sarah",
+    "company_name": "Company Name",
+    "hours_of_operation": "9am-6pm",
+    "services_offered": "services",
+    "greeting": "Custom greeting"
+  }
+}
+```
+
 #### 5. **generate-with-ai**
 - **Purpose**: AI text generation with GPT-4o
 - **Secrets**: `OPENAI_API_KEY`

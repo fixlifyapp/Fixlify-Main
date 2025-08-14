@@ -1,131 +1,158 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+}
 
 serve(async (req) => {
-  // Handle CORS
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    return new Response('ok', { headers: corsHeaders })
   }
 
+  const supabaseUrl = Deno.env.get('SUPABASE_URL')!
+  const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+  const supabase = createClient(supabaseUrl, supabaseServiceKey)
+
   try {
-    // Parse Telnyx webhook
-    const body = await req.json();
-    console.log('Telnyx AI Assistant webhook:', body);
+    const body = await req.json()
+    console.log('=== TELNYX WEBHOOK CALLED ===')
+    console.log('Request:', JSON.stringify(body, null, 2))
     
-    // Extract call details from Telnyx
-    const payload = body?.data?.payload || {};
-    const dialedNumber = payload.telnyx_agent_target;
-    const callerNumber = payload.telnyx_end_user_target;
-    const callId = payload.call_control_id;
+    // Extract phone numbers from Telnyx request
+    let calledNumber = body.to || 
+                       body.data?.payload?.to || 
+                       body.data?.payload?.telnyx_agent_target
+    let callerNumber = body.from || 
+                       body.data?.payload?.from || 
+                       body.data?.payload?.telnyx_end_user_target
     
-    console.log(`Call from ${callerNumber} to ${dialedNumber}`);
-    
-    // Initialize Supabase
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    );
-    
-    // Look up business settings based on the dialed number
-    const { data: phoneConfig } = await supabase
-      .from('phone_numbers')
-      .select(`*, user_id`)
-      .eq('phone_number', dialedNumber)
-      .single();
-    
-    if (!phoneConfig) {
-      console.error('Phone number not found');
-      return new Response(JSON.stringify({
-        dynamic_variables: {
-          business_name: 'Fixlify Repair Shop',
-          greeting: 'Hello! Thank you for calling.',
-          error: 'Configuration not found'
-        }
-      }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
-    }
-    
-    // Get AI dispatcher configuration
-    const { data: aiConfig } = await supabase
-      .from('ai_dispatcher_configs')
-      .select('*')
-      .eq('user_id', phoneConfig.user_id)
-      .eq('is_active', true)
-      .single();    
-    // Build dynamic variables for the AI Assistant
-    const dynamicVariables = {
-      // Business Information
-      business_name: aiConfig?.company_name || 'Fixlify Repair Shop',
-      business_phone: dialedNumber,
-      hours_of_operation: 'Monday-Friday 9am-6pm, Saturday 10am-4pm',
-      
-      // AI Configuration
-      agent_name: aiConfig?.agent_name || 'AI Assistant',
-      greeting: aiConfig?.greeting || 'Thank you for calling. How can I help you today?',
-      voice_id: aiConfig?.voice_id || 'Polly.Joanna',
-      language: aiConfig?.language || 'en-US',
-      
-      // Services
-      services_offered: 'Phone repair, Computer repair, Tablet repair',
-      
-      // Customer Information
-      caller_number: callerNumber,
-      
-      // Real-time Information
+    console.log('Called:', calledNumber, 'Caller:', callerNumber)
+    // Default values
+    let variables = {
+      agent_name: 'Assistant',
+      company_name: 'Our Company',
+      hours_of_operation: 'Monday-Friday 9am-6pm',
+      services_offered: 'Professional services',
+      business_phone: calledNumber || '',
       current_date: new Date().toLocaleDateString(),
-      current_time: new Date().toLocaleTimeString(),
+      current_time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
+      greeting: 'Thank you for calling. How can I help you today?',
+      caller_number: callerNumber || 'unknown'
+    }
+
+    if (calledNumber) {
+      const cleanNumber = calledNumber.replace(/[^0-9]/g, '')
+      const last10Digits = cleanNumber.slice(-10)
+      const last4Digits = cleanNumber.slice(-4)
       
-      // Features
-      enable_status_check: 'true',
-      enable_appointment_booking: 'true',
-      
-      // Call Metadata
-      call_id: callId,
-      conversation_id: `conv_${callId}_${Date.now()}`
-    };    
-    // Log the call
-    await supabase
-      .from('ai_dispatcher_call_logs')
-      .insert({
-        call_id: callId,
-        conversation_id: dynamicVariables.conversation_id,
-        from_number: callerNumber,
-        to_number: dialedNumber,
-        status: 'initiated',
-        dynamic_variables: dynamicVariables,
-        started_at: new Date().toISOString()
-      });
-    
-    // Return dynamic variables to Telnyx
-    return new Response(JSON.stringify({
-      dynamic_variables: dynamicVariables,
-      conversation: {
-        metadata: {
-          user_id: phoneConfig.user_id,
-          source: 'inbound_call'
+      // Find phone number in database
+      const { data: phoneData, error: phoneError } = await supabase
+        .from('phone_numbers')
+        .select('id, phone_number, user_id')
+        .or(`phone_number.eq.${calledNumber},phone_number.like.%${last4Digits}`)
+        .single()
+
+      if (!phoneError && phoneData) {
+        console.log('Found phone:', phoneData.phone_number)
+        
+        // Get AI config
+        const { data: aiConfig } = await supabase
+          .from('ai_dispatcher_configs')
+          .select('*')
+          .eq('phone_number_id', phoneData.id)
+          .single()
+        if (aiConfig) {
+          console.log('Found config for:', aiConfig.agent_name, '/', aiConfig.company_name)
+          
+          // Parse services
+          let servicesText = 'Professional services'
+          if (aiConfig.services_offered) {
+            try {
+              if (typeof aiConfig.services_offered === 'string') {
+                try {
+                  const services = JSON.parse(aiConfig.services_offered)
+                  servicesText = Array.isArray(services) ? services.join(', ') : services
+                } catch {
+                  servicesText = aiConfig.services_offered
+                }
+              } else if (Array.isArray(aiConfig.services_offered)) {
+                servicesText = aiConfig.services_offered.join(', ')
+              }
+            } catch {
+              servicesText = String(aiConfig.services_offered || 'Professional services')
+            }
+          }
+          
+          // Build greeting
+          let greeting = aiConfig.greeting_message || 
+                        aiConfig.business_greeting || 
+                        aiConfig.dynamic_variables?.greeting ||
+                        `Thank you for calling ${aiConfig.company_name || 'our company'}. How can I help you today?`
+          
+          // Set actual values
+          variables = {
+            agent_name: aiConfig.agent_name || 'Assistant',
+            company_name: aiConfig.company_name || 'Our Company',            hours_of_operation: aiConfig.hours_of_operation || 'Monday-Friday 9am-6pm',
+            services_offered: servicesText,
+            business_phone: phoneData.phone_number || calledNumber,
+            current_date: new Date().toLocaleDateString(),
+            current_time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
+            greeting: greeting,
+            caller_number: callerNumber || 'unknown'
+          }
         }
       }
-    }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-    });
+    }
+
+    // Log for debugging
+    await supabase.from('webhook_logs').insert({
+      webhook_name: 'ai-assistant-webhook',
+      request_body: body,
+      response_body: { dynamic_variables: variables },
+      created_at: new Date().toISOString()
+    })
+
+    console.log('=== RETURNING TELNYX FORMAT ===')
+    console.log(JSON.stringify({ dynamic_variables: variables }, null, 2))
     
-  } catch (error) {
-    console.error('Webhook error:', error);
-    return new Response(JSON.stringify({
-      error: error.message,
-      dynamic_variables: {
-        business_name: 'Fixlify',
-        greeting: 'Hello! Thank you for calling.'
+    // IMPORTANT: Telnyx expects response in this exact format!
+    // Must be wrapped in "dynamic_variables" object
+    return new Response(
+      JSON.stringify({
+        dynamic_variables: variables,
+        // Optional: memory and conversation fields can be added here
+      }),
+      { 
+        headers: { 
+          ...corsHeaders, 
+          'Content-Type': 'application/json' 
+        },
+        status: 200
       }
-    }), {
-      status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-    });
+    )
+  } catch (error) {
+    console.error('Error:', error)
+    
+    // Return default in correct format
+    return new Response(
+      JSON.stringify({
+        dynamic_variables: {
+          agent_name: 'Assistant',
+          company_name: 'Our Company',
+          hours_of_operation: 'Monday-Friday 9am-6pm',
+          services_offered: 'Professional services',
+          business_phone: '',
+          current_date: new Date().toLocaleDateString(),
+          current_time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
+          greeting: 'Thank you for calling. How can I help you today?'
+        }
+      }),
+      { 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 200
+      }
+    )
   }
-});
+})
