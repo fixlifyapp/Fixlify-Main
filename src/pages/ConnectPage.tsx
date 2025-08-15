@@ -102,7 +102,7 @@ const ConnectPage = () => {
                   <div>
                     <h3 className="text-lg font-semibold">SMS Messages</h3>
                     <p className="text-sm text-muted-foreground">
-                      Send and receive SMS messages via Telnyx
+                      Send and receive SMS messages via our phone system
                     </p>
                   </div>
                   <Button variant="ghost" size="sm">

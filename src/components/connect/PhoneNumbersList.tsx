@@ -241,7 +241,7 @@ export const PhoneNumbersList = () => {
                           {isTelnyx && (
                             <Badge variant="outline" className="text-green-600 border-green-300">
                               <Zap className="h-3 w-3 mr-1" />
-                              Telnyx
+                              Phone Ready
                             </Badge>
                           )}
                         </div>

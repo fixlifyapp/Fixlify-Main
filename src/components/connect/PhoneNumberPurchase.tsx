@@ -157,12 +157,12 @@ export const PhoneNumberPurchase = () => {
 
   return (
     <div className="space-y-6">
-      {/* Telnyx Profile Alert */}
+      {/* Phone System Profile Alert */}
       <Alert className="border-blue-200 bg-blue-50">
         <Wifi className="h-4 w-4" />
         <AlertDescription>
-          <strong>Telnyx Integration Active</strong><br/>
-          Showing numbers from your Telnyx messaging profile. All numbers are pre-configured for SMS and voice.
+          <strong>Phone System Active</strong><br/>
+          Showing available phone numbers for SMS and voice. All numbers are pre-configured.
         </AlertDescription>
       </Alert>
 
@@ -171,7 +171,7 @@ export const PhoneNumberPurchase = () => {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Phone className="h-5 w-5" />
-            Search Telnyx Phone Numbers
+            Search Available Phone Numbers
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -215,7 +215,7 @@ export const PhoneNumberPurchase = () => {
             </div>
           </div>
           <p className="text-xs text-muted-foreground mt-2">
-            Click "Refresh" to fetch the latest available numbers from your Telnyx profile
+            Click "Refresh" to fetch the latest available numbers from inventory
           </p>
         </CardContent>
       </Card>
@@ -223,7 +223,7 @@ export const PhoneNumberPurchase = () => {
       {/* Available Numbers List */}
       <Card>
         <CardHeader>
-          <CardTitle>Available Numbers from Telnyx</CardTitle>
+          <CardTitle>Available Phone Numbers</CardTitle>
           <p className="text-sm text-muted-foreground">
             {availableNumbers.length} numbers available • Free during beta ($0/month)
           </p>
@@ -237,14 +237,14 @@ export const PhoneNumberPurchase = () => {
             <div className="text-center py-8">
               <AlertCircle className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
               <p className="text-muted-foreground mb-4">
-                No available numbers found in your Telnyx profile.
+                No available numbers found in your inventory.
               </p>
               <Button 
                 onClick={() => searchNumbers(true)}
                 variant="outline"
               >
                 <RefreshCw className="h-4 w-4 mr-2" />
-                Refresh from Telnyx
+                Refresh Available Numbers
               </Button>
             </div>
           ) : (

@@ -16,7 +16,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   Phone, Bot, MessageSquare, PhoneCall,
   ChevronLeft, Save, RefreshCw,
-  CheckCircle, Loader2, TestTube
+  CheckCircle, Loader2
 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/use-auth";
@@ -31,7 +31,9 @@ import {
 import { businessNiches } from "@/utils/business-niches";
 import { nicheCapabilities, nicheServices, nicheGreetings, nichePersonalities } from "@/config/niche-capabilities";
 
-const TELNYX_AI_ASSISTANT_ID = 'assistant-2a8a396c-e975-4ea5-90bf-3297f1350775';
+const ASSISTANT_ID = 'assistant-2a8a396c-e975-4ea5-90bf-3297f1350775';
+
+import { AIAgentTestWidget } from "@/components/settings/ai/AIAgentTestWidget";
 
 interface PhoneConfig {
   id: string;
@@ -62,6 +64,8 @@ interface PhoneConfig {
     current_date?: string;
     current_time?: string;
     greeting?: string;
+    capabilities?: string;
+    additional_info?: string;
   };
 }
 export default function PhoneNumberConfigPage() {
@@ -73,13 +77,25 @@ export default function PhoneNumberConfigPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [activeTab, setActiveTab] = useState("ai-voice");
+  const [showTestWidget, setShowTestWidget] = useState(false);
   // Business niches are imported from utils/business-niches.ts - no need for state
 
   useEffect(() => {
     if (phoneId && user?.id) {
       loadPhoneConfig();
-      // No need to load business niches from database - we use the hardcoded list
     }
+    
+    // Load Telnyx AI Agent widget script
+    const script = document.createElement('script');
+    script.src = 'https://unpkg.com/@telnyx/ai-agent-widget';
+    script.async = true;
+    document.body.appendChild(script);
+    
+    return () => {
+      if (document.body.contains(script)) {
+        document.body.removeChild(script);
+      }
+    };
   }, [phoneId, user?.id]);
 
   // Removed loadBusinessNiches function - using hardcoded list from utils/business-niches.ts
@@ -123,7 +139,8 @@ export default function PhoneNumberConfigPage() {
             
             configData.ai_config = {
               ...aiConfig,
-              assistant_id: TELNYX_AI_ASSISTANT_ID,
+              // Use generic assistant_id
+          assistant_id: ASSISTANT_ID,
               // Ensure services_offered is always an array
               services_offered: Array.isArray(services) 
                 ? services 
@@ -168,12 +185,24 @@ export default function PhoneNumberConfigPage() {
 
   const handleNicheChange = (niche: string) => {
     if (config) {
-      setConfig({
+      // Update config with new niche and regenerated instructions
+      const updatedConfig = {
         ...config,
         ai_config: {
           ...config.ai_config,
           business_niche: niche,
           business_greeting: 'Thank you for calling ' + (config.ai_config?.company_name || 'our company') + '. I am ' + (config.ai_config?.agent_name || 'your assistant') + ', how can I help you today?'
+        }
+      };
+      setConfig(updatedConfig);
+      
+      // Regenerate instructions for the new niche
+      const newInstructions = generateInstructions();
+      setConfig({
+        ...updatedConfig,
+        ai_config: {
+          ...updatedConfig.ai_config,
+          instructions: newInstructions
         }
       });
     }
@@ -182,42 +211,72 @@ export default function PhoneNumberConfigPage() {
     if (!config?.ai_config) return '';
     
     const businessNiche = config.ai_config.business_niche || 'professional service';
-    const personality = config.ai_config.agent_personality || 'Be professional, friendly, and helpful';
     const capabilities = config.ai_config.capabilities || `1. Check repair status
 2. Book appointments
 3. Provide repair quotes
 4. Answer service questions
-5. Transfer to human agent when needed`;
+5. Transfer to human agent when needed
+6. Look up client information
+7. Review service history`;
     
-    let instructions = `You are {{agent_name}} for {{company_name}}, a professional ${businessNiche} AI assistant.
+    let instructions = `You are {{agent_name}} for {{company_name}}, a professional AI assistant and booking specialist.
 
-## Business Information
+## Business Context
+- Company: {{company_name}}
+- Type: {{business_niche}}
 - Hours: {{hours_of_operation}}
 - Services: {{services_offered}}
 - Phone: {{business_phone}}
-- Current Time: {{current_date}} {{current_time}} (Toronto/EST)
+- Current: {{current_date}} {{current_time}} {{day_of_week}}
 
-## Your Core Capabilities
+## Your Primary Goal
+Convert calls into booked appointments using proven sales techniques:
+- Create urgency ("We have one slot left today")
+- Use social proof ("Many neighbors in your area use us")
+- Highlight pain points ("This issue often gets worse if not addressed")
+- Offer limited-time incentives ("I can offer 10% off if you book now")
+- Use scarcity ("Our schedule fills up quickly")
+- Build trust through expertise and empathy
+
+## Your Capabilities
 ${capabilities}
 
-## Speech Characteristics
-- Use clear, concise language with natural contractions
-- Speak at a measured pace, especially when confirming dates and times
-- Include occasional conversational elements like "Let me check that for you"
-- Pronounce names and technical terms correctly and clearly
+## Additional Information
+{{additional_info}}
 
-## Conversation Flow
-1. Greet warmly and ask how you can help
-2. Listen actively and confirm understanding
-3. Provide helpful information or take action
-4. Confirm next steps before ending call
-5. Always offer additional assistance
+## Client Handling
+Check caller status: {{customer_status}}
 
-## Important Guidelines
-- If caller seems frustrated, remain calm and empathetic
-- Always confirm appointment details before booking
-- If unsure, offer to transfer to a human technician
-- ${personality}`;
+If existing client ({{is_existing_customer}} = 'true'):
+- Name: {{customer_name}}
+- History: {{customer_history}}
+- Last visit: {{last_service_date}}
+- Balance: {{outstanding_balance}}
+- Greet by name and reference their positive history
+- Use their past satisfaction as social proof
+- Remind them why they chose us before
+
+If new client:
+- Welcome warmly and build rapport quickly
+- Emphasize first-time customer benefits
+- Create FOMO about introductory offers
+- Collect name and contact information
+- Explain our unique value proposition
+
+## Conversion Tactics
+- Always assume they want to book
+- Offer specific appointment times ("I have 2pm or 4pm today")
+- Handle objections by focusing on benefits
+- Use "yes ladder" technique (small agreements leading to booking)
+- Apply assumptive close ("I'll put you down for 2pm")
+- If hesitant, offer to "hold a spot" while they decide
+
+## Communication Style
+- Confident and solution-focused
+- Create emotional connection to their problem
+- Professional yet persuasive
+- Show expertise without being pushy
+- Transfer only if absolutely necessary`;
     
     return instructions;
   };
@@ -227,6 +286,8 @@ ${capabilities}
 
     setIsSaving(true);
     try {
+      // Auto-generate instructions if not present
+      const finalInstructions = config.ai_config?.instructions || generateInstructions();
       const { error: phoneError } = await supabase
         .from('phone_numbers')
         .update({
@@ -256,7 +317,8 @@ ${capabilities}
         // Prepare AI config data
         const aiConfigData = {
           phone_number_id: phoneId,
-          assistant_id: TELNYX_AI_ASSISTANT_ID,
+          // Use generic assistant_id
+          assistant_id: ASSISTANT_ID,
           agent_name: config.ai_config.agent_name || 'Sarah',
           company_name: config.ai_config.company_name || 'Fixlify',
           hours_of_operation: config.ai_config.hours_of_operation || 'Monday-Friday 9am-6pm',
@@ -268,6 +330,7 @@ ${capabilities}
           business_type: config.ai_config.business_niche || 'Professional Services',
           business_niche: config.ai_config.business_niche || '',
           capabilities: config.ai_config.capabilities || '',
+          additional_info: config.ai_config.additional_info || '',
           service_area: config.ai_config.service_area || 'Greater Toronto Area',
           payment_methods: config.ai_config.payment_methods || 'Credit Card, Cash, E-Transfer',
           warranty_info: config.ai_config.warranty_info || '90-day parts and labor warranty',
@@ -275,7 +338,7 @@ ${capabilities}
           emergency_hours: config.ai_config.emergency_hours || '24/7 emergency service',
           dynamic_variables: dynamicVariables,
           webhook_url: window.location.origin + '/api/ai-assistant-webhook',
-          instructions: generateInstructions(),
+          instructions: finalInstructions,
           updated_at: new Date().toISOString()
         };
 
@@ -326,9 +389,6 @@ ${capabilities}
     }
   };
 
-  const testAIAssistant = async () => {
-    toast.info('Test call feature coming soon');
-  };
   if (isLoading) {
     return (
       <PageLayout>
@@ -354,9 +414,8 @@ ${capabilities}
 
   return (
     <PageLayout>
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-        <AnimatedContainer animation="fade-in">
-          <PageHeader
+      <AnimatedContainer animation="fade-in">
+        <PageHeader
           title="Configure Phone Number"
           subtitle={formatPhoneNumber(config.phone_number)}
           icon={Phone}
@@ -575,7 +634,25 @@ ${capabilities}
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="greeting" className="text-base font-medium">Greeting Message (Telnyx Variable)</Label>
+                    <Label htmlFor="additional-info" className="text-base font-medium">Additional Information</Label>
+                    <Textarea
+                      id="additional-info"
+                      className="text-base min-h-[150px] leading-relaxed"
+                      value={config.ai_config?.additional_info || ''}
+                      onChange={(e) => setConfig({
+                        ...config,
+                        ai_config: {...config.ai_config, additional_info: e.target.value}
+                      })}
+                      placeholder="Add pricing, policies, warranties, promotions, special offers, or any other information the AI should know..."
+                      rows={6}
+                    />
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                      Examples: Service call $89 • Emergency +$50 • 90-day warranty • Senior discount 10% • Same-day service available
+                    </p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="greeting" className="text-base font-medium">Greeting Message</Label>
                     <Textarea
                       id="greeting"
                       className="text-base min-h-[100px] leading-relaxed"
@@ -588,7 +665,7 @@ ${capabilities}
                       rows={3}
                     />
                     <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
-                      Available Telnyx variables: {`{{agent_name}}, {{company_name}}, {{hours_of_operation}}, {{services_offered}}, {{business_phone}}, {{current_date}}, {{current_time}}, {{greeting}}`}
+                      Use these placeholders in your message: {`{{agent_name}}, {{company_name}}, {{hours_of_operation}}, {{services_offered}}`}
                     </p>
                   </div>
 
@@ -606,6 +683,12 @@ ${capabilities}
                       rows={3}
                     />
                   </div>
+
+                  {/* Hidden instructions field - auto-generated based on niche */}
+                  <input 
+                    type="hidden" 
+                    value={config.ai_config?.instructions || generateInstructions()} 
+                  />
 
                   <div>
                     <Label htmlFor="transfer-msg">Call Transfer Message</Label>
@@ -630,15 +713,28 @@ ${capabilities}
                       })}
                     />
                   </div>
-
-                  <div className="pt-4 border-t">
-                    <Button onClick={testAIAssistant} className="w-full px-6 py-3 text-base font-medium bg-primary hover:bg-primary/90">
-                      <TestTube className="h-5 w-5 mr-2" />
-                      Test AI Assistant
-                    </Button>
-                  </div>
                 </div>
               )}
+            </CardContent>
+          </ModernCard>
+
+          {/* Test AI Assistant */}
+          <ModernCard>
+            <CardHeader>
+              <CardTitle>Test AI Assistant</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex justify-center">
+                <Button 
+                  onClick={() => setShowTestWidget(true)}
+                  className="px-8 py-3 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white"
+                >
+                  Test Voice Call
+                </Button>
+              </div>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mt-3 text-center">
+                Click to test your AI configuration with a voice call
+              </p>
             </CardContent>
           </ModernCard>
         </TabsContent>
@@ -684,7 +780,11 @@ ${capabilities}
           )}
         </Button>
       </div>
-    </div>
+      
+      <AIAgentTestWidget 
+        open={showTestWidget}
+        onClose={() => setShowTestWidget(false)}
+      />
     </PageLayout>
   );
 }

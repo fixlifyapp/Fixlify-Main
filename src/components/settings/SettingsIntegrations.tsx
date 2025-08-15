@@ -84,7 +84,7 @@ export const SettingsIntegrations = () => {
             <div>
               <h3 className="text-lg font-medium">Phone Number Management</h3>
               <p className="text-sm text-muted-foreground">
-                Manage your Telnyx phone numbers and AI dispatcher settings
+                Manage your phone numbers and AI dispatcher settings
               </p>
             </div>
             <Button asChild>
@@ -157,7 +157,7 @@ export const SettingsIntegrations = () => {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Zap className="h-5 w-5" />
-                Telnyx Integration Status
+                Phone System Status
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -165,7 +165,7 @@ export const SettingsIntegrations = () => {
                 <div>
                   <h4 className="font-medium">API Configuration</h4>
                   <p className="text-sm text-muted-foreground">
-                    {telnyxConfig?.api_key_configured ? 'Telnyx API key is configured and ready' : 'Telnyx API key needs to be configured'}
+                    {telnyxConfig?.api_key_configured ? 'Phone system API key is configured and ready' : 'Phone system API key needs to be configured'}
                   </p>
                 </div>
                 <Badge variant={telnyxConfig?.api_key_configured ? 'default' : 'destructive'}>

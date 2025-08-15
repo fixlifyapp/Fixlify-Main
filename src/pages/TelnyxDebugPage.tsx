@@ -36,8 +36,8 @@ export default function TelnyxDebugPage() {
   return (
     <PageLayout>
       <PageHeader
-        title="Telnyx Account Debug"
-        subtitle="Check what phone numbers are in your Telnyx account"
+        title="Phone System Debug"
+        subtitle="Check phone numbers in your account"
         icon={Phone}
       />
 

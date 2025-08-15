@@ -257,4 +257,94 @@ Pricing: `{{price_range}}`, `{{payment_methods}}`, `{{warranty_policy}}`
 - `/src/styles/phone-config.css` - Responsive styling rules
 
 #### Current Status
-✅ **Fully Functional** - Phone configuration page with business niche selection, auto-population, and mobile-responsive design
+✅ **Fully Functional** - Phone configuration page with business niche selection, auto-population, and mobile-responsive design### AI Dispatcher Client Recognition System (August 14, 2025)
+
+#### Enhanced Client Recognition Features
+**Automatic Client Detection**:
+- Identifies existing clients by caller's phone number
+- Personalizes greetings with client names
+- References service history and outstanding balances
+- Provides context-aware responses based on client records
+
+#### AI Assistant Webhook Updates (`ai-assistant-webhook`)
+**Client Information Variables Added**:
+- `customer_name` - Client's full name from database
+- `customer_status` - 'new' or 'existing' 
+- `customer_history` - Recent service history (last 3 jobs)
+- `last_service_date` - Date of most recent service
+- `outstanding_balance` - Total unpaid balance
+- `customer_notes` - Special notes about the client
+- `is_existing_customer` - 'true' or 'false' string flag
+
+**Enhanced Instructions System**:
+- Dynamically generates contextual instructions
+- Includes client-specific handling guidelines
+- Differentiates between new and existing clients
+- Provides personalized service recommendations
+
+#### New Edge Function: `ai-client-lookup`
+**Purpose**: Enables AI to search and manage client database during calls
+
+**Available Actions**:
+1. `lookup_by_name` - Find client by name (fuzzy search)
+2. `lookup_by_phone` - Find client by phone number
+3. `create_client` - Create new client record
+4. `search_clients` - Search with multiple criteria
+
+**Response Includes**:
+- Complete client information
+- Recent job history (last 3 jobs)
+- Outstanding balance calculation
+- Job count and service dates
+
+#### Phone Configuration UI Updates
+**New Instructions Field**:
+- Enhanced AI Instructions editor with client handling
+- Auto-generation of context-aware instructions
+- Visual indicator for client recognition features
+- Regenerate button for instructions
+
+**Instructions Template Includes**:
+- Client recognition system explanation
+- Handling guidelines for existing clients
+- New client onboarding process
+- Service information and pricing
+- Emergency handling procedures
+
+#### Implementation Details
+**Files Modified**:
+- `/supabase/functions/ai-assistant-webhook/index.ts` - Enhanced with client lookup
+- `/supabase/functions/ai-client-lookup/index.ts` - New client management function
+- `/src/pages/settings/PhoneNumberConfigPage.tsx` - Added instructions UI
+
+**Database Integration**:
+- Queries `clients` table for existing customers
+- Retrieves job history from `jobs` table
+- Calculates outstanding balances dynamically
+- Logs all interactions for analytics
+
+#### How It Works
+1. **Incoming Call**: Caller's number is captured
+2. **Client Lookup**: System searches for matching client by phone
+3. **Context Building**: If found, retrieves history and balance
+4. **AI Personalization**: Instructions and greeting updated with client info
+5. **Natural Conversation**: AI addresses client by name and references history
+6. **Smart Responses**: Provides personalized service based on client record
+
+#### Benefits
+- **Improved Customer Experience**: Clients feel recognized and valued
+- **Efficient Service**: AI has context without asking repetitive questions
+- **Better Conversion**: Existing clients more likely to book services
+- **Accurate Information**: Real-time access to client history and balances
+- **Professional Image**: Shows organized business with good record-keeping
+
+#### Testing Instructions
+1. Configure AI dispatcher with company information
+2. Enable AI dispatcher on phone number
+3. Create test clients in the system
+4. Call from registered client phone numbers
+5. Verify personalized greeting and context
+
+#### Status
+✅ **Implemented** - Full client recognition system active in AI dispatcher
+
