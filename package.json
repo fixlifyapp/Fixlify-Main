@@ -18,6 +18,8 @@
     "context:quality": "node scripts/context-quality.js",
     "context:optimize": "node scripts/context-optimizer.js",
     "context:browser": "open context-browser.html",
+    "test:production": "node agents/run-production-tests.js",
+    "test:security": "node agents/production-test-suite.ts",
     "context:all": "npm run context:validate && npm run context:update && npm run context:quality"
   },
   "dependencies": {
