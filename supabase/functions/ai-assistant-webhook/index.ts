@@ -7,13 +7,38 @@ const corsHeaders = {
 }
 
 serve(async (req) => {
+  // Fast CORS response
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
   }
 
-  const supabaseUrl = Deno.env.get('SUPABASE_URL')!
-  const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-  const supabase = createClient(supabaseUrl, supabaseServiceKey)
+  // Set a timeout to ensure fast response
+  const timeoutPromise = new Promise((resolve) => {
+    setTimeout(() => {
+      resolve(new Response(
+        JSON.stringify({
+          dynamic_variables: {
+            greeting: 'Thank you for calling. How can I help you today?',
+            agent_name: 'Assistant',
+            company_name: 'Our Company',
+            business_phone: '',
+            hours_of_operation: 'Monday-Friday 9am-6pm',
+            services_offered: 'Professional services',
+            current_date: new Date().toLocaleDateString(),
+            current_time: new Date().toLocaleTimeString(),
+            day_of_week: new Date().toLocaleDateString('en-US', { weekday: 'long' })
+          }
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      ))
+    }, 2800) // Timeout at 2.8 seconds (Telnyx likely times out at 3s)
+  })
+
+  // Main processing promise
+  const processPromise = (async () => {
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+    const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
   try {
     const body = await req.json()
@@ -398,4 +423,8 @@ ${baseInstructions}`
       }
     )
   }
+  })() // End of processPromise
+
+  // Race between processing and timeout
+  return Promise.race([processPromise, timeoutPromise])
 })

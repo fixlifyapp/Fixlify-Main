@@ -4,7 +4,9 @@
       "Bash(find:*)",
       "Bash(supabase status:*)",
       "Bash(supabase secrets:*)",
-      "Bash(supabase db:*)"
+      "Bash(supabase db:*)",
+      "Bash(npm audit:*)",
+      "WebSearch"
     ],
     "deny": []
   }

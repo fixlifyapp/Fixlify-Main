@@ -87,18 +87,23 @@ serve(async (req) => {
         }
         
         // Create job/appointment
+        const jobId = crypto.randomUUID()
         const { data: job, error } = await supabase
           .from('jobs')
           .insert({
+            id: jobId,
             client_id: clientId,
-            device_model: service_type || 'Service',
-            device_issue: issue_description || 'Scheduled via AI',
+            title: service_type || 'Service Appointment',
+            description: issue_description || 'Scheduled via AI dispatcher',
+            service: service_type || 'Repair',
             status: 'new',
             scheduled_date: date,
             scheduled_time: time + ':00',
             appointment_status: 'scheduled',
             booked_via: 'ai_dispatcher',
-            created_by: userId
+            created_by: userId,
+            user_id: userId,
+            date: new Date().toISOString()
           })
           .select()
           .single()

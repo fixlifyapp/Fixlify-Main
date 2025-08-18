@@ -12,6 +12,7 @@ import { Job } from "@/types/job";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/use-auth";
 import { useJobs } from "@/hooks/useJobs";
+import { AppointmentsList } from "@/components/appointments/AppointmentsList";
 
 const SchedulePage = () => {
   const { user, loading: authLoading } = useAuth();
@@ -141,6 +142,11 @@ const SchedulePage = () => {
           currentDate={currentDate} 
           onDateChange={handleDateChange} 
         />
+      </div>
+      
+      {/* AI Dispatcher Appointments */}
+      <div className="mb-6">
+        <AppointmentsList />
       </div>
       
       <ScheduleCalendar view={view} currentDate={currentDate} />
