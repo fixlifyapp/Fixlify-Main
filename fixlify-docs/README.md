@@ -36,14 +36,23 @@ Step-by-step feature implementations
 - Workflow builder implementation
 - Timezone handling
 
-### 🤖 [Automation System](/fixlify-docs/automation/)
-Workflow automation and AI features
+### ⚙️ [Automation System](/fixlify-docs/automation/)
+Workflow automation and AI features - **39 files consolidated**
 - Automation architecture & design
 - Workflow builder documentation
 - AI automation templates
 - Task automation implementation
 - Automation safeguards & testing
 - Troubleshooting automation issues
+
+### 📱 [Communications System](/fixlify-docs/communications/)
+SMS, Email, and Phone integration - **72 files consolidated**
+- SMS messaging system
+- Email communication
+- Telnyx phone integration
+- Two-way calling
+- Webhook configuration
+- Testing & troubleshooting
 
 ### 🔌 [Edge Functions](/fixlify-docs/edge-functions/)
 Supabase Edge Functions documentation
