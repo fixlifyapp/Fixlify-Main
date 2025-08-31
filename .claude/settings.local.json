@@ -13,7 +13,9 @@
       "Bash(make:*)",
       "mcp__ide__getDiagnostics",
       "Bash(npm install)",
-      "Bash(npx vite:*)"
+      "Bash(npx vite:*)",
+      "mcp__mem0-mcp__add-memory",
+      "Bash(mkdir:*)"
     ],
     "deny": []
   }
