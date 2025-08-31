@@ -21,7 +21,12 @@
       "Bash(echo:*)",
       "Bash(done)",
       "mcp__trello__get_boards",
-      "mcp__trello__create_card"
+      "mcp__trello__create_card",
+      "Bash(supabase functions:*)",
+      "Bash(npx supabase functions:*)",
+      "Bash(npx supabase login)",
+      "mcp__supabase-community-supabase-mcp__list_projects",
+      "mcp__supabase-community-supabase-mcp__list_edge_functions"
     ],
     "deny": []
   }

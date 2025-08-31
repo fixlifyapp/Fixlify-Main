@@ -417,7 +417,6 @@ See `email_sms_test_instructions.md` for detailed testing procedures.
 ### 7. Fixed SMS/Email sending edge function errors
 - **Issue**: System was trying to invoke non-existent edge functions causing send failures
 - **Solution**:
-  - Updated all references from `send-estimate-fixed` to `send-estimate` in useEstimateActions.ts
   - Changed all `mailgun-email` references to `send-email` in frontend code
   - Deployed `mailgun-email` edge function for backward compatibility
   - Updated `telnyx-sms` edge function with better phone number handling

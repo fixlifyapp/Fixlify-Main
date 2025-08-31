@@ -36,10 +36,6 @@ FIX_SEND_ESTIMATE_INSTRUCTIONS.md
 *.backup.*
 src/App.backup.tsx
 
-# Temporary edge functions (obsolete versions)
-supabase/functions/send-estimate-fixed/
-supabase/functions/send-estimate-sms-fixed/
-
 # Environment files
 supabase/.env.production
 
