@@ -26,7 +26,17 @@
       "Bash(npx supabase functions:*)",
       "Bash(npx supabase login)",
       "mcp__supabase-community-supabase-mcp__list_projects",
-      "mcp__supabase-community-supabase-mcp__list_edge_functions"
+      "mcp__supabase-community-supabase-mcp__list_edge_functions",
+      "mcp__trello__get_board",
+      "WebFetch(domain:trello.com)",
+      "mcp__m-0-xai-trello-mcp-server__get_boards",
+      "mcp__m-0-xai-trello-mcp-server__get_lists",
+      "mcp__m-0-xai-trello-mcp-server__get_cards",
+      "Bash(npx supabase:*)",
+      "mcp__m-0-xai-trello-mcp-server__get_board_labels",
+      "mcp__m-0-xai-trello-mcp-server__create_card",
+      "mcp__m-0-xai-trello-mcp-server__create_checklist",
+      "mcp__m-0-xai-trello-mcp-server__add_checkitem"
     ],
     "deny": []
   }
