@@ -44,3 +44,4 @@ supabase/functions/send-estimate-sms-fixed/
 supabase/.env.production
 
 .claude/settings.local.json
+.cursor
