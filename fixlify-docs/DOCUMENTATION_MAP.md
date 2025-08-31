@@ -3,8 +3,10 @@
 > Complete mapping of all documentation files organized by module and purpose
 
 ## 📊 Documentation Statistics
-- **Total Documentation Files**: 250+ markdown files
-- **Modules**: 11 major categories
+- **Total Documentation Files**: 287 markdown files (fully consolidated)
+- **Modules**: 13 major categories
+- **Successfully merged**: `docs/` directory into `fixlify-docs/`
+- **Duplicate handling**: Older versions preserved with `_old` suffix
 - **Agent Documentation**: 18 specialized AI agents
 - **Setup Guides**: 15+ configuration documents
 - **Implementation Guides**: 30+ feature implementations
@@ -100,33 +102,26 @@ Production deployment documentation
 
 ```
 Fixlify-Main/
-├── fixlify-docs/              # Organized documentation hub
-│   ├── README.md             # Documentation index
+├── fixlify-docs/              # ALL documentation (287 files)
+│   ├── README.md             # Main documentation index
 │   ├── DOCUMENTATION_MAP.md  # This file
-│   ├── agents/               # AI agent documentation
-│   ├── automation/           # Automation system docs
-│   ├── setup/               # Setup guides
-│   ├── implementation/      # Implementation guides
-│   ├── context/             # Context engineering
-│   ├── edge-functions/      # Edge function docs
-│   ├── fixes/               # Fix documentation
-│   ├── troubleshooting/     # Troubleshooting guides
-│   ├── system/              # System documentation
-│   ├── testing/             # Testing guides
-│   └── deployment/          # Deployment docs
+│   ├── agents/       (6)     # AI agent documentation
+│   ├── ai/          (5)     # AI features and templates
+│   ├── automation/  (69)    # Automation system (consolidated)
+│   ├── clients/     (6)     # Client management
+│   ├── communications/ (72) # SMS, Email, Phone system
+│   ├── context/     (17)    # Context engineering
+│   ├── deployment/  (4)     # Deployment guides
+│   ├── edge-functions/ (5)  # Edge function docs
+│   ├── fixes/       (32)    # All fixes and solutions
+│   ├── implementation/ (15) # Implementation guides
+│   ├── setup/       (14)    # Setup and configuration
+│   ├── system/      (26)    # System architecture
+│   └── troubleshooting/ (9) # Troubleshooting guides
 │
 ├── .claude/agents/           # Agent configuration files
-├── docs/                     # Original documentation
-│   ├── automation/
-│   ├── completed/
-│   ├── context-engineering/
-│   ├── fixes/
-│   ├── implementation-guides/
-│   ├── setup-guides/
-│   ├── system-documentation/
-│   └── troubleshooting/
 │
-└── [Root Level Docs]         # Various root-level documentation
+└── CLAUDE.md                 # Main project instructions (root)
 
 ```
 
