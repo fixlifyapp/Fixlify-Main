@@ -4,7 +4,16 @@
       "Bash(find:*)",
       "Bash(supabase status:*)",
       "Bash(supabase secrets:*)",
-      "Bash(supabase db:*)"
+      "Bash(supabase db:*)",
+      "Bash(claude mcp add:*)",
+      "Bash(claude mcp:*)",
+      "mcp__trello__get_card",
+      "mcp__trello__get_lists",
+      "mcp__trello__update_card",
+      "Bash(make:*)",
+      "mcp__ide__getDiagnostics",
+      "Bash(npm install)",
+      "Bash(npx vite:*)"
     ],
     "deny": []
   }
