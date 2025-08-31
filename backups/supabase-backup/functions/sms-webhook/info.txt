@@ -1,3 +1,0 @@
-﻿Function: sms-webhook
-URL: https://mqppvcrlvsgrsqelglod.supabase.co/functions/v1/sms-webhook
-Status: Deployed

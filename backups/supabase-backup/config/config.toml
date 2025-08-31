@@ -1,6 +1,0 @@
-# Supabase Edge Functions Configuration
-
-# Disable JWT verification for Telnyx webhook
-# This allows Telnyx to send webhooks without authentication
-[functions.telnyx-webhook]
-verify_jwt = false

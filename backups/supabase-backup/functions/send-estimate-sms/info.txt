@@ -1,3 +1,0 @@
-﻿Function: send-estimate-sms
-URL: https://mqppvcrlvsgrsqelglod.supabase.co/functions/v1/send-estimate-sms
-Status: Deployed
