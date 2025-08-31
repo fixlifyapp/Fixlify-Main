@@ -15,7 +15,11 @@
       "Bash(npm install)",
       "Bash(npx vite:*)",
       "mcp__mem0-mcp__add-memory",
-      "Bash(mkdir:*)"
+      "Bash(mkdir:*)",
+      "Bash(for file in check-telnyx-webhook.ps1 diagnose-sms-webhook.js quick-email-debug.js run-sms-test.mjs simulate-incoming-sms.js sms-test-suite.html test-email-page.html test-sms-no-auth.html test-webhook-direct.mjs webhook-final-diagnosis.js)",
+      "Bash(do [ -f \"$file\" ])",
+      "Bash(echo:*)",
+      "Bash(done)"
     ],
     "deny": []
   }

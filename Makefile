@@ -19,6 +19,8 @@ help: ## Show this help message
 	@awk 'BEGIN {FS = ":.*##"} /^[a-zA-Z_-]+:.*##/ { printf "  \033[36m%-20s\033[0m %s\n", $$1, $$2 }' $(MAKEFILE_LIST)
 	@echo ""
 	@echo "📋 Quick Start:"
+	@echo "  make start      # One-command start (install + dev)"
+	@echo "  -- OR --"
 	@echo "  make install    # Install dependencies"
 	@echo "  make db-start   # Start Supabase local"
 	@echo "  make dev        # Start development server"
@@ -53,7 +55,17 @@ reinstall: clean install ## Clean reinstall of dependencies
 # 🚀 DEVELOPMENT COMMANDS
 # =============================================================================
 
-dev: ## Start development server (port 8080)
+start: ## Start Fixlify (install deps if needed + run dev)
+	@echo "🚀 Starting Fixlify App..."
+	@echo "📍 Current directory: $$(pwd)"
+	@echo ""
+	@echo "📦 Installing dependencies (if needed)..."
+	@npm install
+	@echo ""
+	@echo "🚀 Starting development server..."
+	@npm run dev
+
+dev: ## Start development server only (port 8080)
 	@echo "🚀 Starting development server on port 8080..."
 	npm run dev
 
