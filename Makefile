@@ -61,6 +61,11 @@ dev-alt: ## Start development server (port 8081)
 	@echo "🚀 Starting development server on port 8081..."
 	npm run dev:8081
 
+stop: ## Stop all running development servers
+	@echo "🛑 Stopping development servers..."
+	@pkill -f "vite" || echo "✅ No Vite servers running"
+	@pkill -f "npm run dev" || echo "✅ No npm dev processes running"
+
 build: ## Build for production
 	@echo "🏗️  Building for production..."
 	npm run build
