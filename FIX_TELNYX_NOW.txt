@@ -1,0 +1,108 @@
+# 🚨 URGENT: FIX TELNYX AI ASSISTANT - STEP BY STEP
+
+## THE PROBLEM
+Your AI Assistant says the greeting then goes completely silent. This is a Telnyx configuration issue.
+
+## SOLUTION - FOLLOW THESE EXACT STEPS:
+
+### Step 1: Log into Telnyx Portal
+1. Go to: https://portal.telnyx.com
+2. Log in with your credentials
+
+### Step 2: Navigate to AI Assistants
+1. Click on "AI" in the left sidebar
+2. Click on "AI Assistants"
+3. Find your assistant (should show phone number +14375249932)
+
+### Step 3: Edit Your AI Assistant
+1. Click on your assistant name or the Edit button
+2. You should see assistant ID: assistant-2a8a396c-e975-4ea5-90bf-3297f1350775
+
+### Step 4: UPDATE THE INSTRUCTIONS FIELD
+1. Find the "Instructions" or "System Prompt" field
+2. DELETE everything that's currently there
+3. Copy ALL the text from the file: TELNYX_COMPLETE_INSTRUCTIONS.txt
+4. Paste it into the Instructions field
+
+### Step 5: VERIFY WEBHOOK SETTINGS
+In the same assistant settings, check:
+
+1. **Webhook URL** must be EXACTLY:
+   ```
+   https://mqppvcrlvsgrsqelglod.supabase.co/functions/v1/ai-assistant-webhook
+   ```
+
+2. **Webhook Method**: POST
+
+3. **Enable these webhook events** (if options exist):
+   - ✅ Call started
+   - ✅ Call initialization
+   - ✅ Assistant initialization
+
+4. **Webhook Timeout**: Set to 3000ms (3 seconds) if configurable
+
+### Step 6: VOICE SETTINGS
+Make sure these are set:
+1. **Voice**: Alloy (or any available voice)
+2. **Language**: English
+3. **Temperature**: 0.7
+4. **Turn Detection**: Enabled
+
+### Step 7: SAVE CHANGES
+1. Click "Save" or "Update Assistant"
+2. Wait for confirmation that changes are saved
+
+### Step 8: TEST YOUR SETUP
+1. Call +14375249932 from your phone
+2. The AI should:
+   - Say the greeting
+   - IMMEDIATELY ask "What can I help you with today?"
+   - Continue responding to everything you say
+   - Never go silent
+
+## IF IT STILL DOESN'T WORK:
+
+### Option A: Disable Dynamic Variables (Temporary Fix)
+1. In Telnyx Assistant settings
+2. Look for "Dynamic Variables" or "Use Webhook for Variables"
+3. Turn it OFF/Disable it
+4. Add a simple greeting directly in Instructions:
+   ```
+   Start every call by saying: "Thank you for calling Nick's Appliance Repair. I'm Sarah, your AI assistant. What can I help you with today?"
+   ```
+
+### Option B: Check MCP Server Settings
+1. In Telnyx, look for "MCP Servers" or "Tools"
+2. If there's an MCP server configured, try DISABLING it temporarily
+3. MCP servers can sometimes interfere with response flow
+
+### Option C: Create a New AI Assistant (Nuclear Option)
+If nothing works:
+1. Create a brand new AI Assistant in Telnyx
+2. Use ONLY the instructions from TELNYX_COMPLETE_INSTRUCTIONS.txt
+3. Don't add webhook initially - test without it first
+4. Once working, add webhook URL
+
+## CRITICAL SETTINGS TO CHECK:
+- ✅ Instructions field has the complete text (no {{variables}})
+- ✅ Webhook URL is exactly correct (no trailing slashes)
+- ✅ Voice is set (not "none" or empty)
+- ✅ Turn detection is enabled
+- ✅ No conflicting MCP servers
+
+## TEST PHRASES TO TRY:
+1. "Hello" - Should get immediate response
+2. Stay silent - Should hear "Are you still there?" after 3 seconds
+3. "I need service" - Should ask what type
+4. "What's your price?" - Should quote $75 diagnostic
+
+## CONTACT SUPPORT IF NEEDED:
+If the AI still goes silent after greeting:
+1. Contact Telnyx Support
+2. Tell them: "AI Assistant says greeting then goes silent, not responding to any input"
+3. Ask them to check if webhook response is being processed correctly
+4. Reference Assistant ID: assistant-2a8a396c-e975-4ea5-90bf-3297f1350775
+
+---
+The key issue is that Telnyx needs EXPLICIT instructions in their UI.
+The webhook provides variables but Telnyx needs the conversation logic in Instructions field!

@@ -1,0 +1,107 @@
+# 🚨 CRITICAL FIX: TELNYX AI DISPATCHER AUTHENTICATION ISSUE
+
+## THE PROBLEM
+Your AI assistant webhook requires JWT authentication, but Telnyx cannot provide JWT tokens. This is why the AI goes silent after the greeting.
+
+## THE SOLUTION - USE WEBHOOK URL WITH API KEY
+
+### ✅ CORRECT WEBHOOK URL FOR TELNYX:
+```
+https://mqppvcrlvsgrsqelglod.supabase.co/functions/v1/telnyx-public-webhook?apikey=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1xcHB2Y3JsdnNncnNxZWxnbG9kIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc1OTE3MDUsImV4cCI6MjA2MzE2NzcwNX0.My-KiqG1bCMqzUru4m59d4v18N3WGxNoNtFPOFAmhzg
+```
+
+## STEP-BY-STEP FIX:
+
+### 1. LOG INTO TELNYX PORTAL
+- Go to: https://portal.telnyx.com
+- Navigate to AI → AI Assistants
+- Find your assistant (ID: assistant-2a8a396c-e975-4ea5-90bf-3297f1350775)
+
+### 2. UPDATE WEBHOOK URL
+Click Edit on your assistant and change the webhook URL to the one above (with the API key)
+
+### 3. UPDATE INSTRUCTIONS
+Copy ALL of this text into the Instructions field:
+
+```
+You are Sarah, an AI assistant for Nick's Appliance Repair. 
+
+Your primary job is to help customers schedule appliance repairs and NEVER be silent.
+
+## CRITICAL RULES
+1. ALWAYS respond within 3 seconds
+2. If you hear nothing, say "Are you still there? How can I help you?"
+3. After greeting, immediately ask "What appliance needs service today?"
+4. Never stop talking until the customer hangs up
+
+## CONVERSATION FLOW
+1. Greet with: "Thank you for calling Nick's Appliance Repair. I'm Sarah. What appliance needs service today?"
+2. Listen to their response
+3. For service requests: "I can help schedule that. What type of appliance is it?"
+4. Get their name: "May I have your name please?"
+5. Get their phone: "What's the best number to reach you?"
+6. Confirm: "Perfect! Someone will call you shortly to confirm your appointment."
+
+## SERVICES WE OFFER
+- Refrigerator repairs
+- Washer repairs
+- Dryer repairs
+- Dishwasher repairs
+- Oven repairs
+
+## PRICING
+- Diagnostic fee: $75
+- Emergency service: Additional $50
+- Same-day service available
+
+## RESPONSES FOR COMMON SITUATIONS
+
+Customer says "Hello" or "Hi":
+"Hi there! Thanks for calling. What appliance needs repair today?"
+
+Customer is SILENT:
+Wait 3 seconds, then: "Hello? Are you still there? I'm here to help with any appliance repairs you need."
+
+Customer asks about price:
+"Our diagnostic fee is $75, and for emergency service there's an additional $50 charge. Would you like to schedule an appointment?"
+
+Customer wants to schedule:
+"Great! I'll help you schedule that. May I have your name and phone number please?"
+
+If confused or unsure:
+"I want to make sure I help you properly. Are you looking to schedule an appliance repair?"
+
+## IMPORTANT
+- Use customer's first name if they're existing (shown as {{customer_name}})
+- Company name is {{company_name}}
+- Current time is {{current_time}}
+- Never be silent for more than 3 seconds
+- Always keep the conversation moving forward
+```
+
+### 4. SAVE AND TEST
+1. Click Save/Update
+2. Call +14375249932
+3. The AI should now:
+   - Say the greeting
+   - Continue responding
+   - Never go silent
+
+## WHY THIS WORKS:
+- The `apikey` parameter in the URL authenticates the webhook
+- The new `telnyx-public-webhook` function handles Telnyx requests
+- Simple instructions ensure the AI keeps talking
+
+## IF IT STILL DOESN'T WORK:
+1. Make sure you copied the ENTIRE webhook URL including the apikey parameter
+2. Check that Instructions are saved properly
+3. Try disabling and re-enabling the AI assistant
+4. Contact Telnyx support if issues persist
+
+## WEBHOOK STATUS:
+✅ `telnyx-public-webhook` deployed and active (v2)
+✅ Authentication via URL parameter configured
+✅ Database connection working
+✅ Client detection enabled
+
+The webhook is now PUBLIC and accessible via the API key in the URL!

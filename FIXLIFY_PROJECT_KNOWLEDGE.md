@@ -1,350 +1,373 @@
-# Fixlify Project Knowledge Base
-
-## Project Overview
-Fixlify is a comprehensive repair shop management system built with Next.js, Supabase, and modern web technologies. It provides tools for managing repairs, customers, inventory, communications, and business operations.
-
-## Key Features
-- Customer & Job Management
-- Inventory Control
-- Automated Communications (SMS/Email)
-- AI-Powered Tools
-- Multi-location Support
-- Real-time Updates
-
-## Technical Stack
-- **Frontend**: Next.js 14, React, TypeScript, Tailwind CSS
-- **Backend**: Supabase (PostgreSQL, Edge Functions, Realtime)
-- **Communications**: Telnyx for SMS, Mailgun for Email
-- **AI Integration**: OpenAI, Claude, Perplexity APIs
-- **Deployment**: Vercel/Supabase Cloud
-
-## Context Engineering Documents
-- **Send Estimate/Invoice System**: See `CONTEXT_SEND_ESTIMATE_INVOICE.md`
-- **Automation System Plan**: See `FIXLIFY_AUTOMATION_SYSTEM_PLAN.md`
-
-## Recent Fixes & Updates
-
-### August 2025 Updates
-
-#### FIXED: Job System Type Consolidation (August 4, 2025)
-- **Issue**: 67+ duplicate Job interface definitions across the codebase causing type safety issues
-- **Root Cause**: 
-  1. No single source of truth for Job type
-  2. Each component/hook defined its own Job interface
-  3. Mixed field names (revenue vs total, client_id vs clientId)
-  4. Database had mixed case status values
-- **Solution Applied**:
-  1. Created central Job type definition in `src/types/job.ts`
-  2. Database fixes:
-     - Migrated status values from mixed case to lowercase with underscores
-     - Added check constraint for valid status values
-     - Created 18 performance indexes on commonly queried fields
-  3. Updated all components and hooks to use central type
-  4. Maintained backward compatibility for field names
-  5. Fixed workflow builder to use `job.revenue` instead of `job.total`
-- **Remaining Items**:
-  - Duplicate hooks (useJobsOptimized, useJobsConsolidated) kept for pagination support
-  - Both `revenue`/`total` and `client_id`/`clientId` supported for compatibility
-- **Status**: ✅ Fixed - Type safety improved, no breaking changes
-
-#### COMPLETED: Job System Type Consolidation (August 4, 2025)
-
-### Edge Functions Fixed (January 10, 2025)
-
-#### SMS/Email Communication System
-**Issue**: SMS and email functions not working across estimates, invoices, messages, and automations
-**Root Causes**:
-1. Automation executor calling wrong function (`telnyx-sms` instead of `send-sms`)
-2. Missing source phone number configuration
-3. No default phone number in database
-
-**Solution Applied**:
-1. Updated `automation-executor` edge function to call correct `send-sms` function
-2. Fixed `send-sms` to handle phone number lookup and use default if needed
-3. Added default phone number (+18335743145) for SMS operations
-4. Ensured all communication tables exist with proper RLS
-
-**Edge Functions Currently Active**:
-- `send-sms` - Handles all SMS sending (estimates, invoices, messages, automations)
-- `mailgun-email` - Handles all email sending
-- `send-estimate` - Sends estimates via email
-- `send-invoice` - Sends invoices via email
-- `automation-executor` - Executes automation workflows with email/SMS actions
-- `generate-with-ai` - AI text generation
-- Other AI/telephony functions for voice features
-
-**Status**: ✅ Fixed - All communication channels working
-
-### SMS/Email Edge Functions Configuration (January 10, 2025)
-
-#### Working Edge Functions Setup
-**SMS Functions**:
-- `send-sms` - Primary SMS sending function used by estimates/invoices
-- `telnyx-sms` - Alternative SMS function used by messages/conversations
-- Both use Telnyx number: `+14375249932`
-- Both handle multiple parameter formats (to/recipientPhone, message/text)
-
-**Email Function**:
-- `mailgun-email` - Handles all email sending
-- Uses Mailgun API with domain `mg.fixlify.app`
-
-**Required Environment Variables** (in Supabase Edge Functions secrets):
-- `TELNYX_API_KEY` - Your Telnyx API key
-- `TELNYX_MESSAGING_PROFILE_ID` - Optional, can be omitted
-- `MAILGUN_API_KEY` - Your Mailgun API key
-- `MAILGUN_DOMAIN` - Default: mg.fixlify.app
-
-**Important Notes**:
-1. Phone number must be verified/purchased in Telnyx account
-2. Both `send-sms` and `telnyx-sms` functions exist for backward compatibility
-3. Functions use `@supabase/supabase-js@2` import (not @2.7.1 which causes errors)
-4. Don't use messaging_profile_id if not configured in Telnyx
-
-**Components Using These Functions**:
-- Estimates/Invoices: `send-sms`
-- Messages/Conversations: `telnyx-sms`
-- Automations: `send-sms` (via automation-executor)
-- Email features: `mailgun-email`
-
-**Status**: ✅ All communication functions operational
-
-
-### AI Dispatcher System Fixed (January 14, 2025)
-
-#### Issue
-AI Dispatcher toggle functionality not working - missing edge function and improper configuration
-
-#### Root Causes
-1. No `ai-dispatcher-handler` edge function existed
-2. Frontend was calling non-existent edge functions (`manage-ai-dispatcher`, `telnyx-phone-numbers`)
-3. AI dispatcher configurations table existed but was not being populated
-
-#### Solution Applied
-1. **Created `ai-dispatcher-handler` edge function** with actions:
-   - `enable` - Enable AI dispatcher and create config
-   - `disable` - Disable AI dispatcher
-   - `update_config` - Update AI configuration
-   - `get_config` - Get current configuration
-   - `handle_call` - Handle incoming AI calls
-
-2. **Updated frontend components**:
-   - `PhoneNumbersList.tsx` - Fixed toggleAIDispatcher to use new edge function
-   - `PhoneNumberManagementPage.tsx` - Updated to use ai-dispatcher-handler
-
-3. **Database structure verified**:
-   - `phone_numbers` table has `ai_dispatcher_enabled` field
-   - `ai_dispatcher_configs` table exists for storing AI settings
-   - `ai_dispatcher_call_logs` table for call history
-
-#### Testing
-Created `test-ai-dispatcher.js` script to verify functionality in browser console
-
-#### Status
-✅ **Fixed** - AI Dispatcher can now be toggled and configured properly
-
-
-
-### AI Dispatcher System - Hybrid Approach (August 12, 2025)
-
-#### Implementation Strategy
-Using **Hybrid Approach**: Telnyx AI Assistant + MCP Server + Dynamic Variables
-
-**Components**:
-1. **Telnyx AI Assistant** (`assistant-6f3d8e8f-2351-4946-9...`) - Voice handling
-2. **MCP Server** (`c646fbf5-a768-49eb-b8d2-f2faeb116154`) - Integrations
-3. **Dynamic Variables Webhook** (`ai-assistant-webhook`) - Personalization
-4. **Supabase Integration** - Database operations
-
-#### Edge Functions Created
-1. **`ai-assistant-webhook`** - Returns dynamic variables for AI personalization
-2. **`telnyx-mcp-handler`** - Handles MCP events and integrations
-3. **`mcp-tools-handler`** - Custom tools for AI actions
-
-#### Database Schema
-**`ai_dispatcher_configs` table** - Comprehensive configuration:
-- Business information (name, niche, address, etc.)
-- AI agent settings (name, personality, voice)
-- Operating hours (per day, timezone)
-- Services & offerings
-- Pricing information
-- Call scripts (greeting, hold, transfer)
-- Appointment settings
-- Knowledge base (FAQs, policies)
-- Integration settings
-- Analytics configuration
-
-#### UI Components
-**`AIDispatcherConfiguration.tsx`** - Complete configuration interface:
-- 6 tabs: Business, Voice & AI, Hours, Services, Scripts, Advanced
-- Real-time preview and testing
-- Save/load configurations
-- Test call functionality
-
-#### Configuration Variables Available
-Business: `{{business_name}}`, `{{business_niche}}`, `{{business_address}}`
-AI: `{{agent_name}}`, `{{agent_personality}}`, `{{voice_id}}`
-Hours: `{{hours_of_operation}}`, `{{timezone}}`, `{{emergency_services}}`
-Services: `{{services_offered}}`, `{{specialties}}`, `{{service_areas}}`
-Real-time: `{{current_date}}`, `{{current_time}}`, `{{current_wait_time}}`
-Customer: `{{caller_number}}`, `{{customer_status}}`, `{{customer_history}}`
-Pricing: `{{price_range}}`, `{{payment_methods}}`, `{{warranty_policy}}`
-
-#### Key Benefits
-- **Multi-tenant support** - Each business gets custom AI behavior
-- **Real-time personalization** - Dynamic variables per call
-- **Scalable architecture** - Handles unlimited businesses
-- **Cost-effective** - ~$0.025 per minute
-- **Quick deployment** - Launch in hours, not weeks
-
-#### Status
-✅ **Implemented** - Full hybrid system ready for production
-
-### Phone Configuration Page Enhancements (August 14, 2025)
-
-#### Business Niche System
-**15 Pre-configured Business Types** with auto-population:
-1. HVAC - Heating & cooling specialists
-2. Plumbing - Water & pipe services
-3. Electrical - Power & wiring experts
-4. Roofing - Roof repair & replacement
-5. Landscaping - Lawn & garden care
-6. Cleaning - Residential & commercial cleaning
-7. Pest Control - Extermination services
-8. Locksmith - Security & lock services
-9. Appliance Repair - Home appliance fixes
-10. Computer Repair - Tech support & repairs
-11. Auto Repair - Vehicle maintenance
-12. Home Security - Alarm & camera systems
-13. Garage Door - Installation & repair
-14. Carpet Cleaning - Floor care specialists
-15. Window Cleaning - Glass & window services
-
-**Auto-populated Fields per Niche**:
-- AI Capabilities (7 specific functions)
-- Services Offered (industry-specific list)
-- Greeting Message (customized template)
-- Agent Personality (professional tone)
-
-#### Mobile-Responsive Design Updates
-**Text & Readability**:
-- Base 16px font size for all inputs
-- Bold labels with font-medium class
-- Improved contrast (gray-600/gray-400)
-- Line-height: relaxed for better readability
-
-**Form Elements**:
-- Minimum 44px touch targets on mobile
-- Consistent spacing (space-y-2)
-- Larger textareas (min-h-100px to 150px)
-- Monospace font for capabilities field
-
-**Responsive Layout**:
-- Max-width container (4xl) for desktop
-- Responsive padding (px-4 mobile, px-6 tablet, px-8 desktop)
-- Buttons stack vertically on mobile
-- Full-width save button with prominent styling
-
-**Button Improvements**:
-- Save button: py-4, text-lg, font-semibold
-- Test button: py-3, text-base, font-medium
-- Icon sizes increased from h-4 to h-5
-- Better hover states with /90 opacity
-
-#### Files Modified
-- `/src/pages/settings/PhoneNumberConfigPage.tsx` - Main configuration page
-- `/src/config/niche-capabilities.ts` - Niche data and templates
-- `/src/utils/business-niches.ts` - Business type definitions
-- `/src/styles/phone-config.css` - Responsive styling rules
-
-#### Current Status
-✅ **Fully Functional** - Phone configuration page with business niche selection, auto-population, and mobile-responsive design### AI Dispatcher Client Recognition System (August 14, 2025)
-
-#### Enhanced Client Recognition Features
-**Automatic Client Detection**:
-- Identifies existing clients by caller's phone number
-- Personalizes greetings with client names
-- References service history and outstanding balances
-- Provides context-aware responses based on client records
-
-#### AI Assistant Webhook Updates (`ai-assistant-webhook`)
-**Client Information Variables Added**:
-- `customer_name` - Client's full name from database
-- `customer_status` - 'new' or 'existing' 
-- `customer_history` - Recent service history (last 3 jobs)
-- `last_service_date` - Date of most recent service
-- `outstanding_balance` - Total unpaid balance
-- `customer_notes` - Special notes about the client
-- `is_existing_customer` - 'true' or 'false' string flag
-
-**Enhanced Instructions System**:
-- Dynamically generates contextual instructions
-- Includes client-specific handling guidelines
-- Differentiates between new and existing clients
-- Provides personalized service recommendations
-
-#### New Edge Function: `ai-client-lookup`
-**Purpose**: Enables AI to search and manage client database during calls
-
-**Available Actions**:
-1. `lookup_by_name` - Find client by name (fuzzy search)
-2. `lookup_by_phone` - Find client by phone number
-3. `create_client` - Create new client record
-4. `search_clients` - Search with multiple criteria
-
-**Response Includes**:
-- Complete client information
-- Recent job history (last 3 jobs)
-- Outstanding balance calculation
-- Job count and service dates
-
-#### Phone Configuration UI Updates
-**New Instructions Field**:
-- Enhanced AI Instructions editor with client handling
-- Auto-generation of context-aware instructions
-- Visual indicator for client recognition features
-- Regenerate button for instructions
-
-**Instructions Template Includes**:
-- Client recognition system explanation
-- Handling guidelines for existing clients
-- New client onboarding process
-- Service information and pricing
-- Emergency handling procedures
-
-#### Implementation Details
-**Files Modified**:
-- `/supabase/functions/ai-assistant-webhook/index.ts` - Enhanced with client lookup
-- `/supabase/functions/ai-client-lookup/index.ts` - New client management function
-- `/src/pages/settings/PhoneNumberConfigPage.tsx` - Added instructions UI
-
-**Database Integration**:
-- Queries `clients` table for existing customers
-- Retrieves job history from `jobs` table
-- Calculates outstanding balances dynamically
-- Logs all interactions for analytics
-
-#### How It Works
-1. **Incoming Call**: Caller's number is captured
-2. **Client Lookup**: System searches for matching client by phone
-3. **Context Building**: If found, retrieves history and balance
-4. **AI Personalization**: Instructions and greeting updated with client info
-5. **Natural Conversation**: AI addresses client by name and references history
-6. **Smart Responses**: Provides personalized service based on client record
-
-#### Benefits
-- **Improved Customer Experience**: Clients feel recognized and valued
-- **Efficient Service**: AI has context without asking repetitive questions
-- **Better Conversion**: Existing clients more likely to book services
-- **Accurate Information**: Real-time access to client history and balances
-- **Professional Image**: Shows organized business with good record-keeping
-
-#### Testing Instructions
-1. Configure AI dispatcher with company information
-2. Enable AI dispatcher on phone number
-3. Create test clients in the system
-4. Call from registered client phone numbers
-5. Verify personalized greeting and context
-
-#### Status
-✅ **Implemented** - Full client recognition system active in AI dispatcher
-
+# FIXLIFY PROJECT KNOWLEDGE
+
+## PROJECT STRUCTURE
+- **Location**: C:\Users\petru\Downloads\TEST FIX SITE\3\Fixlify-Main-main
+- **Framework**: Next.js + Supabase
+- **Database**: Supabase PostgreSQL
+- **Edge Functions**: Multiple for AI, telephony, and automation
+
+## AI DISPATCHER SYSTEM ✅ COMPLETE
+
+### WEBHOOK URL:
+```
+https://mqppvcrlvsgrsqelglod.supabase.co/functions/v1/ai-assistant-webhook
+```
+
+### FEATURES IMPLEMENTED:
+1. **Dynamic Variables** - All company settings returned as variables
+2. **Customer Lookup** - Automatically identifies existing customers by phone
+3. **Job History** - Shows customer's recent repair history
+4. **Outstanding Balance** - Calculates unpaid invoices
+5. **Multi-tenant Support** - Each phone number has its own configuration
+
+### VARIABLES SUPPORTED:
+
+#### Company Variables:
+- `{{company_name}}` - Business name
+- `{{agent_name}}` - AI agent name
+- `{{business_niche}}` - Type of business
+- `{{services_offered}}` - List of services
+- `{{hours_of_operation}}` - Business hours
+- `{{additional_info}}` - Pricing and policies
+- `{{ai_capabilities}}` - What AI can do
+- `{{agent_personality}}` - Personality traits
+- `{{greeting_message}}` / `{{greeting}}` - Initial greeting
+
+#### Customer Variables:
+- `{{is_existing_customer}}` - Boolean (true/false)
+- `{{customer_name}}` - Customer's full name
+- `{{customer_history}}` - Recent jobs/repairs
+- `{{outstanding_balance}}` - Unpaid invoice total
+- `{{call_transfer_message}}` - Transfer message
+
+### TELNYX INSTRUCTIONS TEMPLATE:
+```
+You are {{agent_name}} for {{company_name}}, a {{business_niche}} specialist.
+## SERVICES WE OFFER:
+{{services_offered}}
+## BUSINESS HOURS:
+{{hours_of_operation}}
+## PRICING & INFORMATION:
+{{additional_info}}
+## YOUR CAPABILITIES:
+{{ai_capabilities}}
+## YOUR PERSONALITY:
+{{agent_personality}}
+## FOR EXISTING CUSTOMERS:
+- If {{is_existing_customer}} is true, call them {{customer_name}}
+- History: {{customer_history}}
+- Balance: {{outstanding_balance}}
+## IF TRANSFER NEEDED:
+Say: "{{call_transfer_message}}"
+```
+
+### DATABASE TABLES
+
+#### ai_dispatcher_configs
+- Stores AI configuration for each phone number
+- Key fields: company_name, agent_name, greeting_message, services_offered, additional_info
+- Linked to phone_numbers table via phone_number_id
+
+#### phone_numbers
+- Stores purchased phone numbers
+- Links to ai_dispatcher_configs via phone_number_id
+
+#### clients
+- Customer database with phone numbers
+- Used for existing customer lookup
+
+#### jobs
+- Customer job history
+- Used to show repair history
+
+#### invoices
+- Customer invoices
+- Used to calculate outstanding balance
+
+#### webhook_logs
+- Stores all webhook calls and responses
+- Useful for debugging
+
+## EDGE FUNCTIONS
+
+### ai-assistant-webhook (MAIN WEBHOOK) ✅
+- URL: https://mqppvcrlvsgrsqelglod.supabase.co/functions/v1/ai-assistant-webhook
+- Returns ALL variables including customer data
+- Performs customer lookup by phone
+- Calculates outstanding balances
+- Logs all webhook calls
+
+### Other Edge Functions:
+- generate-with-ai
+- automation-executor
+- reports-run
+- intelligent-ai-assistant
+- send-sms
+- mailgun-email
+
+## TEST DATA
+- **Test Customer**: John Smith - (416) 555-1234
+- **Test Jobs**: Samsung Refrigerator (completed), LG Washer (in_progress)
+- **Test Invoice**: $275 unpaid
+
+## TEST WEBHOOK COMMAND:
+```powershell
+$headers = @{"Content-Type" = "application/json"; "Authorization" = "Bearer YOUR_ANON_KEY"}
+$body = '{"data":{"event_type":"assistant.initialization","payload":{"telnyx_agent_target":"+14375249932","telnyx_end_user_target":"+14165551234"}}}'
+$response = Invoke-WebRequest -Uri "https://mqppvcrlvsgrsqelglod.supabase.co/functions/v1/ai-assistant-webhook" -Method POST -Headers $headers -Body $body
+$response.Content | ConvertFrom-Json | ConvertTo-Json -Depth 10
+```
+
+## KEY FILES
+- `/src/components/AIDispatcherConfiguration.tsx` - UI for AI config
+- Edge Function: `ai-assistant-webhook` - Main webhook handler
+
+## PHONE NUMBER
+- Main: +1 (437) 524-9932
+- Configured for Telnyx AI Dispatcher
+
+## LAST UPDATED
+- Date: 2025-08-22
+- Status: ✅ FULLY FUNCTIONAL
+- Features:
+  - ✅ Dynamic variables working
+  - ✅ Customer lookup working
+  - ✅ Job history working
+  - ✅ Outstanding balance calculation working
+  - ✅ Multi-tenant support
+  - ✅ Rate limiting + validation + logging
+- **Note**: JWT verification enabled (use Authorization header)
+
+
+## PHONE CALL CONVERSATIONS IN JOB HISTORY ✅
+
+### FEATURES:
+- **Conversation Storage** - All phone calls are saved with summaries
+- **Job History Integration** - Conversations appear in job history
+- **Filter Support** - New "Conversations" filter in history dropdown
+- **Rich Details** - Shows call duration, sentiment, action items
+- **Real-time Updates** - Auto-refreshes when new calls complete
+
+### DATABASE:
+- **Table**: `call_conversations`
+- **Fields**: 
+  - Call details (duration, direction, status)
+  - AI-generated summary and transcript
+  - Sentiment analysis
+  - Topics and action items
+  - Links to job/client
+
+### WEBHOOK:
+- **URL**: `https://mqppvcrlvsgrsqelglod.supabase.co/functions/v1/call-summary-webhook`
+- **Purpose**: Receives call summaries from Telnyx
+- **Events**: `call.ended`, `assistant.call_ended`, `assistant.transcription`
+
+### UI COMPONENTS:
+- **JobHistory Component** - Updated to show conversations
+- **Filter Options**: All Items, Payments, Documents, Status Changes, **Conversations**
+- **Display**: Shows summary, action items, duration, sentiment
+
+### SERVICE:
+- **File**: `/src/services/callConversationService.ts`
+- **Methods**:
+  - createConversation
+  - getJobConversations
+  - getClientConversations
+  - searchConversations
+  - getConversationStats
+
+### TEST DATA:
+- Two test conversations added for John Smith
+- Shows in job history with phone icon
+- Includes full transcript and action items
+
+### TELNYX INTEGRATION:
+Configure Telnyx to send webhooks to:
+```
+https://mqppvcrlvsgrsqelglod.supabase.co/functions/v1/call-summary-webhook
+```
+Events to enable:
+- `assistant.call_ended`
+- `assistant.transcription`
+- `call.ended`
+
+### HOW IT WORKS:
+1. Call ends on Telnyx
+2. Telnyx sends summary to webhook
+3. Webhook saves to `call_conversations` table
+4. Appears in job history automatically
+5. Users can filter to see only conversations
+
+### LAST UPDATED: 2025-08-22
+- ✅ Conversations table created
+- ✅ JobHistory component updated
+- ✅ Filter dropdown includes Conversations
+- ✅ Webhook deployed
+- ✅ Test data added
+- ✅ Service created
+
+## TELNYX AI ASSISTANT WEBHOOK - DYNAMIC VARIABLES
+### FIXED: 2025-08-22
+
+### WEBHOOK URL:
+```
+https://mqppvcrlvsgrsqelglod.supabase.co/functions/v1/ai-assistant-webhook
+```
+
+### WITH API KEY (for Telnyx):
+```
+https://mqppvcrlvsgrsqelglod.supabase.co/functions/v1/ai-assistant-webhook?apikey=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1xcHB2Y3JsdnNncnNxZWxnbG9kIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc1OTE3MDUsImV4cCI6MjA2MzE2NzcwNX0.My-KiqG1bCMqzUru4m59d4v18N3WGxNoNtFPOFAmhzg
+```
+
+### THE FIX:
+Telnyx requires the webhook response to be wrapped in `dynamic_variables` object:
+
+**CORRECT FORMAT (what we return now):**
+```json
+{
+  "dynamic_variables": {
+    "greeting": "Thank you for calling...",
+    "company_name": "Nicks appliance repair",
+    "agent_name": "Sarah",
+    ...
+  }
+}
+```
+
+**WRONG FORMAT (what we returned before):**
+```json
+{
+  "greeting": "Thank you for calling...",
+  "company_name": "Nicks appliance repair",
+  ...
+}
+```
+
+### WEBHOOK FEATURES:
+- Returns personalized greeting based on phone number
+- Looks up company config from database
+- Checks if caller is existing customer
+- Gets customer history and outstanding balance
+- All variables properly wrapped in `dynamic_variables` object
+
+### VARIABLES AVAILABLE:
+- `{{greeting}}` - Full personalized greeting
+- `{{company_name}}` - Company name from config
+- `{{agent_name}}` - AI agent name
+- `{{business_niche}}` - Type of business
+- `{{services_offered}}` - List of services
+- `{{hours_of_operation}}` - Business hours
+- `{{additional_info}}` - Pricing and other info
+- `{{ai_capabilities}}` - What the AI can do
+- `{{agent_personality}}` - How the AI should behave
+- `{{is_existing_customer}}` - true/false
+- `{{customer_name}}` - Name if existing customer
+- `{{customer_history}}` - Recent jobs/services
+- `{{outstanding_balance}}` - Amount owed
+- `{{call_transfer_message}}` - Message for transfers
+
+### HOW IT WORKS:
+1. Telnyx calls webhook at start of call
+2. Webhook receives phone numbers
+3. Looks up config in database
+4. Returns variables wrapped in `dynamic_variables`
+5. Telnyx replaces {{variables}} with actual values
+
+### TEST COMMAND:
+```powershell
+$headers = @{
+  "Content-Type" = "application/json"
+  "Authorization" = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1xcHB2Y3JsdnNncnNxZWxnbG9kIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc1OTE3MDUsImV4cCI6MjA2MzE2NzcwNX0.My-KiqG1bCMqzUru4m59d4v18N3WGxNoNtFPOFAmhzg"
+}
+$body = '{
+  "data": {
+    "event_type": "assistant.initialization",
+    "payload": {
+      "telnyx_agent_target": "+14375249932",
+      "telnyx_end_user_target": "+14165551234"
+    }
+  }
+}'
+Invoke-WebRequest -Uri "https://mqppvcrlvsgrsqelglod.supabase.co/functions/v1/ai-assistant-webhook" -Method POST -Headers $headers -Body $body | Select-Object -ExpandProperty Content | ConvertFrom-Json | ConvertTo-Json -Depth 10
+```
+
+### FIXED ISSUES:
+- ✅ Webhook now returns correct format for Telnyx
+- ✅ Variables properly wrapped in `dynamic_variables` object
+- ✅ All variables are strings (not booleans/numbers)
+- ✅ Handles existing customer lookup
+- ✅ Processes greeting template with variable replacement
+
+## AI DISPATCHER CUSTOMER RECOGNITION FIX - 2025-01-29
+
+### ISSUE FIXED:
+- AI voice dispatcher was not recognizing existing customers by phone number
+- Customer name was not being used in greetings  
+- Conversation history and payment balance were not being retrieved
+
+### SOLUTION IMPLEMENTED:
+- Enhanced phone number matching with multiple format variants
+- Improved customer lookup logic to handle different phone formats
+- Added personalized greetings for existing customers
+- Integrated conversation history from call_conversations table
+- Added outstanding balance calculation from invoices
+- Enhanced logging for debugging
+
+### KEY IMPROVEMENTS:
+1. **Phone Number Matching**:
+   - Cleans phone numbers (removes non-digits)
+   - Searches multiple formats: full number, last 10 digits, with/without country code
+   - Handles formats like +14165551234, 14165551234, 4165551234, 5551234
+
+2. **Customer Recognition**:
+   - Searches clients table by phone number variants
+   - Builds customer name from name, first_name, last_name fields
+   - Falls back to "Valued Customer" if name not available
+
+3. **Personalized Greeting**:
+   - For existing customers: "Thank you for calling [Company], [Name]! I'm [Agent], and it's great to have you back."
+   - Mentions service history if available
+   - Includes outstanding balance reminder if applicable
+
+4. **Data Retrieved**:
+   - Recent jobs/services (last 5)
+   - Outstanding invoices (pending, overdue, partially_paid)
+   - Previous call conversations (last 3)
+   - Customer details (name, email, phone, status)
+
+### VARIABLES RETURNED:
+```javascript
+{
+  dynamic_variables: {
+    // Customer-specific
+    is_existing_customer: "true" or "false",
+    customer_name: "John Smith",
+    customer_history: "Recent services: Refrigerator repair - completed (1/15/2025)",
+    outstanding_balance: "$275.00",
+    conversation_history: "Previous calls summary",
+    
+    // Company info
+    company_name: "Nicks appliance repair",
+    agent_name: "Sarah",
+    // ... other config variables
+  }
+}
+```
+
+### TESTING:
+- Existing customers should be greeted by name
+- Service history should be mentioned if available
+- Outstanding balances should be mentioned
+- New customers get standard greeting
+
+### WEBHOOK URL:
+```
+https://mqppvcrlvsgrsqelglod.supabase.co/functions/v1/ai-assistant-webhook
+```
+
+### LAST UPDATED: 2025-01-29
+- ✅ Customer recognition working
+- ✅ Personalized greetings active
+- ✅ Service history integration
+- ✅ Payment balance tracking
+- ✅ Conversation history support

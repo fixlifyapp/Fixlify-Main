@@ -1,9 +1,8 @@
-
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Clock, User, FileText, Filter, Eye, EyeOff } from "lucide-react";
+import { Clock, User, FileText, Filter, Eye, EyeOff, Phone, MessageSquare } from "lucide-react";
 import { useJobHistory } from "@/hooks/useJobHistory";
 import { useEnhancedJobHistory } from "@/hooks/useEnhancedJobHistory";
 import { formatDistanceToNow } from "date-fns";
@@ -18,7 +17,7 @@ export const JobHistory = ({ jobId }: JobHistoryProps) => {
   const { historyItems, isLoading } = useJobHistory(jobId);
   const { logUserAction } = useEnhancedJobHistory(jobId);
   const { hasPermission } = useRBAC();
-  const [filter, setFilter] = useState<'all' | 'payments' | 'documents' | 'status'>('all');
+  const [filter, setFilter] = useState<'all' | 'payments' | 'documents' | 'status' | 'conversations'>('all');
   const [showRestrictedItems, setShowRestrictedItems] = useState(false);
 
   const getTypeIcon = (type: string) => {
@@ -32,6 +31,8 @@ export const JobHistory = ({ jobId }: JobHistoryProps) => {
       case 'estimate':
       case 'invoice':
         return <span className="text-blue-600">📄</span>;
+      case 'conversation':
+        return <Phone className="h-4 w-4 text-purple-600" />;
       default:
         return <User className="h-4 w-4" />;
     }
@@ -49,6 +50,8 @@ export const JobHistory = ({ jobId }: JobHistoryProps) => {
         return 'bg-orange-100 text-orange-800';
       case 'payment':
         return 'bg-emerald-100 text-emerald-800';
+      case 'conversation':
+        return 'bg-purple-100 text-purple-800';
       default:
         return 'bg-gray-100 text-gray-800';
     }
@@ -59,12 +62,62 @@ export const JobHistory = ({ jobId }: JobHistoryProps) => {
     if (filter === 'payments' && item.type === 'payment') return true;
     if (filter === 'documents' && (item.type === 'estimate' || item.type === 'invoice')) return true;
     if (filter === 'status' && item.type === 'status-change') return true;
+    if (filter === 'conversations' && item.type === 'conversation') return true;
     return false;
   });
 
   const handleFilterChange = (value: string) => {
-    setFilter(value as 'all' | 'payments' | 'documents' | 'status');
+    setFilter(value as 'all' | 'payments' | 'documents' | 'status' | 'conversations');
     logUserAction('History Filter Changed', { filter: value });
+  };
+
+  const formatConversationDetails = (item: any) => {
+    if (item.type !== 'conversation') return null;
+    
+    const details = item.metadata || {};
+    const duration = details.call_duration ? 
+      `${Math.floor(details.call_duration / 60)}:${(details.call_duration % 60).toString().padStart(2, '0')}` : 
+      null;
+    
+    return (
+      <div className="mt-2 space-y-2">
+        {details.summary && (
+          <div className="p-2 bg-gray-50 rounded text-sm">
+            <p className="font-medium mb-1">Summary:</p>
+            <p className="text-muted-foreground">{details.summary}</p>
+          </div>
+        )}
+        {details.action_items && details.action_items.length > 0 && (
+          <div className="p-2 bg-blue-50 rounded text-sm">
+            <p className="font-medium mb-1">Action Items:</p>
+            <ul className="list-disc list-inside text-muted-foreground">
+              {details.action_items.map((item: string, idx: number) => (
+                <li key={idx}>{item}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+        <div className="flex gap-4 text-xs text-muted-foreground">
+          {duration && (
+            <span className="flex items-center gap-1">
+              <Clock className="h-3 w-3" />
+              Duration: {duration}
+            </span>
+          )}
+          {details.sentiment && (
+            <span className="flex items-center gap-1">
+              <MessageSquare className="h-3 w-3" />
+              Sentiment: {details.sentiment}
+            </span>
+          )}
+          {details.call_direction && (
+            <Badge variant="outline" className="text-xs">
+              {details.call_direction}
+            </Badge>
+          )}
+        </div>
+      </div>
+    );
   };
 
   return (
@@ -78,7 +131,7 @@ export const JobHistory = ({ jobId }: JobHistoryProps) => {
           
           <div className="flex items-center gap-2">
             <Select value={filter} onValueChange={handleFilterChange}>
-              <SelectTrigger className="w-[140px]">
+              <SelectTrigger className="w-[160px]">
                 <Filter className="h-4 w-4 mr-2" />
                 <SelectValue />
               </SelectTrigger>
@@ -87,6 +140,7 @@ export const JobHistory = ({ jobId }: JobHistoryProps) => {
                 <SelectItem value="payments">Payments</SelectItem>
                 <SelectItem value="documents">Documents</SelectItem>
                 <SelectItem value="status">Status Changes</SelectItem>
+                <SelectItem value="conversations">Conversations</SelectItem>
               </SelectContent>
             </Select>
             
@@ -127,7 +181,7 @@ export const JobHistory = ({ jobId }: JobHistoryProps) => {
                   <div className="flex items-center gap-2 mb-1">
                     <h4 className="font-medium text-sm">{item.title}</h4>
                     <Badge className={getTypeBadgeColor(item.type)}>
-                      {item.type}
+                      {item.type === 'conversation' ? 'Phone Call' : item.type}
                     </Badge>
                     {item.visibility === 'restricted' && (
                       <Badge variant="outline" className="text-xs">
@@ -139,6 +193,8 @@ export const JobHistory = ({ jobId }: JobHistoryProps) => {
                   <p className="text-sm text-muted-foreground mb-2">
                     {item.description}
                   </p>
+                  
+                  {item.type === 'conversation' && formatConversationDetails(item)}
                   
                   <div className="flex items-center gap-2 text-xs text-muted-foreground">
                     {item.user_name && (
