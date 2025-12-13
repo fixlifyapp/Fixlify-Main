@@ -91,5 +91,4 @@ verify_jwt = false
 [functions.automation-ai-assistant]
 verify_jwt = true
 
-[functions.intelligent-ai-assistant]
-verify_jwt = true
+# Note: intelligent-ai-assistant removed - folder doesn't exist in repo
