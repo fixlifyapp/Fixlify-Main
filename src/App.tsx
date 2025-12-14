@@ -10,6 +10,7 @@ import { AppProviders } from "@/components/ui/AppProviders";
 import { suppressSMSErrors } from "@/utils/suppressSMSErrors";
 import authMonitor from "@/utils/auth-monitor.js?raw";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { InstallPrompt } from "@/components/pwa/InstallPrompt";
 // Import real-time debug utility
 import "@/utils/realtimeDebug";
 // Import real-time error handler
@@ -90,6 +91,7 @@ function App() {
       <QueryClientProvider client={queryClient}>
         <TooltipProvider>
           <Toaster />
+          <InstallPrompt />
           <BrowserRouter>
             <Routes>
             {/* Authentication */}
