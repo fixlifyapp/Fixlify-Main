@@ -22,6 +22,9 @@ export default {
 			fontFamily: {
 				sans: ['Inter', 'sans-serif'],
 			},
+			padding: {
+				'safe': 'env(safe-area-inset-bottom)',
+			},
 			colors: {
 				border: 'hsl(var(--border))',
 				input: 'hsl(var(--input))',
