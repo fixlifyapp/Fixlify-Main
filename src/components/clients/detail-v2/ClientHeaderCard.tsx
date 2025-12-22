@@ -1,5 +1,4 @@
 import { Phone, Mail, MessageSquare, Plus, Building2, Home, User } from "lucide-react";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -20,17 +19,6 @@ interface ClientHeaderCardProps {
   onEmail?: () => void;
   onCreateJob?: () => void;
 }
-
-const getInitials = (name: string, firstName?: string, lastName?: string): string => {
-  if (firstName && lastName) {
-    return `${firstName[0]}${lastName[0]}`.toUpperCase();
-  }
-  const parts = name.split(' ');
-  if (parts.length >= 2) {
-    return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
-  }
-  return name.substring(0, 2).toUpperCase();
-};
 
 const getStatusColor = (status?: string) => {
   switch (status?.toLowerCase()) {
@@ -65,7 +53,6 @@ export const ClientHeaderCard = ({
 }: ClientHeaderCardProps) => {
   if (!client) return null;
 
-  const initials = getInitials(client.name, client.first_name, client.last_name);
   const TypeIcon = getTypeIcon(client.client_type);
   const memberSince = client.created_at
     ? new Date(client.created_at).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
@@ -80,16 +67,7 @@ export const ClientHeaderCard = ({
         }}
       />
 
-      <div className="relative flex flex-col sm:flex-row sm:items-start gap-6">
-        {/* Avatar */}
-        <Avatar className="h-20 w-20 ring-4 ring-background shadow-lg">
-          <AvatarFallback className="bg-gradient-to-br from-primary/80 to-primary text-xl font-semibold text-primary-foreground">
-            {initials}
-          </AvatarFallback>
-        </Avatar>
-
-        {/* Client Info */}
-        <div className="flex-1 min-w-0 space-y-3">
+      <div className="relative space-y-3">
           <div className="flex flex-wrap items-center gap-3">
             <h1 className="text-2xl font-bold tracking-tight text-foreground truncate">
               {client.name}
@@ -163,7 +141,6 @@ export const ClientHeaderCard = ({
               Create Job
             </Button>
           </div>
-        </div>
       </div>
     </div>
   );

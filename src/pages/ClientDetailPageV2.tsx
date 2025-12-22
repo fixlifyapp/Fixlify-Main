@@ -13,6 +13,7 @@ import {
   PropertiesCard
 } from "@/components/clients/detail-v2";
 import { ScheduleJobModal } from "@/components/schedule/ScheduleJobModal";
+import { PropertyCreateDialog } from "@/components/clients/client-form/PropertyCreateDialog";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -79,6 +80,7 @@ const ClientDetailPageV2 = () => {
   const { clientId } = useParams<{ clientId: string }>();
   const navigate = useNavigate();
   const [isCreateJobOpen, setIsCreateJobOpen] = useState(false);
+  const [isAddPropertyOpen, setIsAddPropertyOpen] = useState(false);
 
   const {
     client,
@@ -127,7 +129,11 @@ const ClientDetailPageV2 = () => {
   };
 
   const handleAddProperty = () => {
-    toast.info('Add property feature coming soon');
+    setIsAddPropertyOpen(true);
+  };
+
+  const handlePropertyCreated = () => {
+    refresh();
   };
 
   const handleJobCreated = () => {
@@ -240,6 +246,14 @@ const ClientDetailPageV2 = () => {
         onClose={() => setIsCreateJobOpen(false)}
         onJobCreated={handleJobCreated}
         defaultClientId={clientId}
+      />
+
+      {/* Add Property Dialog */}
+      <PropertyCreateDialog
+        open={isAddPropertyOpen}
+        onOpenChange={setIsAddPropertyOpen}
+        clientId={clientId}
+        onPropertyCreated={handlePropertyCreated}
       />
     </PageLayout>
   );
