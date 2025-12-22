@@ -29,7 +29,7 @@ export const BrandingSection = ({ companySettings, updateCompanySettings, isEdit
         companySettings.business_type ? ` in the ${companySettings.business_type} industry` : ''
       }. The description should be 2-3 sentences, highlighting key services and value proposition. Make it engaging and customer-focused.`;
 
-      const { data, error } = await supabase.functions.invoke('generate-with-ai', {
+      const { data, error } = await supabase.functions.invoke('generate-ai-message', {
         body: {
           prompt,
           systemContext: 'You are a professional copywriter creating compelling company descriptions. Keep it concise but impactful.',

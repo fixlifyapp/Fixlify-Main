@@ -163,7 +163,7 @@ export const useEstimateActions = (
       const message = `Hi ${jobData?.clients?.name || 'there'}, your estimate ${estimateData.estimate_number} is ready! Total: $${estimateData.total.toFixed(2)}. View: ${portalLink}`;
 
       // Send SMS via edge function
-      const { data: smsData, error: smsError } = await supabase.functions.invoke('send-sms', {
+      const { data: smsData, error: smsError } = await supabase.functions.invoke('telnyx-sms', {
         body: {
           to: phoneNumber,
           message: message.slice(0, 160), // SMS character limit

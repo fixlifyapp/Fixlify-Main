@@ -126,9 +126,9 @@ export function AppSidebar() {
                   AI
                 </div>
               </div>
-              <div className="absolute -top-1 -right-1 w-2 h-2 bg-gradient-primary rounded-full opacity-60" style={{
+              <div className="absolute -top-1 -right-1 w-2 h-2 bg-green-500 rounded-full" style={{
                 animation: 'pulse 2s infinite',
-                boxShadow: '0 0 8px rgba(138, 77, 213, 0.6)'
+                boxShadow: '0 0 8px rgba(34, 197, 94, 0.8)'
               }} />
             </div>
           </div>

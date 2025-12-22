@@ -449,7 +449,7 @@ export class AutomationService {
     }
     
     // Actually send SMS via edge function
-    const { data, error } = await supabase.functions.invoke('send-sms', {
+    const { data, error } = await supabase.functions.invoke('telnyx-sms', {
       body: {
         to: config.to,
         message: config.message,

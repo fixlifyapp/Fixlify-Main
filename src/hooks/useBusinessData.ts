@@ -211,7 +211,7 @@ export const useBusinessData = () => {
     };
     
     fetchData();
-  }, [user]);
+  }, [user?.id]);
   
   return { businessData, insights, isLoading };
 };

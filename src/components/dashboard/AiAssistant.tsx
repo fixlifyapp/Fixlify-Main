@@ -57,7 +57,7 @@ export const AiAssistant = () => {
     
     try {
       // Get AI response from our Edge Function
-      const { data, error } = await supabase.functions.invoke("generate-with-ai", {
+      const { data, error } = await supabase.functions.invoke("generate-ai-message", {
         body: {
           prompt: finalMessage,
           context: "You are an AI assistant for a field service management application called Fixlyfy. Help users with scheduling, service recommendations, business analytics, and technician management. Provide concise, helpful responses focused on service business needs. Reference current data if available."

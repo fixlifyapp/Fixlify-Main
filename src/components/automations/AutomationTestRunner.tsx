@@ -237,7 +237,7 @@ export function AutomationTestRunner() {
       
       // Test SMS service  
       try {
-        const { data, error } = await supabase.functions.invoke('send-sms', {
+        const { data, error } = await supabase.functions.invoke('telnyx-sms', {
           body: { test: true }
         });
         if (error) throw error;

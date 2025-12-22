@@ -107,15 +107,16 @@ export const useJobs = (clientId?: string, enableCustomFields?: boolean) => {
     fetchJobs();
   }, [fetchJobs, refreshTrigger]);
 
-  // Throttled real-time updates
+  // Stable callback for real-time updates
+  const handleRealtimeUpdate = useCallback(() => {
+    console.log('Real-time update triggered for jobs');
+    setRefreshTrigger(prev => prev + 1);
+  }, []);
+
+  // Throttled real-time updates with stable callback
   useUnifiedRealtime({
     tables: ['jobs'],
-    onUpdate: () => {
-      if (!hasError && isAuthenticated) {
-        console.log('Real-time update triggered for jobs');
-        setRefreshTrigger(prev => prev + 1);
-      }
-    },
+    onUpdate: handleRealtimeUpdate,
     enabled: !hasError && isAuthenticated
   });
 

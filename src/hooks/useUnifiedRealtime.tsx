@@ -1,5 +1,5 @@
 
-import { useEffect, useCallback } from 'react';
+import { useEffect, useCallback, useRef, useMemo } from 'react';
 import { useGlobalRealtimeDefensive } from './useGlobalRealtimeDefensive';
 
 interface UseUnifiedRealtimeProps {
@@ -10,13 +10,20 @@ interface UseUnifiedRealtimeProps {
 
 export const useUnifiedRealtime = ({ tables, onUpdate, enabled = true }: UseUnifiedRealtimeProps) => {
   const globalRealtime = useGlobalRealtimeDefensive();
-  
+
+  // Stabilize onUpdate callback with useRef to prevent infinite re-renders
+  const onUpdateRef = useRef(onUpdate);
+  onUpdateRef.current = onUpdate;
+
+  // Memoize tables key for stable comparison
+  const tablesKey = useMemo(() => tables.sort().join(','), [tables]);
+
   const handleUpdate = useCallback(() => {
     if (enabled) {
-      console.log('Real-time update triggered for tables:', tables);
-      onUpdate();
+      console.log('Real-time update triggered for tables:', tablesKey);
+      onUpdateRef.current();
     }
-  }, [onUpdate, enabled, tables]);
+  }, [enabled, tablesKey]);
 
   useEffect(() => {
     if (!enabled || !globalRealtime) return;
@@ -73,7 +80,7 @@ export const useUnifiedRealtime = ({ tables, onUpdate, enabled = true }: UseUnif
     return () => {
       unsubscribeFunctions.forEach(unsubscribe => unsubscribe());
     };
-  }, [tables, handleUpdate, enabled, globalRealtime]);
+  }, [tablesKey, handleUpdate, enabled, globalRealtime]);
 
   return {
     isConnected: globalRealtime?.isConnected || false

@@ -20,7 +20,7 @@ import { JobsFilters } from "@/components/jobs/JobsFilters";
 import { BulkActionsBar } from "@/components/jobs/BulkActionsBar";
 import { ScheduleJobModal } from "@/components/schedule/ScheduleJobModal";
 import { JobsKPICards } from "@/components/jobs/JobsKPICards";
-import { useJobsConsolidated } from "@/hooks/useJobsConsolidated";
+import { useJobsOptimized } from "@/hooks/useJobsOptimized";
 import { useJobs } from "@/hooks/useJobs";
 import { toast } from "sonner";
 import { debugJobCreation } from "@/utils/debug-job-creation";
@@ -39,9 +39,9 @@ const JobsPageOptimized = () => {
     tags: [] as string[]
   });
   
-  // Use consolidated optimized hook
-  const { 
-    jobs, 
+  // Use optimized hook with filtering
+  const {
+    jobs,
     isLoading,
     totalCount,
     totalPages,
@@ -51,7 +51,7 @@ const JobsPageOptimized = () => {
     canCreate,
     canEdit,
     canDelete
-  } = useJobsConsolidated({
+  } = useJobsOptimized({
     page: currentPage,
     pageSize: 50,
     enableRealtime: false,  // Temporarily disabled to prevent resource exhaustion

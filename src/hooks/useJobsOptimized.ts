@@ -8,11 +8,29 @@ import { withRetry, handleJobsError } from "@/utils/errorHandling";
 import { RefreshThrottler } from "@/utils/refreshThrottler";
 import { useRealtime } from "@/hooks/useRealtime";
 
+// Timeout wrapper for Supabase queries to prevent hanging requests
+const withTimeout = <T,>(promise: Promise<T>, timeoutMs: number = 10000): Promise<T> => {
+  return Promise.race([
+    promise,
+    new Promise<T>((_, reject) =>
+      setTimeout(() => reject(new Error('Request timeout')), timeoutMs)
+    )
+  ]);
+};
+
 interface UseJobsOptimizedOptions {
   page?: number;
   pageSize?: number;
   enableRealtime?: boolean;
   clientId?: string;
+  filters?: {
+    search?: string;
+    status?: string;
+    type?: string;
+    technician?: string;
+    dateRange?: { start: Date | null; end: Date | null };
+    tags?: string[];
+  };
 }
 
 interface JobsResult {
@@ -23,7 +41,10 @@ interface JobsResult {
 const requestCache = new Map<string, Promise<JobsResult>>();
 
 export const useJobsOptimized = (options: UseJobsOptimizedOptions = {}) => {
-  const { page = 1, pageSize = 50, enableRealtime = true, clientId } = options;
+  const { page = 1, pageSize = 50, enableRealtime = true, clientId, filters = {} } = options;
+
+  // Stabilize filters for dependency comparison
+  const filtersKey = useMemo(() => JSON.stringify(filters), [filters]);
   const [jobs, setJobs] = useState<Job[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [totalCount, setTotalCount] = useState(0);
@@ -33,7 +54,11 @@ export const useJobsOptimized = (options: UseJobsOptimizedOptions = {}) => {
   
   const isMountedRef = useRef(true);
   const refreshDebounceRef = useRef<NodeJS.Timeout | null>(null);
-  
+  const hasErrorRef = useRef(false);
+
+  // Keep ref in sync with state
+  hasErrorRef.current = hasError;
+
   useEffect(() => {
     isMountedRef.current = true;
     return () => {
@@ -44,9 +69,9 @@ export const useJobsOptimized = (options: UseJobsOptimizedOptions = {}) => {
     };
   }, []);
 
-  const cacheKey = useMemo(() => 
-    `jobs_${clientId || 'all'}_${page}_${pageSize}_${user?.id}`,
-    [clientId, page, pageSize, user?.id]
+  const cacheKey = useMemo(() =>
+    `jobs_${clientId || 'all'}_${page}_${pageSize}_${user?.id}_${filtersKey}`,
+    [clientId, page, pageSize, user?.id, filtersKey]
   );
 
   const fetchJobs = useCallback(async (useCache = true) => {
@@ -58,7 +83,7 @@ export const useJobsOptimized = (options: UseJobsOptimizedOptions = {}) => {
       return;
     }
 
-    if (hasError && useCache) {
+    if (hasErrorRef.current && useCache) {
       setIsLoading(false);
       return;
     }
@@ -116,7 +141,24 @@ export const useJobsOptimized = (options: UseJobsOptimizedOptions = {}) => {
           if (clientId) {
             query = query.eq('client_id', clientId);
           }
-          
+
+          // Apply filters
+          if (filters.status && filters.status !== "all") {
+            query = query.eq('status', filters.status);
+          }
+
+          if (filters.type && filters.type !== "all") {
+            query = query.eq('job_type', filters.type);
+          }
+
+          if (filters.search) {
+            query = query.or(`title.ilike.%${filters.search}%,description.ilike.%${filters.search}%`);
+          }
+
+          if (filters.technician && filters.technician !== "all") {
+            query = query.eq('technician_id', filters.technician);
+          }
+
           const jobViewScope = getJobViewScope();
           if (jobViewScope === "assigned" && user?.id) {
             query = query.eq('technician_id', user.id);
@@ -127,9 +169,10 @@ export const useJobsOptimized = (options: UseJobsOptimizedOptions = {}) => {
           query = query
             .order('created_at', { ascending: false })
             .range((page - 1) * pageSize, page * pageSize - 1);
-          
-          const { data, error, count } = await query;
-          
+
+          // Wrap query with 10-second timeout to prevent hanging
+          const { data, error, count } = await withTimeout(query, 10000);
+
           if (error) throw error;
           
           const processedJobs = (data || []).map(job => ({
@@ -177,7 +220,7 @@ export const useJobsOptimized = (options: UseJobsOptimizedOptions = {}) => {
         setIsLoading(false);
       }
     }
-  }, [cacheKey, clientId, getJobViewScope, user?.id, page, pageSize, hasError]);
+  }, [cacheKey, clientId, getJobViewScope, user?.id, page, pageSize, filtersKey]);
 
   useEffect(() => {
     fetchJobs();

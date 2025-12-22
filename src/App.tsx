@@ -24,7 +24,7 @@ import Dashboard from "@/pages/Dashboard";
 import JobsPageOptimized from "@/pages/JobsPageOptimized";
 import JobDetailsPage from "@/pages/JobDetailsPage";
 import ClientsPage from "@/pages/ClientsPage";
-import ClientDetailPage from "@/pages/ClientDetailPage";
+import ClientDetailPage from "@/pages/ClientDetailPageV2";
 import SchedulePage from "@/pages/SchedulePage";
 import FinancePage from "@/pages/FinancePage";
 import ConnectPage from "@/pages/ConnectPage";

@@ -1,5 +1,5 @@
 
-import { useEffect } from "react";
+import { useEffect, useRef, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
 /**
@@ -22,13 +22,25 @@ export const useRealtimeSync = ({
   filter?: Record<string, any>;
   enabled?: boolean;
 }) => {
+  // Stabilize references to prevent infinite re-renders
+  const onUpdateRef = useRef(onUpdate);
+  const filterRef = useRef(filter);
+
+  // Update refs on each render
+  onUpdateRef.current = onUpdate;
+  filterRef.current = filter;
+
+  // Memoize tables string for stable comparison
+  const tablesKey = useMemo(() => tables.sort().join(','), [tables]);
+
   useEffect(() => {
     if (!enabled) return;
-    
-    console.log("🔄 Setting up real-time sync for tables:", tables);
-    
+
+    const currentTables = tablesKey.split(',').filter(Boolean);
+    console.log("🔄 Setting up real-time sync for tables:", currentTables);
+
     // Store all channels so we can clean them up later
-    const channels = tables.map(table => {
+    const channels = currentTables.map(table => {
       // Map display names to actual table names
       const tableNameMap: Record<string, string> = {
         'tags': 'tags',
@@ -45,9 +57,10 @@ export const useRealtimeSync = ({
       
       // Create filter string if filter is provided
       let filterString = undefined;
-      if (filter) {
-        const column = Object.keys(filter)[0];
-        const value = filter[column];
+      const currentFilter = filterRef.current;
+      if (currentFilter) {
+        const column = Object.keys(currentFilter)[0];
+        const value = currentFilter[column];
         if (column && value) {
           filterString = `${column}=eq.${value}`;
         }
@@ -75,7 +88,7 @@ export const useRealtimeSync = ({
               old: payload.old,
               new: payload.new
             });
-            onUpdate();
+            onUpdateRef.current();
           }
         )
         .subscribe((status) => {
@@ -94,5 +107,5 @@ export const useRealtimeSync = ({
         }
       });
     };
-  }, [tables, onUpdate, filter, enabled]);
+  }, [tablesKey, enabled]);
 };

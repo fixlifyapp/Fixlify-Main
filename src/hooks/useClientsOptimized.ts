@@ -1,12 +1,10 @@
-import { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { usePermissions } from "@/hooks/usePermissions";
 import type { Client } from "@/types/core/client";
 import { localStorageCache } from "@/utils/cacheConfig";
 import { withRetry, handleJobsError } from "@/utils/errorHandling";
-import { RefreshThrottler } from "@/utils/refreshThrottler";
-import { useRealtime } from "@/hooks/useRealtime";
 import { toast } from "sonner";
 import { generateNextId } from "@/utils/idGeneration";
 import { formatPhoneForTelnyx } from "@/utils/phoneUtils";
@@ -36,7 +34,7 @@ interface ClientStatistics {
 const requestCache = new Map<string, Promise<ClientsResult>>();
 
 export const useClientsOptimized = (options: UseClientsOptimizedOptions = {}) => {
-  const { page = 1, pageSize = 50, enableRealtime = true, searchQuery = '' } = options;
+  const { page = 1, pageSize = 50, searchQuery = '' } = options;
   const [clients, setClients] = useState<Client[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [totalCount, setTotalCount] = useState(0);
@@ -53,29 +51,11 @@ export const useClientsOptimized = (options: UseClientsOptimizedOptions = {}) =>
   const { user, isAuthenticated } = useAuth();
   const { canCreate, canEdit, canDelete } = usePermissions();
   const isMountedRef = useRef(true);
-  const refreshThrottlerRef = useRef(new RefreshThrottler());
-  
+
   // Calculate derived values
   const totalPages = Math.ceil(totalCount / pageSize);
   const hasNextPage = page < totalPages;
   const hasPreviousPage = page > 1;
-  
-  // Real-time subscription
-  const { connected: realtimeConnected } = useRealtime({
-    channel: 'clients-optimized',
-    table: 'clients',
-    filter: user?.id ? `user_id=eq.${user.id}` : undefined,
-    onUpdate: useCallback(() => {
-      refreshThrottlerRef.current.scheduleRefresh(() => {
-        if (isMountedRef.current) {
-          console.log('Real-time update received for clients');
-          fetchClients();
-          fetchStatistics();
-        }
-      });
-    }, []),
-    enabled: enableRealtime && isAuthenticated
-  });
   
   useEffect(() => {
     isMountedRef.current = true;
@@ -221,7 +201,8 @@ export const useClientsOptimized = (options: UseClientsOptimizedOptions = {}) =>
         setIsLoading(false);
       }
     }
-  }, [isAuthenticated, user?.id, page, pageSize, searchQuery]);  
+  }, [isAuthenticated, user?.id, page, pageSize, searchQuery]);
+
   useEffect(() => {
     fetchClients();
     fetchStatistics();
@@ -432,7 +413,6 @@ export const useClientsOptimized = (options: UseClientsOptimizedOptions = {}) =>
     // States
     isLoading,
     hasError,
-    realtimeConnected,
     
     // Actions
     refreshClients,

@@ -9,6 +9,7 @@ import { Brain, MessageSquare, Phone, Zap, TrendingUp, Clock, Play, Square } fro
 import { TelnyxCallsView } from "@/components/telnyx/TelnyxCallsView";
 import { VoiceDispatchInterface } from "@/components/voice/VoiceDispatchInterface";
 import { AutomationEngineStatus } from "@/components/automations/AutomationEngineStatus";
+import { AutomationProcessorProvider } from "@/contexts/AutomationProcessorContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -106,10 +107,11 @@ const AiCenterPage = () => {
   };
 
   return (
-    <PageLayout>
-      <div className="container mx-auto py-6">
-        {/* Automation Engine Status */}
-        <AutomationEngineStatus />
+    <AutomationProcessorProvider>
+      <PageLayout>
+        <div className="container mx-auto py-6">
+          {/* Automation Engine Status */}
+          <AutomationEngineStatus />
         <div className="mb-6">
           <div className="flex items-center justify-between">
             <div>
@@ -284,8 +286,9 @@ const AiCenterPage = () => {
             </Card>
           </TabsContent>
         </Tabs>
-      </div>
-    </PageLayout>
+        </div>
+      </PageLayout>
+    </AutomationProcessorProvider>
   );
 };
 

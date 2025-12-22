@@ -27,6 +27,10 @@ export const useRealtime = ({
   const reconnectAttemptsRef = useRef(0);
   const maxReconnectAttempts = 5;
 
+  // Stabilize onUpdate reference to prevent infinite re-renders
+  const onUpdateRef = useRef(onUpdate);
+  onUpdateRef.current = onUpdate;
+
   const cleanup = useCallback(() => {
     if (channelRef.current) {
       console.log(`[useRealtime] Cleaning up channel for ${table}`);
@@ -61,7 +65,7 @@ export const useRealtime = ({
       .channel(channelName)
       .on('postgres_changes', channelConfig, (payload) => {
         console.log(`[useRealtime] Update received for ${table}:`, payload);
-        onUpdate(payload);
+        onUpdateRef.current(payload);
       })
       .subscribe((status, err) => {
         console.log(`[useRealtime] Channel status for ${table}:`, status, err);
@@ -104,7 +108,7 @@ export const useRealtime = ({
       });
 
     channelRef.current = channel;
-  }, [enabled, table, schema, event, filter, onUpdate, cleanup]);
+  }, [enabled, table, schema, event, filter, cleanup]);
 
   useEffect(() => {
     setupChannel();

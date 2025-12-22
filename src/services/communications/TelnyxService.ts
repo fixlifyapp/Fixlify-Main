@@ -3,7 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 export class TelnyxService {
   async sendSMS(to: string, message: string, userId: string, metadata?: any) {
     try {
-      const { data, error } = await supabase.functions.invoke('send-sms', {
+      const { data, error } = await supabase.functions.invoke('telnyx-sms', {
         body: {
           to,
           message,

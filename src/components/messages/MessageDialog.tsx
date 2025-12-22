@@ -50,7 +50,7 @@ export const MessageDialog: React.FC<MessageDialogProps> = ({
           return;
         }
 
-        const { data, error } = await supabase.functions.invoke('send-sms', {
+        const { data, error } = await supabase.functions.invoke('telnyx-sms', {
           body: {
             to: client.phone,
             message: message,
