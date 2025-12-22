@@ -137,9 +137,7 @@ const ClientDetailPageV2 = () => {
   };
 
   const handleJobCreated = () => {
-    setIsCreateJobOpen(false);
     refresh();
-    toast.success('Job created successfully');
   };
 
   if (!clientId) {
@@ -242,10 +240,10 @@ const ClientDetailPageV2 = () => {
 
       {/* Create Job Modal */}
       <ScheduleJobModal
-        isOpen={isCreateJobOpen}
-        onClose={() => setIsCreateJobOpen(false)}
-        onJobCreated={handleJobCreated}
-        defaultClientId={clientId}
+        open={isCreateJobOpen}
+        onOpenChange={setIsCreateJobOpen}
+        preselectedClientId={clientId}
+        onSuccess={handleJobCreated}
       />
 
       {/* Add Property Dialog */}
