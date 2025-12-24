@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -20,13 +20,22 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { ChevronDown, User } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { formatPhoneForTelnyx } from "@/utils/phoneUtils";
 
 interface PropertyCreateDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   clientId: string;
+  clientType?: string;
   onPropertyCreated: () => void;
 }
 
@@ -34,6 +43,7 @@ export const PropertyCreateDialog = ({
   open,
   onOpenChange,
   clientId,
+  clientType,
   onPropertyCreated,
 }: PropertyCreateDialogProps) => {
   const [formData, setFormData] = useState({
@@ -45,8 +55,26 @@ export const PropertyCreateDialog = ({
     property_type: "Residential",
     is_primary: false,
     notes: "",
+    tenant_name: "",
+    tenant_phone: "",
+    tenant_email: "",
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [tenantSectionOpen, setTenantSectionOpen] = useState(false);
+
+  // Auto-expand tenant section for Commercial/Landlord client types
+  useEffect(() => {
+    if (clientType === 'commercial' || clientType === 'landlord') {
+      setTenantSectionOpen(true);
+    }
+  }, [clientType]);
+
+  // Also expand when property type is Commercial
+  useEffect(() => {
+    if (formData.property_type === 'Commercial') {
+      setTenantSectionOpen(true);
+    }
+  }, [formData.property_type]);
 
   const handleChange = (field: string, value: string | boolean) => {
     setFormData({ ...formData, [field]: value });
@@ -62,7 +90,11 @@ export const PropertyCreateDialog = ({
       property_type: "Residential",
       is_primary: false,
       notes: "",
+      tenant_name: "",
+      tenant_phone: "",
+      tenant_email: "",
     });
+    setTenantSectionOpen(clientType === 'commercial' || clientType === 'landlord');
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -76,6 +108,11 @@ export const PropertyCreateDialog = ({
     setIsSubmitting(true);
     
     try {
+      // Format tenant phone if provided
+      const formattedTenantPhone = formData.tenant_phone
+        ? formatPhoneForTelnyx(formData.tenant_phone)
+        : null;
+
       const { error } = await supabase
         .from('client_properties')
         .insert({
@@ -88,6 +125,9 @@ export const PropertyCreateDialog = ({
           property_type: formData.property_type,
           is_primary: formData.is_primary,
           notes: formData.notes || null,
+          tenant_name: formData.tenant_name || null,
+          tenant_phone: formattedTenantPhone,
+          tenant_email: formData.tenant_email || null,
         });
 
       if (error) throw error;
@@ -198,6 +238,61 @@ export const PropertyCreateDialog = ({
                 rows={3}
               />
             </div>
+
+            {/* Tenant Contact Section - Collapsible */}
+            <Collapsible open={tenantSectionOpen} onOpenChange={setTenantSectionOpen}>
+              <CollapsibleTrigger asChild>
+                <button
+                  type="button"
+                  className="flex items-center justify-between w-full px-3 py-2 text-sm font-medium text-left border rounded-lg hover:bg-muted/50 transition-colors"
+                >
+                  <div className="flex items-center gap-2">
+                    <User className="h-4 w-4 text-muted-foreground" />
+                    <span>Tenant Contact</span>
+                    <span className="text-xs text-muted-foreground">(optional)</span>
+                  </div>
+                  <ChevronDown className={cn(
+                    "h-4 w-4 text-muted-foreground transition-transform",
+                    tenantSectionOpen && "rotate-180"
+                  )} />
+                </button>
+              </CollapsibleTrigger>
+              <CollapsibleContent className="pt-3 space-y-3">
+                <div className="p-3 border rounded-lg bg-muted/20 space-y-3">
+                  <p className="text-xs text-muted-foreground">
+                    Add tenant contact info if someone else lives at this property
+                  </p>
+                  <div>
+                    <Label htmlFor="tenant_name">Tenant Name</Label>
+                    <Input
+                      id="tenant_name"
+                      value={formData.tenant_name}
+                      onChange={(e) => handleChange("tenant_name", e.target.value)}
+                      placeholder="Name of tenant/occupant"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="tenant_phone">Tenant Phone</Label>
+                    <Input
+                      id="tenant_phone"
+                      value={formData.tenant_phone}
+                      onChange={(e) => handleChange("tenant_phone", e.target.value)}
+                      placeholder="Phone for scheduling access"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="tenant_email">Tenant Email</Label>
+                    <Input
+                      id="tenant_email"
+                      type="email"
+                      value={formData.tenant_email}
+                      onChange={(e) => handleChange("tenant_email", e.target.value)}
+                      placeholder="tenant@email.com"
+                    />
+                  </div>
+                </div>
+              </CollapsibleContent>
+            </Collapsible>
 
             <div className="flex items-center space-x-2">
               <Checkbox

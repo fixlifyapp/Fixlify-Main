@@ -2,9 +2,16 @@
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
+export interface PropertyData {
+  tenant_name?: string;
+  tenant_phone?: string;
+  tenant_email?: string;
+}
+
 export interface JobDataFetchResult {
   jobData: any;
   paymentsData: any[] | null;
+  propertyData?: PropertyData | null;
 }
 
 export const fetchJobWithClient = async (jobId: string): Promise<JobDataFetchResult> => {
@@ -67,18 +74,35 @@ export const fetchJobWithClient = async (jobId: string): Promise<JobDataFetchRes
     }
     
     const finalJobData = { ...jobOnly, clients: clientData };
-    
+
     // Fetch payments for this job
     const { data: paymentsData, error: paymentsError } = await supabase
       .from('payments')
       .select('amount')
       .eq('job_id', jobId);
-      
+
     if (paymentsError) {
       console.warn("⚠️ Could not fetch payments:", paymentsError);
     }
-    
-    return { jobData: finalJobData, paymentsData };
+
+    // Fetch property data with tenant info if job has property_id
+    let propertyData: PropertyData | null = null;
+    if (jobOnly.property_id) {
+      const { data: property, error: propertyError } = await supabase
+        .from('client_properties')
+        .select('tenant_name, tenant_phone, tenant_email')
+        .eq('id', jobOnly.property_id)
+        .single();
+
+      if (!propertyError && property) {
+        propertyData = property;
+        console.log("✅ Property tenant data fetched:", propertyData);
+      } else {
+        console.warn("⚠️ Could not fetch property data:", propertyError);
+      }
+    }
+
+    return { jobData: finalJobData, paymentsData, propertyData };
   }
   
   if (!jobData) {
@@ -99,10 +123,27 @@ export const fetchJobWithClient = async (jobId: string): Promise<JobDataFetchRes
     .from('payments')
     .select('amount')
     .eq('job_id', jobId);
-    
+
   if (paymentsError) {
     console.warn("⚠️ Could not fetch payments:", paymentsError);
   }
-  
-  return { jobData, paymentsData };
+
+  // Fetch property data with tenant info if job has property_id
+  let propertyData: PropertyData | null = null;
+  if (jobData.property_id) {
+    const { data: property, error: propertyError } = await supabase
+      .from('client_properties')
+      .select('tenant_name, tenant_phone, tenant_email')
+      .eq('id', jobData.property_id)
+      .single();
+
+    if (!propertyError && property) {
+      propertyData = property;
+      console.log("✅ Property tenant data fetched:", propertyData);
+    } else {
+      console.warn("⚠️ Could not fetch property data:", propertyError);
+    }
+  }
+
+  return { jobData, paymentsData, propertyData };
 };

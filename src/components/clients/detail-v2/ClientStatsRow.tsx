@@ -12,34 +12,6 @@ interface ClientStatsRowProps {
   };
 }
 
-interface StatCardProps {
-  icon: React.ElementType;
-  label: string;
-  value: string | number;
-  subValue?: string;
-  iconColor: string;
-  bgColor: string;
-}
-
-const StatCard = ({ icon: Icon, label, value, subValue, iconColor, bgColor }: StatCardProps) => (
-  <div className="group relative overflow-hidden rounded-lg border border-border/50 bg-card p-4 transition-all hover:shadow-md hover:border-border">
-    <div className="flex items-start justify-between gap-3">
-      <div className="space-y-1 min-w-0">
-        <p className="text-sm font-medium text-muted-foreground">{label}</p>
-        <p className="text-2xl font-bold tracking-tight text-foreground truncate">
-          {value}
-        </p>
-        {subValue && (
-          <p className="text-xs text-muted-foreground/70">{subValue}</p>
-        )}
-      </div>
-      <div className={`shrink-0 rounded-lg p-2.5 ${bgColor} transition-transform group-hover:scale-110`}>
-        <Icon className={`h-5 w-5 ${iconColor}`} />
-      </div>
-    </div>
-  </div>
-);
-
 export const ClientStatsRow = ({ stats }: ClientStatsRowProps) => {
   const formatDate = (dateString: string | null) => {
     if (!dateString) return 'Never';
@@ -55,38 +27,69 @@ export const ClientStatsRow = ({ stats }: ClientStatsRowProps) => {
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
   };
 
+  const kpiCards = [
+    {
+      title: "Total Jobs",
+      value: stats.total_jobs,
+      label: `${stats.jobs_this_year} this year`,
+      icon: Briefcase,
+      bgColor: "bg-purple-50",
+      iconColor: "text-purple-600",
+      borderColor: "border-purple-200"
+    },
+    {
+      title: "Total Revenue",
+      value: formatCurrency(stats.total_revenue),
+      label: `${formatCurrency(stats.revenue_this_year)} this year`,
+      icon: DollarSign,
+      bgColor: "bg-green-50",
+      iconColor: "text-green-600",
+      borderColor: "border-green-200"
+    },
+    {
+      title: "Avg Job Value",
+      value: formatCurrency(stats.avg_job_value),
+      label: "Per job average",
+      icon: TrendingUp,
+      bgColor: "bg-blue-50",
+      iconColor: "text-blue-600",
+      borderColor: "border-blue-200"
+    },
+    {
+      title: "Last Service",
+      value: formatDate(stats.last_service_date),
+      label: "Most recent job",
+      icon: Calendar,
+      bgColor: "bg-amber-50",
+      iconColor: "text-amber-600",
+      borderColor: "border-amber-200"
+    }
+  ];
+
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-      <StatCard
-        icon={Briefcase}
-        label="Total Jobs"
-        value={stats.total_jobs}
-        subValue={`${stats.jobs_this_year} this year`}
-        iconColor="text-blue-600"
-        bgColor="bg-blue-500/10"
-      />
-      <StatCard
-        icon={DollarSign}
-        label="Total Revenue"
-        value={formatCurrency(stats.total_revenue)}
-        subValue={`${formatCurrency(stats.revenue_this_year)} this year`}
-        iconColor="text-emerald-600"
-        bgColor="bg-emerald-500/10"
-      />
-      <StatCard
-        icon={TrendingUp}
-        label="Avg Job Value"
-        value={formatCurrency(stats.avg_job_value)}
-        iconColor="text-violet-600"
-        bgColor="bg-violet-500/10"
-      />
-      <StatCard
-        icon={Calendar}
-        label="Last Service"
-        value={formatDate(stats.last_service_date)}
-        iconColor="text-amber-600"
-        bgColor="bg-amber-500/10"
-      />
+    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      {kpiCards.map((card, index) => {
+        const Icon = card.icon;
+        return (
+          <div
+            key={index}
+            className={`rounded-xl border ${card.borderColor} ${card.bgColor} p-5 transition-all duration-300 hover:shadow-lg hover:scale-[1.02]`}
+          >
+            <div className="flex items-start justify-between">
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2 mb-2">
+                  <Icon className={`h-5 w-5 ${card.iconColor} shrink-0`} />
+                  <p className="text-sm font-medium text-gray-600 truncate">{card.title}</p>
+                </div>
+                <h3 className="text-2xl lg:text-3xl font-bold text-gray-900 truncate">
+                  {card.value}
+                </h3>
+                <p className="text-sm text-gray-500 mt-1 truncate">{card.label}</p>
+              </div>
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 };

@@ -40,4 +40,4 @@ src/App.backup.tsx
 supabase/.env.production
 
 .claude/settings.local.json
-.cursor
+.cursornul

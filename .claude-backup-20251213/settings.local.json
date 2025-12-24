@@ -1,0 +1,43 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(find:*)",
+      "Bash(supabase status:*)",
+      "Bash(supabase secrets:*)",
+      "Bash(supabase db:*)",
+      "Bash(claude mcp add:*)",
+      "Bash(claude mcp:*)",
+      "mcp__trello__get_card",
+      "mcp__trello__get_lists",
+      "mcp__trello__update_card",
+      "Bash(make:*)",
+      "mcp__ide__getDiagnostics",
+      "Bash(npm install)",
+      "Bash(npx vite:*)",
+      "mcp__mem0-mcp__add-memory",
+      "Bash(mkdir:*)",
+      "Bash(for file in check-telnyx-webhook.ps1 diagnose-sms-webhook.js quick-email-debug.js run-sms-test.mjs simulate-incoming-sms.js sms-test-suite.html test-email-page.html test-sms-no-auth.html test-webhook-direct.mjs webhook-final-diagnosis.js)",
+      "Bash(do [ -f \"$file\" ])",
+      "Bash(echo:*)",
+      "Bash(done)",
+      "mcp__trello__get_boards",
+      "mcp__trello__create_card",
+      "Bash(supabase functions:*)",
+      "Bash(npx supabase functions:*)",
+      "Bash(npx supabase login)",
+      "mcp__supabase-community-supabase-mcp__list_projects",
+      "mcp__supabase-community-supabase-mcp__list_edge_functions",
+      "mcp__trello__get_board",
+      "WebFetch(domain:trello.com)",
+      "mcp__m-0-xai-trello-mcp-server__get_boards",
+      "mcp__m-0-xai-trello-mcp-server__get_lists",
+      "mcp__m-0-xai-trello-mcp-server__get_cards",
+      "Bash(npx supabase:*)",
+      "mcp__m-0-xai-trello-mcp-server__get_board_labels",
+      "mcp__m-0-xai-trello-mcp-server__create_card",
+      "mcp__m-0-xai-trello-mcp-server__create_checklist",
+      "mcp__m-0-xai-trello-mcp-server__add_checkitem"
+    ],
+    "deny": []
+  }
+}

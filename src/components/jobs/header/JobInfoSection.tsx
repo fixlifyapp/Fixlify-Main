@@ -1,11 +1,12 @@
 import { Badge } from "@/components/ui/badge";
 import { JobStatusBadge } from "./JobStatusBadge";
 import { ClientContactButtons } from "./ClientContactButtons";
-import { FileText, CreditCard, CheckCircle, MapPin } from "lucide-react";
+import { FileText, CreditCard, CheckCircle, MapPin, User, Phone, Mail, Home } from "lucide-react";
 import { useJobFinancials } from "@/hooks/useJobFinancials";
 import { useState, useEffect } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useJobDetails } from "../context/JobDetailsContext";
+import type { TenantInfo } from "../context/types";
 
 interface JobInfoSectionProps {
   job: {
@@ -25,6 +26,7 @@ interface JobInfoSectionProps {
   onEditClient: () => void;
   clientName?: string;
   jobType?: string;
+  tenantInfo?: TenantInfo;
 }
 
 export const JobInfoSection = ({
@@ -35,7 +37,8 @@ export const JobInfoSection = ({
   onMessageClick,
   onEditClient,
   clientName,
-  jobType
+  jobType,
+  tenantInfo
 }: JobInfoSectionProps) => {
   const isMobile = useIsMobile();
   const [currentStatus, setCurrentStatus] = useState(status);
@@ -164,7 +167,7 @@ export const JobInfoSection = ({
 
         {/* Job Address - Made more mobile-friendly */}
         {job.address && (
-          <div 
+          <div
             className="bg-fixlyfy/10 border border-fixlyfy/20 rounded-xl p-3 cursor-pointer hover:bg-fixlyfy/15 transition-colors duration-200 group"
             onClick={handleAddressClick}
             role="button"
@@ -187,6 +190,45 @@ export const JobInfoSection = ({
                   Click to open in Google Maps
                 </p>
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* Tenant Contact Section - Show if tenant info exists */}
+        {tenantInfo && (tenantInfo.name || tenantInfo.phone) && (
+          <div className="bg-purple-50/50 border border-purple-200/50 rounded-xl p-3">
+            <div className="flex items-center gap-2 mb-2">
+              <Home className="h-4 w-4 text-purple-600" />
+              <span className="text-xs font-semibold text-purple-700 uppercase tracking-wide">Tenant Contact</span>
+              <Badge variant="secondary" className="text-xs bg-purple-100 text-purple-700 border-purple-200">
+                For Access
+              </Badge>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {tenantInfo.name && (
+                <div className="flex items-center gap-2">
+                  <User className="h-4 w-4 text-purple-500" />
+                  <span className="text-sm font-medium text-purple-900">{tenantInfo.name}</span>
+                </div>
+              )}
+              {tenantInfo.phone && (
+                <a
+                  href={`tel:${tenantInfo.phone}`}
+                  className="flex items-center gap-2 hover:bg-purple-100 rounded-md px-2 py-1 -mx-2 transition-colors"
+                >
+                  <Phone className="h-4 w-4 text-green-600" />
+                  <span className="text-sm font-medium text-green-700 hover:underline">{tenantInfo.phone}</span>
+                </a>
+              )}
+              {tenantInfo.email && (
+                <a
+                  href={`mailto:${tenantInfo.email}`}
+                  className="flex items-center gap-2 hover:bg-purple-100 rounded-md px-2 py-1 -mx-2 transition-colors"
+                >
+                  <Mail className="h-4 w-4 text-blue-600" />
+                  <span className="text-sm font-medium text-blue-700 hover:underline truncate">{tenantInfo.email}</span>
+                </a>
+              )}
             </div>
           </div>
         )}

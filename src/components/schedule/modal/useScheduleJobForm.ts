@@ -22,6 +22,10 @@ export interface FormData {
   property_age?: string;
   property_size?: string;
   previous_service_date?: string;
+  // Tenant contact fields
+  tenant_name: string;
+  tenant_phone: string;
+  tenant_email: string;
 }
 
 interface UseScheduleJobFormProps {
@@ -46,6 +50,9 @@ export const useScheduleJobForm = ({ preselectedClientId }: UseScheduleJobFormPr
     property_age: "",
     property_size: "",
     previous_service_date: "",
+    tenant_name: "",
+    tenant_phone: "",
+    tenant_email: "",
   });
   
   const [formErrors, setFormErrors] = useState<string[]>([]);
@@ -124,6 +131,9 @@ export const useScheduleJobForm = ({ preselectedClientId }: UseScheduleJobFormPr
       property_age: "",
       property_size: "",
       previous_service_date: "",
+      tenant_name: "",
+      tenant_phone: "",
+      tenant_email: "",
     });
     setNewTask("");
     setFormErrors([]);

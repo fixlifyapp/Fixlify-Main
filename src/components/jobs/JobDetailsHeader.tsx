@@ -112,6 +112,7 @@ export const JobDetailsHeader = () => {
           }}
           clientName={typeof job.client === 'string' ? job.client : job.client?.name || 'Unknown Client'}
           jobType={job.description || 'Service Job'}
+          tenantInfo={job.tenantInfo}
         />
       </div>
     </>

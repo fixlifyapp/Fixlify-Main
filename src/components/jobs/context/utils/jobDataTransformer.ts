@@ -1,7 +1,8 @@
 
-import { JobInfo } from "../types";
+import { JobInfo, TenantInfo } from "../types";
+import { PropertyData } from "./jobDataFetcher";
 
-export const transformJobData = (jobData: any, paymentsData: any[] | null) => {
+export const transformJobData = (jobData: any, paymentsData: any[] | null, propertyData?: PropertyData | null) => {
   // Extract client information with type safety
   // Handle both 'clients' (from join) and 'client' variations
   const clientData = jobData.clients || jobData.client;
@@ -84,7 +85,13 @@ export const transformJobData = (jobData: any, paymentsData: any[] | null) => {
     // Add required relations with empty arrays
     estimates: [],
     invoices: [],
-    payments: []
+    payments: [],
+    // Add tenant info from property if available
+    tenantInfo: propertyData ? {
+      name: propertyData.tenant_name || undefined,
+      phone: propertyData.tenant_phone || undefined,
+      email: propertyData.tenant_email || undefined
+    } : undefined
   };
   
   // Calculate financial data
@@ -105,7 +112,8 @@ export const transformJobData = (jobData: any, paymentsData: any[] | null) => {
     clientData: client,
     status: result.status,
     invoiceAmount: result.invoiceAmount,
-    balance: result.balance
+    balance: result.balance,
+    tenantInfo: result.jobInfo.tenantInfo
   });
   
   return result;

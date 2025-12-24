@@ -3,9 +3,10 @@ import React, { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { CheckCircle, Edit, MapPin, Phone, Mail } from "lucide-react";
+import { CheckCircle, Edit, MapPin, Phone, Mail, User, Home } from "lucide-react";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
+import { Badge } from "@/components/ui/badge";
 
 interface ClientInfo {
   fullName: string;
@@ -14,16 +15,24 @@ interface ClientInfo {
   email: string;
 }
 
+interface TenantInfo {
+  name?: string;
+  phone?: string;
+  email?: string;
+}
+
 interface ClientInformationSectionProps {
   clientInfo: ClientInfo;
   onClientInfoUpdate: (clientInfo: ClientInfo) => void;
   clientId?: string;
+  tenantInfo?: TenantInfo;
 }
 
-export const ClientInformationSection = ({ 
-  clientInfo, 
-  onClientInfoUpdate, 
-  clientId 
+export const ClientInformationSection = ({
+  clientInfo,
+  onClientInfoUpdate,
+  clientId,
+  tenantInfo
 }: ClientInformationSectionProps) => {
   const navigate = useNavigate();
   const [editingClientInfo, setEditingClientInfo] = useState(false);
@@ -121,9 +130,9 @@ export const ClientInformationSection = ({
             </div>
             
             {!editingClientInfo && (
-              <Button 
-                variant="outline" 
-                size="sm" 
+              <Button
+                variant="outline"
+                size="sm"
                 className="mt-2 w-full md:w-auto"
                 onClick={() => {
                   if (clientId) {
@@ -136,6 +145,56 @@ export const ClientInformationSection = ({
             )}
           </div>
         </div>
+
+        {/* Tenant Contact Section - Show if tenant info exists */}
+        {tenantInfo && (tenantInfo.name || tenantInfo.phone) && (
+          <div className="mt-6 pt-6 border-t">
+            <div className="flex items-center gap-2 mb-4">
+              <Home className="h-4 w-4 text-muted-foreground" />
+              <h4 className="text-sm font-semibold text-muted-foreground">Tenant Contact</h4>
+              <Badge variant="secondary" className="text-xs">For Access</Badge>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-muted/30 p-4 rounded-lg">
+              {tenantInfo.name && (
+                <div>
+                  <p className="text-sm text-muted-foreground">Tenant Name</p>
+                  <div className="flex items-center gap-2 mt-1">
+                    <User className="h-4 w-4 text-muted-foreground" />
+                    <p className="font-medium">{tenantInfo.name}</p>
+                  </div>
+                </div>
+              )}
+              {tenantInfo.phone && (
+                <div>
+                  <p className="text-sm text-muted-foreground">Tenant Phone</p>
+                  <div className="flex items-center gap-2 mt-1">
+                    <Phone className="h-4 w-4 text-green-600" />
+                    <a
+                      href={`tel:${tenantInfo.phone}`}
+                      className="font-medium text-green-600 hover:underline"
+                    >
+                      {tenantInfo.phone}
+                    </a>
+                  </div>
+                </div>
+              )}
+              {tenantInfo.email && (
+                <div>
+                  <p className="text-sm text-muted-foreground">Tenant Email</p>
+                  <div className="flex items-center gap-2 mt-1">
+                    <Mail className="h-4 w-4 text-blue-600" />
+                    <a
+                      href={`mailto:${tenantInfo.email}`}
+                      className="font-medium text-blue-600 hover:underline"
+                    >
+                      {tenantInfo.email}
+                    </a>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </CardContent>
     </Card>
   );

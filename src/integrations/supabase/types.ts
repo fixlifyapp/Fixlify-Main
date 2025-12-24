@@ -7,10 +7,35 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instanciate createClient with right options
+  // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "12.2.3 (519615d)"
+  }
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
   }
   public: {
     Tables: {
@@ -413,49 +438,115 @@ export type Database = {
       }
       ai_dispatcher_configs: {
         Row: {
+          additional_info: string | null
+          agent_name: string | null
+          agent_personality: string | null
+          ai_capabilities: string | null
+          assistant_id: string | null
           business_greeting: string | null
           business_name: string
+          business_niche: string | null
           business_type: string
+          call_transfer_message: string | null
+          capabilities: string | null
+          company_name: string | null
           created_at: string
           diagnostic_fee: number | null
+          dynamic_variables: Json | null
           emergency_detection_enabled: boolean | null
+          emergency_hours: string | null
           emergency_surcharge: number | null
+          greeting_message: string | null
           hourly_rate: number | null
+          hours_of_operation: string | null
           id: string
+          instructions: string | null
+          payment_methods: string | null
           phone_number_id: string
+          scheduling_rules: string | null
+          service_area: string | null
+          services_offered: string | null
+          telnyx_config: Json | null
           updated_at: string
           user_id: string | null
           voice_selection: string | null
+          voicemail_detection_message: string | null
+          warranty_info: string | null
+          webhook_url: string | null
         }
         Insert: {
+          additional_info?: string | null
+          agent_name?: string | null
+          agent_personality?: string | null
+          ai_capabilities?: string | null
+          assistant_id?: string | null
           business_greeting?: string | null
           business_name?: string
+          business_niche?: string | null
           business_type?: string
+          call_transfer_message?: string | null
+          capabilities?: string | null
+          company_name?: string | null
           created_at?: string
           diagnostic_fee?: number | null
+          dynamic_variables?: Json | null
           emergency_detection_enabled?: boolean | null
+          emergency_hours?: string | null
           emergency_surcharge?: number | null
+          greeting_message?: string | null
           hourly_rate?: number | null
+          hours_of_operation?: string | null
           id?: string
+          instructions?: string | null
+          payment_methods?: string | null
           phone_number_id: string
+          scheduling_rules?: string | null
+          service_area?: string | null
+          services_offered?: string | null
+          telnyx_config?: Json | null
           updated_at?: string
           user_id?: string | null
           voice_selection?: string | null
+          voicemail_detection_message?: string | null
+          warranty_info?: string | null
+          webhook_url?: string | null
         }
         Update: {
+          additional_info?: string | null
+          agent_name?: string | null
+          agent_personality?: string | null
+          ai_capabilities?: string | null
+          assistant_id?: string | null
           business_greeting?: string | null
           business_name?: string
+          business_niche?: string | null
           business_type?: string
+          call_transfer_message?: string | null
+          capabilities?: string | null
+          company_name?: string | null
           created_at?: string
           diagnostic_fee?: number | null
+          dynamic_variables?: Json | null
           emergency_detection_enabled?: boolean | null
+          emergency_hours?: string | null
           emergency_surcharge?: number | null
+          greeting_message?: string | null
           hourly_rate?: number | null
+          hours_of_operation?: string | null
           id?: string
+          instructions?: string | null
+          payment_methods?: string | null
           phone_number_id?: string
+          scheduling_rules?: string | null
+          service_area?: string | null
+          services_offered?: string | null
+          telnyx_config?: Json | null
           updated_at?: string
           user_id?: string | null
           voice_selection?: string | null
+          voicemail_detection_message?: string | null
+          warranty_info?: string | null
+          webhook_url?: string | null
         }
         Relationships: [
           {
@@ -512,6 +603,110 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      appointment_slots: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          date: string
+          id: string
+          is_available: boolean | null
+          technician_id: string | null
+          time: string
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          date: string
+          id?: string
+          is_available?: boolean | null
+          technician_id?: string | null
+          time: string
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          date?: string
+          id?: string
+          is_available?: boolean | null
+          technician_id?: string | null
+          time?: string
+        }
+        Relationships: []
+      }
+      appointments: {
+        Row: {
+          appointment_date: string
+          appointment_time: string
+          client_id: string | null
+          conversation_id: string | null
+          created_at: string | null
+          created_by: string | null
+          created_via: string | null
+          customer_name: string
+          customer_phone: string | null
+          device_type: string | null
+          id: string
+          issue_description: string | null
+          notes: string | null
+          phone: string
+          scheduled_date: string | null
+          service_type: string | null
+          source: string | null
+          status: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          appointment_date: string
+          appointment_time: string
+          client_id?: string | null
+          conversation_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          created_via?: string | null
+          customer_name: string
+          customer_phone?: string | null
+          device_type?: string | null
+          id?: string
+          issue_description?: string | null
+          notes?: string | null
+          phone: string
+          scheduled_date?: string | null
+          service_type?: string | null
+          source?: string | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          appointment_date?: string
+          appointment_time?: string
+          client_id?: string | null
+          conversation_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          created_via?: string | null
+          customer_name?: string
+          customer_phone?: string | null
+          device_type?: string | null
+          id?: string
+          issue_description?: string | null
+          notes?: string | null
+          phone?: string
+          scheduled_date?: string | null
+          service_type?: string | null
+          source?: string | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "appointments_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       auth_rate_limits: {
         Row: {
@@ -1413,6 +1608,101 @@ export type Database = {
           },
         ]
       }
+      call_conversations: {
+        Row: {
+          action_items: string[] | null
+          ai_notes: string | null
+          call_direction: string | null
+          call_duration: number | null
+          call_id: string | null
+          call_status: string | null
+          caller_number: string | null
+          client_id: string | null
+          created_at: string | null
+          id: string
+          job_id: string | null
+          metadata: Json | null
+          phone_number: string
+          sentiment: string | null
+          summary: string | null
+          topics: string[] | null
+          transcript: string | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          action_items?: string[] | null
+          ai_notes?: string | null
+          call_direction?: string | null
+          call_duration?: number | null
+          call_id?: string | null
+          call_status?: string | null
+          caller_number?: string | null
+          client_id?: string | null
+          created_at?: string | null
+          id?: string
+          job_id?: string | null
+          metadata?: Json | null
+          phone_number: string
+          sentiment?: string | null
+          summary?: string | null
+          topics?: string[] | null
+          transcript?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          action_items?: string[] | null
+          ai_notes?: string | null
+          call_direction?: string | null
+          call_duration?: number | null
+          call_id?: string | null
+          call_status?: string | null
+          caller_number?: string | null
+          client_id?: string | null
+          created_at?: string | null
+          id?: string
+          job_id?: string | null
+          metadata?: Json | null
+          phone_number?: string
+          sentiment?: string | null
+          summary?: string | null
+          topics?: string[] | null
+          transcript?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "call_conversations_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "call_conversations_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "fact_jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "call_conversations_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "job_revenue_summary"
+            referencedColumns: ["job_id"]
+          },
+          {
+            foreignKeyName: "call_conversations_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       call_logs: {
         Row: {
           client_id: string | null
@@ -1677,6 +1967,9 @@ export type Database = {
           property_name: string
           property_type: string | null
           state: string | null
+          tenant_email: string | null
+          tenant_name: string | null
+          tenant_phone: string | null
           updated_at: string
           zip: string | null
         }
@@ -1692,6 +1985,9 @@ export type Database = {
           property_name: string
           property_type?: string | null
           state?: string | null
+          tenant_email?: string | null
+          tenant_name?: string | null
+          tenant_phone?: string | null
           updated_at?: string
           zip?: string | null
         }
@@ -1707,6 +2003,9 @@ export type Database = {
           property_name?: string
           property_type?: string | null
           state?: string | null
+          tenant_email?: string | null
+          tenant_name?: string | null
+          tenant_phone?: string | null
           updated_at?: string
           zip?: string | null
         }
@@ -2743,6 +3042,7 @@ export type Database = {
       }
       job_history: {
         Row: {
+          conversation_id: string | null
           created_at: string | null
           description: string
           entity_id: string | null
@@ -2761,6 +3061,7 @@ export type Database = {
           visibility: string | null
         }
         Insert: {
+          conversation_id?: string | null
           created_at?: string | null
           description: string
           entity_id?: string | null
@@ -2779,6 +3080,7 @@ export type Database = {
           visibility?: string | null
         }
         Update: {
+          conversation_id?: string | null
           created_at?: string | null
           description?: string
           entity_id?: string | null
@@ -2797,6 +3099,13 @@ export type Database = {
           visibility?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "job_history_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "call_conversations"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "job_history_job_id_fkey"
             columns: ["job_id"]
@@ -2977,7 +3286,9 @@ export type Database = {
       jobs: {
         Row: {
           address: string | null
+          appointment_status: string | null
           automation_triggered_at: string | null
+          booked_via: string | null
           client_id: string | null
           created_at: string | null
           created_by: string | null
@@ -2994,6 +3305,8 @@ export type Database = {
           revenue: number | null
           schedule_end: string | null
           schedule_start: string | null
+          scheduled_date: string | null
+          scheduled_time: string | null
           service: string | null
           status: string | null
           tags: string[] | null
@@ -3005,7 +3318,9 @@ export type Database = {
         }
         Insert: {
           address?: string | null
+          appointment_status?: string | null
           automation_triggered_at?: string | null
+          booked_via?: string | null
           client_id?: string | null
           created_at?: string | null
           created_by?: string | null
@@ -3022,6 +3337,8 @@ export type Database = {
           revenue?: number | null
           schedule_end?: string | null
           schedule_start?: string | null
+          scheduled_date?: string | null
+          scheduled_time?: string | null
           service?: string | null
           status?: string | null
           tags?: string[] | null
@@ -3033,7 +3350,9 @@ export type Database = {
         }
         Update: {
           address?: string | null
+          appointment_status?: string | null
           automation_triggered_at?: string | null
+          booked_via?: string | null
           client_id?: string | null
           created_at?: string | null
           created_by?: string | null
@@ -3050,6 +3369,8 @@ export type Database = {
           revenue?: number | null
           schedule_end?: string | null
           schedule_start?: string | null
+          scheduled_date?: string | null
+          scheduled_time?: string | null
           service?: string | null
           status?: string | null
           tags?: string[] | null
@@ -3502,8 +3823,10 @@ export type Database = {
       }
       phone_numbers: {
         Row: {
+          ai_assistant_id: string | null
           ai_dispatcher_enabled: boolean | null
           ai_settings: Json | null
+          ai_voice_settings: Json | null
           area_code: string | null
           assigned_to: string | null
           billing_status: string | null
@@ -3522,8 +3845,14 @@ export type Database = {
           latitude: number | null
           locality: string | null
           longitude: number | null
+          mcp_enabled: boolean | null
+          mcp_integration_secret: string | null
+          mcp_server_id: string | null
+          mcp_webhook_url: string | null
+          metadata: Json | null
           monthly_price: number | null
           next_billing_date: string | null
+          organization_id: string | null
           phone_number: string
           phone_number_type: string | null
           price: number | null
@@ -3535,16 +3864,22 @@ export type Database = {
           region: string | null
           retail_monthly_price: number | null
           retail_price: number | null
+          sms_settings: Json | null
           status: string | null
           telnyx_connection_id: string | null
+          telnyx_id: string | null
           telnyx_phone_number_id: string | null
+          telnyx_settings: Json | null
           updated_at: string
           user_id: string | null
+          webhook_settings: Json | null
           webhook_url: string | null
         }
         Insert: {
+          ai_assistant_id?: string | null
           ai_dispatcher_enabled?: boolean | null
           ai_settings?: Json | null
+          ai_voice_settings?: Json | null
           area_code?: string | null
           assigned_to?: string | null
           billing_status?: string | null
@@ -3563,8 +3898,14 @@ export type Database = {
           latitude?: number | null
           locality?: string | null
           longitude?: number | null
+          mcp_enabled?: boolean | null
+          mcp_integration_secret?: string | null
+          mcp_server_id?: string | null
+          mcp_webhook_url?: string | null
+          metadata?: Json | null
           monthly_price?: number | null
           next_billing_date?: string | null
+          organization_id?: string | null
           phone_number: string
           phone_number_type?: string | null
           price?: number | null
@@ -3576,16 +3917,22 @@ export type Database = {
           region?: string | null
           retail_monthly_price?: number | null
           retail_price?: number | null
+          sms_settings?: Json | null
           status?: string | null
           telnyx_connection_id?: string | null
+          telnyx_id?: string | null
           telnyx_phone_number_id?: string | null
+          telnyx_settings?: Json | null
           updated_at?: string
           user_id?: string | null
+          webhook_settings?: Json | null
           webhook_url?: string | null
         }
         Update: {
+          ai_assistant_id?: string | null
           ai_dispatcher_enabled?: boolean | null
           ai_settings?: Json | null
+          ai_voice_settings?: Json | null
           area_code?: string | null
           assigned_to?: string | null
           billing_status?: string | null
@@ -3604,8 +3951,14 @@ export type Database = {
           latitude?: number | null
           locality?: string | null
           longitude?: number | null
+          mcp_enabled?: boolean | null
+          mcp_integration_secret?: string | null
+          mcp_server_id?: string | null
+          mcp_webhook_url?: string | null
+          metadata?: Json | null
           monthly_price?: number | null
           next_billing_date?: string | null
+          organization_id?: string | null
           phone_number?: string
           phone_number_type?: string | null
           price?: number | null
@@ -3617,14 +3970,26 @@ export type Database = {
           region?: string | null
           retail_monthly_price?: number | null
           retail_price?: number | null
+          sms_settings?: Json | null
           status?: string | null
           telnyx_connection_id?: string | null
+          telnyx_id?: string | null
           telnyx_phone_number_id?: string | null
+          telnyx_settings?: Json | null
           updated_at?: string
           user_id?: string | null
+          webhook_settings?: Json | null
           webhook_url?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "phone_numbers_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       portal_access_logs: {
         Row: {
@@ -4171,7 +4536,7 @@ export type Database = {
           created_at: string | null
           expires_at: string
           id: string
-          ip_address: unknown | null
+          ip_address: unknown
           is_revoked: boolean | null
           last_accessed_at: string | null
           session_token: string
@@ -4182,7 +4547,7 @@ export type Database = {
           created_at?: string | null
           expires_at: string
           id?: string
-          ip_address?: unknown | null
+          ip_address?: unknown
           is_revoked?: boolean | null
           last_accessed_at?: string | null
           session_token: string
@@ -4193,7 +4558,7 @@ export type Database = {
           created_at?: string | null
           expires_at?: string
           id?: string
-          ip_address?: unknown | null
+          ip_address?: unknown
           is_revoked?: boolean | null
           last_accessed_at?: string | null
           session_token?: string
@@ -4207,7 +4572,7 @@ export type Database = {
           created_at: string | null
           details: Json | null
           id: string
-          ip_address: unknown | null
+          ip_address: unknown
           resource: string | null
           user_agent: string | null
           user_id: string | null
@@ -4217,7 +4582,7 @@ export type Database = {
           created_at?: string | null
           details?: Json | null
           id?: string
-          ip_address?: unknown | null
+          ip_address?: unknown
           resource?: string | null
           user_agent?: string | null
           user_id?: string | null
@@ -4227,7 +4592,7 @@ export type Database = {
           created_at?: string | null
           details?: Json | null
           id?: string
-          ip_address?: unknown | null
+          ip_address?: unknown
           resource?: string | null
           user_agent?: string | null
           user_id?: string | null
@@ -5161,6 +5526,30 @@ export type Database = {
         }
         Relationships: []
       }
+      webhook_logs: {
+        Row: {
+          created_at: string | null
+          id: string
+          request_body: Json | null
+          response_body: Json | null
+          webhook_name: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          request_body?: Json | null
+          response_body?: Json | null
+          webhook_name?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          request_body?: Json | null
+          response_body?: Json | null
+          webhook_name?: string | null
+        }
+        Relationships: []
+      }
       workflow_executions: {
         Row: {
           completed_at: string | null
@@ -5554,54 +5943,33 @@ export type Database = {
     Functions: {
       assign_phone_to_user: {
         Args: {
-          p_user_email: string
-          p_phone_number: string
           p_is_primary?: boolean
+          p_phone_number: string
+          p_user_email: string
         }
         Returns: boolean
       }
-      bytea_to_text: {
-        Args: { data: string }
-        Returns: string
-      }
-      check_automation_triggers: {
-        Args: Record<PropertyKey, never>
-        Returns: undefined
-      }
+      bytea_to_text: { Args: { data: string }; Returns: string }
+      check_automation_triggers: { Args: never; Returns: undefined }
       check_communication_health: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
-          service: string
           health_status: string
           last_success: string
-          total_24h: number
+          service: string
           success_rate: number
+          total_24h: number
         }[]
       }
-      check_condition_triggers: {
-        Args: Record<PropertyKey, never>
-        Returns: undefined
-      }
-      check_invoice_overdue_triggers: {
-        Args: Record<PropertyKey, never>
-        Returns: undefined
-      }
-      check_maintenance_triggers: {
-        Args: Record<PropertyKey, never>
-        Returns: undefined
-      }
-      check_overdue_tasks: {
-        Args: Record<PropertyKey, never>
-        Returns: undefined
-      }
-      check_products_access: {
-        Args: { p_user_id: string }
-        Returns: Json
-      }
+      check_condition_triggers: { Args: never; Returns: undefined }
+      check_invoice_overdue_triggers: { Args: never; Returns: undefined }
+      check_maintenance_triggers: { Args: never; Returns: undefined }
+      check_overdue_tasks: { Args: never; Returns: undefined }
+      check_products_access: { Args: { p_user_id: string }; Returns: Json }
       check_rate_limit: {
         Args: {
-          p_identifier: string
           p_attempt_type: string
+          p_identifier: string
           p_max_attempts?: number
           p_window_minutes?: number
         }
@@ -5609,9 +5977,9 @@ export type Database = {
       }
       check_recent_automation_execution: {
         Args: {
-          p_workflow_id: string
           p_job_id: string
           p_trigger_type: string
+          p_workflow_id: string
         }
         Returns: boolean
       }
@@ -5619,64 +5987,40 @@ export type Database = {
         Args: { workflow: Record<string, unknown> }
         Returns: boolean
       }
-      check_time_based_automations: {
-        Args: Record<PropertyKey, never>
-        Returns: undefined
-      }
+      check_time_based_automations: { Args: never; Returns: undefined }
       check_user_data: {
         Args: { user_email: string }
         Returns: {
-          table_name: string
           record_count: number
+          table_name: string
         }[]
       }
-      check_user_products_by_email: {
-        Args: { p_email: string }
-        Returns: Json
-      }
-      check_user_products_status: {
-        Args: Record<PropertyKey, never>
-        Returns: Json
-      }
-      clean_duplicate_automation_logs: {
-        Args: Record<PropertyKey, never>
-        Returns: number
-      }
+      check_user_products_by_email: { Args: { p_email: string }; Returns: Json }
+      check_user_products_status: { Args: never; Returns: Json }
+      clean_duplicate_automation_logs: { Args: never; Returns: number }
       cleanup_all_user_data: {
-        Args: { p_keep_system_users?: boolean; p_dry_run?: boolean }
+        Args: { p_dry_run?: boolean; p_keep_system_users?: boolean }
         Returns: Json
       }
-      cleanup_old_automation_logs: {
-        Args: Record<PropertyKey, never>
-        Returns: undefined
-      }
-      cleanup_old_communication_logs: {
-        Args: Record<PropertyKey, never>
-        Returns: undefined
-      }
-      cleanup_stuck_automations: {
-        Args: Record<PropertyKey, never>
-        Returns: undefined
-      }
-      clear_my_products: {
-        Args: Record<PropertyKey, never>
-        Returns: Json
-      }
+      cleanup_old_automation_logs: { Args: never; Returns: undefined }
+      cleanup_old_communication_logs: { Args: never; Returns: undefined }
+      cleanup_stuck_automations: { Args: never; Returns: undefined }
+      clear_my_products: { Args: never; Returns: Json }
       create_automation_log_for_processing: {
         Args: {
-          p_workflow_id: string
-          p_trigger_type: string
           p_trigger_data: Json
+          p_trigger_type: string
+          p_workflow_id: string
         }
         Returns: string
       }
       create_product_manual: {
         Args: {
-          p_name: string
           p_category: string
-          p_price?: number
-          p_ourprice?: number
           p_description?: string
+          p_name: string
+          p_ourprice?: number
+          p_price?: number
         }
         Returns: {
           category: string
@@ -5694,219 +6038,206 @@ export type Database = {
           updated_at: string | null
           user_id: string | null
         }
+        SetofOptions: {
+          from: "*"
+          to: "products"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       debug_job_access: {
         Args: { p_client_id?: string }
         Returns: {
           check_name: string
-          result: string
           details: Json
+          result: string
         }[]
       }
-      debug_niche_switch: {
-        Args: { p_new_niche: string }
-        Returns: Json
-      }
-      delete_all_users: {
-        Args: Record<PropertyKey, never>
-        Returns: Json
-      }
-      delete_job_as_admin: {
-        Args: { job_id: string }
-        Returns: Json
-      }
-      delete_job_with_related_data: {
-        Args: { job_id: string }
-        Returns: Json
-      }
+      debug_niche_switch: { Args: { p_new_niche: string }; Returns: Json }
+      delete_all_users: { Args: never; Returns: Json }
+      delete_job_as_admin: { Args: { job_id: string }; Returns: Json }
+      delete_job_with_related_data: { Args: { job_id: string }; Returns: Json }
       delete_user_with_data: {
         Args: { user_email: string }
         Returns: undefined
       }
       diagnose_product_creation: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           check_name: string
-          status: string
           details: string
+          status: string
         }[]
       }
       execute_automation: {
         Args: { p_automation_id: string; p_trigger_data?: Json }
         Returns: string
       }
-      execute_automation_for_record: {
-        Args:
-          | {
-              trigger_type_param: string
+      execute_automation_for_record:
+        | {
+            Args: {
               context_data_param: Json
               org_id_param: string
+              trigger_type_param: string
             }
-          | { trigger_type_val: string; context_data: Json; org_id: string }
-        Returns: undefined
-      }
-      execute_automation_log: {
-        Args: { p_log_id: string }
-        Returns: Json
-      }
+            Returns: undefined
+          }
+        | {
+            Args: {
+              context_data: Json
+              org_id: string
+              trigger_type_val: string
+            }
+            Returns: undefined
+          }
+      execute_automation_log: { Args: { p_log_id: string }; Returns: Json }
       generate_approval_token: {
         Args: {
-          p_document_type: string
-          p_document_id: string
-          p_document_number: string
+          p_client_email?: string
           p_client_id: string
           p_client_name?: string
-          p_client_email?: string
           p_client_phone?: string
+          p_document_id: string
+          p_document_number: string
+          p_document_type: string
         }
         Returns: string
       }
       generate_execution_hash: {
         Args: {
-          p_workflow_id: string
           p_job_id: string
           p_new_status: string
           p_time_window?: number
+          p_workflow_id: string
         }
         Returns: string
       }
-      generate_next_id: {
-        Args: { p_entity_type: string }
-        Returns: string
-      }
+      generate_next_id: { Args: { p_entity_type: string }; Returns: string }
       generate_portal_access: {
         Args: {
           p_client_id: string
-          p_permissions?: Json
-          p_hours_valid?: number
           p_domain?: string
+          p_hours_valid?: number
+          p_permissions?: Json
         }
         Returns: string
       }
       get_automation_analytics: {
         Args: { org_id: string }
         Returns: {
-          totalrules: number
           activerules: number
-          totalexecutions: number
-          successrate: number
           messagessent: number
+          recentexecutions: number
           responsesreceived: number
           revenuegenerated: number
-          recentexecutions: number
+          successrate: number
+          totalexecutions: number
+          totalrules: number
         }[]
       }
-      get_batch_client_stats: {
-        Args: { p_client_ids: string[] } | { p_client_ids: string[] }
-        Returns: {
-          client_id: string
-          total_jobs: number
-          total_revenue: number
-          last_service_date: string
-          avg_job_value: number
-        }[]
-      }
+      get_batch_client_stats:
+        | {
+            Args: { p_client_ids: string[] }
+            Returns: {
+              error: true
+            } & "Could not choose the best candidate function between: public.get_batch_client_stats(p_client_ids => _text), public.get_batch_client_stats(p_client_ids => _uuid). Try renaming the parameters or the function itself in the database so function overloading can be resolved"[]
+          }
+        | {
+            Args: { p_client_ids: string[] }
+            Returns: {
+              error: true
+            } & "Could not choose the best candidate function between: public.get_batch_client_stats(p_client_ids => _text), public.get_batch_client_stats(p_client_ids => _uuid). Try renaming the parameters or the function itself in the database so function overloading can be resolved"[]
+          }
+      get_client_complete_data: { Args: { p_client_id: string }; Returns: Json }
       get_client_jobs: {
         Args: { p_client_id: string; p_limit?: number; p_offset?: number }
         Returns: {
-          id: string
-          title: string
-          status: string
-          job_type: string
-          service: string
-          date: string
-          schedule_start: string
-          revenue: number
           address: string
           created_at: string
+          date: string
+          id: string
+          job_type: string
+          revenue: number
+          schedule_start: string
+          service: string
+          status: string
+          title: string
         }[]
       }
       get_client_statistics: {
         Args: { p_user_id: string }
         Returns: {
-          total_clients: number
           active_clients: number
+          average_client_value: number
           new_this_month: number
           retention_rate: number
+          total_clients: number
           total_revenue: number
-          average_client_value: number
         }[]
       }
       get_connect_statistics: {
         Args: { user_id_param: string }
         Returns: {
-          total_conversations: number
           active_conversations: number
           new_today: number
           response_rate: number
+          total_conversations: number
         }[]
       }
-      get_current_user_info: {
-        Args: Record<PropertyKey, never>
-        Returns: Json
-      }
-      get_data_summary: {
-        Args: Record<PropertyKey, never>
-        Returns: Json
-      }
+      get_current_user_info: { Args: never; Returns: Json }
+      get_data_summary: { Args: never; Returns: Json }
       get_default_job_statuses: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
-          name: string
           color: string
-          sequence: number
           is_default: boolean
+          name: string
+          sequence: number
         }[]
       }
-      get_enhanced_portal_data: {
-        Args: { p_client_id: string }
-        Returns: Json
-      }
-      get_job_portal_data: {
-        Args: { p_job_number: string }
-        Returns: Json
-      }
+      get_enhanced_portal_data: { Args: { p_client_id: string }; Returns: Json }
+      get_job_portal_data: { Args: { p_job_number: string }; Returns: Json }
       get_jobs_with_outdated_config: {
         Args: { p_user_id: string }
         Returns: {
+          available_lead_sources: string[]
+          available_tags: string[]
+          current_job_type: string
+          current_lead_source: string
+          current_tags: string[]
           job_id: string
           job_title: string
-          current_job_type: string
-          current_tags: string[]
-          current_lead_source: string
           suggested_job_type: string
-          available_tags: string[]
-          available_lead_sources: string[]
         }[]
       }
       get_message_stats: {
         Args: { p_user_id: string }
         Returns: {
-          total_messages: number
-          received_messages: number
-          sent_messages: number
-          messages_today: number
-          messages_this_week: number
-          messages_this_month: number
           active_today: number
-          total_communications: number
-          email_count: number
-          call_count: number
-          total_calls: number
-          incoming_calls: number
-          outgoing_calls: number
-          avg_call_duration: number
           ai_calls_handled: number
+          ai_calls_today: number
           ai_success_rate: number
           avg_ai_duration: number
-          ai_calls_today: number
+          avg_call_duration: number
+          call_count: number
+          email_count: number
+          incoming_calls: number
+          messages_this_month: number
+          messages_this_week: number
+          messages_today: number
+          outgoing_calls: number
+          received_messages: number
+          sent_messages: number
+          total_calls: number
+          total_communications: number
+          total_messages: number
         }[]
       }
       get_message_template: {
-        Args: { p_user_id: string; p_name: string; p_type: string }
+        Args: { p_name: string; p_type: string; p_user_id: string }
         Returns: {
-          id: string
           content: string
+          id: string
           variables: Json
         }[]
       }
@@ -5918,23 +6249,28 @@ export type Database = {
         Args: { p_user_id: string }
         Returns: number
       }
+      get_pending_automations: {
+        Args: never
+        Returns: {
+          log_id: string
+          trigger_data: Json
+          workflow_id: string
+        }[]
+      }
       get_popular_warranties_by_job_type: {
         Args: { p_job_type: string; p_limit?: number }
         Returns: {
+          popularity_percentage: number
+          purchase_count: number
           warranty_id: string
           warranty_name: string
-          purchase_count: number
-          popularity_percentage: number
         }[]
       }
       get_product_with_computed_fields: {
         Args: { product_row: Database["public"]["Tables"]["products"]["Row"] }
         Returns: Json
       }
-      get_secret_keys: {
-        Args: Record<PropertyKey, never>
-        Returns: string[]
-      }
+      get_secret_keys: { Args: never; Returns: string[] }
       get_service_areas: {
         Args: { p_team_member_id: string }
         Returns: {
@@ -5943,24 +6279,18 @@ export type Database = {
           zip_code: string
         }[]
       }
-      get_service_role_key: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
-      get_task_context: {
-        Args: { task_id: string }
-        Returns: Json
-      }
+      get_service_role_key: { Args: never; Returns: string }
+      get_task_context: { Args: { task_id: string }; Returns: Json }
       get_team_member_commission: {
         Args: { p_team_member_id: string }
         Returns: {
-          id: string
-          user_id: string
           base_rate: number
-          rules: Json
-          fees: Json
           created_at: string
+          fees: Json
+          id: string
+          rules: Json
           updated_at: string
+          user_id: string
         }[]
       }
       get_team_member_skills: {
@@ -5970,22 +6300,10 @@ export type Database = {
           name: string
         }[]
       }
-      get_user_organization_id: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
-      get_user_phone_number: {
-        Args: { p_user_id: string }
-        Returns: string
-      }
-      get_user_primary_phone: {
-        Args: { p_user_id: string }
-        Returns: string
-      }
-      get_user_role: {
-        Args: { user_uuid: string }
-        Returns: string
-      }
+      get_user_organization_id: { Args: never; Returns: string }
+      get_user_phone_number: { Args: { p_user_id: string }; Returns: string }
+      get_user_primary_phone: { Args: { p_user_id: string }; Returns: string }
+      get_user_role: { Args: { user_uuid: string }; Returns: string }
       handle_job_portal_request: {
         Args: { p_job_number: string }
         Returns: Json
@@ -5993,196 +6311,235 @@ export type Database = {
       http: {
         Args: { request: Database["public"]["CompositeTypes"]["http_request"] }
         Returns: Database["public"]["CompositeTypes"]["http_response"]
+        SetofOptions: {
+          from: "http_request"
+          to: "http_response"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
-      http_delete: {
-        Args:
-          | { uri: string }
-          | { uri: string; content: string; content_type: string }
-        Returns: Database["public"]["CompositeTypes"]["http_response"]
-      }
-      http_get: {
-        Args: { uri: string } | { uri: string; data: Json }
-        Returns: Database["public"]["CompositeTypes"]["http_response"]
-      }
+      http_delete:
+        | {
+            Args: { uri: string }
+            Returns: Database["public"]["CompositeTypes"]["http_response"]
+            SetofOptions: {
+              from: "*"
+              to: "http_response"
+              isOneToOne: true
+              isSetofReturn: false
+            }
+          }
+        | {
+            Args: { content: string; content_type: string; uri: string }
+            Returns: Database["public"]["CompositeTypes"]["http_response"]
+            SetofOptions: {
+              from: "*"
+              to: "http_response"
+              isOneToOne: true
+              isSetofReturn: false
+            }
+          }
+      http_get:
+        | {
+            Args: { uri: string }
+            Returns: Database["public"]["CompositeTypes"]["http_response"]
+            SetofOptions: {
+              from: "*"
+              to: "http_response"
+              isOneToOne: true
+              isSetofReturn: false
+            }
+          }
+        | {
+            Args: { data: Json; uri: string }
+            Returns: Database["public"]["CompositeTypes"]["http_response"]
+            SetofOptions: {
+              from: "*"
+              to: "http_response"
+              isOneToOne: true
+              isSetofReturn: false
+            }
+          }
       http_head: {
         Args: { uri: string }
         Returns: Database["public"]["CompositeTypes"]["http_response"]
+        SetofOptions: {
+          from: "*"
+          to: "http_response"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       http_header: {
         Args: { field: string; value: string }
         Returns: Database["public"]["CompositeTypes"]["http_header"]
+        SetofOptions: {
+          from: "*"
+          to: "http_header"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       http_list_curlopt: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           curlopt: string
           value: string
         }[]
       }
       http_patch: {
-        Args: { uri: string; content: string; content_type: string }
+        Args: { content: string; content_type: string; uri: string }
         Returns: Database["public"]["CompositeTypes"]["http_response"]
+        SetofOptions: {
+          from: "*"
+          to: "http_response"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
-      http_post: {
-        Args:
-          | { uri: string; content: string; content_type: string }
-          | { uri: string; data: Json }
-        Returns: Database["public"]["CompositeTypes"]["http_response"]
-      }
+      http_post:
+        | {
+            Args: { content: string; content_type: string; uri: string }
+            Returns: Database["public"]["CompositeTypes"]["http_response"]
+            SetofOptions: {
+              from: "*"
+              to: "http_response"
+              isOneToOne: true
+              isSetofReturn: false
+            }
+          }
+        | {
+            Args: { data: Json; uri: string }
+            Returns: Database["public"]["CompositeTypes"]["http_response"]
+            SetofOptions: {
+              from: "*"
+              to: "http_response"
+              isOneToOne: true
+              isSetofReturn: false
+            }
+          }
       http_put: {
-        Args: { uri: string; content: string; content_type: string }
+        Args: { content: string; content_type: string; uri: string }
         Returns: Database["public"]["CompositeTypes"]["http_response"]
+        SetofOptions: {
+          from: "*"
+          to: "http_response"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
-      http_reset_curlopt: {
-        Args: Record<PropertyKey, never>
-        Returns: boolean
-      }
+      http_reset_curlopt: { Args: never; Returns: boolean }
       http_set_curlopt: {
         Args: { curlopt: string; value: string }
         Returns: boolean
       }
       increment_automation_metrics: {
-        Args: { workflow_id: string; success: boolean }
+        Args: { success: boolean; workflow_id: string }
         Returns: undefined
       }
       increment_workflow_metrics: {
         Args: {
-          workflow_id: string
           execution_count?: number
           success_count?: number
+          workflow_id: string
         }
         Returns: undefined
       }
       initialize_niche_data: {
-        Args: { p_user_id: string; p_business_niche: string }
+        Args: { p_business_niche: string; p_user_id: string }
         Returns: undefined
       }
       initialize_remaining_niches: {
-        Args: { p_user_id: string; p_business_niche: string }
+        Args: { p_business_niche: string; p_user_id: string }
         Returns: undefined
       }
-      initialize_user_data: {
-        Args:
-          | { p_user_id: string }
-          | { p_user_id: string; p_business_niche?: string }
-        Returns: undefined
-      }
+      initialize_user_data:
+        | { Args: { p_user_id: string }; Returns: undefined }
+        | {
+            Args: { p_business_niche?: string; p_user_id: string }
+            Returns: undefined
+          }
       initialize_user_data_complete: {
-        Args: { p_user_id: string; p_business_niche?: string }
+        Args: { p_business_niche?: string; p_user_id: string }
         Returns: undefined
       }
       initialize_user_data_complete_enhanced: {
-        Args: { p_user_id: string; p_business_niche?: string }
+        Args: { p_business_niche?: string; p_user_id: string }
         Returns: undefined
       }
       initialize_user_data_with_enhanced_niche_data: {
-        Args: { p_user_id: string; p_business_niche: string }
+        Args: { p_business_niche: string; p_user_id: string }
         Returns: Json
       }
       initialize_user_defaults: {
         Args: { p_user_id: string }
         Returns: undefined
       }
-      load_my_niche_products: {
-        Args: Record<PropertyKey, never>
-        Returns: Json
-      }
+      load_my_niche_products: { Args: never; Returns: Json }
       load_niche_products_direct: {
-        Args: { p_user_id: string; p_business_niche: string }
+        Args: { p_business_niche: string; p_user_id: string }
         Returns: Json
       }
       log_communication: {
         Args: {
-          p_user_id: string
-          p_type: string
-          p_from: string
-          p_to: string
           p_content: string
+          p_from: string
           p_metadata?: Json
+          p_to: string
+          p_type: string
+          p_user_id: string
         }
         Returns: string
       }
       log_security_event: {
         Args: {
           p_action: string
-          p_resource?: string
           p_details?: Json
+          p_resource?: string
           p_user_id?: string
         }
         Returns: undefined
       }
-      migrate_job_tasks: {
-        Args: Record<PropertyKey, never>
-        Returns: undefined
-      }
-      normalize_phone_number: {
-        Args: { phone_input: string }
-        Returns: string
-      }
-      populate_niche_products: {
-        Args: { p_niche: string }
-        Returns: number
-      }
-      populate_painting_products_for_user: {
-        Args: Record<PropertyKey, never>
-        Returns: Json
-      }
+      manually_process_automation: { Args: { p_log_id: string }; Returns: Json }
+      migrate_job_tasks: { Args: never; Returns: undefined }
+      normalize_phone_number: { Args: { phone_input: string }; Returns: string }
+      populate_niche_products: { Args: { p_niche: string }; Returns: number }
+      populate_painting_products_for_user: { Args: never; Returns: Json }
       populate_products_for_user_by_email: {
         Args: { p_email: string; p_niche?: string }
         Returns: Json
       }
-      process_all_pending_automations: {
-        Args: Record<PropertyKey, never>
-        Returns: Json
-      }
-      process_automation_system: {
-        Args: Record<PropertyKey, never>
-        Returns: undefined
-      }
+      process_all_pending_automations: { Args: never; Returns: Json }
+      process_automation_system: { Args: never; Returns: undefined }
       process_email_template: {
-        Args: { p_template_name: string; p_variables: Json; p_user_id?: string }
+        Args: { p_template_name: string; p_user_id?: string; p_variables: Json }
         Returns: {
-          subject: string
           html_content: string
+          subject: string
         }[]
       }
       process_pending_automation_log: {
         Args: { log_id: string }
         Returns: Json
       }
-      process_pending_automation_logs: {
-        Args: Record<PropertyKey, never>
-        Returns: undefined
-      }
-      process_pending_automations: {
-        Args: Record<PropertyKey, never>
-        Returns: undefined
-      }
-      process_scheduled_workflow_executions: {
-        Args: Record<PropertyKey, never>
-        Returns: undefined
-      }
+      process_pending_automation_logs: { Args: never; Returns: undefined }
+      process_pending_automations: { Args: never; Returns: undefined }
+      process_scheduled_workflow_executions: { Args: never; Returns: undefined }
       recalculate_job_revenue: {
         Args: { job_id_param: string }
         Returns: number
       }
-      refresh_user_products: {
-        Args: Record<PropertyKey, never>
-        Returns: Json
-      }
-      reload_products_for_current_niche: {
-        Args: Record<PropertyKey, never>
-        Returns: Json
-      }
+      refresh_user_products: { Args: never; Returns: Json }
+      reload_products_for_current_niche: { Args: never; Returns: Json }
       repair_user_products: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
-          user_id: string
-          email: string
           business_niche: string
-          status: string
-          products_loaded: number
+          email: string
           errors: Json
+          products_loaded: number
+          status: string
+          user_id: string
         }[]
       }
       safe_insert_products: {
@@ -6190,68 +6547,70 @@ export type Database = {
         Returns: Json
       }
       send_invoice_sms: {
-        Args: { invoice_id: string; recipient_phone: string; message: string }
+        Args: { invoice_id: string; message: string; recipient_phone: string }
         Returns: Json
       }
       switch_business_niche_comprehensive: {
-        Args: { p_user_id: string; p_business_niche: string }
+        Args: { p_business_niche: string; p_user_id: string }
         Returns: Json
       }
       test_create_products: {
-        Args: { p_user_id: string; p_business_niche: string }
+        Args: { p_business_niche: string; p_user_id: string }
         Returns: Json
       }
-      test_job_status_automation: {
-        Args:
-          | { p_job_id: string; p_new_status: string; p_user_id?: string }
-          | { p_job_id: string; p_old_status?: string; p_new_status?: string }
-        Returns: {
-          workflow_id: string
-          workflow_name: string
-          execution_id: string
-          steps_count: number
-          has_conditions: boolean
-          conditions_met: boolean
-        }[]
-      }
-      test_products_functionality: {
-        Args: Record<PropertyKey, never>
-        Returns: Json
-      }
-      test_products_visibility: {
-        Args: Record<PropertyKey, never>
-        Returns: Json
-      }
-      text_to_bytea: {
-        Args: { data: string }
-        Returns: string
-      }
-      trigger_automation_manually: {
-        Args:
-          | { automation_id: string; test_data?: Json }
-          | { p_workflow_id: string }
-        Returns: Json
-      }
-      update_automation_analytics: {
-        Args: Record<PropertyKey, never>
-        Returns: undefined
-      }
+      test_job_status_automation:
+        | {
+            Args: { p_job_id: string; p_new_status: string; p_user_id?: string }
+            Returns: {
+              conditions_met: boolean
+              execution_id: string
+              has_conditions: boolean
+              steps_count: number
+              workflow_id: string
+              workflow_name: string
+            }[]
+          }
+        | {
+            Args: {
+              p_job_id: string
+              p_new_status?: string
+              p_old_status?: string
+            }
+            Returns: Json
+          }
+      test_products_functionality: { Args: never; Returns: Json }
+      test_products_visibility: { Args: never; Returns: Json }
+      text_to_bytea: { Args: { data: string }; Returns: string }
+      trigger_automation_manually:
+        | { Args: { automation_id: string; test_data?: Json }; Returns: Json }
+        | { Args: { p_workflow_id: string }; Returns: Json }
+      update_automation_analytics: { Args: never; Returns: undefined }
       update_document_counter_higher_only: {
         Args: {
-          p_user_id: string
           p_document_type: string
           p_new_number: number
+          p_user_id: string
         }
         Returns: Json
       }
       update_team_member_commission: {
-        Args: { user_id: string; base_rate: number; rules: Json; fees: Json }
+        Args: { base_rate: number; fees: Json; rules: Json; user_id: string }
         Returns: undefined
       }
-      urlencode: {
-        Args: { data: Json } | { string: string } | { string: string }
-        Returns: string
-      }
+      urlencode:
+        | { Args: { data: Json }; Returns: string }
+        | {
+            Args: { string: string }
+            Returns: {
+              error: true
+            } & "Could not choose the best candidate function between: public.urlencode(string => bytea), public.urlencode(string => varchar). Try renaming the parameters or the function itself in the database so function overloading can be resolved"
+          }
+        | {
+            Args: { string: string }
+            Returns: {
+              error: true
+            } & "Could not choose the best candidate function between: public.urlencode(string => bytea), public.urlencode(string => varchar). Try renaming the parameters or the function itself in the database so function overloading can be resolved"
+          }
       validate_portal_access: {
         Args: {
           p_access_token: string
@@ -6263,8 +6622,8 @@ export type Database = {
       validate_workflow_for_execution: {
         Args: { workflow_id: string }
         Returns: {
-          is_valid: boolean
           error_message: string
+          is_valid: boolean
         }[]
       }
     }
@@ -6277,7 +6636,7 @@ export type Database = {
         value: string | null
       }
       http_request: {
-        method: unknown | null
+        method: unknown
         uri: string | null
         headers: Database["public"]["CompositeTypes"]["http_header"][] | null
         content_type: string | null
@@ -6411,6 +6770,9 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   public: {
     Enums: {},
   },

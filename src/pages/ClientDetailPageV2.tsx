@@ -16,6 +16,7 @@ import { ScheduleJobModal } from "@/components/schedule/ScheduleJobModal";
 import { PropertyCreateDialog } from "@/components/clients/client-form/PropertyCreateDialog";
 import { useState } from "react";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 // Loading skeleton for the page
 const ClientDetailSkeleton = () => (
@@ -140,6 +141,35 @@ const ClientDetailPageV2 = () => {
     refresh();
   };
 
+  const handleSetPrimary = async (propertyId: string) => {
+    if (!clientId) return;
+
+    try {
+      // First, unset all other properties as primary for this client
+      const { error: unsetError } = await supabase
+        .from('client_properties')
+        .update({ is_primary: false })
+        .eq('client_id', clientId)
+        .neq('id', propertyId);
+
+      if (unsetError) throw unsetError;
+
+      // Then set the selected property as primary
+      const { error: setError } = await supabase
+        .from('client_properties')
+        .update({ is_primary: true })
+        .eq('id', propertyId);
+
+      if (setError) throw setError;
+
+      toast.success('Primary property updated');
+      refresh();
+    } catch (error) {
+      console.error('Error setting primary property:', error);
+      toast.error('Failed to update primary property');
+    }
+  };
+
   if (!clientId) {
     navigate('/clients');
     return null;
@@ -217,6 +247,7 @@ const ClientDetailPageV2 = () => {
                 <PropertiesCard
                   properties={properties}
                   onAddProperty={handleAddProperty}
+                  onSetPrimary={handleSetPrimary}
                 />
               </div>
             </div>
@@ -251,6 +282,7 @@ const ClientDetailPageV2 = () => {
         open={isAddPropertyOpen}
         onOpenChange={setIsAddPropertyOpen}
         clientId={clientId}
+        clientType={client?.type || undefined}
         onPropertyCreated={handlePropertyCreated}
       />
     </PageLayout>

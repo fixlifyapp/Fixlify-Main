@@ -156,6 +156,7 @@ export const ClientsCreateModal = ({ open, onOpenChange, onSuccess }: ClientsCre
                         <SelectContent>
                           <SelectItem value="residential">Residential</SelectItem>
                           <SelectItem value="commercial">Commercial</SelectItem>
+                          <SelectItem value="landlord">Landlord</SelectItem>
                           <SelectItem value="property-manager">Property Manager</SelectItem>
                         </SelectContent>
                       </Select>

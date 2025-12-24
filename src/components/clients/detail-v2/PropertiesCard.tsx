@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ChevronDown, MapPin, Plus, Home, Building2, Star, ExternalLink } from "lucide-react";
+import { ChevronDown, MapPin, Plus, Home, Building2, Star, ExternalLink, User, Phone } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -15,11 +15,15 @@ interface Property {
   property_type?: string;
   is_primary?: boolean;
   notes?: string;
+  tenant_name?: string;
+  tenant_phone?: string;
+  tenant_email?: string;
 }
 
 interface PropertiesCardProps {
   properties: Property[];
   onAddProperty?: () => void;
+  onSetPrimary?: (propertyId: string) => void;
 }
 
 const getPropertyIcon = (type?: string) => {
@@ -32,7 +36,7 @@ const getPropertyIcon = (type?: string) => {
   }
 };
 
-export const PropertiesCard = ({ properties, onAddProperty }: PropertiesCardProps) => {
+export const PropertiesCard = ({ properties, onAddProperty, onSetPrimary }: PropertiesCardProps) => {
   const [isOpen, setIsOpen] = useState(true);
 
   const formatAddress = (property: Property) => {
@@ -127,6 +131,20 @@ export const PropertiesCard = ({ properties, onAddProperty }: PropertiesCardProp
                           </p>
                         )}
 
+                        {/* Tenant Info */}
+                        {property.tenant_name && (
+                          <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
+                            <User className="h-3 w-3" />
+                            <span>Tenant: {property.tenant_name}</span>
+                            {property.tenant_phone && (
+                              <>
+                                <Phone className="h-3 w-3 ml-1" />
+                                <span>{property.tenant_phone}</span>
+                              </>
+                            )}
+                          </div>
+                        )}
+
                         <div className="flex items-center gap-2 pt-1">
                           {property.property_type && (
                             <Badge variant="secondary" className="text-xs capitalize">
@@ -142,6 +160,18 @@ export const PropertiesCard = ({ properties, onAddProperty }: PropertiesCardProp
                             >
                               <ExternalLink className="h-3 w-3 mr-1" />
                               Maps
+                            </Button>
+                          )}
+                          {/* Set as Primary Button - only show for non-primary properties */}
+                          {!property.is_primary && onSetPrimary && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-6 px-2 text-xs text-muted-foreground hover:text-primary"
+                              onClick={() => onSetPrimary(property.id)}
+                            >
+                              <Star className="h-3 w-3 mr-1" />
+                              Set Primary
                             </Button>
                           )}
                         </div>

@@ -1,6 +1,13 @@
 import type { Job, JobWithRelations } from '@/types/core/job';
 import type { Client } from '@/types/core/client';
 
+// Tenant contact info from property
+export interface TenantInfo {
+  name?: string;
+  phone?: string;
+  email?: string;
+}
+
 // Extended Job type with UI-specific fields and backward compatibility
 export type JobInfo = JobWithRelations & {
   // Backward compatibility aliases
@@ -12,6 +19,8 @@ export type JobInfo = JobWithRelations & {
   phone?: string;
   email?: string;
   total?: number; // Deprecated: Use revenue instead
+  // Tenant contact info (from property)
+  tenantInfo?: TenantInfo;
 };
 
 export interface JobDetailsContextType {

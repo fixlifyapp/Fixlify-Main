@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -9,11 +9,19 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import { UnifiedJobTypeSelector } from "@/components/shared/UnifiedJobTypeSelector";
 import { FormData } from "./useScheduleJobForm";
+import { ChevronDown, User } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface JobInformationSectionProps {
   formData: FormData;
+  setFormData: React.Dispatch<React.SetStateAction<FormData>>;
   clients: any[];
   clientsLoading: boolean;
   clientProperties: any[];
@@ -28,6 +36,7 @@ interface JobInformationSectionProps {
 
 export const JobInformationSection = ({
   formData,
+  setFormData,
   clients,
   clientsLoading,
   clientProperties,
@@ -40,6 +49,32 @@ export const JobInformationSection = ({
   handleSelectChange,
 }: JobInformationSectionProps) => {
   const selectedClient = clients.find(c => c.id === formData.client_id);
+  const selectedProperty = clientProperties.find(p => p.id === formData.property_id);
+  const [tenantSectionOpen, setTenantSectionOpen] = useState(false);
+
+  // Auto-expand tenant section for commercial/landlord clients
+  useEffect(() => {
+    const clientType = selectedClient?.type;
+    if (clientType === 'commercial' || clientType === 'landlord') {
+      setTenantSectionOpen(true);
+    }
+  }, [selectedClient?.type]);
+
+  // Auto-populate tenant info when property is selected
+  useEffect(() => {
+    if (selectedProperty) {
+      setFormData(prev => ({
+        ...prev,
+        tenant_name: selectedProperty.tenant_name || '',
+        tenant_phone: selectedProperty.tenant_phone || '',
+        tenant_email: selectedProperty.tenant_email || '',
+      }));
+      // Open tenant section if property has tenant info
+      if (selectedProperty.tenant_name || selectedProperty.tenant_phone) {
+        setTenantSectionOpen(true);
+      }
+    }
+  }, [selectedProperty, setFormData]);
   
   return (
     <div className="space-y-4">
@@ -95,12 +130,78 @@ export const JobInformationSection = ({
                         <span className="text-sm text-muted-foreground">
                           {property.address}, {property.city}, {property.state}
                         </span>
+                        {property.tenant_name && (
+                          <span className="text-xs text-muted-foreground">
+                            Tenant: {property.tenant_name}
+                          </span>
+                        )}
                       </div>
                     </SelectItem>
                   ))
                 )}
               </SelectContent>
             </Select>
+          </div>
+        )}
+
+        {/* Tenant Contact Section - Collapsible */}
+        {formData.client_id && (
+          <div className="col-span-2">
+            <Collapsible open={tenantSectionOpen} onOpenChange={setTenantSectionOpen}>
+              <CollapsibleTrigger asChild>
+                <button
+                  type="button"
+                  className="flex items-center justify-between w-full px-3 py-2 text-sm font-medium text-left border rounded-lg hover:bg-muted/50 transition-colors"
+                >
+                  <div className="flex items-center gap-2">
+                    <User className="h-4 w-4 text-muted-foreground" />
+                    <span>Tenant Contact</span>
+                    <span className="text-xs text-muted-foreground">(for access)</span>
+                  </div>
+                  <ChevronDown className={cn(
+                    "h-4 w-4 text-muted-foreground transition-transform",
+                    tenantSectionOpen && "rotate-180"
+                  )} />
+                </button>
+              </CollapsibleTrigger>
+              <CollapsibleContent className="pt-3 space-y-3">
+                <div className="p-3 border rounded-lg bg-muted/20 space-y-3">
+                  <p className="text-xs text-muted-foreground">
+                    Contact info for the person at the property (for scheduling access)
+                  </p>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <Label htmlFor="tenant_name">Tenant Name</Label>
+                      <Input
+                        id="tenant_name"
+                        value={formData.tenant_name}
+                        onChange={handleChange}
+                        placeholder="Name of tenant/occupant"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="tenant_phone">Tenant Phone</Label>
+                      <Input
+                        id="tenant_phone"
+                        value={formData.tenant_phone}
+                        onChange={handleChange}
+                        placeholder="Phone for access"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <Label htmlFor="tenant_email">Tenant Email</Label>
+                    <Input
+                      id="tenant_email"
+                      type="email"
+                      value={formData.tenant_email}
+                      onChange={handleChange}
+                      placeholder="tenant@email.com"
+                    />
+                  </div>
+                </div>
+              </CollapsibleContent>
+            </Collapsible>
           </div>
         )}
 

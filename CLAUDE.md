@@ -55,6 +55,53 @@ Automation Design:
 automation-engineer → Workflow implementation
 ```
 
+## 📘 BMAD Method (AI-Driven Development)
+
+BMAD (BMad Agentic Development) is installed for structured feature development.
+
+### Quick Commands
+| Command | Description |
+|---------|-------------|
+| `/bmad:bmm:workflows:workflow-status` | Check current progress |
+| `/bmad:bmm:workflows:create-prd` | Create Product Requirements |
+| `/bmad:bmm:workflows:create-architecture` | Design architecture |
+| `/bmad:bmm:workflows:create-epics-stories` | Break down into stories |
+| `/bmad:bmm:workflows:sprint-planning` | Plan sprint |
+| `/bmad:bmm:workflows:dev-story` | Implement a story |
+| `/bmad:bmm:workflows:code-review` | Review code |
+
+### BMAD Agents
+| Agent | Role |
+|-------|------|
+| `analyst` | Research, brainstorming, product briefs |
+| `pm` | PRD creation, epics & stories |
+| `architect` | Technical architecture, solution design |
+| `ux-designer` | UX/UI design patterns |
+| `dev` | Story implementation |
+| `sm` | Sprint planning, status tracking |
+| `tea` | Test architecture, quality assurance |
+
+### Workflow for New Features
+```
+1. /bmad:bmm:workflows:create-prd        → Define requirements
+2. /bmad:bmm:workflows:create-architecture → Design solution
+3. /bmad:bmm:workflows:create-epics-stories → Break into tasks
+4. /bmad:bmm:workflows:sprint-planning   → Plan work
+5. /bmad:bmm:workflows:dev-story         → Implement
+6. /bmad:bmm:workflows:code-review       → Review
+```
+
+### Key Files
+- `docs/bmm-workflow-status.yaml` - Workflow progress tracking
+- `docs/sprint-artifacts/` - Sprint planning files
+- `.bmad/bmm/config.yaml` - BMAD configuration
+
+### Quick Flow (Simple Tasks)
+For simple features without full planning, use the **quick-flow-solo-dev** agent:
+```
+/bmad:bmm:agents:quick-flow-solo-dev
+```
+
 ## 🏗️ Project Structure
 
 ```

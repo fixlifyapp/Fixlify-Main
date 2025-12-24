@@ -62,8 +62,8 @@ export const useJobData = (jobId: string, refreshTrigger: number) => {
     
     const fetchJobData = async () => {
       try {
-        const { jobData, paymentsData } = await fetchJobWithClient(jobId);
-        return transformJobData(jobData, paymentsData);
+        const { jobData, paymentsData, propertyData } = await fetchJobWithClient(jobId);
+        return transformJobData(jobData, paymentsData, propertyData);
       } catch (error) {
         console.error("❌ Error in fetchJobData:", error);
         if (error instanceof Error) {
