@@ -1,11 +1,11 @@
 import React, { useState } from "react";
 import { ModernCard, ModernCardHeader, ModernCardContent, ModernCardTitle } from "@/components/ui/modern-card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Edit, Save, X, Info, Loader2 } from "lucide-react";
 import { useJobOverview } from "@/hooks/useJobOverview";
+import { useLeadSources } from "@/hooks/useConfigItems";
 import { toast } from "sonner";
 
 interface EditableJobOverviewCardProps {
@@ -22,6 +22,10 @@ export const EditableJobOverviewCard = ({ overview, jobId, onUpdate }: EditableJ
   });
   const [optimisticValues, setOptimisticValues] = useState(overview || {});
   const { saveOverview } = useJobOverview(jobId);
+  const { items: leadSources, isLoading: leadSourcesLoading } = useLeadSources();
+
+  // Filter to only show active lead sources
+  const activeLeadSources = leadSources.filter(source => source.is_active !== false);
 
   const handleSave = async () => {
     setIsSaving(true);
@@ -106,13 +110,27 @@ export const EditableJobOverviewCard = ({ overview, jobId, onUpdate }: EditableJ
           {isEditing ? (
             <div className="space-y-2">
               <Label htmlFor="lead_source">Lead Source</Label>
-              <Input
-                id="lead_source"
+              <Select
                 value={editValues.lead_source}
-                onChange={(e) => setEditValues(prev => ({ ...prev, lead_source: e.target.value }))}
-                placeholder="Enter lead source"
-                disabled={isSaving}
-              />
+                onValueChange={(value) => setEditValues(prev => ({ ...prev, lead_source: value }))}
+                disabled={isSaving || leadSourcesLoading}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder={leadSourcesLoading ? "Loading..." : "Select lead source"} />
+                </SelectTrigger>
+                <SelectContent>
+                  {activeLeadSources.map((source) => (
+                    <SelectItem key={source.id} value={source.name}>
+                      {source.name}
+                    </SelectItem>
+                  ))}
+                  {activeLeadSources.length === 0 && !leadSourcesLoading && (
+                    <SelectItem value="" disabled>
+                      No lead sources configured
+                    </SelectItem>
+                  )}
+                </SelectContent>
+              </Select>
             </div>
           ) : (
             <div>

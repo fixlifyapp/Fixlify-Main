@@ -49,6 +49,8 @@ export function ScheduleSelectionDialog({
   const [endDate, setEndDate] = useState<Date | undefined>(parseInitialDate());
   const [startTime, setStartTime] = useState(initialTimeWindow.split(" - ")[0] || "09:00");
   const [endTime, setEndTime] = useState(initialTimeWindow.split(" - ")[1] || "11:00");
+  const [startDateOpen, setStartDateOpen] = useState(false);
+  const [endDateOpen, setEndDateOpen] = useState(false);
   
   const handleSave = () => {
     const formattedStartDate = startDate ? format(startDate, "MMM dd, yyyy") : "Not scheduled";
@@ -78,7 +80,7 @@ export function ScheduleSelectionDialog({
             {/* Start Date */}
             <div>
               <Label>Start Date</Label>
-              <Popover>
+              <Popover open={startDateOpen} onOpenChange={setStartDateOpen}>
                 <PopoverTrigger asChild>
                   <Button
                     variant="outline"
@@ -101,6 +103,7 @@ export function ScheduleSelectionDialog({
                       if (date && (!endDate || endDate < date)) {
                         setEndDate(date);
                       }
+                      setStartDateOpen(false);
                     }}
                     initialFocus
                     className="p-3 pointer-events-auto"
@@ -112,7 +115,7 @@ export function ScheduleSelectionDialog({
             {/* End Date */}
             <div>
               <Label>End Date</Label>
-              <Popover>
+              <Popover open={endDateOpen} onOpenChange={setEndDateOpen}>
                 <PopoverTrigger asChild>
                   <Button
                     variant="outline"
@@ -129,7 +132,10 @@ export function ScheduleSelectionDialog({
                   <Calendar
                     mode="single"
                     selected={endDate}
-                    onSelect={setEndDate}
+                    onSelect={(date) => {
+                      setEndDate(date);
+                      setEndDateOpen(false);
+                    }}
                     disabled={(date) => startDate ? date < startDate : false}
                     initialFocus
                     className="p-3 pointer-events-auto"
