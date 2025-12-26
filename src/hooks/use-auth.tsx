@@ -15,13 +15,6 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const authState = useAuthState();
-  
-  console.log('🔐 AuthProvider - Auth State:', {
-    isAuthenticated: authState.isAuthenticated,
-    loading: authState.loading,
-    error: authState.error,
-    hasSession: !!authState.session
-  });
 
   return (
     <AuthContext.Provider value={authState}>

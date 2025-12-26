@@ -21,9 +21,7 @@ export function useAuthState() {
   useEffect(() => {
     let mounted = true;
     
-    const handleAuthChange = (event: string, session: Session | null) => {
-      console.log('🔐 Auth state change:', event, session ? 'session exists' : 'no session');
-      
+    const handleAuthChange = (_event: string, session: Session | null) => {
       if (!mounted) return;
       
       setAuthState(prev => ({
@@ -44,14 +42,12 @@ export function useAuthState() {
         if (!mounted) return;
         
         if (error) {
-          console.error('❌ Error getting initial session:', error);
           setAuthState(prev => ({
             ...prev,
             error: error.message,
             loading: false
           }));
         } else {
-          console.log('🔍 Initial session check:', session ? 'found' : 'none');
           setAuthState(prev => ({
             ...prev,
             user: session?.user ?? null,
@@ -63,7 +59,6 @@ export function useAuthState() {
       })
       .catch(error => {
         if (!mounted) return;
-        console.error('💥 Session check failed:', error);
         setAuthState(prev => ({
           ...prev,
           error: error.message,
@@ -83,7 +78,6 @@ export function useAuthState() {
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
     } catch (error: any) {
-      console.error('❌ Sign out error:', error);
       setAuthState(prev => ({
         ...prev,
         error: error.message,

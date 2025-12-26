@@ -23,14 +23,12 @@ export const useEstimateCreation = (
 
   // Handle editing an existing estimate
   const handleEditEstimate = (estimateId: string) => {
-    console.log("useEstimateCreation.handleEditEstimate called with ID:", estimateId);
     const estimate = estimates.find(est => est.id === estimateId);
     if (estimate) {
       setSelectedEstimateId(estimateId);
       loadEstimateItems(estimateId);
       toast.info(`Editing estimate ${estimate.estimate_number || estimate.number}`);
     } else {
-      console.error("Estimate not found with ID:", estimateId);
       toast.error("Estimate not found");
     }
   };
@@ -38,20 +36,16 @@ export const useEstimateCreation = (
   // Load existing items for an estimate
   const loadEstimateItems = async (estimateId: string) => {
     try {
-      console.log("Loading estimate items for ID:", estimateId);
       const { data, error } = await supabase
         .from('line_items')
         .select('*')
         .eq('parent_type', 'estimate')
         .eq('parent_id', estimateId);
-      
+
       if (error) {
-        console.error("Supabase error loading items:", error);
         throw error;
       }
 
-      console.log("Loaded estimate items:", data);
-      
       // Map the database items to Product type with required fields
       if (data && data.length > 0) {
         const mappedItems: Product[] = data.map(item => ({
@@ -67,14 +61,11 @@ export const useEstimateCreation = (
           ourPrice: 0, // Default ourPrice to 0
           sku: ""  // Default empty sku
         }));
-        console.log("Mapped estimate items:", mappedItems);
         setEstimateItems(mappedItems);
       } else {
-        console.log("No estimate items found, setting empty array");
         setEstimateItems([]);
       }
     } catch (error) {
-      console.error('Error loading estimate items:', error);
       toast.error('Failed to load estimate items');
     }
   };
@@ -105,7 +96,6 @@ export const useEstimateCreation = (
           .eq('parent_id', selectedEstimateId);
           
         if (error) {
-          console.error('Error removing product from estimate:', error);
           toast.error('Failed to remove product from estimate');
           return;
         }
@@ -122,9 +112,7 @@ export const useEstimateCreation = (
               .update({ total: newTotal })
               .eq('id', selectedEstimateId);
               
-            if (updateError) {
-              console.error('Error updating estimate amount:', updateError);
-            } else {
+            if (!updateError) {
               // Update the local estimates array
               setEstimates(estimates.map(est => 
                 est.id === selectedEstimateId ? { ...est, total: newTotal } : est
@@ -135,7 +123,6 @@ export const useEstimateCreation = (
         
         toast.success('Product removed from estimate');
       } catch (error) {
-        console.error('Error in removeProductFromEstimate:', error);
         toast.error('Failed to remove product');
       }
     }
@@ -154,27 +141,23 @@ export const useEstimateCreation = (
     try {
       // Generate a new estimate number using the simplified numbering system
       const newEstimateNumber = await generateNextId('estimate');
-      
-      console.log('Creating estimate for job:', jobId, 'with amount:', amount);
-      console.log('Generated estimate number:', newEstimateNumber);
-      
+
       // Create a new estimate in Supabase
       const { data, error } = await supabase
         .from('estimates')
         .insert({
-          job_id: jobId, 
+          job_id: jobId,
           estimate_number: newEstimateNumber,
           total: amount,
           status: 'draft'
         })
         .select()
         .single();
-        
+
       if (error) {
-        console.error('Supabase error:', error);
         throw error;
       }
-      
+
       // Save estimate items if there are any
       if (estimateItems.length > 0) {
         const itemsToInsert = estimateItems.map(product => ({
@@ -191,11 +174,10 @@ export const useEstimateCreation = (
           .insert(itemsToInsert);
 
         if (itemsError) {
-          console.error('Error saving estimate items:', itemsError);
           toast.error('Warning: Some items may not have been saved');
         }
       }
-      
+
       // Create a new estimate object
       const newEstimate = {
         id: data.id,
@@ -216,16 +198,13 @@ export const useEstimateCreation = (
         created_at: data.created_at,
         updated_at: data.updated_at
       };
-      
-      console.log('Created estimate:', newEstimate);
-      
+
       // Add the new estimate to the list
       setEstimates([newEstimate, ...estimates]);
-      
+
       toast.success(`Estimate ${newEstimateNumber} created`);
       return newEstimate;
     } catch (error) {
-      console.error('Error creating estimate:', error);
       toast.error('Failed to create estimate');
       return null;
     }

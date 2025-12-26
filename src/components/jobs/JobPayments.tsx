@@ -161,9 +161,9 @@ export const JobPayments = ({ jobId }: JobPaymentsProps) => {
             <div className="space-y-3 sm:space-y-4">
               {payments.map((payment) => (
                 <div key={payment.id} className="border rounded-lg p-4 hover:shadow-md transition-shadow">
-                  <div className="flex items-center justify-between">
+                  <div className="flex flex-wrap items-center justify-between gap-4">
                     {/* Left side - Payment info */}
-                    <div className="flex items-center gap-6">
+                    <div className="flex flex-wrap items-center gap-4 sm:gap-6">
                       <div>
                         <div className="flex items-center gap-3">
                           <span className="font-semibold text-gray-900">{formatCurrency(Math.abs(payment.amount))}</span>
@@ -176,7 +176,7 @@ export const JobPayments = ({ jobId }: JobPaymentsProps) => {
                     </div>
                     
                     {/* Right side - Action Buttons */}
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
                       {payment.amount > 0 && (
                         <Button
                           variant="outline"

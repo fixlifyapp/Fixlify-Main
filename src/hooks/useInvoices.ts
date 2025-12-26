@@ -25,13 +25,11 @@ export const useInvoices = (jobId?: string) => {
   const fetchInvoices = async () => {
     // Prevent multiple simultaneous fetches
     if (isFetching) {
-      console.log('⚠️ Fetch already in progress, skipping...');
       return;
     }
-    
+
     try {
       setIsFetching(true);
-      console.log('📊 Fetching invoices' + (jobId ? ` for job: ${jobId}` : ''), 'at', new Date().toISOString());
       setIsLoading(true);
       
       let query = supabase
@@ -43,16 +41,13 @@ export const useInvoices = (jobId?: string) => {
         query = query.eq('job_id', jobId);
       }
 
-      const { data, error } = await query;
+      const { data, error} = await query;
 
       if (error) {
-        console.error('❌ Error fetching invoices:', error);
         toast.error('Failed to load invoices');
         return;
       }
 
-      console.log('✅ Invoices fetched:', data?.length || 0, 'invoices with updated amounts');
-      
       // Transform data to match Invoice interface
       const transformedInvoices: Invoice[] = (data || []).map(item => ({
         ...item,
@@ -76,15 +71,9 @@ export const useInvoices = (jobId?: string) => {
         updated_at: item.updated_at || item.created_at,
         balance_due: (item.total || 0) - (item.amount_paid || 0)
       }));
-      
-      // Log payment status for debugging
-      transformedInvoices.forEach(invoice => {
-        console.log(`📋 Invoice ${invoice.invoice_number}: Total=${invoice.total}, Paid=${invoice.amount_paid}, Balance=${invoice.balance_due}, Status=${invoice.status}`);
-      });
-      
+
       setInvoices(transformedInvoices);
     } catch (error) {
-      console.error('❌ Error in fetchInvoices:', error);
       toast.error('Failed to load invoices');
     } finally {
       setIsLoading(false);
@@ -93,7 +82,6 @@ export const useInvoices = (jobId?: string) => {
   };
 
   const refreshInvoices = () => {
-    console.log('🔄 Refreshing invoices...');
     fetchInvoices();
   };
 

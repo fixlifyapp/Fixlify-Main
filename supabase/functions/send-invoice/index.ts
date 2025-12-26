@@ -22,8 +22,8 @@ serve(async (req) => {
     if (!supabaseUrl || !supabaseServiceKey) {
       console.error('[send-invoice] Missing Supabase configuration');
       return new Response(
-        JSON.stringify({ error: "Missing Supabase configuration" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({ success: false, error: "Missing Supabase configuration" }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
     
@@ -35,8 +35,8 @@ serve(async (req) => {
     
     if (!authHeader) {
       return new Response(
-        JSON.stringify({ error: "No authorization header" }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({ success: false, error: "No authorization header" }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
@@ -45,8 +45,8 @@ serve(async (req) => {
     
     if (authError || !user) {
       return new Response(
-        JSON.stringify({ error: "Invalid authentication", details: authError?.message }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({ success: false, error: "Invalid authentication", details: authError?.message }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
@@ -56,32 +56,56 @@ serve(async (req) => {
     
     if (!invoiceId) {
       return new Response(
-        JSON.stringify({ error: "Invoice ID is required" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({ success: false, error: "Invoice ID is required" }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
     
     console.log("[send-invoice] Processing invoice:", invoiceId);
-    
-    // Get invoice details with job and client info
+
+    // Get invoice details - using separate queries to avoid inner join failures
     const { data: invoice, error: invoiceError } = await supabase
       .from("invoices")
-      .select(`
-        *,
-        jobs!inner(
-          *,
-          clients!inner(*)
-        )
-      `)
+      .select("*")
       .eq("id", invoiceId)
-      .single();
+      .maybeSingle();
 
-    if (invoiceError || !invoice) {
+    if (invoiceError) {
       console.error("[send-invoice] Error fetching invoice:", invoiceError);
       return new Response(
-        JSON.stringify({ error: "Invoice not found", details: invoiceError?.message }),
-        { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({ success: false, error: "Failed to fetch invoice", details: invoiceError?.message }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
+    }
+
+    if (!invoice) {
+      return new Response(
+        JSON.stringify({ success: false, error: "Invoice not found" }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Fetch job details if job_id exists
+    let job = null;
+    if (invoice.job_id) {
+      const { data: jobData } = await supabase
+        .from("jobs")
+        .select("*")
+        .eq("id", invoice.job_id)
+        .maybeSingle();
+      job = jobData;
+    }
+
+    // Fetch client details
+    let client = null;
+    const clientId = invoice.client_id || job?.client_id;
+    if (clientId) {
+      const { data: clientData } = await supabase
+        .from("clients")
+        .select("*")
+        .eq("id", clientId)
+        .maybeSingle();
+      client = clientData;
     }
     
     // Generate portal token
@@ -122,12 +146,12 @@ serve(async (req) => {
       companyEmail = "noreply@fixlify.app";
     }
     
-    const toEmail = recipientEmail || invoice.jobs?.clients?.email;
-    
+    const toEmail = recipientEmail || client?.email;
+
     if (!toEmail) {
       return new Response(
-        JSON.stringify({ error: "No recipient email address available" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({ success: false, error: "No recipient email address available" }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
@@ -153,7 +177,7 @@ serve(async (req) => {
           </div>
           
           <div style="padding: 30px;">
-            <p style="font-size: 16px; color: #333; line-height: 1.6;">Dear ${invoice.jobs?.clients?.name || "Valued Customer"},</p>
+            <p style="font-size: 16px; color: #333; line-height: 1.6;">Dear ${client?.name || "Valued Customer"},</p>
             
             ${customMessage ? `<p style="font-size: 16px; color: #333; line-height: 1.6; background-color: #f8f9fa; padding: 15px; border-radius: 8px; border-left: 4px solid #28a745;">${customMessage}</p>` : ''}
             
@@ -240,11 +264,11 @@ serve(async (req) => {
         error: errorText
       });
       return new Response(
-        JSON.stringify({ 
+        JSON.stringify({
           success: false,
-          error: `Failed to send email: ${errorText}` 
+          error: `Failed to send email: ${errorText}`
         }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
@@ -272,13 +296,13 @@ serve(async (req) => {
   } catch (error) {
     console.error("[send-invoice] Unexpected error:", error);
     return new Response(
-      JSON.stringify({ 
-        error: "Internal server error", 
-        message: error.message,
-        stack: error.stack 
+      JSON.stringify({
+        success: false,
+        error: "Internal server error",
+        message: error.message
       }),
-      { 
-        status: 500,
+      {
+        status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" }
       }
     );

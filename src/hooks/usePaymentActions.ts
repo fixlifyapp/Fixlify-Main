@@ -18,24 +18,18 @@ export const usePaymentActions = (jobId: string, onSuccess?: () => void) => {
   const addPayment = async (paymentData: PaymentData): Promise<boolean> => {
     setIsProcessing(true);
     try {
-      console.log('Starting payment recording process for job:', jobId);
-      console.log('Payment data:', paymentData);
-      
       // Validate required data
       if (!paymentData.invoiceId) {
-        console.error('Invoice ID is required');
         toast.error('Invoice ID is required');
         return false;
       }
-      
+
       if (!paymentData.amount || paymentData.amount <= 0) {
-        console.error('Payment amount must be greater than 0');
         toast.error('Payment amount must be greater than 0');
         return false;
       }
 
       if (!paymentData.method) {
-        console.error('Payment method is required');
         toast.error('Payment method is required');
         return false;
       }
@@ -48,18 +42,14 @@ export const usePaymentActions = (jobId: string, onSuccess?: () => void) => {
         .single();
 
       if (fetchError) {
-        console.error('Error fetching invoice:', fetchError);
         toast.error('Invoice not found or access denied');
         return false;
       }
 
       if (!currentInvoice) {
-        console.error('Invoice not found');
         toast.error('Invoice not found');
         return false;
       }
-
-      console.log('Current invoice state:', currentInvoice);
 
       // Calculate remaining balance with proper rounding
       const currentAmountPaid = Math.round((currentInvoice.amount_paid || 0) * 100) / 100;
@@ -67,16 +57,8 @@ export const usePaymentActions = (jobId: string, onSuccess?: () => void) => {
       const remainingBalance = Math.round((invoiceTotal - currentAmountPaid) * 100) / 100;
       const paymentAmount = Math.round(paymentData.amount * 100) / 100;
 
-      console.log('Payment calculation:', {
-        currentAmountPaid,
-        invoiceTotal,
-        remainingBalance,
-        paymentAmount
-      });
-
       // Validate payment amount doesn't exceed remaining balance
       if (paymentAmount > remainingBalance + 0.01) { // Small tolerance for floating point
-        console.error('Payment amount exceeds remaining balance');
         toast.error(`Payment amount ($${paymentAmount.toFixed(2)}) exceeds remaining balance ($${remainingBalance.toFixed(2)})`);
         return false;
       }
@@ -87,12 +69,9 @@ export const usePaymentActions = (jobId: string, onSuccess?: () => void) => {
       });
 
       if (numberError) {
-        console.error('Error generating payment number:', numberError);
         toast.error('Failed to generate payment number');
         return false;
       }
-
-      console.log('Generated payment number:', paymentNumber);
 
       // Insert payment record
       const { data: paymentResult, error: paymentError } = await supabase
@@ -111,12 +90,9 @@ export const usePaymentActions = (jobId: string, onSuccess?: () => void) => {
         .single();
 
       if (paymentError) {
-        console.error('Error inserting payment:', paymentError);
         toast.error('Failed to record payment: ' + paymentError.message);
         return false;
       }
-
-      console.log('Payment inserted successfully:', paymentResult);
 
       // Calculate new amounts with proper rounding
       const newAmountPaid = Math.round((currentAmountPaid + paymentAmount) * 100) / 100;
@@ -132,12 +108,6 @@ export const usePaymentActions = (jobId: string, onSuccess?: () => void) => {
         newStatus = 'draft'; // Fallback to draft instead of unpaid
       }
 
-      console.log('Updating invoice with new amounts:', {
-        newAmountPaid,
-        newBalance,
-        newStatus
-      });
-
       // Update invoice amount_paid and status - ensure we only use valid status values
       const { error: updateError } = await supabase
         .from('invoices')
@@ -149,7 +119,6 @@ export const usePaymentActions = (jobId: string, onSuccess?: () => void) => {
         .eq('id', paymentData.invoiceId);
 
       if (updateError) {
-        console.error('Error updating invoice:', updateError);
         // Try to rollback the payment
         await supabase
           .from('payments')
@@ -159,23 +128,17 @@ export const usePaymentActions = (jobId: string, onSuccess?: () => void) => {
         return false;
       }
 
-      console.log('Invoice updated successfully');
-
       // Log the payment in job history
       try {
         await logPaymentReceived(
-          paymentAmount, 
-          paymentData.method as any, 
+          paymentAmount,
+          paymentData.method as any,
           paymentData.reference
         );
-        console.log('Payment successfully logged to job history');
       } catch (historyError) {
-        console.error('Failed to log payment to job history:', historyError);
         // Don't fail the entire payment if history logging fails
-        console.warn('Payment recorded but history logging failed');
       }
 
-      console.log('Payment successfully recorded');
       toast.success('Payment recorded successfully!');
       
       // Add delay to ensure database changes are fully committed before triggering refresh
@@ -185,7 +148,6 @@ export const usePaymentActions = (jobId: string, onSuccess?: () => void) => {
       
       return true;
     } catch (error: any) {
-      console.error('Error recording payment:', error);
       const errorMessage = error.message || 'Unknown error occurred';
       toast.error(`Failed to record payment: ${errorMessage}`);
       return false;
@@ -259,7 +221,6 @@ export const usePaymentActions = (jobId: string, onSuccess?: () => void) => {
       if (onSuccess) onSuccess();
       return true;
     } catch (error) {
-      console.error('Error refunding payment:', error);
       toast.error('Failed to refund payment. Please try again.');
       return false;
     } finally {
@@ -321,7 +282,6 @@ export const usePaymentActions = (jobId: string, onSuccess?: () => void) => {
       if (onSuccess) onSuccess();
       return true;
     } catch (error) {
-      console.error('Error deleting payment:', error);
       toast.error('Failed to delete payment. Please try again.');
       return false;
     } finally {

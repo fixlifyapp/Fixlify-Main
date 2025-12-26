@@ -109,7 +109,6 @@ export const useJobs = (clientId?: string, enableCustomFields?: boolean) => {
 
   // Stable callback for real-time updates
   const handleRealtimeUpdate = useCallback(() => {
-    console.log('Real-time update triggered for jobs');
     setRefreshTrigger(prev => prev + 1);
   }, []);
 
@@ -121,13 +120,10 @@ export const useJobs = (clientId?: string, enableCustomFields?: boolean) => {
   });
 
   const validateJobData = (jobData: any) => {
-    console.log("🔍 validateJobData input:", jobData);
-    
     // Validate job type against configuration
     if (jobData.job_type && jobTypes.length > 0) {
       const validJobType = jobTypes.find(jt => jt.name === jobData.job_type);
       if (!validJobType) {
-        console.warn(`Job type "${jobData.job_type}" not found in configuration, using default`);
         const defaultJobType = jobTypes.find(jt => jt.is_default);
         jobData.job_type = defaultJobType?.name || 'General Service';
       }
@@ -137,7 +133,6 @@ export const useJobs = (clientId?: string, enableCustomFields?: boolean) => {
     if (jobData.status && jobStatuses.length > 0) {
       const validStatus = jobStatuses.find(js => js.name.toLowerCase() === jobData.status.toLowerCase());
       if (!validStatus) {
-        console.warn(`Job status "${jobData.status}" not found in configuration, using default`);
         const defaultStatus = jobStatuses.find(js => js.is_default) || jobStatuses[0];
         jobData.status = defaultStatus?.name || 'New';
       } else {
@@ -172,33 +167,25 @@ export const useJobs = (clientId?: string, enableCustomFields?: boolean) => {
       'address', 'user_id', 'created_by_automation', 'automation_triggered_at',
       'deleted_at', 'service'
     ];
-    
+
     Object.keys(jobData).forEach(key => {
       if (!validFields.includes(key)) {
-        console.warn(`Removing invalid field: ${key}`);
         delete jobData[key];
       }
     });
 
-    console.log("✅ validateJobData output:", jobData);
     return jobData;
   };
 
   const addJob = async (jobData: Partial<Job>) => {
-    console.log("🔍 addJob called with:", jobData);
-    console.log("🔑 User ID:", user?.id);
-    console.log("✅ Can create jobs:", canCreateJobs());
-    
     // Prevent concurrent job creation
     if (isCreatingJobRef.current) {
-      console.warn("⚠️ Job creation already in progress, ignoring duplicate call");
       return null;
     }
-    
+
     isCreatingJobRef.current = true;
-    
+
     if (!canCreateJobs()) {
-      console.log("❌ Permission denied for job creation");
       import('@/components/ui/sonner').then(({ toast }) => {
         toast.error("You don't have permission to create jobs");
       });
@@ -207,23 +194,19 @@ export const useJobs = (clientId?: string, enableCustomFields?: boolean) => {
     }
 
     try {
-      console.log("🆔 Generating job ID...");
       const jobId = await generateNextId('job');
-      console.log("✅ Generated job ID:", jobId);
-      
-      const autoTitle = jobData.title || 
+
+      const autoTitle = jobData.title ||
         `${jobData.client?.name || 'Service'} - ${jobData.job_type || jobData.service || 'General Service'}`;
-      console.log("📝 Auto-generated title:", autoTitle);
-      
+
       let clientAddress = '';
       if (jobData.client_id) {
-        console.log("🏠 Fetching client address for:", jobData.client_id);
         const { data: clientData } = await supabase
           .from('clients')
           .select('address, city, state, zip')
           .eq('id', jobData.client_id)
           .single();
-        
+
         if (clientData) {
           const addressParts = [
             clientData.address,
@@ -248,7 +231,6 @@ export const useJobs = (clientId?: string, enableCustomFields?: boolean) => {
         tasks: Array.isArray(jobData.tasks) ? jobData.tasks : []
       });
 
-      console.log("💾 Inserting job into database...");
       const { data, error } = await supabase
         .from('jobs')
         .insert(validatedJobData)
@@ -256,15 +238,12 @@ export const useJobs = (clientId?: string, enableCustomFields?: boolean) => {
         .single();
 
       if (error) {
-        console.error("❌ Database insert error:", error);
         throw error;
       }
 
-      console.log('✅ Job created successfully:', data);
       isCreatingJobRef.current = false;
       return data;
     } catch (error) {
-      console.error('Error creating job:', error);
       isCreatingJobRef.current = false;
       throw error;
     }
@@ -279,14 +258,10 @@ export const useJobs = (clientId?: string, enableCustomFields?: boolean) => {
     }
 
     try {
-      console.log('🔄 Starting job update:', { jobId, updates });
-      
       const validatedUpdates = validateJobData({
         ...updates,
         updated_at: new Date().toISOString()
       });
-      
-      console.log('✅ Validated updates:', validatedUpdates);
 
       const { data, error } = await supabase
         .from('jobs')
@@ -296,14 +271,11 @@ export const useJobs = (clientId?: string, enableCustomFields?: boolean) => {
         .single();
 
       if (error) {
-        console.error('❌ Supabase update error:', error);
         throw error;
       }
 
-      console.log('✅ Job updated successfully:', data);
       return data;
     } catch (error) {
-      console.error('❌ Error updating job:', error);
       throw error;
     }
   };
@@ -326,14 +298,12 @@ export const useJobs = (clientId?: string, enableCustomFields?: boolean) => {
 
       // Optimistic update - immediately remove from local state
       setJobs(prev => prev.filter(job => job.id !== jobId));
-      
-      console.log('Job deleted successfully:', jobId);
+
       import('@/components/ui/sonner').then(({ toast }) => {
         toast.success('Job deleted successfully');
       });
       return true;
     } catch (error) {
-      console.error('Error deleting job:', error);
       // On error, refresh to restore correct state
       setRefreshTrigger(prev => prev + 1);
       import('@/components/ui/sonner').then(({ toast }) => {

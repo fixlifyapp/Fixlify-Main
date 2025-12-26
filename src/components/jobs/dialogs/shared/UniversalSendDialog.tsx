@@ -233,10 +233,22 @@ ${companyName} Team`;
               placeholder={sendMethod === "email" ? "client@example.com" : "Phone number"}
               value={sendTo}
               onChange={(e) => {
-                setSendTo(e.target.value);
-                setValidationError("");
+                const value = e.target.value;
+                setSendTo(value);
+                // Inline validation as user types
+                if (value.trim()) {
+                  if (sendMethod === "email" && !isValidEmail(value)) {
+                    setValidationError("Please enter a valid email address (e.g., client@example.com)");
+                  } else if (sendMethod === "sms" && !isValidPhoneNumber(value)) {
+                    setValidationError("Please enter a valid phone number (10-15 digits)");
+                  } else {
+                    setValidationError("");
+                  }
+                } else {
+                  setValidationError("");
+                }
               }}
-              className={validationError ? "border-red-500" : ""}
+              className={validationError ? "border-red-500 focus:ring-red-500" : ""}
             />
             {validationError && (
               <p className="text-sm text-red-600">{validationError}</p>

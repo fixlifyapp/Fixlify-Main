@@ -25,19 +25,17 @@ export const useEstimates = (jobId?: string) => {
   const fetchEstimates = async () => {
     // Prevent multiple simultaneous fetches
     if (isFetching) {
-      console.log('⚠️ Fetch already in progress for estimates, skipping...');
       return;
     }
-    
+
     if (!jobId) {
       setEstimates([]);
       setIsLoading(false);
       return;
     }
-    
+
     try {
       setIsFetching(true);
-      console.log('📊 Fetching estimates' + (jobId ? ` for job: ${jobId}` : ''));
       
       const { data, error } = await supabase
         .from('estimates')
@@ -46,13 +44,10 @@ export const useEstimates = (jobId?: string) => {
         .order('created_at', { ascending: false });
 
       if (error) {
-        console.error('❌ Error fetching estimates:', error);
         toast.error('Failed to load estimates');
         return;
       }
 
-      console.log('✅ Estimates fetched:', data?.length || 0);
-      
       // Transform data to match Estimate interface
       const transformedEstimates: Estimate[] = (data || []).map(item => ({
         ...item,
@@ -76,7 +71,6 @@ export const useEstimates = (jobId?: string) => {
       
       setEstimates(transformedEstimates);
     } catch (error) {
-      console.error('❌ Error in fetchEstimates:', error);
       toast.error('Failed to load estimates');
     } finally {
       setIsLoading(false);
@@ -86,11 +80,21 @@ export const useEstimates = (jobId?: string) => {
 
   const convertEstimateToInvoice = async (estimateId: string): Promise<boolean> => {
     try {
-      console.log('🔄 Converting estimate to invoice:', estimateId);
-
       const estimate = estimates.find(e => e.id === estimateId);
       if (!estimate) {
         toast.error('Estimate not found');
+        return false;
+      }
+
+      // Get line items from line_items table
+      const { data: lineItems, error: lineItemsError } = await supabase
+        .from('line_items')
+        .select('*')
+        .eq('parent_type', 'estimate')
+        .eq('parent_id', estimateId);
+
+      if (lineItemsError) {
+        toast.error('Failed to fetch estimate line items');
         return false;
       }
 
@@ -100,77 +104,90 @@ export const useEstimates = (jobId?: string) => {
       });
 
       if (idError) {
-        console.error('❌ Error generating invoice number:', idError);
         toast.error('Failed to generate invoice number');
         return false;
       }
 
-      // Transform LineItem objects to plain JSON for database storage
-      const itemsForDb = estimate.items.map(item => ({
-        description: item.description,
-        quantity: item.quantity,
-        unitPrice: item.unitPrice,
-        taxable: item.taxable,
-        total: item.quantity * item.unitPrice
-      }));
-
       // Create invoice from estimate
-      const { error: invoiceError } = await supabase
+      const { data: newInvoice, error: invoiceError } = await supabase
         .from('invoices')
         .insert({
+          invoice_number: invoiceNumber,
           job_id: estimate.job_id,
           client_id: estimate.client_id,
           estimate_id: estimate.id,
-          invoice_number: invoiceNumber,
-          items: itemsForDb,
-          subtotal: estimate.subtotal,
-          tax_rate: estimate.tax_rate,
-          tax_amount: estimate.tax_amount,
-          discount_amount: estimate.discount_amount,
           total: estimate.total,
-          notes: estimate.notes,
-          terms: estimate.terms,
           status: 'draft',
           payment_status: 'unpaid',
           amount_paid: 0,
-          issue_date: new Date().toISOString().split('T')[0]
-        });
+          issue_date: new Date().toISOString().split('T')[0],
+          due_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+          notes: estimate.notes,
+          terms: estimate.terms,
+          subtotal: estimate.subtotal || 0,
+          tax_rate: estimate.tax_rate || 0,
+          tax_amount: estimate.tax_amount || 0,
+          discount_amount: estimate.discount_amount || 0,
+          items: []
+        })
+        .select()
+        .single();
 
       if (invoiceError) {
-        console.error('❌ Error creating invoice:', invoiceError);
         toast.error('Failed to create invoice');
         return false;
+      }
+
+      // Copy line items to invoice in line_items table
+      if (lineItems && lineItems.length > 0) {
+        const invoiceLineItems = lineItems.map(item => ({
+          parent_type: 'invoice' as const,
+          parent_id: newInvoice.id,
+          description: item.description,
+          quantity: item.quantity,
+          unit_price: item.unit_price,
+          taxable: item.taxable
+        }));
+
+        const { error: lineItemsCreateError } = await supabase
+          .from('line_items')
+          .insert(invoiceLineItems);
+
+        if (lineItemsCreateError) {
+          // Try to rollback invoice creation
+          await supabase.from('invoices').delete().eq('id', newInvoice.id);
+          toast.error('Failed to copy line items to invoice');
+          return false;
+        }
       }
 
       // Update estimate status
       const { error: updateError } = await supabase
         .from('estimates')
-        .update({ status: 'converted' })
+        .update({ status: 'converted' as const })
         .eq('id', estimateId);
 
       if (updateError) {
-        console.error('❌ Error updating estimate status:', updateError);
-        toast.error('Failed to update estimate status');
-        return false;
+        // Don't fail the conversion if status update fails
+        toast.success(`Invoice ${invoiceNumber} created successfully (estimate status update pending)`);
+      } else {
+        toast.success(`Invoice ${invoiceNumber} created successfully from estimate`);
       }
 
-      console.log('✅ Estimate converted to invoice successfully');
-      
-      // Add delay to ensure database changes are committed
+      // Refresh estimates to reflect status change
       setTimeout(() => {
         fetchEstimates();
-      }, 500);
-      
+      }, 300);
+
       return true;
-    } catch (error) {
-      console.error('❌ Error converting estimate:', error);
-      toast.error('Failed to convert estimate');
+    } catch (error: any) {
+      const errorMessage = error.message || 'Unknown error';
+      toast.error(`Failed to convert estimate: ${errorMessage}`);
       return false;
     }
   };
 
   const refreshEstimates = () => {
-    console.log('🔄 Refreshing estimates...');
     fetchEstimates();
   };
 

@@ -19,6 +19,9 @@ interface PaymentFormProps {
   remainingBalance: number;
   maxPayment: number;
   isFormDisabled: boolean;
+  errors?: {
+    amount?: string;
+  };
 }
 
 export const PaymentForm = ({
@@ -32,7 +35,8 @@ export const PaymentForm = ({
   setNotes,
   remainingBalance,
   maxPayment,
-  isFormDisabled
+  isFormDisabled,
+  errors = {}
 }: PaymentFormProps) => {
   const handleAmountChange = (value: string) => {
     // Only allow positive numbers with up to 2 decimal places
@@ -68,9 +72,12 @@ export const PaymentForm = ({
             value={amount}
             onChange={(e) => handleAmountChange(e.target.value)}
             disabled={isFormDisabled}
-            className="text-lg font-medium"
+            className={`text-lg font-medium ${errors.amount ? 'border-red-500 focus:ring-red-500' : ''}`}
           />
-          <div className="flex gap-2">
+          {errors.amount && (
+            <p className="text-red-500 text-sm mt-1">{errors.amount}</p>
+          )}
+          <div className="flex flex-wrap gap-2">
             <Button
               type="button"
               variant="outline"

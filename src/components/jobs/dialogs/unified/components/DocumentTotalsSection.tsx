@@ -27,12 +27,10 @@ export const DocumentTotalsSection = ({
   const effectiveTaxRate = taxRate || taxConfig.rate;
   const taxLabel = taxConfig.label;
 
-  console.log('DocumentTotalsSection - Using tax rate:', effectiveTaxRate);
-
   return (
-    <div className="px-8 py-6 bg-gray-50">
+    <div className="px-4 sm:px-8 py-4 sm:py-6 bg-gray-50">
       <div className="flex justify-end">
-        <div className="w-80 bg-white rounded-lg border border-gray-200 p-6">
+        <div className="w-full sm:w-80 bg-white rounded-lg border border-gray-200 p-4 sm:p-6">
           <div className="space-y-3">
             <div className="flex justify-between items-center">
               <span className="text-gray-700">Subtotal</span>

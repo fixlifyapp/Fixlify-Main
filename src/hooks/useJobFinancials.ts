@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
 export const useJobFinancials = (jobId: string) => {
@@ -9,12 +9,11 @@ export const useJobFinancials = (jobId: string) => {
   const [paidInvoices, setPaidInvoices] = useState(0);
   const [unpaidInvoices, setUnpaidInvoices] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
-  const [isFetching, setIsFetching] = useState(false);
+  const isFetchingRef = useRef(false);
 
   const fetchFinancials = useCallback(async () => {
-    // Prevent multiple simultaneous fetches
-    if (isFetching) {
-      console.log('⚠️ Fetch already in progress for financials, skipping...');
+    // Prevent multiple simultaneous fetches using ref (no re-render)
+    if (isFetchingRef.current) {
       return;
     }
 
@@ -24,8 +23,7 @@ export const useJobFinancials = (jobId: string) => {
     }
 
     try {
-      setIsFetching(true);
-      console.log('💰 Fetching financials for job:', jobId, 'at', new Date().toISOString());
+      isFetchingRef.current = true;
 
       // Fetch invoices with their payments for this job
       const { data: invoices, error: invoicesError } = await supabase
@@ -37,12 +35,9 @@ export const useJobFinancials = (jobId: string) => {
         .eq('job_id', jobId);
 
       if (invoicesError) {
-        console.error('Error fetching invoices:', invoicesError);
         setIsLoading(false);
         return;
       }
-
-      console.log('Fetched invoices with payments:', invoices);
 
       // Calculate totals with proper payment linking
       const totalInvoiced = invoices?.reduce((sum, invoice) => sum + (invoice.total || 0), 0) || 0;
@@ -88,23 +83,13 @@ export const useJobFinancials = (jobId: string) => {
       setOverdueAmount(overdueTotal);
       setPaidInvoices(paidCount);
       setUnpaidInvoices(unpaidCount);
-
-      console.log('✅ Calculated financials:', {
-        invoiceAmount: totalInvoiced,
-        totalPaid: totalPaidAmount,
-        balance: totalBalance,
-        overdueAmount: overdueTotal,
-        paidInvoices: paidCount,
-        unpaidInvoices: unpaidCount
-      });
-
     } catch (error) {
-      console.error('Error fetching job financials:', error);
+      // Silent fail - financials will show as 0
     } finally {
       setIsLoading(false);
-      setIsFetching(false);
+      isFetchingRef.current = false;
     }
-  }, [jobId, isFetching]);
+  }, [jobId]);
 
   useEffect(() => {
     fetchFinancials();
@@ -115,9 +100,8 @@ export const useJobFinancials = (jobId: string) => {
     const debouncedRefresh = () => {
       clearTimeout(timeoutId);
       timeoutId = setTimeout(() => {
-        console.log('🔄 Real-time update detected, refetching financials...');
         fetchFinancials();
-      }, 500); // Reduced from 800ms to 500ms for better responsiveness
+      }, 500);
     };
 
     const channel = supabase
@@ -139,10 +123,7 @@ export const useJobFinancials = (jobId: string) => {
           schema: 'public',
           table: 'payments'
         },
-        (payload) => {
-          console.log('💳 Payment change detected:', payload);
-          debouncedRefresh();
-        }
+        () => debouncedRefresh()
       )
       .subscribe();
 

@@ -37,7 +37,6 @@ export const useInvoiceActions = (invoiceId: string, refreshInvoices: () => void
       
       return true;
     } catch (error) {
-      console.error('Error marking invoice as paid:', error);
       toast.error('Failed to mark invoice as paid');
       return false;
     } finally {
@@ -48,8 +47,6 @@ export const useInvoiceActions = (invoiceId: string, refreshInvoices: () => void
   const sendInvoice = async (recipientEmail: string): Promise<boolean> => {
     setIsProcessing(true);
     try {
-      console.log('Starting invoice send process for ID:', invoiceId);
-      
       // Get invoice details
       const { data: invoiceData, error: invoiceError } = await supabase
         .from('invoices')
@@ -69,10 +66,8 @@ export const useInvoiceActions = (invoiceId: string, refreshInvoices: () => void
         .single();
 
       if (jobError) {
-        console.warn('Could not fetch job/client data:', jobError);
+        // Could not fetch job/client data - continue with invoice send
       }
-
-      console.log('Invoice data:', invoiceData);
 
       // Get line items
       const { data: lineItems, error: lineItemsError } = await supabase
@@ -84,8 +79,6 @@ export const useInvoiceActions = (invoiceId: string, refreshInvoices: () => void
       if (lineItemsError) {
         throw new Error('Failed to fetch line items');
       }
-
-      console.log('Line items:', lineItems);
 
       // Call send-invoice function with complete data
       const { data: sendData, error: sendError } = await supabase.functions.invoke('send-invoice', {
@@ -99,8 +92,6 @@ export const useInvoiceActions = (invoiceId: string, refreshInvoices: () => void
       if (sendError || !sendData?.success) {
         throw new Error(sendData?.error || 'Failed to send invoice');
       }
-
-      console.log('Invoice sent successfully');
 
       // Update invoice status
       const { error } = await supabase
@@ -122,8 +113,91 @@ export const useInvoiceActions = (invoiceId: string, refreshInvoices: () => void
       
       return true;
     } catch (error: any) {
-      console.error('Error sending invoice:', error);
       toast.error('Failed to send invoice: ' + error.message);
+      return false;
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const sendInvoiceSMS = async (recipientPhone: string): Promise<boolean> => {
+    setIsProcessing(true);
+    try {
+      // Get invoice details
+      const { data: invoiceData, error: invoiceError } = await supabase
+        .from('invoices')
+        .select('*')
+        .eq('id', invoiceId)
+        .single();
+
+      if (invoiceError || !invoiceData) {
+        throw new Error('Failed to fetch invoice details');
+      }
+
+      // Get job and client info
+      const { data: jobData, error: jobError } = await supabase
+        .from('jobs')
+        .select('*, clients(*)')
+        .eq('id', invoiceData.job_id)
+        .single();
+
+      if (jobError) {
+        toast.error('Could not fetch job/client data');
+        return false;
+      }
+
+      // Generate or retrieve portal token
+      let portalToken = invoiceData.portal_access_token;
+      if (!portalToken) {
+        portalToken = crypto.randomUUID();
+        const { error: updateError } = await supabase
+          .from('invoices')
+          .update({ portal_access_token: portalToken })
+          .eq('id', invoiceId);
+
+        if (updateError) throw updateError;
+      }
+
+      // Generate portal link
+      const portalLink = `https://hub.fixlify.app/portal/invoice/${portalToken}`;
+
+      // Create SMS message
+      const message = `Hi ${jobData?.clients?.name || 'there'}, your invoice ${invoiceData.invoice_number} is ready! Total: $${invoiceData.total.toFixed(2)}. View: ${portalLink}`;
+
+      // Send SMS via edge function
+      const { data: smsData, error: smsError } = await supabase.functions.invoke('send-invoice-sms', {
+        body: {
+          invoiceId: invoiceId,
+          recipientPhone: recipientPhone,
+          message: message
+        }
+      });
+
+      if (smsError || !smsData?.success) {
+        const errorMessage = smsData?.error || smsError?.message || 'Failed to send SMS';
+        throw new Error(errorMessage);
+      }
+
+      // Update invoice status to sent
+      const { error: updateError } = await supabase
+        .from('invoices')
+        .update({
+          status: 'sent',
+          sent_at: new Date().toISOString()
+        })
+        .eq('id', invoiceId);
+
+      if (updateError) throw updateError;
+
+      toast.success('Invoice SMS sent successfully');
+
+      setTimeout(() => {
+        refreshInvoices();
+      }, 500);
+
+      return true;
+    } catch (error: any) {
+      toast.error('Failed to send invoice SMS: ' + error.message);
       return false;
     } finally {
       setIsProcessing(false);
@@ -141,15 +215,14 @@ export const useInvoiceActions = (invoiceId: string, refreshInvoices: () => void
       if (error) throw error;
 
       toast.success('Invoice deleted successfully');
-      
+
       // Add delay to ensure database changes are committed
       setTimeout(() => {
         refreshInvoices();
       }, 500);
-      
+
       return true;
     } catch (error) {
-      console.error('Error deleting invoice:', error);
       toast.error('Failed to delete invoice');
       return false;
     } finally {
@@ -160,6 +233,7 @@ export const useInvoiceActions = (invoiceId: string, refreshInvoices: () => void
   return {
     markAsPaid,
     sendInvoice,
+    sendInvoiceSMS,
     deleteInvoice,
     isProcessing
   };

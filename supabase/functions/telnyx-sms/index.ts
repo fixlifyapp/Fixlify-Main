@@ -49,12 +49,12 @@ serve(async (req) => {
     if (!fromPhone && smsRequest.user_id) {
       console.log('Fetching user phone number for user:', smsRequest.user_id);
       
-      // First try to get primary phone number
+      // First try to get primary phone number (check both 'active' and 'purchased' status)
       const { data: phoneNumbers } = await supabase
         .from('phone_numbers')
         .select('phone_number')
         .eq('user_id', smsRequest.user_id)
-        .eq('status', 'purchased')
+        .in('status', ['active', 'purchased'])
         .eq('is_primary', true)
         .limit(1);
       
@@ -62,12 +62,12 @@ serve(async (req) => {
         fromPhone = phoneNumbers[0].phone_number;
         console.log('Using user\'s primary phone number:', fromPhone);
       } else {
-        // Fallback: get any purchased number for this user
+        // Fallback: get any active/purchased number for this user
         const { data: anyPhoneNumbers } = await supabase
           .from('phone_numbers')
           .select('phone_number')
           .eq('user_id', smsRequest.user_id)
-          .eq('status', 'purchased')
+          .in('status', ['active', 'purchased'])
           .limit(1);
         
         if (anyPhoneNumbers && anyPhoneNumbers.length > 0) {
@@ -90,7 +90,7 @@ serve(async (req) => {
           .from('phone_numbers')
           .select('phone_number')
           .eq('organization_id', profile.organization_id)
-          .eq('status', 'purchased')
+          .in('status', ['active', 'purchased'])
           .eq('is_primary', true)
           .limit(1);
         
@@ -101,17 +101,17 @@ serve(async (req) => {
       }
     }
     
-    // If still no phone number, return error
+    // If still no phone number, return error with helpful message
     if (!fromPhone) {
       console.error('No phone number found for user:', smsRequest.user_id);
       return new Response(
-        JSON.stringify({ 
-          success: false, 
-          error: 'No phone number configured for SMS sending. Please purchase a phone number first.' 
+        JSON.stringify({
+          success: false,
+          error: 'No phone number configured. Please purchase a phone number in Settings → Phone Numbers.'
         }),
-        { 
+        {
           status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         }
       );
     }
@@ -185,13 +185,13 @@ serve(async (req) => {
   } catch (error) {
     console.error('Error in telnyx-sms function:', error);
     return new Response(
-      JSON.stringify({ 
-        success: false, 
-        error: error.message 
+      JSON.stringify({
+        success: false,
+        error: error.message
       }),
-      { 
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      {
+        status: 200, // Return 200 so caller can read error body
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       }
     );
   }

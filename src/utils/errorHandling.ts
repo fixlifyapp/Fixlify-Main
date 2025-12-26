@@ -63,7 +63,6 @@ export const jobsCircuitBreaker = new CircuitBreaker();
 if (typeof window !== 'undefined') {
   (window as any).resetJobsCircuitBreaker = () => {
     jobsCircuitBreaker.reset();
-    console.log('✅ Jobs circuit breaker reset');
   };
 }
 
@@ -94,8 +93,7 @@ export const withRetry = async <T>(
         // Calculate delay with exponential backoff
         let delay = exponentialBackoff ? baseDelay * Math.pow(2, attempt) : baseDelay;
         delay = Math.min(delay, maxDelay);
-        
-        console.log(`Retrying operation (attempt ${attempt + 1}/${maxRetries}) in ${delay}ms`);
+
         await new Promise(resolve => setTimeout(resolve, delay));
       }
     }
@@ -105,8 +103,6 @@ export const withRetry = async <T>(
 };
 
 export const handleJobsError = (error: any, context: string) => {
-  console.error(`${context} error:`, error);
-  
   // Import toast dynamically to avoid circular dependencies
   import('@/components/ui/sonner').then(({ toast }) => {
     const errorMessage = error?.message || 'Unknown error occurred';

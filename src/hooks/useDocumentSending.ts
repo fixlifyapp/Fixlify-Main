@@ -47,9 +47,10 @@ export const useDocumentSending = () => {
           }
         });
 
-        console.log(`SMS ${documentType} sending result:`, { data, error });
-
-        if (error) throw error;
+        if (error || !data?.success) {
+          const errorMsg = data?.error || error?.message || 'Failed to send SMS';
+          throw new Error(errorMsg);
+        }
 
         // Update document status to 'sent'
         const table = documentType === 'estimate' ? 'estimates' : 'invoices';
@@ -71,13 +72,15 @@ export const useDocumentSending = () => {
           }
         });
 
-        if (error) throw error;
+        if (error || !data?.success) {
+          const errorMsg = data?.error || error?.message || 'Failed to send email';
+          throw new Error(errorMsg);
+        }
 
         toast.success(`${documentType.charAt(0).toUpperCase() + documentType.slice(1)} sent via email successfully!`);
         return { success: true };
       }
     } catch (error: any) {
-      console.error('Error sending document:', error);
       toast.error(error.message || 'Failed to send document');
       return { success: false, error: error.message };
     } finally {

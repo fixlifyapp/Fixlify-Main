@@ -80,8 +80,6 @@ const ProtectedRouteWithProviders = ({ children }: { children: React.ReactNode }
 };
 
 function App() {
-  console.log('🚀 Fixlify App loaded');
-  
   // Setup auth error handler
   React.useEffect(() => {
     suppressSMSErrors();

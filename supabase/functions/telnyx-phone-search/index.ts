@@ -97,7 +97,7 @@ serve(async (req) => {
                     profile_id: telnyxMessagingProfileId
                   }
                 });
-            } else if (!existingNumber.user_id && existingNumber.status !== 'purchased') {
+            } else if (!existingNumber.user_id && existingNumber.status !== 'active') {
               // Update existing number to available if not purchased
               await supabase
                 .from('phone_numbers')

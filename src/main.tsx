@@ -4,8 +4,6 @@ import App from "./App.tsx";
 import { GlobalErrorBoundary } from "./components/GlobalErrorBoundary";
 import "./index.css";
 
-console.log("Main.tsx starting...");
-
 const rootElement = document.getElementById("root");
 
 if (!rootElement) {
@@ -13,10 +11,7 @@ if (!rootElement) {
 }
 
 try {
-  console.log("Creating React root...");
   const root = ReactDOM.createRoot(rootElement);
-  
-  console.log("Rendering App...");
   root.render(
     <React.StrictMode>
       <GlobalErrorBoundary>
@@ -24,10 +19,7 @@ try {
       </GlobalErrorBoundary>
     </React.StrictMode>
   );
-  
-  console.log("App rendered successfully");
 } catch (error) {
-  console.error("Failed to render app:", error);
   // Fallback UI in case of critical error
   rootElement.innerHTML = `
     <div style="display: flex; align-items: center; justify-center: center; min-height: 100vh; padding: 20px; font-family: system-ui;">

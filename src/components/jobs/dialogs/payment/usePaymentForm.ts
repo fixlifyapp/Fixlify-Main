@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useCallback } from "react";
 import { toast } from "sonner";
 import { usePaymentActions } from "@/hooks/usePaymentActions";
 import { roundToCurrency } from "@/lib/utils";
@@ -15,12 +15,17 @@ interface UsePaymentFormProps {
   onClose: () => void;
 }
 
+export interface PaymentFormErrors {
+  amount?: string;
+}
+
 export const usePaymentForm = ({ invoice, jobId, onPaymentAdded, onClose }: UsePaymentFormProps) => {
   const [amount, setAmount] = useState("");
   const [method, setMethod] = useState("cash");
   const [reference, setReference] = useState("");
   const [notes, setNotes] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errors, setErrors] = useState<PaymentFormErrors>({});
   const submitTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   
   const { addPayment, isProcessing } = usePaymentActions(jobId, () => {
@@ -35,6 +40,39 @@ export const usePaymentForm = ({ invoice, jobId, onPaymentAdded, onClose }: UseP
     invoice.balance ?? (invoice.total - (invoice.amount_paid ?? 0))
   );
   const maxPayment = Math.max(0, remainingBalance);
+
+  // Inline validation for amount field
+  const validateAmount = useCallback((value: string): string | undefined => {
+    if (!value || value.trim() === '') {
+      return undefined; // Empty is not an error until submit
+    }
+
+    const numValue = parseFloat(value);
+
+    if (isNaN(numValue)) {
+      return 'Please enter a valid number';
+    }
+
+    if (numValue <= 0) {
+      return 'Amount must be greater than 0';
+    }
+
+    if (numValue > remainingBalance + 0.01) { // Small tolerance for floating point
+      return `Cannot exceed remaining balance of $${remainingBalance.toFixed(2)}`;
+    }
+
+    return undefined;
+  }, [remainingBalance]);
+
+  // Wrapped setAmount with inline validation
+  const handleAmountChange = useCallback((value: string) => {
+    setAmount(value);
+    const error = validateAmount(value);
+    setErrors(prev => ({ ...prev, amount: error }));
+  }, [validateAmount]);
+
+  // Check if form is valid for submit
+  const isFormValid = amount.trim() !== '' && !errors.amount;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -128,11 +166,12 @@ export const usePaymentForm = ({ invoice, jobId, onPaymentAdded, onClose }: UseP
     setMethod("cash");
     setReference("");
     setNotes("");
+    setErrors({});
   };
 
   return {
     amount,
-    setAmount,
+    setAmount: handleAmountChange,
     method,
     setMethod,
     reference,
@@ -144,6 +183,8 @@ export const usePaymentForm = ({ invoice, jobId, onPaymentAdded, onClose }: UseP
     remainingBalance,
     maxPayment,
     handleSubmit,
-    resetForm
+    resetForm,
+    errors,
+    isFormValid
   };
 };

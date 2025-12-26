@@ -287,7 +287,7 @@ export const SteppedEstimateBuilder = ({
   return (
     <>
       <Dialog open={open && currentStep !== "send"} onOpenChange={handleDialogClose}>
-        <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="w-[95vw] sm:max-w-6xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex flex-wrap items-center gap-2">
               <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-sm font-medium">

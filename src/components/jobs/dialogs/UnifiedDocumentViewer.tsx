@@ -86,7 +86,7 @@ export const UnifiedDocumentViewer = ({
   if (loading) {
     return (
       <Dialog open={isOpen} onOpenChange={onClose}>
-        <DialogContent className="max-w-4xl h-[90vh] flex flex-col">
+        <DialogContent className="w-[95vw] sm:max-w-4xl h-[90vh] flex flex-col">
           <div className="flex-1 flex items-center justify-center">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
           </div>
@@ -122,7 +122,7 @@ export const UnifiedDocumentViewer = ({
   return (
     <>
       <Dialog open={isOpen} onOpenChange={onClose}>
-        <DialogContent className="max-w-6xl h-[90vh] flex flex-col">
+        <DialogContent className="w-[95vw] sm:max-w-6xl h-[90vh] flex flex-col">
           <UnifiedDocumentViewerHeader
             documentType={documentType}
             documentNumber={documentNumber}

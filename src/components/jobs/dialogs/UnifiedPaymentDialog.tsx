@@ -43,7 +43,9 @@ export const UnifiedPaymentDialog = ({
     remainingBalance,
     maxPayment,
     handleSubmit,
-    resetForm
+    resetForm,
+    errors,
+    isFormValid
   } = usePaymentForm({ invoice, jobId, onPaymentAdded, onClose });
 
   const handleClose = () => {
@@ -61,7 +63,7 @@ export const UnifiedPaymentDialog = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="w-[95vw] sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <CreditCard className="h-5 w-5 text-green-600" />
@@ -88,12 +90,13 @@ export const UnifiedPaymentDialog = ({
               remainingBalance={remainingBalance}
               maxPayment={maxPayment}
               isFormDisabled={isFormDisabled}
+              errors={errors}
             />
 
             <div className="flex gap-2 pt-4">
               <Button
                 type="submit"
-                disabled={isFormDisabled || !amount}
+                disabled={isFormDisabled || !isFormValid}
                 className="flex-1"
               >
                 {isSubmitting || isProcessing ? "Recording..." : "Record Payment"}

@@ -25,20 +25,9 @@ export function ProtectedRoute({ children, requireAdmin = false }: ProtectedRout
   const [profile, setProfile] = useState<Profile | null>(null);
   const [profileLoading, setProfileLoading] = useState(true);
   
-  console.log('🛡️ ProtectedRoute:', {
-    path: location.pathname,
-    hasUser: !!user,
-    isAuthenticated,
-    loading,
-    error,
-    profileLoading,
-    isCheckingOnboarding
-  });
-
   // Handle auth errors
   useEffect(() => {
     if (error && error.includes('refresh_token')) {
-      console.log('🔄 Auth refresh error detected, clearing session...');
       localStorage.removeItem('fixlify-auth-token');
       window.location.href = '/auth';
     }
@@ -60,7 +49,6 @@ export function ProtectedRoute({ children, requireAdmin = false }: ProtectedRout
           .single();
 
         if (error) {
-          console.error('Error fetching profile:', error);
           // If profile doesn't exist, create a default one
           if (error.code === 'PGRST116') {
             const { data: newProfile, error: createError } = await supabase
@@ -82,7 +70,7 @@ export function ProtectedRoute({ children, requireAdmin = false }: ProtectedRout
           setProfile(data);
         }
       } catch (error) {
-        console.error('Error in profile fetch:', error);
+        // Silent fail - profile will be null
       } finally {
         setProfileLoading(false);
       }
@@ -122,12 +110,10 @@ export function ProtectedRoute({ children, requireAdmin = false }: ProtectedRout
   }
 
   if (!isAuthenticated && !loading) {
-    console.log('🚫 Not authenticated, redirecting to auth...');
     return <Navigate to="/auth" state={{ from: location }} replace />;
   }
 
   if (!user && !loading) {
-    console.log('🚫 No user found, redirecting to auth...');
     return <Navigate to="/auth" state={{ from: location }} replace />;
   }
 

@@ -100,7 +100,7 @@ serve(async (req) => {
         .insert({
           phone_number: purchaseRequest.phoneNumber,
           friendly_name: `My Number`,
-          status: 'purchased',
+          status: 'active',
           purchased_by: purchaseRequest.userId,
           user_id: purchaseRequest.userId,
           purchased_at: new Date().toISOString(),
@@ -130,7 +130,7 @@ serve(async (req) => {
       const { error: updateError } = await supabase
         .from('phone_numbers')
         .update({
-          status: 'purchased',
+          status: 'active',
           purchased_by: purchaseRequest.userId,
           user_id: purchaseRequest.userId,
           purchased_at: new Date().toISOString(),

@@ -96,47 +96,36 @@ export const SteppedInvoiceBuilder = ({
           .eq('id', invoiceId)
           .single();
 
-        if (!invoiceError && invoice?.estimate_id) {
-          // Check if estimate had warranties
-          const { data: estimateLineItems, error: estimateError } = await supabase
-            .from('line_items')
-            .select('*')
-            .eq('parent_id', invoice.estimate_id)
-            .eq('parent_type', 'estimate');
+        const estimateId = invoice?.estimate_id;
 
-          if (!estimateError && estimateLineItems) {
-            const hasWarrantiesInEstimate = estimateLineItems.some((item: any) => 
-              item.description?.toLowerCase().includes('warranty') ||
-              item.description?.toLowerCase().includes('protection') ||
-              item.description?.toLowerCase().includes('extended')
-            );
-            
-            if (hasWarrantiesInEstimate) {
-              setHasExistingWarranties(true);
-              setIsCheckingWarranties(false);
-              console.log('Warranties found in original estimate, skipping upsell step');
-              return;
-            }
-          }
-        }
-        
-        // Check if the invoice already contains warranty items
-        const { data: invoiceLineItems, error } = await supabase
+        // OPTIMIZED: Single query to get both estimate and invoice line items
+        // Instead of 2 separate queries, we use .or() filter to combine them
+        let lineItemsQuery = supabase
           .from('line_items')
-          .select('*')
-          .eq('parent_id', invoiceId)
-          .eq('parent_type', 'invoice');
+          .select('description, parent_type');
 
-        if (!error && invoiceLineItems) {
-          const hasWarranties = invoiceLineItems.some((item: any) => 
+        if (!invoiceError && estimateId) {
+          // Get both estimate and invoice line items in one query
+          lineItemsQuery = lineItemsQuery.or(
+            `and(parent_id.eq.${estimateId},parent_type.eq.estimate),and(parent_id.eq.${invoiceId},parent_type.eq.invoice)`
+          );
+        } else {
+          // Only get invoice line items
+          lineItemsQuery = lineItemsQuery
+            .eq('parent_id', invoiceId)
+            .eq('parent_type', 'invoice');
+        }
+
+        const { data: allLineItems, error } = await lineItemsQuery;
+
+        if (!error && allLineItems) {
+          // Check for warranty keywords in any line item (estimate or invoice)
+          const hasWarranties = allLineItems.some((item: any) =>
             item.description?.toLowerCase().includes('warranty') ||
             item.description?.toLowerCase().includes('protection') ||
             item.description?.toLowerCase().includes('extended')
           );
           setHasExistingWarranties(hasWarranties);
-          if (hasWarranties) {
-            console.log('Warranties found in invoice, skipping upsell step');
-          }
         }
       } catch (error) {
         console.error('Error checking existing warranties:', error);
@@ -478,7 +467,7 @@ export const SteppedInvoiceBuilder = ({
             setCurrentStep("items");
           }
         }}>
-          <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
+          <DialogContent className="w-[95vw] sm:max-w-6xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="flex flex-wrap items-center gap-2">
                 <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-sm font-medium">

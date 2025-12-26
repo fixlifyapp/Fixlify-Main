@@ -23,7 +23,10 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
     
-    const { estimateId, recipientPhone, message: customMessage } = await req.json();
+    const body = await req.json();
+    const estimateId = body.estimateId;
+    const recipientPhone = body.recipientPhone;
+    const customMessage = body.customMessage || body.message; // Accept both parameter names
 
     if (!estimateId || !recipientPhone) {
       throw new Error('Missing required fields: estimateId and recipientPhone');
@@ -113,12 +116,12 @@ serve(async (req) => {
       })
     });
 
-    if (!smsResponse.ok) {
-      const error = await smsResponse.text();
-      throw new Error(`Failed to send SMS: ${error}`);
-    }
-
     const smsResult = await smsResponse.json();
+
+    if (!smsResponse.ok) {
+      const errorMsg = smsResult?.error || 'Failed to send SMS';
+      throw new Error(errorMsg);
+    }
 
     // Log the communication
     await supabase.from('estimate_communications').insert({
@@ -150,13 +153,13 @@ serve(async (req) => {
   } catch (error) {
     console.error('Error in send-estimate-sms:', error);
     return new Response(
-      JSON.stringify({ 
+      JSON.stringify({
         error: error.message || 'Failed to send SMS',
-        success: false 
+        success: false
       }),
-      { 
+      {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 400,
+        status: 200, // Return 200 so client can read error body
       }
     );
   }
