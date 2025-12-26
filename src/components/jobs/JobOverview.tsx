@@ -11,6 +11,7 @@ import { TechnicianCard } from "./overview/TechnicianCard";
 import { JobTagsCard } from "./overview/JobTagsCard";
 import { EditableJobDetailsCard } from "./overview/EditableJobDetailsCard";
 import { EditableJobOverviewCard } from "./overview/EditableJobOverviewCard";
+import { JobMessages } from "./JobMessages";
 import { 
   Calendar, 
   MapPin, 
@@ -176,6 +177,9 @@ export const JobOverview = ({ jobId }: JobOverviewProps) => {
         onSave={handleTaskSave}
         disabled={false}
       />
+
+      {/* Messages Section */}
+      <JobMessages jobId={jobId} />
     </div>
   );
 };

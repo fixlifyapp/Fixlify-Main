@@ -1,7 +1,7 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { MessageSquare, Bot, Sparkles } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useMessageContext } from "@/contexts/MessageContext";
 import { supabase } from "@/integrations/supabase/client";
 import { JobMessageList } from "./components/JobMessageList";
@@ -13,10 +13,70 @@ interface JobMessagesProps {
 }
 
 export const JobMessages = ({ jobId }: JobMessagesProps) => {
-  const { openMessageDialog, conversations } = useMessageContext();
+  const { openMessageDialog } = useMessageContext();
   const [client, setClient] = useState({ name: "", phone: "", id: "", email: "" });
   const [messages, setMessages] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+
+  // Fetch messages from database
+  const fetchMessages = useCallback(async (clientId: string) => {
+    try {
+      // First, find conversation for this job or client
+      const { data: conversation } = await supabase
+        .from('conversations')
+        .select('id')
+        .or(`job_id.eq.${jobId},client_id.eq.${clientId}`)
+        .maybeSingle();
+
+      if (conversation) {
+        // Fetch messages for this conversation
+        const { data: messagesData } = await supabase
+          .from('messages')
+          .select('*')
+          .eq('conversation_id', conversation.id)
+          .order('created_at', { ascending: true });
+
+        if (messagesData && messagesData.length > 0) {
+          setMessages(messagesData.map(msg => ({
+            id: msg.id,
+            body: msg.body,
+            direction: msg.direction,
+            created_at: msg.created_at,
+            sender: msg.sender,
+            recipient: msg.recipient,
+            status: msg.status
+          })));
+          return;
+        }
+      }
+
+      // Also check communication_logs for email communications
+      const { data: commLogs } = await supabase
+        .from('communication_logs')
+        .select('*')
+        .eq('client_id', clientId)
+        .order('created_at', { ascending: true })
+        .limit(50);
+
+      if (commLogs && commLogs.length > 0) {
+        setMessages(commLogs.map(log => ({
+          id: log.id,
+          body: log.message_body || log.subject || 'Communication',
+          direction: log.direction || 'outbound',
+          created_at: log.created_at,
+          sender: log.direction === 'inbound' ? client.name : 'You',
+          recipient: log.direction === 'inbound' ? 'You' : client.name,
+          status: log.status,
+          type: log.type
+        })));
+      } else {
+        setMessages([]);
+      }
+    } catch (error) {
+      console.error("Error fetching messages:", error);
+      setMessages([]);
+    }
+  }, [jobId]);
 
   useEffect(() => {
     const fetchJobData = async () => {
@@ -40,13 +100,8 @@ export const JobMessages = ({ jobId }: JobMessagesProps) => {
           };
           setClient(clientData);
 
-          const clientConversation = conversations.find(conv => conv.client?.id === clientData.id);
-          if (clientConversation) {
-            // MessageConversation doesn't have messages property, set empty array
-            setMessages([]);
-          } else {
-            setMessages([]);
-          }
+          // Fetch actual messages from database
+          await fetchMessages(clientData.id);
         }
       } catch (error) {
         console.error("Error fetching job data:", error);
@@ -58,7 +113,45 @@ export const JobMessages = ({ jobId }: JobMessagesProps) => {
     if (jobId) {
       fetchJobData();
     }
-  }, [jobId, conversations]);
+  }, [jobId, fetchMessages]);
+
+  // Real-time subscription for new messages
+  useEffect(() => {
+    if (!client.id) return;
+
+    const channel = supabase
+      .channel(`job-messages-${jobId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'messages'
+        },
+        () => {
+          // Refetch messages when changes occur
+          fetchMessages(client.id);
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'communication_logs',
+          filter: `client_id=eq.${client.id}`
+        },
+        () => {
+          // Refetch when communication logs change
+          fetchMessages(client.id);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [client.id, jobId, fetchMessages]);
 
   const handleOpenMessages = () => {
     if (client.id) {

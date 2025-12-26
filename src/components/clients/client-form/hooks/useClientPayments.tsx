@@ -119,7 +119,7 @@ export const useClientPayments = (clientId?: string) => {
     } finally {
       setIsLoading(false);
     }
-  }, [clientId, toast]);
+  }, [clientId]); // toast is a stable module import, not a dependency
   
   // Set up initial data fetch
   useEffect(() => {

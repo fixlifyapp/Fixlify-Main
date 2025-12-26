@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/components/ui/sonner";
 
@@ -6,7 +6,7 @@ export const useClientProperties = (clientId?: string) => {
   const [properties, setProperties] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  const fetchProperties = async () => {
+  const fetchProperties = useCallback(async () => {
     if (!clientId) {
       setProperties([]);
       setIsLoading(false);
@@ -71,11 +71,11 @@ export const useClientProperties = (clientId?: string) => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [clientId]); // Memoized with clientId dependency
 
   useEffect(() => {
     fetchProperties();
-  }, [clientId]);
+  }, [fetchProperties]);
   
   return {
     properties,
