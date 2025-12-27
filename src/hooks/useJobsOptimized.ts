@@ -152,7 +152,14 @@ export const useJobsOptimized = (options: UseJobsOptimizedOptions = {}) => {
           }
 
           if (filters.search) {
-            query = query.or(`title.ilike.%${filters.search}%,description.ilike.%${filters.search}%`);
+            // Search across multiple fields for comprehensive results
+            const searchTerm = filters.search.trim();
+            query = query.or(
+              `title.ilike.%${searchTerm}%,` +
+              `description.ilike.%${searchTerm}%,` +
+              `address.ilike.%${searchTerm}%,` +
+              `job_type.ilike.%${searchTerm}%`
+            );
           }
 
           if (filters.technician && filters.technician !== "all") {

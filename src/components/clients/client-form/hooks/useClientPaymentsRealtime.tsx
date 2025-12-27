@@ -1,52 +1,51 @@
 
-import { useEffect } from "react";
+import { useEffect, useRef, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
 export const useClientPaymentsRealtime = (clientId: string | undefined, onUpdate: () => void) => {
+  // Stabilize callback with ref pattern to prevent infinite resubscription loops
+  const onUpdateRef = useRef(onUpdate);
+  onUpdateRef.current = onUpdate;
+
+  // Stable handler that uses the ref
+  const handleUpdate = useCallback(() => {
+    onUpdateRef.current();
+  }, []);
+
   useEffect(() => {
     if (!clientId) return;
-    
-    // Listen to payments table changes
+
+    // Use unique channel names with clientId to prevent conflicts
     const paymentsChannel = supabase
-      .channel('client-payments-changes')
+      .channel(`client-payments-${clientId}`)
       .on(
         'postgres_changes',
         {
-          event: '*', // Listen for all events (INSERT, UPDATE, DELETE)
+          event: '*',
           schema: 'public',
           table: 'payments'
         },
-        (payload) => {
-          console.log('Payment changed:', payload);
-          // Since we can't filter directly by client_id (payments table doesn't have it),
-          // we refresh anyway and the hook will filter for the right client
-          onUpdate();
-        }
+        handleUpdate
       )
       .subscribe();
-      
-    // Listen to invoices table changes that might affect payment totals
+
     const invoicesChannel = supabase
-      .channel('client-invoices-changes')
+      .channel(`client-invoices-${clientId}`)
       .on(
         'postgres_changes',
         {
           event: '*',
           schema: 'public',
           table: 'invoices',
-          filter: clientId ? `client_id=eq.${clientId}` : undefined
+          filter: `client_id=eq.${clientId}`
         },
-        (payload) => {
-          console.log('Invoice changed:', payload);
-          onUpdate();
-        }
+        handleUpdate
       )
       .subscribe();
-      
-    // Cleanup
+
     return () => {
       supabase.removeChannel(paymentsChannel);
       supabase.removeChannel(invoicesChannel);
     };
-  }, [clientId, onUpdate]);
+  }, [clientId, handleUpdate]);
 };

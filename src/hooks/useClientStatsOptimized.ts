@@ -25,6 +25,7 @@ export const useClientStatsOptimized = (clientId?: string) => {
     revenueThisYear: 0
   });
   const [isLoading, setIsLoading] = useState(true);
+  const [hasError, setHasError] = useState(false);
   const isMountedRef = useRef(true);
   const refreshThrottlerRef = useRef(new RefreshThrottler());
 
@@ -35,6 +36,51 @@ export const useClientStatsOptimized = (clientId?: string) => {
     };
   }, []);
 
+  // Fallback: fetch stats using regular queries when RPC fails
+  const fetchStatsWithQueries = useCallback(async (): Promise<ClientStats> => {
+    const { data: jobs, error } = await supabase
+      .from('jobs')
+      .select('id, revenue, date, created_at, status')
+      .eq('client_id', clientId);
+
+    if (error) throw error;
+
+    const currentYear = new Date().getFullYear();
+    const totalJobs = jobs?.length || 0;
+
+    const totalRevenue = jobs?.reduce((sum, job) => {
+      return sum + (Number(job.revenue) || 0);
+    }, 0) || 0;
+
+    const jobsThisYear = jobs?.filter(job => {
+      const jobYear = new Date(job.date || job.created_at).getFullYear();
+      return jobYear === currentYear;
+    }).length || 0;
+
+    const revenueThisYear = jobs?.filter(job => {
+      const jobYear = new Date(job.date || job.created_at).getFullYear();
+      return jobYear === currentYear;
+    }).reduce((sum, job) => sum + (Number(job.revenue) || 0), 0) || 0;
+
+    const completedJobs = jobs?.filter(job => job.status === 'completed') || [];
+    const lastServiceDate = completedJobs.length > 0
+      ? completedJobs.sort((a, b) =>
+          new Date(b.date || b.created_at).getTime() - new Date(a.date || a.created_at).getTime()
+        )[0]?.date
+      : undefined;
+
+    const averageJobValue = totalJobs > 0 ? totalRevenue / totalJobs : 0;
+
+    return {
+      totalJobs,
+      totalRevenue,
+      lastServiceDate,
+      averageJobValue,
+      jobsThisYear,
+      revenueThisYear
+    };
+  }, [clientId]);
+
   const fetchClientStats = useCallback(async () => {
     if (!clientId) {
       setIsLoading(false);
@@ -42,29 +88,36 @@ export const useClientStatsOptimized = (clientId?: string) => {
     }
 
     const cacheKey = `client_stats_individual_${clientId}`;
-    
+
     // Check if we already have a pending request
     if (statsRequestCache.has(cacheKey)) {
-      const result = await statsRequestCache.get(cacheKey)!;
-      if (isMountedRef.current) {
-        setStats(result);
-        setIsLoading(false);
+      try {
+        const result = await statsRequestCache.get(cacheKey)!;
+        if (isMountedRef.current) {
+          setStats(result);
+          setIsLoading(false);
+          setHasError(false);
+        }
+        return;
+      } catch {
+        // Continue with fresh request if cached request failed
       }
-      return;
     }
 
     // Create new request promise
     const requestPromise = (async () => {
-      try {
-        // Try cache first
-        const cached = localStorageCache.get<ClientStats>(cacheKey);
-        if (cached && isMountedRef.current) {
-          setStats(cached);
-          setIsLoading(false);
-        }
+      setHasError(false);
 
-        // Fetch from database using optimized function
-        return await withRetry(async () => {
+      // Try cache first
+      const cached = localStorageCache.get<ClientStats>(cacheKey);
+      if (cached && isMountedRef.current) {
+        setStats(cached);
+        setIsLoading(false);
+      }
+
+      // Try RPC first, fallback to regular queries
+      try {
+        const result = await withRetry(async () => {
           const { data, error } = await supabase
             .rpc('get_batch_client_stats', { p_client_ids: [clientId] });
 
@@ -72,7 +125,7 @@ export const useClientStatsOptimized = (clientId?: string) => {
 
           if (data && data.length > 0) {
             const statsData = data[0];
-            const formattedStats: ClientStats = {
+            return {
               totalJobs: Number(statsData.total_jobs) || 0,
               totalRevenue: Number(statsData.total_revenue) || 0,
               lastServiceDate: statsData.last_service_date,
@@ -80,11 +133,6 @@ export const useClientStatsOptimized = (clientId?: string) => {
               jobsThisYear: Number(statsData.jobs_this_year) || 0,
               revenueThisYear: Number(statsData.revenue_this_year) || 0
             };
-
-            // Cache the result
-            localStorageCache.set(cacheKey, formattedStats, 5); // 5 minute cache
-            
-            return formattedStats;
           }
 
           return {
@@ -94,13 +142,16 @@ export const useClientStatsOptimized = (clientId?: string) => {
             jobsThisYear: 0,
             revenueThisYear: 0
           };
-        }, {
-          maxRetries: 2,
-          baseDelay: 1000
-        });
-      } catch (error) {
-        console.error('Error fetching client stats:', error);
-        throw error;
+        }, { maxRetries: 1, baseDelay: 500 });
+
+        localStorageCache.set(cacheKey, result, 5);
+        return result;
+      } catch (rpcError) {
+        console.log('[useClientStatsOptimized] RPC failed, using fallback queries');
+        // Fallback to regular queries
+        const fallbackResult = await fetchStatsWithQueries();
+        localStorageCache.set(cacheKey, fallbackResult, 5);
+        return fallbackResult;
       }
     })();
 
@@ -110,16 +161,20 @@ export const useClientStatsOptimized = (clientId?: string) => {
       const result = await requestPromise;
       if (isMountedRef.current) {
         setStats(result);
+        setHasError(false);
       }
     } catch (error) {
-      // Error already handled
+      console.error('Error fetching client stats:', error);
+      if (isMountedRef.current) {
+        setHasError(true);
+      }
     } finally {
       statsRequestCache.delete(cacheKey);
       if (isMountedRef.current) {
         setIsLoading(false);
       }
     }
-  }, [clientId]);
+  }, [clientId, fetchStatsWithQueries]);
   useEffect(() => {
     fetchClientStats();
   }, [fetchClientStats]);
@@ -195,9 +250,15 @@ export const useClientStatsOptimized = (clientId?: string) => {
     if (clientId) {
       localStorageCache.remove(`client_stats_individual_${clientId}`);
       setIsLoading(true);
+      setHasError(false);
       fetchClientStats();
     }
   }, [clientId, fetchClientStats]);
 
-  return { stats, isLoading, refreshStats };
+  const clearError = useCallback(() => {
+    setHasError(false);
+    refreshStats();
+  }, [refreshStats]);
+
+  return { stats, isLoading, hasError, refreshStats, clearError };
 };

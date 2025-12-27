@@ -21,7 +21,8 @@ import { fetchTeamMembers } from "@/data/team";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2 } from "lucide-react";
 import { useRealtimeSync } from "@/hooks/useRealtimeSync";
-import { useJobHistoryIntegration } from "@/hooks/useJobHistoryIntegration";
+import { useRBAC } from "@/components/auth/RBACProvider";
+import { recordTechnicianChange } from "@/services/jobHistoryService";
 
 interface AssignTechnicianDialogProps {
   selectedJobs: string[];
@@ -29,15 +30,16 @@ interface AssignTechnicianDialogProps {
   onSuccess: (technicianId: string, technicianName: string) => void;
 }
 
-export function AssignTechnicianDialog({ 
-  selectedJobs, 
-  onOpenChange, 
-  onSuccess 
+export function AssignTechnicianDialog({
+  selectedJobs,
+  onOpenChange,
+  onSuccess
 }: AssignTechnicianDialogProps) {
   const [technicianId, setTechnicianId] = useState<string | undefined>();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [technicians, setTechnicians] = useState<TeamMember[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const { currentUser } = useRBAC();
 
   // Set up realtime updates for team members
   useRealtimeSync({
@@ -66,8 +68,6 @@ export function AssignTechnicianDialog({
   useEffect(() => {
     loadTechnicians();
   }, []);
-
-  const { logTechnicianChange } = useJobHistoryIntegration();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -99,17 +99,18 @@ export function AssignTechnicianDialog({
       const selectedTech = technicians.find(tech => tech.id === technicianId);
       const techName = selectedTech ? selectedTech.name : "selected technician";
       
-      // Log technician changes for each job
+      // Log technician changes for each job using direct service call
       if (jobsData) {
-        for (const job of jobsData) {
-          const oldTechName = job.technician_id ? 
-            technicians.find(t => t.id === job.technician_id)?.name || 'Unknown Technician' : 
-            'Unassigned';
-          
-          // Use the hook for each job
-          const { logTechnicianChange: logTechChange } = useJobHistoryIntegration(job.id);
-          await logTechChange(oldTechName, techName);
-        }
+        const userName = currentUser?.name || currentUser?.email;
+        const userId = currentUser?.id;
+
+        await Promise.all(jobsData.map(async (job) => {
+          const oldTechName = job.technician_id
+            ? technicians.find(t => t.id === job.technician_id)?.name || 'Unknown Technician'
+            : 'Unassigned';
+
+          await recordTechnicianChange(job.id, oldTechName, techName, userName, userId);
+        }));
       }
       
       onSuccess(technicianId, techName);

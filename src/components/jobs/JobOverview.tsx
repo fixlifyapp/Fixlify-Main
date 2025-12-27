@@ -12,6 +12,7 @@ import { TechnicianCard } from "./overview/TechnicianCard";
 import { JobTagsCard } from "./overview/JobTagsCard";
 import { EditableJobDetailsCard } from "./overview/EditableJobDetailsCard";
 import { EditableJobOverviewCard } from "./overview/EditableJobOverviewCard";
+import { AttachmentsCard } from "./overview/AttachmentsCard";
 import { JobMessages } from "./JobMessages";
 import { TaskManagementDialog } from "./dialogs/TaskManagementDialog";
 import { CheckSquare, Building } from "lucide-react";
@@ -78,6 +79,8 @@ export const JobOverview = ({ jobId }: JobOverviewProps) => {
         onUpdate={refetch}
       />
 
+      {/* Attachments Section */}
+      <AttachmentsCard jobId={jobId} />
 
       {/* Additional Information (Read-only) */}
       <Card>

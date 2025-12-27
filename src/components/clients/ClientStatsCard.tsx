@@ -1,21 +1,47 @@
 import { ModernCard, ModernCardContent, ModernCardHeader, ModernCardTitle } from "@/components/ui/modern-card";
-import { Badge } from "@/components/ui/badge";
-import { TrendingUp, Calendar, DollarSign, Wrench } from "lucide-react";
+import { TrendingUp, Calendar, DollarSign, Wrench, AlertCircle, RefreshCw } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 import { useClientStatsOptimized } from "@/hooks/useClientStatsOptimized";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
 
 interface ClientStatsCardProps {
   clientId: string;
 }
 
 export const ClientStatsCard = ({ clientId }: ClientStatsCardProps) => {
-  const { stats, isLoading } = useClientStatsOptimized(clientId);
+  const { stats, isLoading, hasError, clearError } = useClientStatsOptimized(clientId);
   
   const formatDate = (dateString?: string) => {
     if (!dateString) return 'Never';
     return new Date(dateString).toLocaleDateString();
   };
+
+  // Error state
+  if (hasError && !isLoading) {
+    return (
+      <ModernCard variant="elevated">
+        <ModernCardHeader>
+          <ModernCardTitle>
+            <div className="flex items-center gap-2">
+              <TrendingUp className="w-4 h-4" />
+              Client Statistics
+            </div>
+          </ModernCardTitle>
+        </ModernCardHeader>
+        <ModernCardContent>
+          <div className="flex flex-col items-center justify-center py-6 text-center">
+            <AlertCircle className="h-8 w-8 text-destructive mb-2" />
+            <p className="text-sm text-muted-foreground mb-3">Failed to load statistics</p>
+            <Button variant="outline" size="sm" onClick={clearError} className="gap-2">
+              <RefreshCw className="h-4 w-4" />
+              Retry
+            </Button>
+          </div>
+        </ModernCardContent>
+      </ModernCard>
+    );
+  }
 
   return (
     <ModernCard variant="elevated">

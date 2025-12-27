@@ -29,11 +29,11 @@ export const HeaderSearch = () => {
       try {
         const searchResults: SearchResult[] = [];
 
-        // Search jobs
+        // Search jobs - comprehensive search across multiple fields
         const { data: jobs } = await supabase
           .from('jobs')
           .select('*, clients(*)')
-          .or(`title.ilike.%${query}%,id.ilike.%${query}%`)
+          .or(`title.ilike.%${query}%,id.ilike.%${query}%,description.ilike.%${query}%,address.ilike.%${query}%,job_type.ilike.%${query}%`)
           .limit(3);
 
         if (jobs) {
@@ -48,11 +48,11 @@ export const HeaderSearch = () => {
           });
         }
 
-        // Search clients
+        // Search clients - include phone and company
         const { data: clients } = await supabase
           .from('clients')
           .select('*')
-          .or(`name.ilike.%${query}%,email.ilike.%${query}%,id.ilike.%${query}%`)
+          .or(`name.ilike.%${query}%,email.ilike.%${query}%,phone.ilike.%${query}%,company.ilike.%${query}%,id.ilike.%${query}%`)
           .limit(3);
 
         if (clients) {

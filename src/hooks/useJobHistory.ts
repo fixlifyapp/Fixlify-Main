@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { HistoryItem, HistoryItemInput } from '@/types/job-history';
 import { useRBAC } from '@/components/auth/RBACProvider';
@@ -13,10 +13,11 @@ export const useJobHistory = (jobId: string) => {
   const [pinnedItems, setPinnedItems] = useState<string[]>([]);
   const [showRestrictedItems, setShowRestrictedItems] = useState(false);
   const { currentUser, hasPermission } = useRBAC();
+  const isMountedRef = useRef(true);
 
-  const fetchHistory = async () => {
+  const fetchHistory = useCallback(async () => {
     if (!jobId) return;
-    
+
     try {
       const { data, error } = await supabase
         .from('job_history')
@@ -25,13 +26,17 @@ export const useJobHistory = (jobId: string) => {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setHistoryItems(data || []);
+      if (isMountedRef.current) {
+        setHistoryItems(data || []);
+      }
     } catch (error) {
       console.error('Error fetching job history:', error);
     } finally {
-      setIsLoading(false);
+      if (isMountedRef.current) {
+        setIsLoading(false);
+      }
     }
-  };
+  }, [jobId]);
 
   const addHistoryItem = async (item: HistoryItemInput) => {
     try {
@@ -51,9 +56,10 @@ export const useJobHistory = (jobId: string) => {
     }
   };
 
-  const refreshHistory = () => {
+  // Stable refresh function for external use (e.g., realtime hooks)
+  const refreshHistory = useCallback(() => {
     fetchHistory();
-  };
+  }, [fetchHistory]);
 
   const togglePinnedItem = (id: string) => {
     setPinnedItems(prev => 
@@ -95,8 +101,13 @@ export const useJobHistory = (jobId: string) => {
   };
 
   useEffect(() => {
+    isMountedRef.current = true;
     fetchHistory();
-  }, [jobId]);
+
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, [fetchHistory]);
 
   return {
     historyItems,

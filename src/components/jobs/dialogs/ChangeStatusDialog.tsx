@@ -14,7 +14,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { Check, Clock, Loader2, XCircle, Calendar, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useJobStatuses } from "@/hooks/useConfigItems";
-import { useJobHistoryIntegration } from "@/hooks/useJobHistoryIntegration";
+import { useRBAC } from "@/components/auth/RBACProvider";
+import { recordStatusChange } from "@/services/jobHistoryService";
 import { AutomationService } from "@/services/automationService";
 
 interface ChangeStatusDialogProps {
@@ -27,6 +28,7 @@ export function ChangeStatusDialog({ selectedJobs, onOpenChange, onSuccess }: Ch
   const [status, setStatus] = useState<string | undefined>();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { items: jobStatuses } = useJobStatuses();
+  const { currentUser } = useRBAC();
 
   const getStatusIcon = (statusValue: string) => {
     switch (statusValue) {
@@ -94,12 +96,14 @@ export function ChangeStatusDialog({ selectedJobs, onOpenChange, onSuccess }: Ch
         throw error;
       }
       
-      // Log status changes for each job
+      // Log status changes for each job using direct service call
       if (jobsData) {
-        for (const job of jobsData) {
-          const { logStatusChange } = useJobHistoryIntegration(job.id);
-          await logStatusChange(job.status, status);
-          
+        const userName = currentUser?.name || currentUser?.email;
+        const userId = currentUser?.id;
+
+        await Promise.all(jobsData.map(async (job) => {
+          await recordStatusChange(job.id, job.status, status, userName, userId);
+
           // Process automations for each job
           AutomationService.processJobStatusChange(
             job.id,
@@ -108,7 +112,7 @@ export function ChangeStatusDialog({ selectedJobs, onOpenChange, onSuccess }: Ch
           ).catch(error => {
             console.error(`Automation processing error for job ${job.id}:`, error);
           });
-        }
+        }));
       }
       
       // Call onSuccess with the new status

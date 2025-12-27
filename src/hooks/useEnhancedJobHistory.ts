@@ -17,11 +17,11 @@ export const useEnhancedJobHistory = (jobId: string) => {
   useEffect(() => {
     if (!jobId) return;
 
-    // Set up real-time subscriptions for comprehensive tracking
+    // Set up real-time subscriptions with unique channel names to prevent conflicts
     const channels = [
       // Job updates
       supabase
-        .channel('job-updates')
+        .channel(`enhanced-job-${jobId}`)
         .on('postgres_changes', {
           event: '*',
           schema: 'public',
@@ -34,7 +34,7 @@ export const useEnhancedJobHistory = (jobId: string) => {
 
       // Estimate updates
       supabase
-        .channel('estimate-updates')
+        .channel(`enhanced-estimates-${jobId}`)
         .on('postgres_changes', {
           event: '*',
           schema: 'public',
@@ -47,7 +47,7 @@ export const useEnhancedJobHistory = (jobId: string) => {
 
       // Invoice updates
       supabase
-        .channel('invoice-updates')
+        .channel(`enhanced-invoices-${jobId}`)
         .on('postgres_changes', {
           event: '*',
           schema: 'public',
@@ -60,7 +60,7 @@ export const useEnhancedJobHistory = (jobId: string) => {
 
       // Payment updates
       supabase
-        .channel('payment-updates')
+        .channel(`enhanced-payments-${jobId}`)
         .on('postgres_changes', {
           event: '*',
           schema: 'public',
@@ -75,7 +75,7 @@ export const useEnhancedJobHistory = (jobId: string) => {
 
       // Communication updates
       supabase
-        .channel('communication-updates')
+        .channel(`enhanced-est-comms-${jobId}`)
         .on('postgres_changes', {
           event: '*',
           schema: 'public',
@@ -86,7 +86,7 @@ export const useEnhancedJobHistory = (jobId: string) => {
         .subscribe(),
 
       supabase
-        .channel('invoice-communication-updates')
+        .channel(`enhanced-inv-comms-${jobId}`)
         .on('postgres_changes', {
           event: '*',
           schema: 'public',
@@ -98,7 +98,7 @@ export const useEnhancedJobHistory = (jobId: string) => {
 
       // Direct history updates
       supabase
-        .channel('history-updates')
+        .channel(`enhanced-history-${jobId}`)
         .on('postgres_changes', {
           event: '*',
           schema: 'public',
