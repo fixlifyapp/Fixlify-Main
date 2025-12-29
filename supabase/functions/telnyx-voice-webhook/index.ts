@@ -50,15 +50,22 @@ function generateAITransferTeXML(): string {
 </Response>`;
 }
 
-// Generate TeXML response to answer and keep call alive for browser pickup
-// After timeout, redirects to voicemail handler
-function generateAnswerTeXML(ringTimeout: number = 30, callControlId: string): string {
+// Generate TeXML response with polling loop for real-time control
+// Uses short pauses with redirects to check for pending actions
+function generateHoldTeXML(callControlId: string, loopCount: number = 0): string {
   const webhookUrl = Deno.env.get('SUPABASE_URL') + '/functions/v1/telnyx-voice-webhook';
+  const maxLoops = 10; // 10 loops x 3 seconds = 30 seconds max hold time
+
+  // First loop plays greeting, subsequent loops just wait
+  const greeting = loopCount === 0
+    ? `<Say voice="Polly.Matthew-Neural">Please hold while we connect you to a representative.</Say>`
+    : `<Play loops="1">https://mqppvcrlvsgrsqelglod.supabase.co/storage/v1/object/public/audio/hold-music-short.mp3</Play>`;
+
   return `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-  <Say voice="Polly.Matthew-Neural">Please hold while we connect you to a representative.</Say>
-  <Pause length="${ringTimeout}"/>
-  <Redirect>${webhookUrl}?action=no_answer&amp;call_control_id=${callControlId}</Redirect>
+  ${greeting}
+  <Pause length="3"/>
+  <Redirect>${webhookUrl}?action=check_status&amp;call_control_id=${callControlId}&amp;loop=${loopCount + 1}&amp;max_loops=${maxLoops}</Redirect>
 </Response>`;
 }
 
@@ -223,7 +230,7 @@ serve(async (req) => {
         });
 
       // Return TeXML to answer and hold while waiting for dispatcher
-      return new Response(generateAnswerTeXML(ringTimeout, callSid), {
+      return new Response(generateHoldTeXML(callSid), {
         headers: {
           ...corsHeaders,
           'Content-Type': 'application/xml'
@@ -231,7 +238,119 @@ serve(async (req) => {
       });
     }
 
-    // Handle voicemail action callbacks
+    // Handle check_status action - polling loop for real-time control
+    if (action === 'check_status') {
+      const callControlId = url.searchParams.get('call_control_id');
+      const loopCount = parseInt(url.searchParams.get('loop') || '0');
+      const maxLoops = parseInt(url.searchParams.get('max_loops') || '10');
+
+      console.log(`Check status: callId=${callControlId}, loop=${loopCount}/${maxLoops}`);
+
+      // Get call record to check for pending actions
+      const { data: callRecord } = await supabase
+        .from('telnyx_calls')
+        .select('status, metadata')
+        .eq('call_control_id', callControlId)
+        .single();
+
+      const pendingAction = callRecord?.metadata?.pending_action;
+      console.log(`Call status: ${callRecord?.status}, pending action: ${pendingAction}`);
+
+      // Handle pending actions
+      if (pendingAction === 'hangup') {
+        // Clear pending action and hang up
+        await supabase
+          .from('telnyx_calls')
+          .update({
+            status: 'declined',
+            metadata: { ...callRecord?.metadata, pending_action: null }
+          })
+          .eq('call_control_id', callControlId);
+
+        return new Response(`<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Say voice="Polly.Matthew-Neural">Thank you for calling. Goodbye.</Say>
+  <Hangup/>
+</Response>`, {
+          headers: { ...corsHeaders, 'Content-Type': 'application/xml' },
+        });
+      }
+
+      if (pendingAction === 'transfer_to_ai') {
+        // Clear pending action and transfer to AI
+        await supabase
+          .from('telnyx_calls')
+          .update({
+            status: 'ai_handling',
+            metadata: { ...callRecord?.metadata, pending_action: null, transferred_to: 'ai_assistant' }
+          })
+          .eq('call_control_id', callControlId);
+
+        console.log('Transferring to AI Assistant');
+        return new Response(generateAITransferTeXML(), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/xml' },
+        });
+      }
+
+      if (pendingAction === 'answered') {
+        // User answered - for now just acknowledge (browser WebRTC would connect separately)
+        await supabase
+          .from('telnyx_calls')
+          .update({
+            status: 'active',
+            answered_at: new Date().toISOString(),
+            metadata: { ...callRecord?.metadata, pending_action: null }
+          })
+          .eq('call_control_id', callControlId);
+
+        // Send real-time update
+        await supabase
+          .channel('call-updates-global')
+          .send({
+            type: 'broadcast',
+            event: 'call_answered',
+            payload: { callControlId, timestamp: new Date().toISOString() }
+          });
+
+        // Continue holding for now (in production would bridge to user)
+        return new Response(generateHoldTeXML(callControlId!, loopCount), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/xml' },
+        });
+      }
+
+      // Check if max loops reached - go to voicemail
+      if (loopCount >= maxLoops) {
+        console.log('Max loops reached, checking voicemail');
+        const voicemailEnabled = callRecord?.metadata?.voicemail_enabled;
+        const voicemailSettings = callRecord?.metadata?.voicemail_settings;
+
+        if (voicemailEnabled && voicemailSettings) {
+          await supabase
+            .from('telnyx_calls')
+            .update({ status: 'voicemail' })
+            .eq('call_control_id', callControlId);
+
+          return new Response(generateVoicemailTeXML(voicemailSettings), {
+            headers: { ...corsHeaders, 'Content-Type': 'application/xml' },
+          });
+        } else {
+          return new Response(`<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Say voice="Polly.Matthew-Neural">We're sorry, no one is available to take your call. Please try again later.</Say>
+  <Hangup/>
+</Response>`, {
+            headers: { ...corsHeaders, 'Content-Type': 'application/xml' },
+          });
+        }
+      }
+
+      // No pending action - continue hold loop
+      return new Response(generateHoldTeXML(callControlId!, loopCount), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/xml' },
+      });
+    }
+
+    // Handle voicemail action callbacks (legacy)
     if (action === 'no_answer') {
       const callControlId = url.searchParams.get('call_control_id');
       console.log('No answer - checking for voicemail:', callControlId);
@@ -436,7 +555,7 @@ serve(async (req) => {
 
           // Return TeXML to answer and hold while waiting for dispatcher
           // After timeout, redirects to voicemail handler
-          return new Response(generateAnswerTeXML(ringTimeout, payload.call_control_id), {
+          return new Response(generateHoldTeXML(payload.call_control_id), {
             headers: {
               ...corsHeaders,
               'Content-Type': 'application/xml'

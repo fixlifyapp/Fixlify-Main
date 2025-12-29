@@ -6,21 +6,29 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// AI Assistant SIP address for call transfer
-const AI_ASSISTANT_SIP = Deno.env.get('TELNYX_AI_ASSISTANT_SIP') ||
-  'sip:assistant-2a8a396c-e975-4ea5-90bf-3297f1350775@sip.telnyx.com';
-
+/**
+ * TeXML Call Control Function
+ *
+ * For TeXML-based calls, we can't use Telnyx Call Control API directly.
+ * Instead, we set a "pending_action" in the database which the webhook's
+ * polling loop will pick up and execute via TeXML response.
+ *
+ * Supported actions:
+ * - answer: Mark call as answered (triggers call bridging in webhook)
+ * - hangup: End the call
+ * - transfer_to_ai: Transfer call to AI Assistant
+ * - hold/unhold: Toggle hold state (for active calls)
+ */
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { action, callControlId, userId } = await req.json();
-    const telnyxApiKey = Deno.env.get('TELNYX_API_KEY');
-    
-    if (!telnyxApiKey) {
-      throw new Error('TELNYX_API_KEY not configured');
+    const { action, callControlId } = await req.json();
+
+    if (!callControlId) {
+      throw new Error('callControlId is required');
     }
 
     const supabase = createClient(
@@ -28,111 +36,79 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    let telnyxResponse;
-    let endpoint = '';
-    let method = 'POST';
-    let body = {};
+    console.log(`TeXML Call Control: action=${action}, callId=${callControlId}`);
+
+    // Get current call record
+    const { data: callRecord, error: fetchError } = await supabase
+      .from('telnyx_calls')
+      .select('status, metadata')
+      .eq('call_control_id', callControlId)
+      .single();
+
+    if (fetchError) {
+      console.error('Error fetching call:', fetchError);
+      throw new Error(`Call not found: ${callControlId}`);
+    }
+
+    // Map action to pending_action for webhook processing
+    let pendingAction: string | null = null;
+    let immediateUpdate: Record<string, any> = {};
 
     switch (action) {
       case 'answer':
-        endpoint = `https://api.telnyx.com/v2/calls/${callControlId}/actions/answer`;
+        pendingAction = 'answered';
         break;
-      
+
       case 'hangup':
-        endpoint = `https://api.telnyx.com/v2/calls/${callControlId}/actions/hangup`;
-        break;
-      
-      case 'hold':
-        endpoint = `https://api.telnyx.com/v2/calls/${callControlId}/actions/hold`;
-        break;
-      
-      case 'unhold':
-        endpoint = `https://api.telnyx.com/v2/calls/${callControlId}/actions/unhold`;
-        break;
-      
-      case 'mute':
-        endpoint = `https://api.telnyx.com/v2/calls/${callControlId}/actions/mute`;
-        break;
-      
-      case 'unmute':
-        endpoint = `https://api.telnyx.com/v2/calls/${callControlId}/actions/unmute`;
-        break;
-      
-      case 'record_start':
-        endpoint = `https://api.telnyx.com/v2/calls/${callControlId}/actions/record_start`;
-        body = {
-          format: 'mp3',
-          channels: 'dual'
-        };
-        break;
-      
-      case 'record_stop':
-        endpoint = `https://api.telnyx.com/v2/calls/${callControlId}/actions/record_stop`;
+        pendingAction = 'hangup';
         break;
 
       case 'transfer_to_ai':
-        // Transfer call to AI Assistant using SIP transfer
-        endpoint = `https://api.telnyx.com/v2/calls/${callControlId}/actions/transfer`;
-        body = {
-          to: AI_ASSISTANT_SIP,
-          timeout_secs: 30,
-          webhook_url: Deno.env.get('SUPABASE_URL') + '/functions/v1/telnyx-voice-webhook'
-        };
-        console.log('Transferring call to AI Assistant:', AI_ASSISTANT_SIP);
+        pendingAction = 'transfer_to_ai';
+        break;
+
+      case 'hold':
+        // For hold/unhold, we update status immediately
+        immediateUpdate = { status: 'hold' };
+        break;
+
+      case 'unhold':
+        immediateUpdate = { status: 'active' };
         break;
 
       default:
         throw new Error(`Unknown action: ${action}`);
     }
 
-    console.log(`Calling Telnyx: ${action} for call ${callControlId}`);
-    console.log(`Endpoint: ${endpoint}`);
-    if (Object.keys(body).length > 0) {
-      console.log(`Body: ${JSON.stringify(body)}`);
+    // Update the call record
+    const updateData: Record<string, any> = {};
+
+    if (pendingAction) {
+      // Set pending action for webhook to process
+      updateData.metadata = {
+        ...callRecord?.metadata,
+        pending_action: pendingAction,
+        pending_action_at: new Date().toISOString()
+      };
     }
 
-    // Make API call to Telnyx
-    telnyxResponse = await fetch(endpoint, {
-      method,
-      headers: {
-        'Authorization': `Bearer ${telnyxApiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: Object.keys(body).length > 0 ? JSON.stringify(body) : undefined,
-    });
-
-    const responseText = await telnyxResponse.text();
-    console.log(`Telnyx response status: ${telnyxResponse.status}`);
-    console.log(`Telnyx response: ${responseText}`);
-
-    if (!telnyxResponse.ok) {
-      throw new Error(`Telnyx API error (${telnyxResponse.status}): ${responseText}`);
+    if (Object.keys(immediateUpdate).length > 0) {
+      Object.assign(updateData, immediateUpdate);
     }
 
-    // Parse JSON from the already-read response text
-    const result = responseText ? JSON.parse(responseText) : {};
-
-    // Update call status in database
-    const statusUpdates: any = {};
-    if (action === 'hangup') {
-      statusUpdates.status = 'completed';
-      statusUpdates.ended_at = new Date().toISOString();
-    } else if (action === 'answer') {
-      statusUpdates.status = 'active';
-      statusUpdates.answered_at = new Date().toISOString();
-    } else if (action === 'transfer_to_ai') {
-      statusUpdates.status = 'transferred_to_ai';
-      statusUpdates.metadata = { transferred_to: 'ai_assistant', transferred_at: new Date().toISOString() };
-    }
-
-    if (Object.keys(statusUpdates).length > 0) {
-      await supabase
+    if (Object.keys(updateData).length > 0) {
+      const { error: updateError } = await supabase
         .from('telnyx_calls')
-        .update(statusUpdates)
+        .update(updateData)
         .eq('call_control_id', callControlId);
+
+      if (updateError) {
+        console.error('Error updating call:', updateError);
+        throw new Error('Failed to update call');
+      }
     }
 
-    // Send real-time update
+    // Send real-time update for immediate feedback
     await supabase
       .channel('call-updates-global')
       .send({
@@ -141,14 +117,20 @@ serve(async (req) => {
         payload: {
           callControlId,
           action,
+          status: pendingAction ? 'pending' : 'applied',
           timestamp: new Date().toISOString()
         }
       });
 
+    console.log(`Action ${action} queued for call ${callControlId}`);
+
     return new Response(JSON.stringify({
       success: true,
       action,
-      result
+      status: pendingAction ? 'queued' : 'applied',
+      message: pendingAction
+        ? `Action "${action}" queued - will be processed on next webhook poll (within 3 seconds)`
+        : `Action "${action}" applied immediately`
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
