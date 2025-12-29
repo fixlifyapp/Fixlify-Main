@@ -30,6 +30,7 @@ export const InboundCallNotification = ({
   onDecline
 }: InboundCallNotificationProps) => {
   const [isVisible, setIsVisible] = useState(false);
+  const [isLoading, setIsLoading] = useState<'answer' | 'decline' | 'ai' | null>(null);
   const { user } = useAuth();
   const { data: profile } = useProfile(user?.id || '');
 
@@ -68,7 +69,8 @@ export const InboundCallNotification = ({
   };
 
   const handleAnswer = async () => {
-    if (!call) return;
+    if (!call || isLoading) return;
+    setIsLoading('answer');
 
     try {
       const { data, error } = await supabase.functions.invoke('telnyx-call-control', {
@@ -81,7 +83,7 @@ export const InboundCallNotification = ({
       if (error) throw error;
 
       if (data.success) {
-        toast.success('Call answered');
+        toast.success('Connecting call...');
         onAnswer();
       } else {
         throw new Error(data.error || 'Failed to answer call');
@@ -89,13 +91,15 @@ export const InboundCallNotification = ({
     } catch (error) {
       console.error('Error answering call:', error);
       toast.error('Failed to answer call');
+      setIsLoading(null);
     }
 
     stopRingtone();
   };
 
   const handleDecline = async () => {
-    if (!call) return;
+    if (!call || isLoading) return;
+    setIsLoading('decline');
 
     try {
       const { data, error } = await supabase.functions.invoke('telnyx-call-control', {
@@ -116,6 +120,7 @@ export const InboundCallNotification = ({
     } catch (error) {
       console.error('Error declining call:', error);
       toast.error('Failed to decline call');
+      setIsLoading(null);
     }
 
     stopRingtone();
@@ -133,7 +138,8 @@ export const InboundCallNotification = ({
   if (!call || !isVisible || !canAnswerCalls) return null;
 
   const handleTransferToAI = async () => {
-    if (!call) return;
+    if (!call || isLoading) return;
+    setIsLoading('ai');
 
     try {
       const { data, error } = await supabase.functions.invoke('telnyx-call-control', {
@@ -146,7 +152,7 @@ export const InboundCallNotification = ({
       if (error) throw error;
 
       if (data.success) {
-        toast.success('Call transferred to AI Assistant');
+        toast.success('Transferring to AI...');
         onDecline();
       } else {
         throw new Error(data.error || 'Failed to transfer call');
@@ -154,6 +160,7 @@ export const InboundCallNotification = ({
     } catch (error) {
       console.error('Error transferring to AI:', error);
       toast.error('Failed to transfer call to AI');
+      setIsLoading(null);
     }
 
     stopRingtone();
@@ -161,9 +168,10 @@ export const InboundCallNotification = ({
 
   return (
     <div className="fixed top-4 right-4 z-50 animate-in slide-in-from-right-5">
-      {/* Pulsating ring effect */}
-      <div className="absolute inset-0 rounded-xl bg-green-500/20 animate-ping" />
-      <div className="absolute inset-0 rounded-xl bg-green-500/10 animate-[ping_1.5s_ease-in-out_infinite_0.5s]" />
+      {/* Pulsating ring effect - smooth scale animation */}
+      <div className="absolute -inset-2 rounded-2xl bg-green-500/15 animate-[pulse_2s_ease-in-out_infinite]" />
+      <div className="absolute -inset-4 rounded-2xl bg-green-500/10 animate-[pulse_2s_ease-in-out_infinite_0.5s]" />
+      <div className="absolute -inset-6 rounded-2xl bg-green-500/5 animate-[pulse_2s_ease-in-out_infinite_1s]" />
       <Card className="relative w-80 bg-white dark:bg-gray-900 shadow-2xl border-2 border-green-500 ring-4 ring-green-500/30">
         <div className="p-6">
           <div className="flex items-center gap-4 mb-4">
@@ -183,18 +191,28 @@ export const InboundCallNotification = ({
               onClick={handleDecline}
               variant="outline"
               size="sm"
-              className="flex-1 border-red-200 text-red-600 hover:bg-red-50"
+              disabled={isLoading !== null}
+              className="flex-1 border-red-200 text-red-600 hover:bg-red-50 disabled:opacity-50"
             >
-              <PhoneOff className="h-4 w-4 mr-1" />
-              Decline
+              {isLoading === 'decline' ? (
+                <div className="h-4 w-4 mr-1 animate-spin rounded-full border-2 border-red-600 border-t-transparent" />
+              ) : (
+                <PhoneOff className="h-4 w-4 mr-1" />
+              )}
+              {isLoading === 'decline' ? 'Declining...' : 'Decline'}
             </Button>
             <Button
               onClick={handleAnswer}
               size="sm"
-              className="flex-1 bg-green-600 hover:bg-green-700"
+              disabled={isLoading !== null}
+              className="flex-1 bg-green-600 hover:bg-green-700 disabled:opacity-50"
             >
-              <Phone className="h-4 w-4 mr-1" />
-              Answer
+              {isLoading === 'answer' ? (
+                <div className="h-4 w-4 mr-1 animate-spin rounded-full border-2 border-white border-t-transparent" />
+              ) : (
+                <Phone className="h-4 w-4 mr-1" />
+              )}
+              {isLoading === 'answer' ? 'Connecting...' : 'Answer'}
             </Button>
           </div>
 
@@ -202,10 +220,15 @@ export const InboundCallNotification = ({
             onClick={handleTransferToAI}
             variant="outline"
             size="sm"
-            className="w-full border-blue-200 text-blue-600 hover:bg-blue-50"
+            disabled={isLoading !== null}
+            className="w-full border-blue-200 text-blue-600 hover:bg-blue-50 disabled:opacity-50"
           >
-            <Bot className="h-4 w-4 mr-2" />
-            Send to AI
+            {isLoading === 'ai' ? (
+              <div className="h-4 w-4 mr-2 animate-spin rounded-full border-2 border-blue-600 border-t-transparent" />
+            ) : (
+              <Bot className="h-4 w-4 mr-2" />
+            )}
+            {isLoading === 'ai' ? 'Transferring...' : 'Send to AI'}
           </Button>
         </div>
       </Card>
