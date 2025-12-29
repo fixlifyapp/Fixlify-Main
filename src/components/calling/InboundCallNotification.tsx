@@ -1,15 +1,18 @@
 import { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Phone, PhoneOff, User } from 'lucide-react';
+import { Phone, PhoneOff, User, Bot } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/use-auth';
+import { useProfile } from '@/hooks/use-profiles';
 
 interface IncomingCall {
   callControlId: string;
   from: string;
   to: string;
   timestamp: string;
+  organizationId?: string | null;
 }
 
 interface InboundCallNotificationProps {
@@ -18,12 +21,20 @@ interface InboundCallNotificationProps {
   onDecline: () => void;
 }
 
+// Roles that can answer calls
+const CALL_ANSWERING_ROLES = ['admin', 'dispatcher', 'owner'];
+
 export const InboundCallNotification = ({
   call,
   onAnswer,
   onDecline
 }: InboundCallNotificationProps) => {
   const [isVisible, setIsVisible] = useState(false);
+  const { user } = useAuth();
+  const { data: profile } = useProfile(user?.id || '');
+
+  // Check if user has permission to answer calls
+  const canAnswerCalls = profile?.role && CALL_ANSWERING_ROLES.includes(profile.role);
 
   useEffect(() => {
     if (call) {
@@ -118,7 +129,35 @@ export const InboundCallNotification = ({
     return number;
   };
 
-  if (!call || !isVisible) return null;
+  // Don't show notification if user doesn't have permission
+  if (!call || !isVisible || !canAnswerCalls) return null;
+
+  const handleTransferToAI = async () => {
+    if (!call) return;
+
+    try {
+      const { data, error } = await supabase.functions.invoke('telnyx-call-control', {
+        body: {
+          action: 'transfer_to_ai',
+          callControlId: call.callControlId
+        }
+      });
+
+      if (error) throw error;
+
+      if (data.success) {
+        toast.success('Call transferred to AI Assistant');
+        onDecline();
+      } else {
+        throw new Error(data.error || 'Failed to transfer call');
+      }
+    } catch (error) {
+      console.error('Error transferring to AI:', error);
+      toast.error('Failed to transfer call to AI');
+    }
+
+    stopRingtone();
+  };
 
   return (
     <div className="fixed top-4 right-4 z-50 animate-in slide-in-from-right-5">
@@ -136,23 +175,35 @@ export const InboundCallNotification = ({
             </div>
           </div>
 
-          <div className="flex gap-3">
+          <div className="flex gap-2 mb-2">
             <Button
               onClick={handleDecline}
               variant="outline"
+              size="sm"
               className="flex-1 border-red-200 text-red-600 hover:bg-red-50"
             >
-              <PhoneOff className="h-4 w-4 mr-2" />
+              <PhoneOff className="h-4 w-4 mr-1" />
               Decline
             </Button>
             <Button
               onClick={handleAnswer}
+              size="sm"
               className="flex-1 bg-green-600 hover:bg-green-700"
             >
-              <Phone className="h-4 w-4 mr-2" />
+              <Phone className="h-4 w-4 mr-1" />
               Answer
             </Button>
           </div>
+
+          <Button
+            onClick={handleTransferToAI}
+            variant="outline"
+            size="sm"
+            className="w-full border-blue-200 text-blue-600 hover:bg-blue-50"
+          >
+            <Bot className="h-4 w-4 mr-2" />
+            Send to AI
+          </Button>
         </div>
       </Card>
     </div>

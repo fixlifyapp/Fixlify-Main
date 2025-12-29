@@ -6,6 +6,7 @@ import { MessageProvider } from '@/contexts/MessageContext';
 import { GlobalRealtimeProvider } from '@/contexts/GlobalRealtimeProvider';
 import { ModalProvider } from '@/components/ui/modal-provider';
 import { OrganizationProvider } from '@/contexts/OrganizationContext';
+import { GlobalCallListener } from '@/components/calling/GlobalCallListener';
 // REMOVED: AutomationProcessorProvider - now handled by database triggers
 
 interface AppProvidersProps {
@@ -22,6 +23,8 @@ export const AppProviders = ({ children }: AppProvidersProps) => {
             <SMSProvider>
               <EmailProvider>
                 <ModalProvider>
+                  {/* Global incoming call listener - shows notification popup anywhere in app */}
+                  <GlobalCallListener />
                   {children}
                 </ModalProvider>
               </EmailProvider>

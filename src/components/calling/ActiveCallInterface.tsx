@@ -1,19 +1,20 @@
 import { useState, useEffect, useRef } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { 
-  Phone, 
-  PhoneOff, 
-  Mic, 
-  MicOff, 
-  Volume2, 
+import {
+  Phone,
+  PhoneOff,
+  Mic,
+  MicOff,
+  Volume2,
   VolumeX,
   Pause,
   Play,
   Circle,
   Settings,
   Users,
-  MoreHorizontal
+  MoreHorizontal,
+  Bot
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
@@ -40,6 +41,7 @@ export const ActiveCallInterface = ({
   const [isMuted, setIsMuted] = useState(false);
   const [isOnHold, setIsOnHold] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
+  const [isTransferring, setIsTransferring] = useState(false);
   const [volume, setVolume] = useState(1);
   const [connectionState, setConnectionState] = useState<RTCPeerConnectionState>('new');
   const [showAdvancedControls, setShowAdvancedControls] = useState(false);
@@ -149,6 +151,11 @@ export const ActiveCallInterface = ({
             toast.info('Call ended');
             onEndCall();
             break;
+          case 'transfer_to_ai':
+            setIsTransferring(false);
+            toast.success('Call transferred to AI Assistant');
+            onEndCall();
+            break;
         }
       } else {
         throw new Error(data.error || `Failed to ${action}`);
@@ -178,6 +185,15 @@ export const ActiveCallInterface = ({
     setVolume(newVolume);
     if (webRTCBridge.current) {
       webRTCBridge.current.setVolume(newVolume);
+    }
+  };
+
+  const transferToAI = async () => {
+    setIsTransferring(true);
+    try {
+      await handleCallAction('transfer_to_ai');
+    } catch (error) {
+      setIsTransferring(false);
     }
   };
 
@@ -251,6 +267,17 @@ export const ActiveCallInterface = ({
               <Volume2 className="h-4 w-4" />
             </Button>
           </div>
+
+          {/* Transfer to AI Button */}
+          <Button
+            onClick={transferToAI}
+            disabled={isTransferring}
+            variant="outline"
+            className="w-full mb-3 border-blue-500 text-blue-600 hover:bg-blue-50"
+          >
+            <Bot className="h-4 w-4 mr-2" />
+            {isTransferring ? 'Transferring...' : 'Transfer to AI'}
+          </Button>
 
           {/* End Call */}
           <Button

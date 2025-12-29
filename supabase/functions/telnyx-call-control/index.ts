@@ -6,6 +6,10 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// AI Assistant SIP address for call transfer
+const AI_ASSISTANT_SIP = Deno.env.get('TELNYX_AI_ASSISTANT_SIP') ||
+  'sip:assistant-2a8a396c-e975-4ea5-90bf-3297f1350775@sip.telnyx.com';
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -65,7 +69,18 @@ serve(async (req) => {
       case 'record_stop':
         endpoint = `https://api.telnyx.com/v2/calls/${callControlId}/actions/record_stop`;
         break;
-      
+
+      case 'transfer_to_ai':
+        // Transfer call to AI Assistant using SIP transfer
+        endpoint = `https://api.telnyx.com/v2/calls/${callControlId}/actions/transfer`;
+        body = {
+          to: AI_ASSISTANT_SIP,
+          timeout_secs: 30,
+          webhook_url: Deno.env.get('SUPABASE_URL') + '/functions/v1/telnyx-voice-webhook'
+        };
+        console.log('Transferring call to AI Assistant:', AI_ASSISTANT_SIP);
+        break;
+
       default:
         throw new Error(`Unknown action: ${action}`);
     }
@@ -95,6 +110,9 @@ serve(async (req) => {
     } else if (action === 'answer') {
       statusUpdates.status = 'active';
       statusUpdates.answered_at = new Date().toISOString();
+    } else if (action === 'transfer_to_ai') {
+      statusUpdates.status = 'transferred_to_ai';
+      statusUpdates.metadata = { transferred_to: 'ai_assistant', transferred_at: new Date().toISOString() };
     }
 
     if (Object.keys(statusUpdates).length > 0) {
