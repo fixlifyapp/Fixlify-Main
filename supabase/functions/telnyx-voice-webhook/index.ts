@@ -207,9 +207,9 @@ serve(async (req) => {
         }
       });
 
-      // Send real-time notification for incoming call
+      // Send real-time notification for incoming call (broadcast to global channel)
       await supabase
-        .channel('incoming-calls')
+        .channel('incoming-calls-global')
         .send({
           type: 'broadcast',
           event: 'incoming_call',
@@ -419,9 +419,9 @@ serve(async (req) => {
             }
           });
 
-          // Send real-time notification for incoming call
+          // Send real-time notification for incoming call (broadcast to global channel)
           await supabase
-            .channel('incoming-calls')
+            .channel('incoming-calls-global')
             .send({
               type: 'broadcast',
               event: 'incoming_call',
@@ -455,9 +455,9 @@ serve(async (req) => {
           })
           .eq('call_control_id', payload.call_control_id);
 
-        // Send real-time update
+        // Send real-time update (broadcast to global channel)
         await supabase
-          .channel('call-updates')
+          .channel('call-updates-global')
           .send({
             type: 'broadcast',
             event: 'call_answered',
@@ -472,16 +472,16 @@ serve(async (req) => {
         // Update call status to ended
         await supabase
           .from('telnyx_calls')
-          .update({ 
+          .update({
             status: 'completed',
             ended_at: new Date().toISOString(),
             duration: payload.call_duration_secs || 0
           })
           .eq('call_control_id', payload.call_control_id);
 
-        // Send real-time update
+        // Send real-time update (broadcast to global channel)
         await supabase
-          .channel('call-updates')
+          .channel('call-updates-global')
           .send({
             type: 'broadcast',
             event: 'call_ended',
