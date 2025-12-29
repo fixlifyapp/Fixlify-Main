@@ -73,8 +73,8 @@ const TeamManagementPage = () => {
         } else if (data) {
           const members: TeamMember[] = data.map(profile => ({
             id: profile.id,
-            name: profile.name || 'Unknown User',
-            email: `user-${profile.id.substring(0, 8)}@fixlyfy.com`,
+            name: profile.name || profile.email?.split('@')[0] || 'Unknown User',
+            email: profile.email || `user-${profile.id.substring(0, 8)}@fixlyfy.com`,
             role: profile.role as "admin" | "manager" | "dispatcher" | "technician" || "technician",
             status: "active",
             avatar: profile.avatar_url || "https://github.com/shadcn.png",
