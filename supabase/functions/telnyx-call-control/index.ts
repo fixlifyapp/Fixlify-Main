@@ -85,6 +85,12 @@ serve(async (req) => {
         throw new Error(`Unknown action: ${action}`);
     }
 
+    console.log(`Calling Telnyx: ${action} for call ${callControlId}`);
+    console.log(`Endpoint: ${endpoint}`);
+    if (Object.keys(body).length > 0) {
+      console.log(`Body: ${JSON.stringify(body)}`);
+    }
+
     // Make API call to Telnyx
     telnyxResponse = await fetch(endpoint, {
       method,
@@ -95,12 +101,16 @@ serve(async (req) => {
       body: Object.keys(body).length > 0 ? JSON.stringify(body) : undefined,
     });
 
+    const responseText = await telnyxResponse.text();
+    console.log(`Telnyx response status: ${telnyxResponse.status}`);
+    console.log(`Telnyx response: ${responseText}`);
+
     if (!telnyxResponse.ok) {
-      const error = await telnyxResponse.text();
-      throw new Error(`Telnyx API error: ${error}`);
+      throw new Error(`Telnyx API error (${telnyxResponse.status}): ${responseText}`);
     }
 
-    const result = await telnyxResponse.json();
+    // Parse JSON from the already-read response text
+    const result = responseText ? JSON.parse(responseText) : {};
 
     // Update call status in database
     const statusUpdates: any = {};
@@ -124,7 +134,7 @@ serve(async (req) => {
 
     // Send real-time update
     await supabase
-      .channel('call-updates')
+      .channel('call-updates-global')
       .send({
         type: 'broadcast',
         event: 'call_action',

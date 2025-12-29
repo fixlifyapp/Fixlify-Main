@@ -161,11 +161,14 @@ export const InboundCallNotification = ({
 
   return (
     <div className="fixed top-4 right-4 z-50 animate-in slide-in-from-right-5">
-      <Card className="w-80 bg-white dark:bg-gray-900 shadow-2xl border-2 border-blue-500 animate-pulse">
+      {/* Pulsating ring effect */}
+      <div className="absolute inset-0 rounded-xl bg-green-500/20 animate-ping" />
+      <div className="absolute inset-0 rounded-xl bg-green-500/10 animate-[ping_1.5s_ease-in-out_infinite_0.5s]" />
+      <Card className="relative w-80 bg-white dark:bg-gray-900 shadow-2xl border-2 border-green-500 ring-4 ring-green-500/30">
         <div className="p-6">
           <div className="flex items-center gap-4 mb-4">
-            <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center">
-              <User className="h-6 w-6 text-blue-600" />
+            <div className="w-12 h-12 bg-green-100 dark:bg-green-900 rounded-full flex items-center justify-center animate-pulse">
+              <Phone className="h-6 w-6 text-green-600" />
             </div>
             <div className="flex-1">
               <h3 className="font-semibold text-lg">Incoming Call</h3>
