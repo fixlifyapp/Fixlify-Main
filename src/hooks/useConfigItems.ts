@@ -49,7 +49,6 @@ export function useConfigItems<T extends ConfigItem>(tableName: string) {
   const fetchItems = async () => {
     setIsLoading(true);
     try {
-      console.log(`[useConfigItems] Fetching ${tableName} for user:`, user?.id);
       
       let query = supabase.from(tableName as any).select('*');
       
@@ -75,8 +74,6 @@ export function useConfigItems<T extends ConfigItem>(tableName: string) {
         console.error(`[useConfigItems] Error fetching ${tableName}:`, error);
         throw error;
       }
-      
-      console.log(`[useConfigItems] Fetched ${tableName}:`, data?.length || 0, 'items');
       
       setItems(data as unknown as T[]);
     } catch (error) {

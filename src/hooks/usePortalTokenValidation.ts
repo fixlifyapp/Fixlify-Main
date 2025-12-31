@@ -38,12 +38,12 @@ export const usePortalTokenValidation = (token: string | undefined) => {
       setLoading(true);
       
       // First, try to find estimate with this token
+      // Note: estimates → jobs → clients (no direct FK to clients)
       const { data: estimateData, error: estimateError } = await supabase
         .from('estimates')
         .select(`
           *,
-          clients(*),
-          jobs(*)
+          jobs(*, clients(*))
         `)
         .eq('portal_access_token', token)
         .maybeSingle();
@@ -60,7 +60,7 @@ export const usePortalTokenValidation = (token: string | undefined) => {
           isValid: true,
           documentType: 'estimate',
           documentId: estimateData.id,
-          clientInfo: estimateData.clients,
+          clientInfo: estimateData.jobs?.clients,
           companyInfo: companyData,
           documentData: estimateData
         });
@@ -69,12 +69,12 @@ export const usePortalTokenValidation = (token: string | undefined) => {
       }
 
       // If not found in estimates, try invoices
+      // Note: invoices → jobs → clients (no direct FK to clients)
       const { data: invoiceData, error: invoiceError } = await supabase
         .from('invoices')
         .select(`
           *,
-          clients(*),
-          jobs(*),
+          jobs(*, clients(*)),
           payments(*)
         `)
         .eq('portal_access_token', token)
@@ -92,7 +92,7 @@ export const usePortalTokenValidation = (token: string | undefined) => {
           isValid: true,
           documentType: 'invoice',
           documentId: invoiceData.id,
-          clientInfo: invoiceData.clients,
+          clientInfo: invoiceData.jobs?.clients,
           companyInfo: companyData,
           documentData: invoiceData
         });

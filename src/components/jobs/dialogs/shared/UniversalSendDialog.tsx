@@ -65,7 +65,8 @@ If you have any questions, please don't hesitate to contact us.
 Best regards,
 ${companyName} Team`;
     } else {
-      return `Hello ${clientName}! Your ${docType} #${documentNumber} for $${total.toFixed(2)} is ready. View and ${documentType === "estimate" ? "approve" : "pay"} here: ${portalUrl} - ${companyName} Team`;
+      // Keep SMS short - backend will append the real portal URL
+      return `Your ${docType} #${documentNumber} ($${total.toFixed(2)}) is ready.`;
     }
   };
 
@@ -240,7 +241,14 @@ ${companyName} Team`;
                   if (sendMethod === "email" && !isValidEmail(value)) {
                     setValidationError("Please enter a valid email address (e.g., client@example.com)");
                   } else if (sendMethod === "sms" && !isValidPhoneNumber(value)) {
-                    setValidationError("Please enter a valid phone number (10-15 digits)");
+                    const digits = value.replace(/\D/g, '').length;
+                    if (digits < 10) {
+                      setValidationError(`Phone number too short (${digits} digits). Enter at least 10 digits.`);
+                    } else if (digits > 15) {
+                      setValidationError(`Phone number too long (${digits} digits). Maximum 15 digits allowed.`);
+                    } else {
+                      setValidationError("Please enter a valid phone number");
+                    }
                   } else {
                     setValidationError("");
                   }
@@ -254,26 +262,60 @@ ${companyName} Team`;
               <p className="text-sm text-red-600">{validationError}</p>
             )}
             {sendMethod === "sms" && (
-              <p className="text-xs text-muted-foreground">
-                Phone number will be automatically formatted
-              </p>
+              <>
+                {sendTo && needsCountryCode(sendTo) && (
+                  <p className="text-xs text-amber-600">
+                    {suggestCountryCode(sendTo)}
+                  </p>
+                )}
+                <p className="text-xs text-muted-foreground">
+                  Phone number will be automatically formatted. Include country code for best results (e.g., +1 for US/Canada).
+                </p>
+              </>
             )}
           </div>
 
           {/* Custom Message */}
           <div className="space-y-2">
-            <Label htmlFor="customNote">Message Template (Editable)</Label>
+            <div className="flex items-center justify-between">
+              <Label htmlFor="customNote">Message Template (Editable)</Label>
+              {sendMethod === "sms" && (
+                <span className={`text-xs font-medium ${
+                  customNote.length > 160
+                    ? "text-red-600"
+                    : customNote.length > 140
+                      ? "text-amber-600"
+                      : "text-muted-foreground"
+                }`}>
+                  {customNote.length}/160 characters
+                </span>
+              )}
+            </div>
             <Textarea
               id="customNote"
               placeholder="Add a personal message..."
               value={customNote}
               onChange={(e) => setCustomNote(e.target.value)}
               rows={sendMethod === "email" ? 8 : 4}
-              className="min-h-[120px]"
+              className={`min-h-[120px] ${
+                sendMethod === "sms" && customNote.length > 160
+                  ? "border-red-500 focus:ring-red-500"
+                  : ""
+              }`}
             />
-            <p className="text-xs text-muted-foreground">
-              Default message template with secure portal link. You can edit this message before sending.
-            </p>
+            {sendMethod === "sms" && customNote.length > 160 ? (
+              <p className="text-xs text-red-600">
+                ⚠️ SMS exceeds 160 characters. It may be sent as multiple messages or truncated.
+              </p>
+            ) : sendMethod === "sms" && customNote.length > 140 ? (
+              <p className="text-xs text-amber-600">
+                ⚠️ Approaching SMS character limit (160). Consider shortening your message.
+              </p>
+            ) : (
+              <p className="text-xs text-muted-foreground">
+                Default message template with secure portal link. You can edit this message before sending.
+              </p>
+            )}
           </div>
 
           {/* Action Buttons */}

@@ -6,22 +6,59 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { BusinessIntelligenceDashboard } from "./BusinessIntelligenceDashboard";
 import { PerformanceAnalytics } from "./PerformanceAnalytics";
 import { ReportScheduler } from "./ReportScheduler";
-import { 
-  BarChart3, 
-  TrendingUp, 
-  Calendar, 
+import {
+  BarChart3,
+  TrendingUp,
+  Calendar,
   Download,
   Brain,
   Target,
-  FileSpreadsheet
+  FileSpreadsheet,
+  Loader2
 } from "lucide-react";
 import { toast } from "sonner";
+import { exportElementToPDF, exportToExcel, getReportExportColumns } from "@/utils/exportUtils";
+import { supabase } from "@/integrations/supabase/client";
 
 export const AdvancedReportsPanel = () => {
   const [activeTab, setActiveTab] = useState("dashboard");
+  const [isExporting, setIsExporting] = useState(false);
 
-  const handleExportReport = (format: string) => {
-    toast.success(`Exporting report as ${format.toUpperCase()}...`);
+  const handleExportReport = async (format: 'pdf' | 'excel') => {
+    setIsExporting(true);
+    try {
+      if (format === 'pdf') {
+        await exportElementToPDF('reports-dashboard', {
+          title: 'Business Analytics Report',
+          filename: 'fixlify-analytics-report'
+        });
+        toast.success('PDF report exported successfully!');
+      } else {
+        // Fetch summary data for Excel export
+        const { data: jobs } = await supabase
+          .from('jobs')
+          .select('status, total_amount, created_at')
+          .order('created_at', { ascending: false })
+          .limit(100);
+
+        const summaryData = [
+          { period: 'Current Month', revenue: jobs?.filter(j => j.status === 'completed').reduce((sum, j) => sum + (j.total_amount || 0), 0) || 0, jobs_completed: jobs?.filter(j => j.status === 'completed').length || 0, avg_job_value: 0 },
+        ];
+        if (summaryData[0].jobs_completed > 0) {
+          summaryData[0].avg_job_value = summaryData[0].revenue / summaryData[0].jobs_completed;
+        }
+
+        exportToExcel(summaryData, getReportExportColumns(), {
+          title: 'Business Analytics Report',
+          filename: 'fixlify-analytics-report'
+        });
+        toast.success('Excel report exported successfully!');
+      }
+    } catch (error) {
+      toast.error(`Failed to export report: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   const handleScheduleReport = () => {
@@ -40,20 +77,22 @@ export const AdvancedReportsPanel = () => {
         </CardHeader>
         <CardContent>
           <div className="flex flex-wrap gap-4">
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               onClick={() => handleExportReport("pdf")}
+              disabled={isExporting}
               className="flex items-center gap-2"
             >
-              <Download className="h-4 w-4" />
+              {isExporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
               Export PDF
             </Button>
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               onClick={() => handleExportReport("excel")}
+              disabled={isExporting}
               className="flex items-center gap-2"
             >
-              <FileSpreadsheet className="h-4 w-4" />
+              {isExporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileSpreadsheet className="h-4 w-4" />}
               Export Excel
             </Button>
             <Button 
@@ -90,7 +129,9 @@ export const AdvancedReportsPanel = () => {
         </TabsList>
 
         <TabsContent value="dashboard" className="space-y-6">
-          <BusinessIntelligenceDashboard />
+          <div id="reports-dashboard">
+            <BusinessIntelligenceDashboard />
+          </div>
         </TabsContent>
 
         <TabsContent value="performance" className="space-y-6">

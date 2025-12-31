@@ -25,10 +25,7 @@ const JobDetailsPage = () => {
   const [activeTab, setActiveTab] = useState<string>("overview");
   const { hasPermission } = useRBAC();
   const isMobile = useIsMobile();
-  
-  console.log("🔍 JobDetailsPage - params:", { jobId });
-  console.log("🔍 JobDetailsPage - location:", location);
-  
+
   useEffect(() => {
     if (location.state && location.state.activeTab) {
       setActiveTab(location.state.activeTab);
@@ -45,7 +42,6 @@ const JobDetailsPage = () => {
   const exportJobData = () => {
     // Export estimates, invoices, payments to PDF/Excel
     toast.success('Job data export started');
-    console.log('Exporting job data for:', jobId);
     // TODO: Implement actual export functionality
   };
   
@@ -100,9 +96,7 @@ const JobDetailsPage = () => {
       </PageLayout>
     );
   }
-  
-  console.log("✅ JobDetailsPage - Valid job ID, rendering job details for:", jobId);
-  
+
   return (
     <PageLayout>
       <JobDetailsProvider jobId={jobId}>

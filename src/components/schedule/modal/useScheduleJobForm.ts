@@ -106,6 +106,26 @@ export const useScheduleJobForm = ({ preselectedClientId }: UseScheduleJobFormPr
     });
   };
 
+  // Apply a job template to populate form fields
+  const applyTemplate = (template: {
+    name: string;
+    description: string;
+    category?: string;
+    estimatedDuration?: number;
+    tasks?: string[];
+  }) => {
+    setFormData(prev => ({
+      ...prev,
+      description: `${template.name}\n\n${template.description}`,
+      job_type: template.category || prev.job_type,
+      tasks: template.tasks || [],
+      duration: template.estimatedDuration
+        ? String(template.estimatedDuration * 60) // Convert hours to minutes
+        : prev.duration,
+    }));
+    setFormErrors([]);
+  };
+
   const resetForm = () => {
     setFormData({
       client_id: preselectedClientId || "",
@@ -179,6 +199,7 @@ export const useScheduleJobForm = ({ preselectedClientId }: UseScheduleJobFormPr
     handleAddTask,
     handleRemoveTask,
     handleCustomFieldChange,
+    applyTemplate,
     resetForm,
     validateForm
   };

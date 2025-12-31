@@ -7,23 +7,33 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useClientsOptimized } from "@/hooks/useClientsOptimized";
 import type { Client } from "@/types/core/client";
 import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { User, Phone, Mail, MapPin, Building2, FileText } from "lucide-react";
+import { User, Phone, Mail, MapPin, Building2, FileText, AlertTriangle } from "lucide-react";
 import { formatPhoneForTelnyx } from "@/utils/phoneUtils";
 
 interface ClientsCreateModalProps {
@@ -34,90 +44,113 @@ interface ClientsCreateModalProps {
 
 export const ClientsCreateModal = ({ open, onOpenChange, onSuccess }: ClientsCreateModalProps) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { addClient } = useClientsOptimized();
-  
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    // Prevent multiple submissions
-    if (isSubmitting) return;
-    
-    setIsSubmitting(true);
-    
+  const [isCheckingDuplicates, setIsCheckingDuplicates] = useState(false);
+  const [duplicates, setDuplicates] = useState<Client[]>([]);
+  const [showDuplicateWarning, setShowDuplicateWarning] = useState(false);
+  const [pendingClientData, setPendingClientData] = useState<Record<string, string> | null>(null);
+  const formRef = useRef<HTMLFormElement>(null);
+  const { addClient, checkForDuplicates } = useClientsOptimized();
+
+  const createClient = async (clientData: Record<string, string>) => {
     try {
-      const formData = new FormData(e.target as HTMLFormElement);
-      const name = formData.get('name') as string;
-      const phone = formData.get('phone') as string;
-      
-      // Ensure we have the required name field
-      if (!name || name.trim() === '') {
-        toast.error("Client name is required");
-        setIsSubmitting(false);
-        return;
-      }
-      
-      // Ensure we have phone number for messaging
-      if (!phone || phone.trim() === '') {
-        toast.error("Phone number is required for messaging and communication");
-        setIsSubmitting(false);
-        return;
-      }
-      
-      // Format phone number automatically
-      const formattedPhone = formatPhoneForTelnyx(phone);
-      
-      // Create client data with required name and phone fields and optional fields
-      const clientData = {
-        name,
-        phone: formattedPhone,  // Use the formatted phone number
-        email: formData.get('email') as string,
-        address: formData.get('address') as string,
-        city: formData.get('city') as string,
-        state: formData.get('state') as string,
-        zip: formData.get('zip') as string,
-        country: formData.get('country') as string,
-        type: formData.get('clientType') as string,
-        status: formData.get('status') as string,
-        notes: formData.get('notes') as string,
-      };
-      
       const newClient = await addClient(clientData);
-      
+
       onOpenChange(false);
       toast.success("Client added successfully");
-      
-      // Call the onSuccess callback if provided
+
       if (onSuccess && newClient) {
         onSuccess(newClient);
       }
-      
-      // Reset form
-      (e.target as HTMLFormElement).reset();
-      
-      // Force a small delay to ensure database transaction is complete
+
+      formRef.current?.reset();
+      setPendingClientData(null);
+      setDuplicates([]);
+
       setTimeout(() => {
         window.dispatchEvent(new CustomEvent('clientsRefresh'));
       }, 100);
-      
     } catch (error) {
-      console.error("Error adding client - Full error details:", error);
-      console.error("Error type:", typeof error);
-      console.error("Error message:", error instanceof Error ? error.message : "Unknown error");
-      console.error("Error stack:", error instanceof Error ? error.stack : "No stack trace");
-      
-      // Log the client data that was attempted
-      console.error("Attempted client data:", {
-        name: (e.target as HTMLFormElement).elements.namedItem('name') as HTMLInputElement | null,
-        phone: (e.target as HTMLFormElement).elements.namedItem('phone') as HTMLInputElement | null,
-        email: (e.target as HTMLFormElement).elements.namedItem('email') as HTMLInputElement | null,
-        clientType: (e.target as HTMLFormElement).elements.namedItem('clientType') as HTMLSelectElement | null,
-        status: (e.target as HTMLFormElement).elements.namedItem('status') as HTMLSelectElement | null
-      });
-      
-      toast.error("Failed to add client - Check console for details");
+      console.error("Error adding client:", error);
+      toast.error("Failed to add client");
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (isSubmitting || isCheckingDuplicates) return;
+
+    const formData = new FormData(e.target as HTMLFormElement);
+    const name = formData.get('name') as string;
+    const phone = formData.get('phone') as string;
+    const email = formData.get('email') as string;
+
+    if (!name || name.trim() === '') {
+      toast.error("Client name is required");
+      return;
+    }
+
+    if (!phone || phone.trim() === '') {
+      toast.error("Phone number is required for messaging and communication");
+      return;
+    }
+
+    const formattedPhone = formatPhoneForTelnyx(phone);
+
+    const clientData = {
+      name,
+      phone: formattedPhone,
+      email: formData.get('email') as string,
+      address: formData.get('address') as string,
+      city: formData.get('city') as string,
+      state: formData.get('state') as string,
+      zip: formData.get('zip') as string,
+      country: formData.get('country') as string,
+      type: formData.get('clientType') as string,
+      status: formData.get('status') as string,
+      notes: formData.get('notes') as string,
+    };
+
+    // Check for duplicates before creating
+    setIsCheckingDuplicates(true);
+    try {
+      const foundDuplicates = await checkForDuplicates(phone, email);
+
+      if (foundDuplicates.length > 0) {
+        setDuplicates(foundDuplicates);
+        setPendingClientData(clientData);
+        setShowDuplicateWarning(true);
+        setIsCheckingDuplicates(false);
+        return;
+      }
+
+      // No duplicates, proceed with creation
+      setIsSubmitting(true);
+      await createClient(clientData);
+    } catch (error) {
+      console.error("Error checking duplicates:", error);
+      // If duplicate check fails, proceed with creation anyway
+      setIsSubmitting(true);
+      await createClient(clientData);
+    } finally {
+      setIsCheckingDuplicates(false);
+    }
+  };
+
+  const handleProceedAnyway = async () => {
+    setShowDuplicateWarning(false);
+    if (pendingClientData) {
+      setIsSubmitting(true);
+      await createClient(pendingClientData);
+    }
+  };
+
+  const handleCancelDuplicate = () => {
+    setShowDuplicateWarning(false);
+    setPendingClientData(null);
+    setDuplicates([]);
   };
   
   return (
@@ -133,7 +166,7 @@ export const ClientsCreateModal = ({ open, onOpenChange, onSuccess }: ClientsCre
           </DialogDescription>
         </DialogHeader>
         
-        <form onSubmit={handleSubmit} className="flex flex-col h-full">
+        <form ref={formRef} onSubmit={handleSubmit} className="flex flex-col h-full">
           <ScrollArea className="flex-grow overflow-y-auto" style={{ maxHeight: "calc(90vh - 200px)" }}>
             <div className="px-4 sm:px-6 py-4 sm:py-6 space-y-6">
               
@@ -355,17 +388,51 @@ export const ClientsCreateModal = ({ open, onOpenChange, onSuccess }: ClientsCre
               >
                 Cancel
               </Button>
-              <Button 
-                type="submit" 
-                disabled={isSubmitting}
+              <Button
+                type="submit"
+                disabled={isSubmitting || isCheckingDuplicates}
                 className="w-full sm:w-auto bg-fixlyfy hover:bg-fixlyfy/90 order-1 sm:order-2"
               >
-                {isSubmitting ? "Adding Client..." : "Add Client"}
+                {isCheckingDuplicates ? "Checking..." : isSubmitting ? "Adding Client..." : "Add Client"}
               </Button>
             </div>
           </DialogFooter>
         </form>
       </DialogContent>
+
+      {/* Duplicate Warning Dialog */}
+      <AlertDialog open={showDuplicateWarning} onOpenChange={setShowDuplicateWarning}>
+        <AlertDialogContent className="sm:max-w-md">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2 text-amber-600">
+              <AlertTriangle className="h-5 w-5" />
+              Possible Duplicate Client
+            </AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-3">
+                <p>We found existing clients with similar contact information:</p>
+                <div className="space-y-2 max-h-40 overflow-y-auto">
+                  {duplicates.map((client) => (
+                    <div key={client.id} className="p-2 bg-muted rounded-md text-sm">
+                      <div className="font-medium">{client.name}</div>
+                      {client.phone && <div className="text-muted-foreground">{client.phone}</div>}
+                      {client.email && <div className="text-muted-foreground">{client.email}</div>}
+                      {client.address && <div className="text-muted-foreground text-xs">{client.address}</div>}
+                    </div>
+                  ))}
+                </div>
+                <p className="text-sm">Do you want to create a new client anyway?</p>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={handleCancelDuplicate}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleProceedAnyway} className="bg-amber-600 hover:bg-amber-700">
+              Create Anyway
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Dialog>
   );
 };

@@ -152,14 +152,25 @@ serve(async (req) => {
     
   } catch (error) {
     console.error('Error in send-invoice-sms:', error);
+
+    // Determine appropriate status code based on error type
+    let statusCode = 500;
+    const errorMessage = error.message || 'Failed to send SMS';
+
+    if (errorMessage.includes('Missing required') || errorMessage.includes('not found')) {
+      statusCode = 400;
+    } else if (errorMessage.includes('authorization')) {
+      statusCode = 401;
+    }
+
     return new Response(
       JSON.stringify({
-        error: error.message || 'Failed to send SMS',
+        error: errorMessage,
         success: false
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 200, // Return 200 so client can read error body
+        status: statusCode,
       }
     );
   }

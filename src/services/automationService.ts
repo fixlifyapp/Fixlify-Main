@@ -719,36 +719,33 @@ export class AutomationService {
   ): Promise<void> {
     try {
       console.log(`Processing automation for job ${jobId}: ${oldStatus} -> ${newStatus}`);
-      
-      // Wait a bit for database trigger to create the log
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
+
+      // Wait a bit for database trigger to create the log (if triggers are deployed)
+      await new Promise(resolve => setTimeout(resolve, 500));
+
       // Find pending automation logs for this job
-      const { data: logs, error } = await supabase
+      const { data: logs } = await supabase
         .from('automation_execution_logs')
         .select('*')
-        .or(`trigger_data->job_id.eq.${jobId},trigger_data->>job_id.eq.${jobId}`)
+        .eq('trigger_data->>job_id', jobId)
         .in('status', ['pending', 'completed'])
         .gte('created_at', new Date(Date.now() - 10000).toISOString())
         .order('created_at', { ascending: false });
 
-      if (error) {
-        console.error('Error fetching automation logs:', error);
-        return;
-      }
-
       console.log(`Found ${logs?.length || 0} automation logs for job ${jobId}`);
 
-      // Process each log that hasn't been executed
-      for (const log of logs || []) {
-        // Check if actions have been executed
-        if (!log.actions_executed || 
-            log.actions_executed.length === 0 || 
-            (Array.isArray(log.actions_executed) && log.actions_executed.length === 0)) {
-          
-          console.log(`Executing automation log ${log.id}`);
-          await this.executeAutomationLog(log);
+      // If we have logs from DB trigger, process them
+      if (logs && logs.length > 0) {
+        for (const log of logs) {
+          if (!log.actions_executed || log.actions_executed.length === 0) {
+            console.log(`Executing automation log ${log.id}`);
+            await this.executeAutomationLog(log);
+          }
         }
+      } else {
+        // FALLBACK: No DB trigger logs found, try direct workflow execution
+        console.log('No logs from DB trigger, using direct workflow execution');
+        await this.triggerWorkflowsDirectly(jobId, oldStatus, newStatus);
       }
     } catch (error) {
       console.error('Error in processJobStatusChange:', error);
@@ -757,12 +754,114 @@ export class AutomationService {
   }
 
   /**
+   * Directly find and execute workflows without DB trigger
+   * This is a fallback when DB triggers are not deployed
+   */
+  private static async triggerWorkflowsDirectly(
+    jobId: string,
+    oldStatus: string,
+    newStatus: string
+  ): Promise<void> {
+    // Get job details
+    const { data: job, error: jobError } = await supabase
+      .from('jobs')
+      .select('*, client:clients(*)')
+      .eq('id', jobId)
+      .single();
+
+    if (jobError || !job) {
+      console.error('Error fetching job:', jobError);
+      return;
+    }
+
+    // Find matching active workflows for this trigger type and user
+    const { data: workflows, error: wfError } = await supabase
+      .from('automation_workflows')
+      .select('*')
+      .eq('trigger_type', 'job_status_changed')
+      .eq('is_active', true)
+      .eq('status', 'active')
+      .eq('user_id', job.user_id);
+
+    if (wfError || !workflows?.length) {
+      console.log('No matching workflows found for job status change');
+      return;
+    }
+
+    // Process each matching workflow
+    for (const workflow of workflows) {
+      // Check if the status change matches the trigger conditions
+      const triggerConfig = workflow.trigger_config as any;
+      if (triggerConfig?.conditions) {
+        const statusCondition = triggerConfig.conditions.find((c: any) => c.field === 'status');
+        if (statusCondition && statusCondition.value.toLowerCase() !== newStatus.toLowerCase()) {
+          console.log(`Skipping workflow ${workflow.id} - status condition not met`);
+          continue;
+        }
+      }
+
+      console.log(`Executing workflow ${workflow.id} directly for job status change`);
+
+      // Call the automation executor edge function directly
+      const { data, error } = await supabase.functions.invoke('automation-executor', {
+        body: {
+          workflowId: workflow.id,
+          context: {
+            triggerType: 'job_status_changed',
+            job_id: jobId,
+            jobId: jobId,
+            job: {
+              ...job,
+              oldStatus,
+              status: newStatus
+            },
+            client: job.client,
+            userId: job.user_id
+          }
+        }
+      });
+
+      if (error) {
+        console.error('Error executing automation:', error);
+      } else {
+        console.log('Automation executed successfully:', data);
+        if (data?.results && Array.isArray(data.results)) {
+          const successCount = data.results.filter((r: any) => r.status === 'success').length;
+          if (successCount > 0) {
+            toast.success(`Automation completed: ${successCount} action(s) executed`);
+          }
+        }
+      }
+    }
+  }
+
+  /**
    * Execute a specific automation log by calling the edge function
    */
   private static async executeAutomationLog(log: any): Promise<void> {
     try {
+      // Skip logs without workflow_id
+      if (!log.workflow_id) {
+        console.log('Skipping log without workflow_id:', log.id);
+        await supabase.from('automation_execution_logs').delete().eq('id', log.id);
+        return;
+      }
+
+      // Check if workflow exists
+      const { data: workflow, error: wfError } = await supabase
+        .from('automation_workflows')
+        .select('id')
+        .eq('id', log.workflow_id)
+        .single();
+
+      if (wfError || !workflow) {
+        console.log('Workflow not found, cleaning up orphan log:', log.id);
+        await supabase.from('automation_execution_logs').delete().eq('id', log.id);
+        return;
+      }
+
       console.log('Calling automation-executor edge function for log:', log.id);
-      
+
       // Call the edge function
       const { data, error } = await supabase.functions.invoke(
         'automation-executor',

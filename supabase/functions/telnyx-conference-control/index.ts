@@ -6,17 +6,56 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Convert phone number to E.164 format (+1XXXXXXXXXX)
+function toE164(phoneNumber: string): string {
+  if (!phoneNumber) return '';
+
+  // If already in E.164 format
+  if (phoneNumber.startsWith('+1') && phoneNumber.length === 12) {
+    return phoneNumber;
+  }
+
+  const cleaned = phoneNumber.replace(/\D/g, '');
+
+  // Handle 10-digit numbers
+  if (cleaned.length === 10) {
+    return `+1${cleaned}`;
+  }
+
+  // Handle 11-digit numbers starting with 1
+  if (cleaned.length === 11 && cleaned.startsWith('1')) {
+    return `+${cleaned}`;
+  }
+
+  // Return as-is if already has country code
+  if (cleaned.length > 11) {
+    return `+${cleaned}`;
+  }
+
+  return phoneNumber;
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { action, conferenceId, phoneNumber, callControlId, userId } = await req.json();
+    const { action, conferenceId, phoneNumber, callControlId, userId, fromNumber } = await req.json();
     const telnyxApiKey = Deno.env.get('TELNYX_API_KEY');
-    
+    const telnyxConnectionId = Deno.env.get('TELNYX_CONNECTION_ID');
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
+
     if (!telnyxApiKey) {
-      throw new Error('TELNYX_API_KEY not configured');
+      throw new Error('TELNYX_API_KEY environment variable not configured');
+    }
+
+    if (!telnyxConnectionId) {
+      throw new Error('TELNYX_CONNECTION_ID environment variable not configured');
+    }
+
+    if (!supabaseUrl) {
+      throw new Error('SUPABASE_URL environment variable not configured');
     }
 
     const supabase = createClient(
@@ -51,6 +90,91 @@ serve(async (req) => {
         break;
 
       case 'add_participant':
+        // Determine from number with org-level priority
+        // Priority: explicit fromNumber > organization primary > organization any > user primary > user any
+        let callerNumber = fromNumber;
+
+        if (!callerNumber && userId) {
+          // Get user's organization first
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('organization_id')
+            .eq('id', userId)
+            .single();
+
+          // Priority 1: Organization's primary number
+          if (profile?.organization_id) {
+            const { data: orgPrimaryPhone } = await supabase
+              .from('phone_numbers')
+              .select('phone_number')
+              .eq('organization_id', profile.organization_id)
+              .in('status', ['active', 'purchased'])
+              .eq('is_primary', true)
+              .limit(1);
+
+            if (orgPrimaryPhone && orgPrimaryPhone.length > 0) {
+              callerNumber = orgPrimaryPhone[0].phone_number;
+              console.log('Using organization primary phone:', callerNumber);
+            }
+
+            // Priority 2: Organization's any active number
+            if (!callerNumber) {
+              const { data: orgAnyPhone } = await supabase
+                .from('phone_numbers')
+                .select('phone_number')
+                .eq('organization_id', profile.organization_id)
+                .in('status', ['active', 'purchased'])
+                .limit(1);
+
+              if (orgAnyPhone && orgAnyPhone.length > 0) {
+                callerNumber = orgAnyPhone[0].phone_number;
+                console.log('Using organization phone (non-primary):', callerNumber);
+              }
+            }
+          }
+
+          // Priority 3: User's primary phone (legacy)
+          if (!callerNumber) {
+            const { data: userPrimaryPhone } = await supabase
+              .from('phone_numbers')
+              .select('phone_number')
+              .eq('user_id', userId)
+              .in('status', ['active', 'purchased'])
+              .eq('is_primary', true)
+              .limit(1);
+
+            if (userPrimaryPhone && userPrimaryPhone.length > 0) {
+              callerNumber = userPrimaryPhone[0].phone_number;
+              console.log('Using user primary phone (legacy):', callerNumber);
+            }
+          }
+
+          // Priority 4: User's any phone (legacy)
+          if (!callerNumber) {
+            const { data: userAnyPhone } = await supabase
+              .from('phone_numbers')
+              .select('phone_number')
+              .eq('user_id', userId)
+              .in('status', ['active', 'purchased'])
+              .limit(1);
+
+            if (userAnyPhone && userAnyPhone.length > 0) {
+              callerNumber = userAnyPhone[0].phone_number;
+              console.log('Using user phone (legacy, non-primary):', callerNumber);
+            }
+          }
+        }
+
+        if (!callerNumber) {
+          throw new Error('No caller phone number available. Please assign a phone number to your organization first.');
+        }
+
+        // Ensure E.164 format for phone numbers
+        const toE164Number = toE164(phoneNumber);
+        const fromE164Number = toE164(callerNumber);
+
+        console.log('Conference call from:', fromE164Number, 'to:', toE164Number);
+
         // First make a call to the participant
         const callResponse = await fetch('https://api.telnyx.com/v2/calls', {
           method: 'POST',
@@ -59,10 +183,10 @@ serve(async (req) => {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            connection_id: '2709042883142354871',
-            to: phoneNumber,
-            from: '+14375249932',
-            webhook_url: 'https://mqppvcrlvsgrsqelglod.supabase.co/functions/v1/telnyx-voice-webhook',
+            connection_id: telnyxConnectionId,
+            to: toE164Number,
+            from: fromE164Number,
+            webhook_url: `${supabaseUrl}/functions/v1/telnyx-voice-webhook`,
             webhook_url_method: 'POST',
             client_state: JSON.stringify({ 
               userId, 
@@ -87,8 +211,8 @@ serve(async (req) => {
             call_control_id: callData.data.call_control_id,
             call_leg_id: callData.data.call_leg_id,
             user_id: userId,
-            from_number: '+14375249932',
-            to_number: phoneNumber,
+            from_number: fromE164Number,
+            to_number: toE164Number,
             direction: 'outbound',
             status: 'ringing',
             conference_id: conferenceId,

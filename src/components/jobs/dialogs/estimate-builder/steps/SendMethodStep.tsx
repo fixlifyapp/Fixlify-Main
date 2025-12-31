@@ -24,6 +24,8 @@ interface SendMethodStepProps {
   isProcessing: boolean;
   onSend: () => void;
   onBack: () => void;
+  /** Document type for dynamic button text. Defaults to "estimate" for backwards compatibility */
+  documentType?: "estimate" | "invoice";
 }
 
 export const SendMethodStep = ({
@@ -39,8 +41,10 @@ export const SendMethodStep = ({
   estimateNumber,
   isProcessing,
   onSend,
-  onBack
+  onBack,
+  documentType = "estimate"
 }: SendMethodStepProps) => {
+  const documentLabel = documentType === "invoice" ? "Invoice" : "Estimate";
   const handleSendMethodChange = (value: "email" | "sms") => {
     setSendMethod(value);
     setValidationError("");
@@ -55,7 +59,7 @@ export const SendMethodStep = ({
   return (
     <div className="space-y-4 max-w-full">
       <div className="text-sm text-muted-foreground mb-4">
-        Send estimate {estimateNumber} to {contactInfo.name}:
+        Send {documentLabel.toLowerCase()} {estimateNumber} to {contactInfo.name}:
       </div>
       
       <div className="space-y-3">
@@ -125,7 +129,7 @@ export const SendMethodStep = ({
           disabled={!sendTo || isProcessing || !!validationError}
           className="flex-1 text-sm"
         >
-          {isProcessing ? "Sending..." : "Send Estimate"}
+          {isProcessing ? "Sending..." : `Send ${documentLabel}`}
         </Button>
       </div>
     </div>

@@ -8,8 +8,6 @@ export interface JobDataFetchResult {
 }
 
 export const fetchJobWithClient = async (jobId: string): Promise<JobDataFetchResult> => {
-  console.log("🔍 Fetching job data for jobId:", jobId);
-  
   // First, check authentication
   const { data: { user }, error: authError } = await supabase.auth.getUser();
   if (authError) {
@@ -21,8 +19,6 @@ export const fetchJobWithClient = async (jobId: string): Promise<JobDataFetchRes
     console.error("❌ No authenticated user");
     throw new Error("No authenticated user");
   }
-  
-  console.log("✅ User authenticated:", user.id);
   
   // With simplified RLS, we can directly fetch the job with client data
   const { data: jobData, error: jobError } = await supabase
@@ -86,14 +82,7 @@ export const fetchJobWithClient = async (jobId: string): Promise<JobDataFetchRes
     toast.error(`Job ${jobId} not found`);
     throw new Error("Job not found");
   }
-  
-  console.log("✅ Job data fetched successfully:", {
-    jobId: jobData.id,
-    title: jobData.title,
-    clientId: jobData.client_id,
-    hasClient: !!jobData.clients
-  });
-  
+
   // Fetch payments for this job
   const { data: paymentsData, error: paymentsError } = await supabase
     .from('payments')

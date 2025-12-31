@@ -4,16 +4,18 @@ import { PageHeader } from "@/components/ui/page-header";
 import { ModernCard } from "@/components/ui/modern-card";
 import { AnimatedContainer } from "@/components/ui/animated-container";
 import { Button } from "@/components/ui/button";
-import { 
-  Grid, 
-  List, 
-  Plus, 
-  Wrench, 
-  Target, 
+import {
+  Grid,
+  List,
+  Plus,
+  Wrench,
+  Target,
   TrendingUp,
   RefreshCw,
   WifiOff,
-  Wifi
+  Wifi,
+  Download,
+  FileSpreadsheet
 } from "lucide-react";
 import { JobsList } from "@/components/jobs/JobsList";
 import { JobsFilters } from "@/components/jobs/JobsFilters";
@@ -23,6 +25,7 @@ import { useJobsOptimized } from "@/hooks/useJobsOptimized";
 import { useJobs } from "@/hooks/useJobs";
 import { toast } from "sonner";
 import { useGlobalRealtime } from "@/contexts/GlobalRealtimeProvider";
+import { exportToPDF, exportToExcel, getJobExportColumns } from "@/utils/exportUtils";
 
 const JobsPage = () => {
   const [isGridView, setIsGridView] = useState(false);
@@ -69,16 +72,20 @@ const JobsPage = () => {
 
   // Filter jobs based on current filters
   const filteredJobs = optimizedJobs.filter(job => {
-    // Search filter - search in client name, job ID, title, and description
+    // Search filter - comprehensive search across multiple fields
     if (filters.search) {
       const searchTerm = filters.search.toLowerCase();
       const searchableFields = [
         job.client?.name || '',
+        job.client?.email || '',
+        job.client?.phone || '',
         job.id || '',
         job.title || '',
-        job.description || ''
+        job.description || '',
+        job.invoice_number || '',
+        job.estimate_number || ''
       ];
-      
+
       if (!searchableFields.some(field => field.toLowerCase().includes(searchTerm))) {
         return false;
       }
@@ -174,33 +181,58 @@ const JobsPage = () => {
     }
   };
 
-  const handleBulkExport = (jobIds: string[]) => {
+  const handleBulkExport = (jobIds: string[], format: 'excel' | 'pdf' = 'excel') => {
     const selectedJobData = filteredJobs.filter(job => jobIds.includes(job.id));
-    const csvData = selectedJobData.map(job => ({
-      'Job ID': job.id,
-      'Client': job.client?.name || '',
-      'Status': job.status,
-      'Type': job.job_type || '',
-      'Date': job.date ? new Date(job.date).toLocaleDateString() : '',
-      'Revenue': job.revenue || 0,
-      'Address': job.address || ''
+    const exportData = selectedJobData.map(job => ({
+      job_number: job.id?.substring(0, 8) || '',
+      client_name: job.client?.name || '',
+      title: job.title || '',
+      status: job.status || '',
+      scheduled_date: job.date || '',
+      total_amount: job.revenue || 0,
+      assigned_to: ''
     }));
-    
-    const csv = [
-      Object.keys(csvData[0]).join(','),
-      ...csvData.map(row => Object.values(row).map(val => `"${val}"`).join(','))
-    ].join('\n');
-    
-    const blob = new Blob([csv], { type: 'text/csv' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `jobs-export-${new Date().toISOString().split('T')[0]}.csv`;
-    a.click();
-    window.URL.revokeObjectURL(url);
-    
-    toast.success(`Exported ${jobIds.length} jobs`);
+
+    if (format === 'pdf') {
+      exportToPDF(exportData, getJobExportColumns(), {
+        title: 'Jobs Report',
+        filename: 'fixlify-jobs-export'
+      });
+    } else {
+      exportToExcel(exportData, getJobExportColumns(), {
+        title: 'Jobs Report',
+        filename: 'fixlify-jobs-export'
+      });
+    }
+
+    toast.success(`Exported ${jobIds.length} jobs as ${format.toUpperCase()}`);
     setSelectedJobs([]);
+  };
+
+  const handleExportAll = (format: 'excel' | 'pdf') => {
+    const exportData = filteredJobs.map(job => ({
+      job_number: job.id?.substring(0, 8) || '',
+      client_name: job.client?.name || '',
+      title: job.title || '',
+      status: job.status || '',
+      scheduled_date: job.date || '',
+      total_amount: job.revenue || 0,
+      assigned_to: ''
+    }));
+
+    if (format === 'pdf') {
+      exportToPDF(exportData, getJobExportColumns(), {
+        title: 'All Jobs Report',
+        filename: 'fixlify-all-jobs'
+      });
+    } else {
+      exportToExcel(exportData, getJobExportColumns(), {
+        title: 'All Jobs Report',
+        filename: 'fixlify-all-jobs'
+      });
+    }
+
+    toast.success(`Exported ${filteredJobs.length} jobs as ${format.toUpperCase()}`);
   };
 
   const handleBulkTagJobs = async (jobIds: string[], tags: string[]) => {
@@ -256,7 +288,7 @@ const JobsPage = () => {
                 onFiltersChange={setFilters} 
                 filters={filters}
               />
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 {/* Real-time connection status */}
                 <div className="flex items-center gap-2 px-3 py-1 rounded-lg text-sm">
                   {realtimeConnected ? (
@@ -272,13 +304,33 @@ const JobsPage = () => {
                   )}
                 </div>
                 <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleExportAll('pdf')}
+                  className="flex gap-2 rounded-xl"
+                  disabled={filteredJobs.length === 0}
+                >
+                  <Download size={18} />
+                  PDF
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleExportAll('excel')}
+                  className="flex gap-2 rounded-xl"
+                  disabled={filteredJobs.length === 0}
+                >
+                  <FileSpreadsheet size={18} />
+                  Excel
+                </Button>
+                <Button
                   variant="ghost"
                   size="sm"
                   onClick={handleRefreshJobs}
                   className="flex gap-2 rounded-xl"
                   disabled={isOptimizedLoading}
                 >
-                  <RefreshCw size={18} className={isOptimizedLoading ? "animate-spin" : ""} /> 
+                  <RefreshCw size={18} className={isOptimizedLoading ? "animate-spin" : ""} />
                   Refresh
                 </Button>
                 <Button
@@ -301,13 +353,14 @@ const JobsPage = () => {
             </div>
           </ModernCard>
           
-          <JobsList 
+          <JobsList
             isGridView={isGridView}
             jobs={filteredJobs}
             selectedJobs={selectedJobs}
             onSelectJob={handleSelectJob}
             onSelectAllJobs={handleSelectAllJobs}
             onRefresh={handleRefreshJobs}
+            searchTerm={filters.search}
           />
         </div>
       </AnimatedContainer>

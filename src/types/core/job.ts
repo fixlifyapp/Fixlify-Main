@@ -7,12 +7,13 @@ import type { Invoice } from './invoice';
 import type { Payment } from './payment';
 
 // Strict job status enum
+// IMPORTANT: Uses hyphenated format to match database and majority of codebase
 export enum JobStatus {
   SCHEDULED = 'scheduled',
-  IN_PROGRESS = 'in_progress',
+  IN_PROGRESS = 'in-progress',
   COMPLETED = 'completed',
   CANCELLED = 'cancelled',
-  ON_HOLD = 'on_hold'
+  ON_HOLD = 'on-hold'
 }
 
 export interface Job extends BaseOrganizationEntity, Metadata {

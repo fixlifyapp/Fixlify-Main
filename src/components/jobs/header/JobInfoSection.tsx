@@ -42,7 +42,6 @@ export const JobInfoSection = ({
   const { financialRefreshTrigger } = useJobDetails();
   
   useEffect(() => {
-    console.log('JobInfoSection: Status prop changed', { status, currentStatus });
     if (status !== currentStatus) {
       setCurrentStatus(status);
     }
@@ -62,7 +61,6 @@ export const JobInfoSection = ({
   // Refresh financials when trigger changes
   useEffect(() => {
     if (financialRefreshTrigger > 0) {
-      console.log('💰 Financial refresh triggered from context');
       refreshFinancials();
     }
   }, [financialRefreshTrigger, refreshFinancials]);
@@ -78,26 +76,17 @@ export const JobInfoSection = ({
   };
 
   const handleStatusChange = async (newStatus: string) => {
-    console.log('JobInfoSection: Status change requested', {
-      currentStatus: status,
-      newStatus,
-      jobId: job.id,
-      hasJobStatus: 'status' in job
-    });
-    
     // Check if status is actually changing
     if (status === newStatus) {
-      console.log('JobInfoSection: Status unchanged, skipping');
       return;
     }
-    
+
     setCurrentStatus(newStatus);
-    
+
     try {
-      await onStatusChange(newStatus); // Pass new status
-      console.log('JobInfoSection: Status change successful');
+      await onStatusChange(newStatus);
     } catch (error) {
-      console.error('JobInfoSection: Status change failed, reverting', error);
+      console.error('Status change failed:', error);
       setCurrentStatus(status);
       throw error;
     }

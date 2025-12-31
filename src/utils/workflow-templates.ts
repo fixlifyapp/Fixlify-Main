@@ -81,10 +81,12 @@ export const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
     tags: ['review', 'feedback', 'reputation', 'google reviews'],
     popularity: 88,
     trigger: {
-      type: 'job_completed',
+      type: 'job_status_changed',
       name: 'Job Completed',
       config: {
-        completionStatus: 'success'
+        conditions: [
+          { field: 'status', operator: 'equals', value: 'completed' }
+        ]
       }
     },
     steps: [
@@ -143,7 +145,7 @@ export const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
     tags: ['invoice', 'payment', 'collections', 'cash flow'],
     popularity: 92,
     trigger: {
-      type: 'payment_overdue',
+      type: 'invoice_overdue',
       name: 'Payment Overdue',
       config: {
         daysOverdue: 3
@@ -378,10 +380,12 @@ export const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
     tags: ['dispatch', 'on-the-way', 'real-time', 'communication'],
     popularity: 93,
     trigger: {
-      type: 'job_status_change',
+      type: 'job_status_changed',
       name: 'Job Status Changed',
       config: {
-        status: 'dispatched'
+        conditions: [
+          { field: 'status', operator: 'equals', value: 'dispatched' }
+        ]
       }
     },
     steps: [

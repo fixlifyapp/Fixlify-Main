@@ -30,10 +30,29 @@ serve(async (req) => {
       throw new Error('Supabase configuration missing');
     }
     
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);    
-    // Get Telnyx credentials
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    // Get Telnyx credentials from environment
     const telnyxApiKey = Deno.env.get('TELNYX_API_KEY');
-    const telnyxMessagingProfileId = '400197fa-ac3b-4052-8c14-6da54bf7e800';
+    const telnyxMessagingProfileId = Deno.env.get('TELNYX_MESSAGING_PROFILE_ID');
+    const telnyxConnectionId = Deno.env.get('TELNYX_CONNECTION_ID');
+
+    if (!telnyxMessagingProfileId) {
+      throw new Error('TELNYX_MESSAGING_PROFILE_ID environment variable not configured');
+    }
+
+    if (!telnyxConnectionId) {
+      throw new Error('TELNYX_CONNECTION_ID environment variable not configured');
+    }
+
+    // Get user's organization_id for multi-tenant support
+    const { data: userProfile } = await supabase
+      .from('profiles')
+      .select('organization_id')
+      .eq('id', purchaseRequest.userId)
+      .single();
+
+    const organizationId = userProfile?.organization_id || null;
+    console.log('User organization_id:', organizationId);
     
     if (!telnyxApiKey) {
       throw new Error('Telnyx API key not configured');
@@ -74,7 +93,7 @@ serve(async (req) => {
               phone_number: purchaseRequest.phoneNumber
             }],
             messaging_profile_id: telnyxMessagingProfileId,
-            connection_id: '2709100729850660858' // Your connection ID
+            connection_id: telnyxConnectionId
           })
         }
       );
@@ -103,6 +122,7 @@ serve(async (req) => {
           status: 'active',
           purchased_by: purchaseRequest.userId,
           user_id: purchaseRequest.userId,
+          organization_id: organizationId,  // Multi-tenant support
           purchased_at: new Date().toISOString(),
           is_primary: false,
           is_active: true,
@@ -133,6 +153,7 @@ serve(async (req) => {
           status: 'active',
           purchased_by: purchaseRequest.userId,
           user_id: purchaseRequest.userId,
+          organization_id: organizationId,  // Multi-tenant support
           purchased_at: new Date().toISOString(),
           is_active: true
         })
@@ -143,21 +164,23 @@ serve(async (req) => {
       }
     }
     
-    // Check if user has any primary number
-    const { data: primaryCheck } = await supabase
-      .from('phone_numbers')
-      .select('id')
-      .eq('user_id', purchaseRequest.userId)
-      .eq('is_primary', true)
-      .single();
-    
-    if (!primaryCheck) {
-      // Set this as primary if user has no primary number
-      await supabase
+    // Check if organization has any primary number (org-scoped, not user-scoped)
+    if (organizationId) {
+      const { data: primaryCheck } = await supabase
         .from('phone_numbers')
-        .update({ is_primary: true })
-        .eq('phone_number', purchaseRequest.phoneNumber)
-        .eq('user_id', purchaseRequest.userId);
+        .select('id')
+        .eq('organization_id', organizationId)
+        .eq('is_primary', true)
+        .single();
+
+      if (!primaryCheck) {
+        // Set this as primary if organization has no primary number
+        await supabase
+          .from('phone_numbers')
+          .update({ is_primary: true })
+          .eq('phone_number', purchaseRequest.phoneNumber)
+          .eq('organization_id', organizationId);
+      }
     }
     
     // Log the purchase

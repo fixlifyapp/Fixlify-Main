@@ -2577,3 +2577,112 @@ Restored the proper edge function calls in the hook:
 - Email and SMS sending now works properly
 - No more "service offline" messages
 - Proper error handling for API key issues
+
+
+## 🔧 Automation System Backend Fix (2025-12-27)
+
+### Problem
+Automations were not triggering when job status changed. The system showed "Automation executed successfully" but nothing actually happened.
+
+### Root Cause Analysis
+1. **Database triggers NOT deployed** - Migration file `20250730_universal_automation_triggers.sql` was in `_archive/` folder
+2. **Missing workflow validation** - `automationService.ts` threw 500 errors when logs had orphan `workflow_id`
+3. **No fallback mechanism** - If DB triggers didn't create logs, nothing would execute
+
+### Solution Implemented
+
+#### 1. Moved Database Trigger Migration
+```
+FROM: supabase/migrations/_archive/20250730_universal_automation_triggers.sql
+TO:   supabase/migrations/20250730_universal_automation_triggers.sql
+```
+- Contains `handle_universal_automation_triggers()` PostgreSQL function
+- Creates execution logs when jobs/clients/invoices change
+- Applies triggers to: jobs, clients, estimates, invoices, sms_messages, email_messages
+
+#### 2. Fixed automationService.ts (src/services/automationService.ts)
+- **Added null checks in `executeAutomationLog()`**:
+  - Skip logs without `workflow_id`
+  - Verify workflow exists before execution
+  - Auto-cleanup orphan logs
+
+- **Added fallback method `triggerWorkflowsDirectly()`**:
+  - Executes when no DB trigger logs found
+  - Directly queries matching workflows
+  - Calls `automation-executor` edge function
+  - Works without DB triggers being deployed
+
+#### 3. Updated `processJobStatusChange()` Flow
+```typescript
+// New flow:
+1. Query pending logs for job_id
+2. If logs found → execute via executeAutomationLog()
+3. If no logs → use triggerWorkflowsDirectly() fallback
+4. Both paths call automation-executor edge function
+```
+
+### Architecture
+
+```
+Job Status Changed → "Completed"
+       ↓
+[automationService.processJobStatusChange()]
+       ↓
+Check for pending execution logs
+       ↓
+┌─────────────────────────┬─────────────────────────┐
+│ Logs Found (DB Trigger) │ No Logs (Fallback)      │
+├─────────────────────────┼─────────────────────────┤
+│ executeAutomationLog()  │ triggerWorkflowsDirectly│
+│ - Validate workflow     │ - Query workflows       │
+│ - Cleanup orphans       │ - Match trigger type    │
+│ - Call edge function    │ - Call edge function    │
+└─────────────────────────┴─────────────────────────┘
+       ↓
+automation-executor Edge Function
+       ↓
+Execute workflow steps (email/sms/task)
+       ↓
+Update log status to 'completed'
+```
+
+### Files Modified
+| File | Changes |
+|------|---------|
+| `supabase/migrations/20250730_universal_automation_triggers.sql` | Moved from `_archive/` |
+| `src/services/automationService.ts` | Added null checks, fallback method |
+| `src/hooks/use-automation-job-trigger.ts` | Already working, used as reference |
+
+### Testing Results
+✅ Job status change: in_progress → completed
+✅ Automation log found and executed
+✅ Edge function called successfully
+✅ Results: `{success: true, workflowId: ..., results: Array(1)}`
+✅ No 500 errors in console
+
+### Remaining Setup
+To enable full queue-based flow with database triggers:
+```bash
+npx supabase db push
+```
+
+This deploys the `handle_universal_automation_triggers()` function and creates triggers on all relevant tables.
+
+### Cron Setup (Optional)
+For scheduled automations, add pg_cron job:
+```sql
+SELECT cron.schedule(
+  'process-automation-queue',
+  '*/2 * * * *',
+  $$SELECT net.http_post(
+    url := 'https://mqppvcrlvsgrsqelglod.supabase.co/functions/v1/process-automation-queue',
+    headers := '{"Authorization": "Bearer SERVICE_ROLE_KEY"}'::jsonb
+  )$$
+);
+```
+
+### Key Components
+- **Edge Functions**: `automation-executor`, `process-automation-queue`
+- **Database Tables**: `automation_workflows`, `automation_execution_logs`
+- **Trigger Types**: job_status_changed, job_created, client_created, invoice_paid, etc.
+- **Action Types**: email, sms, task, notification

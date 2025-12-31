@@ -113,21 +113,21 @@ export const KpiSummaryCards = ({ timePeriod, dateRange, isRefreshing = false }:
         const previousCompletedJobs = previousCompletedJobsData?.length || 1; // Avoid division by zero
         const jobsCompletedChange = Math.round(((completedJobs - previousCompletedJobs) / previousCompletedJobs) * 100);
         
-        // Get open jobs (scheduled or in_progress)
+        // Get open jobs (scheduled or in-progress)
         const { data: openJobsData, error: openJobsError } = await supabase
           .from('jobs')
           .select('id')
-          .in('status', ['scheduled', 'in_progress', 'in-progress'])
+          .in('status', ['scheduled', 'in-progress'])
           .gte('created_at', fromDate)
           .lte('created_at', toDate);
-          
+
         if (openJobsError) throw openJobsError;
-        
+
         // Get previous period open jobs for comparison
         const { data: previousOpenJobsData } = await supabase
           .from('jobs')
           .select('id')
-          .in('status', ['scheduled', 'in_progress', 'in-progress'])
+          .in('status', ['scheduled', 'in-progress'])
           .gte('created_at', previousFromDate)
           .lte('created_at', previousToDate);
           

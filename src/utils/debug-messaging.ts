@@ -27,7 +27,7 @@ export const debugMessagingServices = async () => {
     const { data: phoneNumbers, error: phoneError } = await supabase
       .from('phone_numbers')
       .select('*')
-      .eq('is_active', true);
+      .in('status', ['active', 'purchased']);
     
     if (phoneError) {
       results.phoneNumbers.message = `Database error: ${phoneError.message}`;

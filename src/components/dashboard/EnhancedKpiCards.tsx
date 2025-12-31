@@ -88,7 +88,7 @@ export const EnhancedKpiCards = ({ timePeriod, dateRange, isRefreshing = false }
         const { data: openJobsData, error: openJobsError } = await supabase
           .from('jobs')
           .select('id')
-          .in('status', ['scheduled', 'in_progress', 'in-progress'])
+          .in('status', ['scheduled', 'in-progress'])
           .gte('created_at', fromDate)
           .lte('created_at', toDate);
           

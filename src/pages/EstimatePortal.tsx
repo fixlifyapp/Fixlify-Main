@@ -3,23 +3,29 @@ import { useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Download, CheckCircle, Printer, Send, Eye } from "lucide-react";
+import { Loader2, Download, CheckCircle, Printer, Send, Eye, Share2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import QRCode from "react-qr-code";
 import {
   DocumentHeader,
   DocumentItemsTable,
   DocumentTotals,
   DocumentNotes
 } from "@/components/documents/DocumentComponents";
+import { PortalThemeProvider, usePortalTheme } from "@/components/portal/PortalThemeProvider";
+import { ThemeToggle } from "@/components/portal/ThemeToggle";
+import { AccessibilityControls } from "@/components/portal/AccessibilityControls";
 
-export default function EstimatePortal() {
+function EstimatePortalContent() {
   const { token } = useParams();
   const [loading, setLoading] = useState(true);
   const [estimate, setEstimate] = useState<any>(null);
   const [job, setJob] = useState<any>(null);
   const [client, setClient] = useState<any>(null);
   const [company, setCompany] = useState<any>(null);
+  const [lineItems, setLineItems] = useState<any[]>([]);
   const { toast } = useToast();
+  const { isDark } = usePortalTheme();
 
   useEffect(() => {
     if (token) {
@@ -70,13 +76,25 @@ export default function EstimatePortal() {
         }
       }
 
+      // Load line items for this estimate
+      const { data: lineItemsData } = await supabase
+        .from("line_items")
+        .select("*")
+        .eq("parent_type", "estimate")
+        .eq("parent_id", estimateData.id)
+        .order("created_at", { ascending: true });
+
+      if (lineItemsData) {
+        setLineItems(lineItemsData);
+      }
+
       // Load company settings
       const { data: companyData } = await supabase
         .from("company_settings")
         .select("*")
         .limit(1)
         .maybeSingle();
-      
+
       if (companyData) {
         setCompany({
           name: companyData.company_name,
@@ -111,12 +129,35 @@ export default function EstimatePortal() {
     toast.info("Online estimate acceptance will be available soon. Please contact us to accept this estimate.");
   };
 
+  const handleShare = async () => {
+    const shareData = {
+      title: `Estimate #${estimate?.estimate_number}`,
+      text: `View estimate from ${company?.name || 'our company'}`,
+      url: window.location.href
+    };
+
+    try {
+      if (navigator.share && navigator.canShare(shareData)) {
+        await navigator.share(shareData);
+      } else {
+        // Fallback: copy link to clipboard
+        await navigator.clipboard.writeText(window.location.href);
+        toast.success("Link copied to clipboard!");
+      }
+    } catch (error) {
+      if ((error as Error).name !== 'AbortError') {
+        await navigator.clipboard.writeText(window.location.href);
+        toast.success("Link copied to clipboard!");
+      }
+    }
+  };
+
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
         <div className="text-center">
           <Loader2 className="h-12 w-12 animate-spin text-purple-600 mx-auto mb-4" />
-          <p className="text-gray-600">Loading estimate...</p>
+          <p className="text-gray-600 dark:text-gray-400">Loading estimate...</p>
         </div>
       </div>
     );
@@ -124,21 +165,20 @@ export default function EstimatePortal() {
 
   if (!estimate) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
         <div className="text-center">
-          <div className="bg-white rounded-2xl shadow-lg p-12 max-w-md">
-            <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-6">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-12 max-w-md">
+            <div className="w-20 h-20 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-6">
               <Eye className="h-10 w-10 text-gray-400" />
             </div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">Estimate Not Found</h2>
-            <p className="text-gray-600">The estimate you're looking for doesn't exist or has been removed.</p>
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Estimate Not Found</h2>
+            <p className="text-gray-600 dark:text-gray-400">The estimate you're looking for doesn't exist or has been removed.</p>
           </div>
         </div>
       </div>
     );
   }
 
-  const lineItems = estimate.items || [];
   // Filter out tax items from line items
   const productItems = lineItems.filter((item: any) => 
     !item.name?.toLowerCase().includes('tax') && 
@@ -154,38 +194,50 @@ export default function EstimatePortal() {
   const total = parseFloat(estimate.total) || subtotal + taxAmount - discountAmount;
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       {/* Action Bar */}
-      <div className="bg-white border-b border-gray-200 sticky top-0 z-10 print:hidden">
+      <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 sticky top-0 z-10 print:hidden">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-4">
-            <h1 className="text-lg font-semibold text-gray-900">
+            <h1 className="text-lg font-semibold text-gray-900 dark:text-white">
               Estimate #{estimate.estimate_number}
             </h1>
-            <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center gap-2 sm:gap-3">
               {estimate.status !== 'accepted' && (
-                <Button 
+                <Button
                   onClick={handleAccept}
                   className="bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800"
                 >
-                  <CheckCircle className="h-4 w-4 mr-2" />
-                  Accept Estimate
+                  <CheckCircle className="h-4 w-4 sm:mr-2" />
+                  <span className="hidden sm:inline">Accept Estimate</span>
                 </Button>
               )}
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
+                onClick={handleShare}
+                title="Share"
+              >
+                <Share2 className="h-4 w-4 sm:mr-2" />
+                <span className="hidden sm:inline">Share</span>
+              </Button>
+              <Button
+                variant="outline"
                 onClick={handlePrint}
+                title="Print"
               >
-                <Printer className="h-4 w-4 mr-2" />
-                Print
+                <Printer className="h-4 w-4 sm:mr-2" />
+                <span className="hidden sm:inline">Print</span>
               </Button>
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 onClick={handleDownload}
+                title="Download PDF"
               >
-                <Download className="h-4 w-4 mr-2" />
-                Download PDF
+                <Download className="h-4 w-4 sm:mr-2" />
+                <span className="hidden sm:inline">Download</span>
               </Button>
+              <ThemeToggle />
+              <AccessibilityControls />
             </div>
           </div>
         </div>
@@ -193,7 +245,7 @@ export default function EstimatePortal() {
 
       {/* Document Content */}
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
+        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg overflow-hidden">
           {/* Header with Company and Client Info */}
           <DocumentHeader
             type="estimate"
@@ -286,7 +338,32 @@ export default function EstimatePortal() {
             )}
           </div>
         </div>
+
+        {/* QR Code Section - for easy mobile access */}
+        <div className="mt-6 flex justify-center print:hidden">
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 text-center">
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">Scan to view on mobile</p>
+            <div className="bg-white p-2 inline-block rounded-lg">
+              <QRCode
+                value={window.location.href}
+                size={120}
+                level="M"
+                bgColor="#ffffff"
+                fgColor="#000000"
+              />
+            </div>
+          </div>
+        </div>
       </div>
     </div>
+  );
+}
+
+// Wrapper component with theme provider
+export default function EstimatePortal() {
+  return (
+    <PortalThemeProvider>
+      <EstimatePortalContent />
+    </PortalThemeProvider>
   );
 }

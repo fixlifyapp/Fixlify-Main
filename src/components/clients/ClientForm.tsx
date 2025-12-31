@@ -1,7 +1,7 @@
 
 import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { User, Loader } from "lucide-react";
+import { User, Loader, MessageSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 
@@ -13,6 +13,7 @@ import { EmptyTabContent } from "./client-form/EmptyTabContent";
 import { InvoiceModal } from "./client-form/InvoiceModal";
 import { PaymentsTab } from "./client-form/PaymentsTab";
 import { PropertiesTab } from "./client-form/PropertiesTab";
+import { CommunicationsTab } from "./client-form/CommunicationsTab";
 import { ClientStatsCard } from "./ClientStatsCard";
 import { ClientContactActions } from "./ClientContactActions";
 
@@ -109,7 +110,7 @@ export const ClientForm = ({ clientId, onCreateJob }: ClientFormProps) => {
           onValueChange={setActiveTab}
           className="space-y-4"
         >
-          <TabsList className="grid grid-cols-2 sm:grid-cols-4 gap-1 w-full h-auto p-1">
+          <TabsList className="grid grid-cols-3 sm:grid-cols-5 gap-1 w-full h-auto p-1">
             <TabsTrigger value="details" className="relative text-xs sm:text-sm py-2">
               <User size={14} className="mr-1 sm:mr-2" />
               <span className="hidden xs:inline">Details</span>
@@ -117,6 +118,11 @@ export const ClientForm = ({ clientId, onCreateJob }: ClientFormProps) => {
             </TabsTrigger>
             <TabsTrigger value="jobs" className="relative text-xs sm:text-sm py-2">
               <span>Jobs</span>
+            </TabsTrigger>
+            <TabsTrigger value="communications" className="relative text-xs sm:text-sm py-2">
+              <MessageSquare size={14} className="mr-1 sm:mr-2" />
+              <span className="hidden xs:inline">Communications</span>
+              <span className="xs:hidden">Comms</span>
             </TabsTrigger>
             <TabsTrigger value="payments" className="relative text-xs sm:text-sm py-2">
               <span className="hidden xs:inline">Payments</span>
@@ -147,7 +153,17 @@ export const ClientForm = ({ clientId, onCreateJob }: ClientFormProps) => {
           <TabsContent value="jobs" className="space-y-4 sm:space-y-6">
             <ClientJobs clientId={clientId} />
           </TabsContent>
-          
+
+          {/* Communications Tab */}
+          <TabsContent value="communications" className="space-y-4 sm:space-y-6">
+            <CommunicationsTab
+              clientId={clientId}
+              clientName={client?.name}
+              clientPhone={client?.phone}
+              clientEmail={client?.email}
+            />
+          </TabsContent>
+
           {/* Payments Tab */}
           <TabsContent value="payments" className="space-y-4 sm:space-y-6">
             <PaymentsTab 

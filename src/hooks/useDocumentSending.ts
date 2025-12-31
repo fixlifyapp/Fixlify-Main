@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/use-auth';
+import { toE164 } from '@/utils/phone-utils';
 
 interface SendDocumentParams {
   documentType: 'estimate' | 'invoice';
@@ -32,12 +33,15 @@ export const useDocumentSending = () => {
 
     try {
       if (sendMethod === 'sms') {
+        // Format phone number to E.164 format for Telnyx
+        const formattedPhone = toE164(sendTo);
+
         // Use the specific SMS edge function based on document type
         const smsFunction = documentType === 'estimate' ? 'send-estimate-sms' : 'send-invoice-sms';
         const { data, error } = await supabase.functions.invoke(smsFunction, {
           body: {
             [`${documentType}Id`]: documentId,
-            recipientPhone: sendTo,
+            recipientPhone: formattedPhone,
             customMessage: customMessage,
             metadata: {
               documentType,

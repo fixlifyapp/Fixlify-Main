@@ -24,4 +24,37 @@ export const cleanPhoneNumber = (phoneNumber: string): string => {
 export const isValidPhoneNumber = (phoneNumber: string): boolean => {
   const cleaned = cleanPhoneNumber(phoneNumber);
   return cleaned.length === 10 || (cleaned.length === 11 && cleaned.startsWith('1'));
+};
+
+/**
+ * Convert phone number to E.164 format (+1XXXXXXXXXX)
+ * Required for Telnyx API calls
+ */
+export const toE164 = (phoneNumber: string): string => {
+  if (!phoneNumber) return '';
+
+  // If already in E.164 format
+  if (phoneNumber.startsWith('+1') && phoneNumber.length === 12) {
+    return phoneNumber;
+  }
+
+  const cleaned = phoneNumber.replace(/\D/g, '');
+
+  // Handle 10-digit numbers
+  if (cleaned.length === 10) {
+    return `+1${cleaned}`;
+  }
+
+  // Handle 11-digit numbers starting with 1
+  if (cleaned.length === 11 && cleaned.startsWith('1')) {
+    return `+${cleaned}`;
+  }
+
+  // Return as-is if already has country code
+  if (cleaned.length > 11) {
+    return `+${cleaned}`;
+  }
+
+  // Return original if can't parse
+  return phoneNumber;
 }; 

@@ -284,7 +284,6 @@ export const ModernJobEstimatesTab = ({
                           variant="outline"
                           size="sm"
                           onClick={() => handleSendEstimate(estimate)}
-                          disabled={state.isSending}
                         >
                           <Send className="h-4 w-4 mr-2" />
                           Send

@@ -92,21 +92,10 @@ export const transformJobData = (jobData: any, paymentsData: any[] | null) => {
     ? paymentsData.reduce((sum, payment) => sum + (payment.amount || 0), 0) 
     : 0;
   
-  const result = {
+  return {
     jobInfo,
     status: jobData.status || "scheduled",
     invoiceAmount: jobData.revenue || 0,
     balance: (jobData.revenue || 0) - totalPayments
   };
-  
-  console.log("✅ Job data processing complete:", {
-    jobId: result.jobInfo.id,
-    client: result.jobInfo.client,
-    clientData: client,
-    status: result.status,
-    invoiceAmount: result.invoiceAmount,
-    balance: result.balance
-  });
-  
-  return result;
 };

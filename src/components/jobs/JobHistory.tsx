@@ -3,11 +3,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Clock, User, FileText, Filter, Eye, EyeOff } from "lucide-react";
+import { Clock, User, FileText, Filter, Eye, EyeOff, ChevronLeft, ChevronRight } from "lucide-react";
 import { useJobHistory } from "@/hooks/useJobHistory";
 import { useEnhancedJobHistory } from "@/hooks/useEnhancedJobHistory";
 import { formatDistanceToNow } from "date-fns";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useRBAC } from "@/components/auth/RBACProvider";
 
 interface JobHistoryProps {
@@ -18,8 +18,10 @@ export const JobHistory = ({ jobId }: JobHistoryProps) => {
   const { historyItems, isLoading } = useJobHistory(jobId);
   const { logUserAction } = useEnhancedJobHistory(jobId);
   const { hasPermission } = useRBAC();
-  const [filter, setFilter] = useState<'all' | 'payments' | 'documents' | 'status'>('all');
+  const [filter, setFilter] = useState<'all' | 'payments' | 'documents' | 'status' | 'ai-conversations'>('all');
   const [showRestrictedItems, setShowRestrictedItems] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
 
   const getTypeIcon = (type: string) => {
     switch (type) {
@@ -32,6 +34,9 @@ export const JobHistory = ({ jobId }: JobHistoryProps) => {
       case 'estimate':
       case 'invoice':
         return <span className="text-blue-600">📄</span>;
+      case 'ai-conversation':
+      case 'ai-message':
+        return <span className="text-purple-600">🤖</span>;
       default:
         return <User className="h-4 w-4" />;
     }
@@ -49,6 +54,9 @@ export const JobHistory = ({ jobId }: JobHistoryProps) => {
         return 'bg-orange-100 text-orange-800';
       case 'payment':
         return 'bg-emerald-100 text-emerald-800';
+      case 'ai-conversation':
+      case 'ai-message':
+        return 'bg-violet-100 text-violet-800';
       default:
         return 'bg-gray-100 text-gray-800';
     }
@@ -59,12 +67,26 @@ export const JobHistory = ({ jobId }: JobHistoryProps) => {
     if (filter === 'payments' && item.type === 'payment') return true;
     if (filter === 'documents' && (item.type === 'estimate' || item.type === 'invoice')) return true;
     if (filter === 'status' && item.type === 'status-change') return true;
+    if (filter === 'ai-conversations' && (item.type === 'ai-conversation' || item.type === 'ai-message')) return true;
     return false;
   });
 
+  // Pagination calculations
+  const totalPages = Math.ceil(filteredItems.length / itemsPerPage);
+  const paginatedItems = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    return filteredItems.slice(startIndex, startIndex + itemsPerPage);
+  }, [filteredItems, currentPage, itemsPerPage]);
+
   const handleFilterChange = (value: string) => {
-    setFilter(value as 'all' | 'payments' | 'documents' | 'status');
+    setFilter(value as 'all' | 'payments' | 'documents' | 'status' | 'ai-conversations');
+    setCurrentPage(1); // Reset to first page when filter changes
     logUserAction('History Filter Changed', { filter: value });
+  };
+
+  const handlePageChange = (newPage: number) => {
+    setCurrentPage(newPage);
+    logUserAction('History Page Changed', { page: newPage });
   };
 
   return (
@@ -87,6 +109,7 @@ export const JobHistory = ({ jobId }: JobHistoryProps) => {
                 <SelectItem value="payments">Payments</SelectItem>
                 <SelectItem value="documents">Documents</SelectItem>
                 <SelectItem value="status">Status Changes</SelectItem>
+                <SelectItem value="ai-conversations">AI Conversations</SelectItem>
               </SelectContent>
             </Select>
             
@@ -116,8 +139,9 @@ export const JobHistory = ({ jobId }: JobHistoryProps) => {
             <p className="text-sm">Activity will appear here as the job progresses</p>
           </div>
         ) : (
-          <div className="space-y-4">
-            {filteredItems.map((item) => (
+          <>
+            <div className="space-y-4">
+              {paginatedItems.map((item) => (
               <div key={item.id} className="flex gap-3 p-3 border rounded-lg">
                 <div className="flex-shrink-0 mt-1">
                   {getTypeIcon(item.type)}
@@ -151,8 +175,41 @@ export const JobHistory = ({ jobId }: JobHistoryProps) => {
                   </div>
                 </div>
               </div>
-            ))}
-          </div>
+              ))}
+            </div>
+
+            {/* Pagination Controls */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-between mt-6 pt-4 border-t">
+                <div className="text-sm text-muted-foreground">
+                  Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, filteredItems.length)} of {filteredItems.length} items
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handlePageChange(currentPage - 1)}
+                    disabled={currentPage === 1}
+                  >
+                    <ChevronLeft className="h-4 w-4 mr-1" />
+                    Previous
+                  </Button>
+                  <div className="text-sm text-muted-foreground">
+                    Page {currentPage} of {totalPages}
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handlePageChange(currentPage + 1)}
+                    disabled={currentPage === totalPages}
+                  >
+                    Next
+                    <ChevronRight className="h-4 w-4 ml-1" />
+                  </Button>
+                </div>
+              </div>
+            )}
+          </>
         )}
       </CardContent>
     </Card>

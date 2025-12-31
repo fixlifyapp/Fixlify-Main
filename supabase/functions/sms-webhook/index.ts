@@ -129,56 +129,92 @@ async function processWebhookAsync(body: any, supabase: any) {
       console.log('Message details:', { messageId, text, fromNumber, toNumber, direction })
       
       if (direction === 'inbound' && fromNumber && toNumber) {
-        // Find phone owner
+        // Find phone owner - now includes organization_id for multi-tenant support
         const { data: phoneOwner } = await supabase
           .from('phone_numbers')
-          .select('user_id')
+          .select('user_id, organization_id')
           .eq('phone_number', toNumber)
           .single()
-        
+
         if (!phoneOwner) {
           console.log('No user found for phone:', toNumber)
           return
         }
-        
-        // Find or create conversation
+
+        // For organization-scoped numbers, get the first user in that org to use as owner
+        // This ensures SMS conversations are visible to all org members
+        let ownerId = phoneOwner.user_id
+        const orgId = phoneOwner.organization_id
+
+        if (orgId && !ownerId) {
+          // Phone is assigned to org but not a specific user - get first org member
+          const { data: orgMember } = await supabase
+            .from('profiles')
+            .select('id')
+            .eq('organization_id', orgId)
+            .limit(1)
+            .single()
+
+          if (orgMember) {
+            ownerId = orgMember.id
+          }
+        }
+
+        if (!ownerId) {
+          console.log('No owner found for phone:', toNumber)
+          return
+        }
+
+        // Find or create conversation (use org context when available)
         const { data: existingConv } = await supabase
           .from('sms_conversations')
           .select('*')
-          .eq('user_id', phoneOwner.user_id)
+          .eq('user_id', ownerId)
           .eq('client_phone', fromNumber)
           .eq('phone_number', toNumber)
           .eq('status', 'active')
           .single()
-        
+
         let conversation = existingConv
-        
+
         if (!conversation) {
-          // Check for client
-          const { data: client } = await supabase
+          // Check for client - search by org if available, otherwise by user
+          let clientQuery = supabase
             .from('clients')
             .select('id, name')
             .eq('phone', fromNumber)
-            .eq('user_id', phoneOwner.user_id)
-            .single()
-          
+
+          if (orgId) {
+            clientQuery = clientQuery.eq('organization_id', orgId)
+          } else {
+            clientQuery = clientQuery.eq('user_id', ownerId)
+          }
+
+          const { data: client } = await clientQuery.single()
+
           let clientId = client?.id
-          
+
           if (!clientId) {
-            // Create new client
+            // Create new client - scope to organization if available
+            const clientData: any = {
+              name: `Unknown (${fromNumber})`,
+              phone: fromNumber,
+              user_id: ownerId,
+              status: 'lead',
+              type: 'individual',
+              notes: `Auto-created from SMS at ${new Date().toISOString()}`
+            }
+
+            if (orgId) {
+              clientData.organization_id = orgId
+            }
+
             const { data: newClient } = await supabase
               .from('clients')
-              .insert({
-                name: `Unknown (${fromNumber})`,
-                phone: fromNumber,
-                user_id: phoneOwner.user_id,
-                status: 'lead',
-                type: 'individual',
-                notes: `Auto-created from SMS at ${new Date().toISOString()}`
-              })
+              .insert(clientData)
               .select()
               .single()
-            
+
             clientId = newClient?.id
           }
           

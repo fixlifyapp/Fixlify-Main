@@ -34,7 +34,7 @@ export function AutomationTestButton({ jobId }: { jobId?: string }) {
       console.log('Current job status:', job.status);
 
       // Toggle status to trigger automation
-      const newStatus = job.status === 'completed' ? 'in_progress' : 'completed';
+      const newStatus = job.status === 'completed' ? 'in-progress' : 'completed';
       
       console.log('Changing status to:', newStatus);
 
@@ -64,7 +64,7 @@ export function AutomationTestButton({ jobId }: { jobId?: string }) {
       const { data: logs, error: logsError } = await supabase
         .from('automation_execution_logs')
         .select('*')
-        .or(`trigger_data->job_id.eq.${jobId},trigger_data->>job_id.eq.${jobId}`)
+        .eq('trigger_data->>job_id', jobId)
         .order('created_at', { ascending: false })
         .limit(1);
 
@@ -110,7 +110,7 @@ export function AutomationTestButton({ jobId }: { jobId?: string }) {
       const { data: logs } = await supabase
         .from('automation_execution_logs')
         .select('*')
-        .or(`trigger_data->job_id.eq.${jobId},trigger_data->>job_id.eq.${jobId}`)
+        .eq('trigger_data->>job_id', jobId)
         .order('created_at', { ascending: false })
         .limit(5);
 

@@ -23,7 +23,7 @@ serve(async (req) => {
       console.error('[send-invoice] Missing Supabase configuration');
       return new Response(
         JSON.stringify({ success: false, error: "Missing Supabase configuration" }),
-        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
     
@@ -36,7 +36,7 @@ serve(async (req) => {
     if (!authHeader) {
       return new Response(
         JSON.stringify({ success: false, error: "No authorization header" }),
-        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
@@ -46,7 +46,7 @@ serve(async (req) => {
     if (authError || !user) {
       return new Response(
         JSON.stringify({ success: false, error: "Invalid authentication", details: authError?.message }),
-        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
@@ -57,7 +57,7 @@ serve(async (req) => {
     if (!invoiceId) {
       return new Response(
         JSON.stringify({ success: false, error: "Invoice ID is required" }),
-        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
     
@@ -74,14 +74,14 @@ serve(async (req) => {
       console.error("[send-invoice] Error fetching invoice:", invoiceError);
       return new Response(
         JSON.stringify({ success: false, error: "Failed to fetch invoice", details: invoiceError?.message }),
-        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
     if (!invoice) {
       return new Response(
         JSON.stringify({ success: false, error: "Invoice not found" }),
-        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
@@ -151,7 +151,7 @@ serve(async (req) => {
     if (!toEmail) {
       return new Response(
         JSON.stringify({ success: false, error: "No recipient email address available" }),
-        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
@@ -258,8 +258,8 @@ serve(async (req) => {
 
     if (!mailgunResponse.ok) {
       const errorText = await mailgunResponse.text();
-      console.error("[send-invoice] Error sending email:", { 
-        status: mailgunResponse.status, 
+      console.error("[send-invoice] Error sending email:", {
+        status: mailgunResponse.status,
         statusText: mailgunResponse.statusText,
         error: errorText
       });
@@ -268,13 +268,34 @@ serve(async (req) => {
           success: false,
           error: `Failed to send email: ${errorText}`
         }),
-        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
     const emailResult = await mailgunResponse.json();
     console.log("[send-invoice] Email sent successfully:", emailResult.mailgunId);
-    
+
+    // Log the email communication to invoice_communications table
+    try {
+      await supabase.from('invoice_communications').insert({
+        invoice_id: invoiceId,
+        type: 'email',
+        recipient_email: toEmail,
+        content: customMessage || `Invoice ${invoice.invoice_number} sent via email`,
+        status: 'sent',
+        metadata: {
+          portal_url: portalLink,
+          client_name: client?.name,
+          mailgun_id: emailResult.mailgunId,
+          subject: `Invoice ${invoice.invoice_number} from ${companyName}`
+        }
+      });
+      console.log("[send-invoice] Communication logged to invoice_communications");
+    } catch (logError) {
+      // Don't fail the request if logging fails, just warn
+      console.warn("[send-invoice] Failed to log communication:", logError);
+    }
+
     // Update invoice status
     await supabase
       .from("invoices")
@@ -302,7 +323,7 @@ serve(async (req) => {
         message: error.message
       }),
       {
-        status: 200,
+        status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" }
       }
     );

@@ -24,14 +24,12 @@ export const useJobData = (jobId: string, refreshTrigger: number) => {
   // Sync currentStatus with job status when job updates
   useEffect(() => {
     if (job && job.status) {
-      console.log('📊 Syncing currentStatus with job.status:', job.status);
       setCurrentStatus(job.status);
     }
   }, [job]);
 
   useEffect(() => {
     if (!jobId) {
-      console.log("❌ No jobId provided to useJobData");
       setIsLoading(false);
       return;
     }
@@ -40,7 +38,6 @@ export const useJobData = (jobId: string, refreshTrigger: number) => {
     
     // Check if request is already in flight
     if (hasCachedJobData(cacheKey)) {
-      console.log("🔄 Using cached request for job:", jobId);
       getCachedJobData(cacheKey)?.then((result) => {
         if (isMountedRef.current && result) {
           setJob(result.jobInfo);
@@ -58,8 +55,12 @@ export const useJobData = (jobId: string, refreshTrigger: number) => {
       return;
     }
     
-    setIsLoading(true);
-    
+    // Only show loading spinner on initial load, not on refresh
+    // This prevents UI flicker when refreshing data
+    if (!job) {
+      setIsLoading(true);
+    }
+
     const fetchJobData = async () => {
       try {
         const { jobData, paymentsData } = await fetchJobWithClient(jobId);
@@ -82,10 +83,6 @@ export const useJobData = (jobId: string, refreshTrigger: number) => {
     requestPromise
       .then((result) => {
         if (isMountedRef.current) {
-          console.log("✅ Setting job data in state", {
-            jobId: result.jobInfo.id,
-            status: result.status
-          });
           setJob(result.jobInfo);
           setCurrentStatus(result.status);
           setInvoiceAmount(result.invoiceAmount);

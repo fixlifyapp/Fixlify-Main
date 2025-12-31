@@ -384,13 +384,13 @@ export const useClientsOptimized = (options: UseClientsOptimizedOptions = {}) =>
   // Batch operations
   const getBatchClientStats = useCallback(async (clientIds: string[]) => {
     if (!clientIds.length) return {};
-    
+
     try {
       const { data, error } = await supabase
         .rpc('get_batch_client_stats', { p_client_ids: clientIds });
-      
+
       if (error) throw error;
-      
+
       // Convert array to object for easy lookup
       return data.reduce((acc: Record<string, any>, stat: any) => {
         acc[stat.client_id] = stat;
@@ -400,7 +400,47 @@ export const useClientsOptimized = (options: UseClientsOptimizedOptions = {}) =>
       console.error('Error fetching batch client stats:', error);
       return {};
     }
-  }, []);  
+  }, []);
+
+  // Check for duplicate clients by phone or email
+  const checkForDuplicates = useCallback(async (phone?: string, email?: string): Promise<Client[]> => {
+    if (!isAuthenticated || !user?.id) return [];
+    if (!phone && !email) return [];
+
+    try {
+      const conditions: string[] = [];
+
+      if (phone) {
+        // Normalize phone for comparison (remove non-digits)
+        const normalizedPhone = phone.replace(/\D/g, '');
+        if (normalizedPhone.length >= 10) {
+          // Check for phone match (last 10 digits to handle country code variations)
+          const last10 = normalizedPhone.slice(-10);
+          conditions.push(`phone.ilike.%${last10}%`);
+        }
+      }
+
+      if (email && email.trim()) {
+        conditions.push(`email.ilike.${email.trim().toLowerCase()}`);
+      }
+
+      if (conditions.length === 0) return [];
+
+      const { data, error } = await supabase
+        .from('clients')
+        .select('id, name, phone, email, address')
+        .or(`user_id.eq.${user.id},created_by.eq.${user.id}`)
+        .or(conditions.join(','))
+        .limit(5);
+
+      if (error) throw error;
+
+      return data || [];
+    } catch (error) {
+      console.error('Error checking for duplicates:', error);
+      return [];
+    }
+  }, [isAuthenticated, user?.id]);  
   return {
     // Data
     clients,
@@ -409,11 +449,11 @@ export const useClientsOptimized = (options: UseClientsOptimizedOptions = {}) =>
     totalPages,
     hasNextPage,
     hasPreviousPage,
-    
+
     // States
     isLoading,
     hasError,
-    
+
     // Actions
     refreshClients,
     clearError,
@@ -421,7 +461,8 @@ export const useClientsOptimized = (options: UseClientsOptimizedOptions = {}) =>
     updateClient,
     deleteClient,
     getBatchClientStats,
-    
+    checkForDuplicates,
+
     // Permissions
     canCreate,
     canEdit,

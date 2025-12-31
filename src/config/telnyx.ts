@@ -27,22 +27,35 @@ export const getTelnyxWebhookUrl = (endpoint: string) => {
   return `${TELNYX_CONFIG.WEBHOOK_BASE_URL}/functions/v1/${endpoint}`;
 };
 
-// Helper to get user's phone number
+// Helper to get user's organization's primary phone number
 export const getUserPhoneNumber = async (userId: string) => {
   const { supabase } = await import('@/integrations/supabase/client');
-  
+
+  // First get user's organization
+  const { data: profile, error: profileError } = await supabase
+    .from('profiles')
+    .select('organization_id')
+    .eq('id', userId)
+    .single();
+
+  if (profileError || !profile?.organization_id) {
+    throw new Error('User must belong to an organization to make calls.');
+  }
+
+  // Get organization's primary phone number (or any assigned number)
   const { data, error } = await supabase
     .from('phone_numbers')
     .select('phone_number')
-    .eq('purchased_by', userId)
-    .eq('is_active', true)
-    .order('purchased_at', { ascending: false })
+    .eq('organization_id', profile.organization_id)
+    .eq('pool_status', 'assigned')
+    .in('status', ['active', 'purchased'])
+    .order('is_primary', { ascending: false })
     .limit(1)
     .maybeSingle();
-    
+
   if (error || !data) {
-    throw new Error('No active phone number found for user. Please purchase a phone number first.');
+    throw new Error('No phone number assigned to your organization. Please assign a number from the pool first.');
   }
-  
+
   return data.phone_number;
 };

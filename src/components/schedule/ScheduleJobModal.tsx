@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -9,6 +9,12 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { FileText, ChevronDown, ChevronUp } from "lucide-react";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 
 // Import custom hooks and components
 import { useScheduleJobForm } from "./modal/useScheduleJobForm";
@@ -17,6 +23,7 @@ import { JobInformationSection } from "./modal/JobInformationSection";
 import { ScheduleSection } from "./modal/ScheduleSection";
 import { TagsTasksSection } from "./modal/TagsTasksSection";
 import { CustomFieldsSection } from "./modal/CustomFieldsSection";
+import { JobTemplateManager } from "../jobs/templates/JobTemplateManager";
 
 
 interface ScheduleJobModalProps {
@@ -27,13 +34,15 @@ interface ScheduleJobModalProps {
   preselectedClientId?: string;
 }
 
-export const ScheduleJobModal = ({ 
-  open, 
-  onOpenChange, 
-  onJobCreated, 
-  onSuccess, 
-  preselectedClientId 
+export const ScheduleJobModal = ({
+  open,
+  onOpenChange,
+  onJobCreated,
+  onSuccess,
+  preselectedClientId
 }: ScheduleJobModalProps) => {
+  const [showTemplates, setShowTemplates] = useState(false);
+
   const {
     formData,
     setFormData,
@@ -59,9 +68,16 @@ export const ScheduleJobModal = ({
     handleAddTask,
     handleRemoveTask,
     handleCustomFieldChange,
+    applyTemplate,
     resetForm,
     validateForm,
   } = useScheduleJobForm({ preselectedClientId });
+
+  const handleUseTemplate = (template: any) => {
+    applyTemplate(template);
+    setShowTemplates(false);
+    toast.success(`Template "${template.name}" applied`);
+  };
 
   const { isSubmitting, handleSubmit } = useScheduleJobSubmit({
     formData,
@@ -106,6 +122,30 @@ export const ScheduleJobModal = ({
         
         <form onSubmit={onSubmit}>
           <div className="grid gap-6 py-4">
+            {/* Template Selection */}
+            <Collapsible open={showTemplates} onOpenChange={setShowTemplates}>
+              <CollapsibleTrigger asChild>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full justify-between"
+                >
+                  <span className="flex items-center gap-2">
+                    <FileText className="h-4 w-4" />
+                    Use a Job Template
+                  </span>
+                  {showTemplates ? (
+                    <ChevronUp className="h-4 w-4" />
+                  ) : (
+                    <ChevronDown className="h-4 w-4" />
+                  )}
+                </Button>
+              </CollapsibleTrigger>
+              <CollapsibleContent className="mt-4">
+                <JobTemplateManager onUseTemplate={handleUseTemplate} />
+              </CollapsibleContent>
+            </Collapsible>
+
             {/* Basic Information */}
             <JobInformationSection
               formData={formData}

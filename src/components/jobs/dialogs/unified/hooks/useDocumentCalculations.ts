@@ -30,7 +30,6 @@ export const useDocumentCalculations = ({ lineItems, taxRate }: UseDocumentCalcu
         }
         return total;
       }, 0);
-      console.log('useDocumentCalculations - Using tax rate:', effectiveTaxRate);
       return (taxableTotal * effectiveTaxRate) / 100;
     };
   }, [lineItems, effectiveTaxRate]);

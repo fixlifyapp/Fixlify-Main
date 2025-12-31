@@ -133,11 +133,11 @@ export const useMetricsData = () => {
 
       if (createdError) throw createdError;
 
-      // Fetch open jobs (scheduled or in_progress)
+      // Fetch open jobs (scheduled or in-progress)
       const { count: openJobs, error: openJobsError } = await supabase
         .from('jobs')
         .select('id', { count: 'exact', head: true })
-        .in('status', ['scheduled', 'in_progress', 'in-progress'])
+        .in('status', ['scheduled', 'in-progress'])
         .gte('created_at', startDate)
         .lte('created_at', endDate);
 
@@ -147,7 +147,7 @@ export const useMetricsData = () => {
       const { count: previousOpenJobs } = await supabase
         .from('jobs')
         .select('id', { count: 'exact', head: true })
-        .in('status', ['scheduled', 'in_progress', 'in-progress'])
+        .in('status', ['scheduled', 'in-progress'])
         .gte('created_at', previousStartDate)
         .lte('created_at', previousEndDate);
 

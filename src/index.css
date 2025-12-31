@@ -490,3 +490,52 @@
   transform: scaleX(1);
   transform-origin: left;
 }
+
+/* High Contrast Mode for Accessibility */
+.high-contrast {
+  --background: 0 0% 0%;
+  --foreground: 0 0% 100%;
+  --card: 0 0% 5%;
+  --card-foreground: 0 0% 100%;
+  --popover: 0 0% 5%;
+  --popover-foreground: 0 0% 100%;
+  --primary: 60 100% 50%;
+  --primary-foreground: 0 0% 0%;
+  --secondary: 0 0% 15%;
+  --secondary-foreground: 0 0% 100%;
+  --muted: 0 0% 15%;
+  --muted-foreground: 0 0% 80%;
+  --accent: 60 100% 50%;
+  --accent-foreground: 0 0% 0%;
+  --destructive: 0 100% 60%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 0 0% 40%;
+  --input: 0 0% 20%;
+  --ring: 60 100% 50%;
+}
+
+.high-contrast * {
+  border-color: hsl(0 0% 40%) !important;
+}
+
+.high-contrast .bg-gray-50,
+.high-contrast .bg-gray-100 {
+  background-color: hsl(0 0% 10%) !important;
+}
+
+.high-contrast .text-gray-400,
+.high-contrast .text-gray-500,
+.high-contrast .text-gray-600 {
+  color: hsl(0 0% 85%) !important;
+}
+
+.high-contrast a,
+.high-contrast button {
+  text-decoration-thickness: 2px;
+  outline-offset: 3px;
+}
+
+.high-contrast:focus-visible {
+  outline: 3px solid hsl(60 100% 50%);
+  outline-offset: 3px;
+}

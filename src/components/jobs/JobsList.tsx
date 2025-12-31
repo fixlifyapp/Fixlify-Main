@@ -4,12 +4,13 @@ import { ModernCard } from "@/components/ui/modern-card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
-import { 
-  ExternalLink, 
-  Edit, 
-  Calendar, 
-  User, 
-  MapPin, 
+import { HighlightText } from "@/components/ui/highlight-text";
+import {
+  ExternalLink,
+  Edit,
+  Calendar,
+  User,
+  MapPin,
   DollarSign,
   Tag,
   CheckCircle,
@@ -29,15 +30,17 @@ interface JobsListProps {
   onSelectJob: (jobId: string, isSelected: boolean) => void;
   onSelectAllJobs: (isSelected: boolean) => void;
   onRefresh?: () => void;
+  searchTerm?: string;
 }
 
-export const JobsList = ({ 
-  jobs, 
-  isGridView = false, 
-  selectedJobs, 
-  onSelectJob, 
+export const JobsList = ({
+  jobs,
+  isGridView = false,
+  selectedJobs,
+  onSelectJob,
   onSelectAllJobs,
-  onRefresh
+  onRefresh,
+  searchTerm = ""
 }: JobsListProps) => {
   const navigate = useNavigate();
   const { copyPortalLink, isGenerating } = usePortalLink();
@@ -233,7 +236,9 @@ export const JobsList = ({
                     </div>
                     
                     <div>
-                      <h3 className="font-semibold text-lg mb-1">{job.client?.name || 'Unknown Client'}</h3>
+                      <h3 className="font-semibold text-lg mb-1">
+                        <HighlightText text={job.client?.name || 'Unknown Client'} highlight={searchTerm} />
+                      </h3>
                       <p className="text-sm text-muted-foreground">{formatTime(job)}</p>
                     </div>
                     
@@ -264,7 +269,9 @@ export const JobsList = ({
                     {job.address && (
                       <div className="flex items-center text-sm text-muted-foreground">
                         <MapPin className="h-4 w-4 mr-2" />
-                        <span className="truncate">{job.address}</span>
+                        <span className="truncate">
+                          <HighlightText text={job.address} highlight={searchTerm} />
+                        </span>
                       </div>
                     )}
                     
@@ -370,7 +377,9 @@ export const JobsList = ({
                     </div>
                   </td>
                   <td className="p-4">
-                    <div className="font-medium">{job.client?.name || 'Unknown Client'}</div>
+                    <div className="font-medium">
+                      <HighlightText text={job.client?.name || 'Unknown Client'} highlight={searchTerm} />
+                    </div>
                   </td>
                   <td className="p-4">
                     <div className="flex items-center text-sm">
@@ -382,7 +391,9 @@ export const JobsList = ({
                     {job.address ? (
                       <div className="flex items-center text-sm">
                         <MapPin className="h-4 w-4 mr-2" />
-                        <span className="truncate max-w-[200px]">{job.address}</span>
+                        <span className="truncate max-w-[200px]">
+                          <HighlightText text={job.address} highlight={searchTerm} />
+                        </span>
                       </div>
                     ) : (
                       <span className="text-muted-foreground">—</span>

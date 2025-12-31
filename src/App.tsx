@@ -54,6 +54,7 @@ import EstimatePortal from "@/pages/EstimatePortal";
 import UniversalPortal from "@/pages/UniversalPortal";
 
 import EdgeFunctionsPage from "@/pages/EdgeFunctionsPage";
+import AdminPhonePoolPage from "@/pages/AdminPhonePoolPage";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -398,6 +399,15 @@ function App() {
               <AuthProvider>
                 <ProtectedRouteWithProviders>
                   <AdminRolesPage />
+                </ProtectedRouteWithProviders>
+              </AuthProvider>
+            } />
+
+            {/* Admin Phone Pool Management */}
+            <Route path="/admin/phone-pool" element={
+              <AuthProvider>
+                <ProtectedRouteWithProviders>
+                  <AdminPhonePoolPage />
                 </ProtectedRouteWithProviders>
               </AuthProvider>
             } />

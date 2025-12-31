@@ -27,11 +27,25 @@ export class TelnyxService {
 
   async getPhoneNumbers(userId: string) {
     try {
+      // First get user's organization
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('organization_id')
+        .eq('id', userId)
+        .single();
+
+      if (profileError || !profile?.organization_id) {
+        console.error('TelnyxService: User must belong to an organization');
+        return [];
+      }
+
+      // Get organization's phone numbers (not user_id - phones are org-scoped)
       const { data, error } = await supabase
         .from('phone_numbers')
         .select('*')
-        .eq('user_id', userId)
-        .eq('is_active', true)
+        .eq('organization_id', profile.organization_id)
+        .eq('pool_status', 'assigned')
+        .in('status', ['active', 'purchased'])
         .order('is_primary', { ascending: false });
 
       if (error) throw error;

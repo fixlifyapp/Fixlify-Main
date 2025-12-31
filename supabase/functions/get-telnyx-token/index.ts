@@ -13,7 +13,8 @@ serve(async (req) => {
   try {
     const { phoneNumber } = await req.json();
     const telnyxApiKey = Deno.env.get('TELNYX_API_KEY');
-    
+    const telnyxConnectionId = Deno.env.get('TELNYX_CONNECTION_ID') || '2709100729850660858';
+
     if (!telnyxApiKey) {
       throw new Error('Telnyx API key not configured');
     }
@@ -26,8 +27,8 @@ serve(async (req) => {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        connection_id: 'your_connection_id', // Need actual connection ID
-        name: 'Test Call',
+        connection_id: telnyxConnectionId,
+        name: `WebRTC Call ${Date.now()}`,
         expires_at: new Date(Date.now() + 300000).toISOString() // 5 min expiry
       })
     });

@@ -1,11 +1,15 @@
-import React, { createContext, useContext, useRef, useEffect, useState } from "react";
+import React, { createContext, useContext, useRef, useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { JobDetailsContextType } from "./types";
 import { useJobData } from "./useJobData";
 import { useJobStatusUpdate } from "./useJobStatusUpdate";
 import { toast } from "sonner";
+import { invalidateJobCache } from "./utils/jobDataCache";
 
 const JobDetailsContext = createContext<JobDetailsContextType | null>(null);
+
+// Minimum time between refreshes (ms)
+const REFRESH_THROTTLE_MS = 300;
 
 export const useJobDetails = () => {
   const context = useContext(JobDetailsContext);
@@ -15,10 +19,10 @@ export const useJobDetails = () => {
   return context;
 };
 
-export const JobDetailsProvider = ({ 
-  jobId, 
-  children 
-}: { 
+export const JobDetailsProvider = ({
+  jobId,
+  children
+}: {
   jobId: string;
   children: React.ReactNode;
 }) => {
@@ -27,6 +31,7 @@ export const JobDetailsProvider = ({
   const isMountedRef = useRef(true);
   const subscriptionRef = useRef<any>(null);
   const clientSubscriptionRef = useRef<any>(null);
+  const lastRefreshRef = useRef<number>(0);
   
   useEffect(() => {
     isMountedRef.current = true;
@@ -35,15 +40,24 @@ export const JobDetailsProvider = ({
     };
   }, []);
   
-  const refreshJob = () => {
-    if (isMountedRef.current) {
-      setRefreshTrigger(prev => prev + 1);
+  // Throttled refresh to prevent multiple rapid updates
+  const refreshJob = useCallback(() => {
+    if (!isMountedRef.current) return;
+
+    const now = Date.now();
+    const timeSinceLastRefresh = now - lastRefreshRef.current;
+
+    if (timeSinceLastRefresh < REFRESH_THROTTLE_MS) {
+      // Skip this refresh - too soon after the last one
+      return;
     }
-  };
+
+    lastRefreshRef.current = now;
+    setRefreshTrigger(prev => prev + 1);
+  }, []);
   
   const refreshFinancials = () => {
     if (isMountedRef.current) {
-      console.log('🔄 Triggering financial refresh from context');
       setFinancialRefreshTrigger(prev => prev + 1);
     }
   };
@@ -67,12 +81,9 @@ export const JobDetailsProvider = ({
     
     // Clean up any existing subscription
     if (subscriptionRef.current) {
-      console.log(`Cleaning up existing subscription for job ${jobId}`);
       supabase.removeChannel(subscriptionRef.current);
       subscriptionRef.current = null;
     }
-    
-    console.log(`Setting up real-time subscription for job ${jobId}`);
     
     const channelName = `job-details-${jobId}-${Date.now()}`;
     
@@ -87,35 +98,23 @@ export const JobDetailsProvider = ({
           filter: `id=eq.${jobId}`
         },
         (payload) => {
-          console.log('Job update detected:', payload);
           // Check if this is a status update
           if (payload.new && typeof payload.new === 'object' && 'status' in payload.new && payload.new.status !== currentStatus) {
-            console.log('Status changed via real-time:', payload.new.status);
             setCurrentStatus(payload.new.status as string);
           }
-          // Only refresh if this wasn't an optimistic update we just made
-          if (isMountedRef.current) {
-            // Small delay to prevent race conditions with optimistic updates
-            setTimeout(() => {
-              if (isMountedRef.current) {
-                refreshJob();
-              }
-            }, 100);
-          }
+          // Refresh immediately - throttling prevents duplicates
+          refreshJob();
         }
       )
       .subscribe((status, err) => {
         if (err) {
           console.error(`Real-time subscription error for job ${jobId}:`, err);
-        } else {
-          console.log(`Real-time subscription status for job ${jobId}:`, status);
         }
       });
     
     subscriptionRef.current = channel;
     
     return () => {
-      console.log(`Cleaning up real-time subscription for job ${jobId}`);
       if (subscriptionRef.current) {
         supabase.removeChannel(subscriptionRef.current);
         subscriptionRef.current = null;
@@ -129,12 +128,9 @@ export const JobDetailsProvider = ({
     
     // Clean up any existing client subscription
     if (clientSubscriptionRef.current) {
-      console.log(`Cleaning up existing client subscription`);
       supabase.removeChannel(clientSubscriptionRef.current);
       clientSubscriptionRef.current = null;
     }
-    
-    console.log(`Setting up client subscription for client ${job.clientId}`);
     
     const clientChannelName = `job-client-${job.clientId}-${Date.now()}`;
     
@@ -149,7 +145,6 @@ export const JobDetailsProvider = ({
           filter: `id=eq.${job.clientId}`
         },
         (payload) => {
-          console.log('Client update detected:', payload);
           if (isMountedRef.current) {
             refreshJob();
           }
@@ -158,15 +153,12 @@ export const JobDetailsProvider = ({
       .subscribe((status, err) => {
         if (err) {
           console.error(`Client subscription error:`, err);
-        } else {
-          console.log(`Client subscription status:`, status);
         }
       });
-    
+
     clientSubscriptionRef.current = clientChannel;
-    
+
     return () => {
-      console.log(`Cleaning up client subscription`);
       if (clientSubscriptionRef.current) {
         supabase.removeChannel(clientSubscriptionRef.current);
         clientSubscriptionRef.current = null;
@@ -179,21 +171,19 @@ export const JobDetailsProvider = ({
       console.error('No job data available for status update');
       return;
     }
-    
+
     // Optimistic update - update UI immediately
     const previousStatus = currentStatus;
     setCurrentStatus(newStatus);
-    
+
+    // Invalidate cache to ensure fresh data on next fetch
+    invalidateJobCache(jobId);
+
     try {
       await handleUpdateJobStatus(newStatus, previousStatus);
-      console.log(`✅ Job status updated from ${previousStatus} to ${newStatus}`);
-      
-      // Force a refresh to ensure UI is in sync with database
-      setTimeout(() => {
-        refreshJob();
-      }, 500);
+      // Real-time subscription will handle the refresh automatically
     } catch (error) {
-      console.error(`❌ Failed to update status from ${previousStatus} to ${newStatus}:`, error);
+      console.error(`Failed to update status:`, error);
       // Revert optimistic update on error
       setCurrentStatus(previousStatus);
       throw error;
