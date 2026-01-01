@@ -1,7 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { PageLayout } from "@/components/layout/PageLayout";
 import { PageHeader } from "@/components/ui/page-header";
-import { ScheduleCalendar } from "@/components/schedule/ScheduleCalendar";
+import { FullCalendarSchedule } from "@/components/schedule/FullCalendarSchedule";
 import { ScheduleFilters } from "@/components/schedule/ScheduleFilters";
 import { Button } from "@/components/ui/button";
 import { Plus, Calendar, Loader2, Clock, Users, CheckCircle } from "lucide-react";
@@ -21,7 +21,8 @@ const SchedulePage = () => {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [showAIInsights, setShowAIInsights] = useState(false);
   const [scheduleError, setScheduleError] = useState<string | null>(null);
-  
+  const [selectedJobDate, setSelectedJobDate] = useState<Date | undefined>(undefined);
+
   const { addJob, refreshJobs } = useJobs();
 
   console.log('SchedulePage: Component mounted', { user, authLoading, view });
@@ -75,6 +76,12 @@ const SchedulePage = () => {
   const handleJobSuccess = (job: Job) => {
     toast.success(`Job ${job.id} has been created and scheduled`);
   };
+
+  // Handle creating a job from calendar selection
+  const handleCreateJobFromCalendar = useCallback((startDate: Date, endDate?: Date) => {
+    setSelectedJobDate(startDate);
+    setIsCreateModalOpen(true);
+  }, []);
 
   // Show loading state while checking authentication
   if (authLoading) {
@@ -135,15 +142,21 @@ const SchedulePage = () => {
       
       {/* Filters */}
       <div className="fixlyfy-card p-4 mb-6">
-        <ScheduleFilters 
-          view={view} 
-          onViewChange={handleViewChange} 
-          currentDate={currentDate} 
-          onDateChange={handleDateChange} 
+        <ScheduleFilters
+          view={view}
+          onViewChange={handleViewChange}
+          currentDate={currentDate}
+          onDateChange={handleDateChange}
         />
       </div>
-      
-      <ScheduleCalendar view={view} currentDate={currentDate} />
+
+      <FullCalendarSchedule
+        view={view}
+        currentDate={currentDate}
+        onViewChange={handleViewChange}
+        onDateChange={handleDateChange}
+        onCreateJob={handleCreateJobFromCalendar}
+      />
       
       {/* Use centralized ScheduleJobModal */}
       <ScheduleJobModal 

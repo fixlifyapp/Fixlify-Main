@@ -75,18 +75,17 @@ export const NotificationsBell = () => {
         console.error('Error fetching missed calls:', callsError);
       }
 
-      // Fetch recent unread messages
+      // Fetch recent inbound messages (sms_messages table doesn't have read tracking)
       const { data: unreadSms, error: smsError } = await supabase
         .from('sms_messages')
-        .select('*, clients(first_name, last_name)')
+        .select('*')
         .eq('direction', 'inbound')
-        .eq('is_read', false)
         .gte('created_at', yesterday.toISOString())
         .order('created_at', { ascending: false })
         .limit(20);
 
       if (smsError) {
-        console.error('Error fetching unread SMS:', smsError);
+        console.error('Error fetching SMS messages:', smsError);
       }
 
       // Combine all notifications
@@ -127,22 +126,19 @@ export const NotificationsBell = () => {
         });
       }
 
-      // Add unread SMS
+      // Add recent SMS messages
       if (unreadSms) {
         unreadSms.forEach(sms => {
-          const client = sms.clients as { first_name: string; last_name: string } | null;
-          const clientName = client ? `${client.first_name} ${client.last_name}` : null;
+          const messageContent = sms.content || sms.message || 'New message';
           allNotifications.push({
             id: `sms-${sms.id}`,
             type: 'message',
-            title: clientName || formatPhoneNumber(sms.from_number),
-            description: sms.body?.substring(0, 80) + (sms.body?.length > 80 ? '...' : '') || 'New message',
-            timestamp: sms.created_at,
+            title: formatPhoneNumber(sms.from_number),
+            description: messageContent.substring(0, 80) + (messageContent.length > 80 ? '...' : ''),
+            timestamp: sms.created_at || new Date().toISOString(),
             isRead: false,
             data: {
-              phoneNumber: sms.from_number,
-              clientName,
-              clientId: sms.client_id
+              phoneNumber: sms.from_number
             }
           });
         });
@@ -279,11 +275,8 @@ export const NotificationsBell = () => {
         .update({ is_read: true, read_at: new Date().toISOString() })
         .eq('id', id);
     } else if (notification.id.startsWith('sms-')) {
-      const id = notification.id.replace('sms-', '');
-      await supabase
-        .from('sms_messages')
-        .update({ is_read: true })
-        .eq('id', id);
+      // Note: sms_messages table doesn't have read tracking columns
+      // Just mark as read in local state only
     } else if (notification.id.startsWith('call-')) {
       const id = notification.id.replace('call-', '');
       // Update call metadata

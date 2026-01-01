@@ -32,26 +32,39 @@ export const generateNextId = async (entityType: 'job' | 'estimate' | 'invoice' 
 
     // Use the atomic database function for ALL entity types
     // This ensures no duplicates across all entities
-    const { data, error } = await supabase
-      .rpc('get_next_document_number', { 
+    // Add timeout to prevent hanging
+    const rpcPromise = supabase
+      .rpc('get_next_document_number', {
         p_entity_type: entityType
       });
-    
-    if (error) {
-      console.error(`Error generating ${entityType} number:`, error);
-      
-      // If the RPC function doesn't exist or fails, fall back to the old method
-      if (error.code === 'PGRST202' || error.message?.includes('function') || error.message?.includes('does not exist')) {
-        console.log('Falling back to manual ID generation');
-        return await generateNextIdManual(entityType, user.id);
+
+    const timeoutPromise = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('RPC timeout - falling back to manual generation')), 5000)
+    );
+
+    try {
+      const { data, error } = await Promise.race([rpcPromise, timeoutPromise]) as any;
+
+      if (error) {
+        console.error(`Error generating ${entityType} number:`, error);
+
+        // If the RPC function doesn't exist or fails, fall back to the old method
+        if (error.code === 'PGRST202' || error.message?.includes('function') || error.message?.includes('does not exist')) {
+          console.log('Falling back to manual ID generation');
+          return await generateNextIdManual(entityType, user.id);
+        }
+
+        throw error;
       }
-      
-      throw error;
+
+      console.log('Generated ID from database:', data);
+      return data;
+    } catch (rpcError: any) {
+      console.warn('RPC call failed or timed out:', rpcError.message);
+      console.log('Falling back to manual ID generation');
+      return await generateNextIdManual(entityType, user.id);
     }
-    
-    console.log('Generated ID from database:', data);
-    return data;
-    
+
   } catch (error) {
     console.error(`Error generating ${entityType} ID:`, error);
     

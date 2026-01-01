@@ -91,13 +91,21 @@ export const ScheduleJobModal = ({
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+    console.log("🎯 ScheduleJobModal onSubmit START");
+
     if (!validateForm()) {
+      console.log("❌ ScheduleJobModal validation failed");
       toast.error("Please fill in all required fields");
       return;
     }
+    console.log("✅ ScheduleJobModal validation passed, calling handleSubmit...");
 
-    await handleSubmit(e);
+    try {
+      await handleSubmit(e);
+      console.log("✅ ScheduleJobModal handleSubmit completed");
+    } catch (error) {
+      console.error("❌ ScheduleJobModal handleSubmit error:", error);
+    }
   };
   
   return (

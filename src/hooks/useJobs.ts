@@ -178,23 +178,31 @@ export const useJobs = (clientId?: string, enableCustomFields?: boolean) => {
   };
 
   const addJob = async (jobData: Partial<Job>) => {
+    console.log('🚀 addJob called with:', jobData);
+
     // Prevent concurrent job creation
     if (isCreatingJobRef.current) {
+      console.log('⚠️ addJob: Already creating job, returning null');
       return null;
     }
 
     isCreatingJobRef.current = true;
+    console.log('✅ addJob: Set isCreatingJobRef to true');
 
     if (!canCreateJobs()) {
+      console.log('❌ addJob: No permission to create jobs');
       import('@/components/ui/sonner').then(({ toast }) => {
         toast.error("You don't have permission to create jobs");
       });
       isCreatingJobRef.current = false;
       return null;
     }
+    console.log('✅ addJob: Permission check passed');
 
     try {
+      console.log('📝 addJob: Generating job ID...');
       const jobId = await generateNextId('job');
+      console.log('✅ addJob: Generated job ID:', jobId);
 
       const autoTitle = jobData.title ||
         `${jobData.client?.name || 'Service'} - ${jobData.job_type || jobData.service || 'General Service'}`;

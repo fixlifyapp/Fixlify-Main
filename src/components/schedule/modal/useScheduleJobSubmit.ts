@@ -25,22 +25,29 @@ export const useScheduleJobSubmit = ({
   const isCreatingRef = useRef(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
+    // IMMEDIATE sync log - should appear no matter what
+    console.log("=== HANDLESUBMIT v2 START ===", new Date().toISOString());
+
     e.preventDefault();
-    
+    console.log("🔥🔥🔥 useScheduleJobSubmit.handleSubmit ENTERED 🔥🔥🔥");
+
     // Prevent double submission
     if (isCreatingRef.current || isSubmitting) {
       console.log("⚠️ Job creation already in progress, ignoring duplicate submission");
       return;
     }
-    
+
     isCreatingRef.current = true;
-    
+    console.log("🔥 isCreatingRef set to true");
+
     console.log("🚀 Form submission started with data:", formData);
     console.log("📋 Available clients:", clients.length);
     console.log("🔧 Custom fields:", Object.keys(formData.customFields).length);
-    
+
+    console.log("🔥 About to setIsSubmitting(true)");
     setIsSubmitting(true);
-    
+    console.log("🔥 setIsSubmitting(true) called");
+
     try {
       // Get selected client info
       const selectedClient = clients.find(c => c.id === formData.client_id);
@@ -81,7 +88,9 @@ export const useScheduleJobSubmit = ({
       console.log("📊 Job data size:", JSON.stringify(jobData).length, "characters");
 
       if (onJobCreated) {
+        console.log("🔥 About to call onJobCreated...");
         const createdJob = await onJobCreated(jobData);
+        console.log("🔥 onJobCreated returned:", createdJob);
         
         if (createdJob) {
           console.log("Job created successfully:", createdJob);
@@ -171,4 +180,5 @@ export const useScheduleJobSubmit = ({
     isSubmitting,
     handleSubmit,
   };
-}; 
+};
+ 

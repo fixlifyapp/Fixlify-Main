@@ -20,12 +20,23 @@
     "context:browser": "open context-browser.html",
     "test:production": "node agents/run-production-tests.js",
     "test:security": "node agents/production-test-suite.ts",
-    "context:all": "npm run context:validate && npm run context:update && npm run context:quality"
+    "context:all": "npm run context:validate && npm run context:update && npm run context:quality",
+    "code:duplicates": "jscpd src --min-tokens 50 --reporters console --ignore \"**/node_modules/**\"",
+    "code:health": "npm run lint && npm run code:duplicates",
+    "code:report": "jscpd src --min-tokens 50 --reporters json --output reports/",
+    "code:health-report": "node scripts/code-health-report.js",
+    "code:full-check": "npm run lint && npm run code:duplicates && npm run code:health-report",
+    "prepare": "husky"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
     "@dnd-kit/sortable": "^10.0.0",
     "@dnd-kit/utilities": "^3.2.2",
+    "@fullcalendar/core": "^6.1.20",
+    "@fullcalendar/daygrid": "^6.1.20",
+    "@fullcalendar/interaction": "^6.1.20",
+    "@fullcalendar/react": "^6.1.20",
+    "@fullcalendar/timegrid": "^6.1.20",
     "@hookform/resolvers": "^3.9.0",
     "@radix-ui/react-accordion": "^1.2.0",
     "@radix-ui/react-alert-dialog": "^1.1.1",
@@ -92,9 +103,17 @@
     "tailwindcss-animate": "^1.0.7",
     "three": "^0.158.0",
     "uuid": "^11.1.0",
-    "vaul": "^0.9.3",
+    "vaul": "^0.9.9",
     "xlsx": "^0.18.5",
     "zod": "^3.23.8"
+  },
+  "lint-staged": {
+    "*.{ts,tsx}": [
+      "eslint --fix --max-warnings 50"
+    ],
+    "*.{js,jsx}": [
+      "eslint --fix --max-warnings 50"
+    ]
   },
   "devDependencies": {
     "@eslint/js": "^9.9.0",
@@ -108,7 +127,11 @@
     "eslint": "^9.9.0",
     "eslint-plugin-react-hooks": "^5.1.0-rc.0",
     "eslint-plugin-react-refresh": "^0.4.9",
+    "eslint-plugin-sonarjs": "^3.0.5",
     "globals": "^15.9.0",
+    "husky": "^9.1.7",
+    "jscpd": "^4.0.5",
+    "lint-staged": "^16.2.7",
     "lovable-tagger": "^1.1.7",
     "postcss": "^8.4.47",
     "puppeteer": "^24.34.0",
