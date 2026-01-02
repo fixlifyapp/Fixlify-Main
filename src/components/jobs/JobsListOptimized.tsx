@@ -5,10 +5,10 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Skeleton } from "@/components/ui/skeleton";
-import { 
-  Edit, 
-  Calendar, 
-  MapPin, 
+import {
+  Edit,
+  Calendar,
+  MapPin,
   DollarSign,
   Tag,
   CheckCircle,
@@ -22,6 +22,7 @@ import { Job } from "@/types/job";
 import { useTags } from "@/hooks/useConfigItems";
 import { getTagColor } from "@/data/tags";
 import { usePortalLink } from "@/hooks/usePortalLink";
+import { JobsTable } from "./JobsTable";
 
 interface JobsListOptimizedProps {
   jobs: Job[];
@@ -339,11 +340,14 @@ export const JobsListOptimized = memo(({
     );
   }
 
-  // List view implementation
+  // List view - use modern table
   return (
-    <div className="space-y-4">
-      <p className="text-gray-600">List view - {jobs.length} jobs loaded</p>
-    </div>
+    <JobsTable
+      jobs={jobs}
+      selectedJobs={selectedJobs}
+      onSelectJob={onSelectJob}
+      onSelectAllJobs={onSelectAllJobs}
+    />
   );
 });
 

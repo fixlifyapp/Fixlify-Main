@@ -3,6 +3,7 @@ import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import interactionPlugin from '@fullcalendar/interaction';
+import resourceTimeGridPlugin from '@fullcalendar/resource-timegrid';
 import { EventClickArg, DatesSetArg, DateSelectArg } from '@fullcalendar/core';
 import { useNavigate } from 'react-router-dom';
 import { useFullCalendarEvents } from '@/hooks/useFullCalendarEvents';
@@ -14,23 +15,25 @@ import { cn } from '@/lib/utils';
 import '@/styles/fullcalendar.css';
 
 interface FullCalendarScheduleProps {
-  view?: 'day' | 'week' | 'month';
+  view?: 'day' | 'week' | 'month' | 'team';
   currentDate?: Date;
-  onViewChange?: (view: 'day' | 'week' | 'month') => void;
+  onViewChange?: (view: 'day' | 'week' | 'month' | 'team') => void;
   onDateChange?: (date: Date) => void;
-  onCreateJob?: (startDate: Date, endDate?: Date) => void;
+  onCreateJob?: (startDate: Date, endDate?: Date, technicianId?: string) => void;
 }
 
 const VIEW_MAP = {
   day: 'timeGridDay',
   week: 'timeGridWeek',
-  month: 'dayGridMonth'
+  month: 'dayGridMonth',
+  team: 'resourceTimeGridDay'
 } as const;
 
-const REVERSE_VIEW_MAP: Record<string, 'day' | 'week' | 'month'> = {
+const REVERSE_VIEW_MAP: Record<string, 'day' | 'week' | 'month' | 'team'> = {
   timeGridDay: 'day',
   timeGridWeek: 'week',
-  dayGridMonth: 'month'
+  dayGridMonth: 'month',
+  resourceTimeGridDay: 'team'
 };
 
 export function FullCalendarSchedule({
@@ -48,6 +51,7 @@ export function FullCalendarSchedule({
 
   const {
     events,
+    resources,
     loading,
     error,
     fetchJobs,
@@ -109,7 +113,9 @@ export function FullCalendarSchedule({
   // Handle date selection for creating new job
   const handleDateSelect = useCallback((selectInfo: DateSelectArg) => {
     if (onCreateJob) {
-      onCreateJob(selectInfo.start, selectInfo.end);
+      // Pass technician ID if selected from resource view
+      const technicianId = selectInfo.resource?.id;
+      onCreateJob(selectInfo.start, selectInfo.end, technicianId);
     }
   }, [onCreateJob]);
 
@@ -203,9 +209,14 @@ export function FullCalendarSchedule({
       )}>
         <FullCalendar
           ref={calendarRef}
-          plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
+          plugins={[dayGridPlugin, timeGridPlugin, resourceTimeGridPlugin, interactionPlugin]}
           initialView={isMobile ? 'timeGridDay' : VIEW_MAP[view]}
           initialDate={currentDate}
+
+          // Resources for team view
+          resources={resources}
+          resourceAreaWidth={view === 'team' ? '150px' : undefined}
+          resourceAreaHeaderContent={view === 'team' ? 'Technician' : undefined}
 
           // Event data
           events={events}

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useClientsOptimized } from "@/hooks/useClientsOptimized";
 import { useJobTypes, useLeadSources, useTags } from "@/hooks/useConfigItems";
 import { useJobCustomFields } from "@/hooks/useJobCustomFields";
@@ -24,11 +24,26 @@ export interface FormData {
   previous_service_date?: string;
 }
 
-interface UseScheduleJobFormProps {
-  preselectedClientId?: string;
+interface BusinessHours {
+  [key: string]: {
+    start: string;
+    end: string;
+    enabled: boolean;
+  };
 }
 
-export const useScheduleJobForm = ({ preselectedClientId }: UseScheduleJobFormProps) => {
+interface CompanySettings {
+  timezone?: string;
+  business_hours?: BusinessHours;
+  default_job_duration?: number;
+}
+
+interface UseScheduleJobFormProps {
+  preselectedClientId?: string;
+  companySettings?: CompanySettings | null;
+}
+
+export const useScheduleJobForm = ({ preselectedClientId, companySettings }: UseScheduleJobFormProps) => {
   const [formData, setFormData] = useState<FormData>({
     client_id: preselectedClientId || "",
     property_id: "",
@@ -50,7 +65,8 @@ export const useScheduleJobForm = ({ preselectedClientId }: UseScheduleJobFormPr
   
   const [formErrors, setFormErrors] = useState<string[]>([]);
   const [newTask, setNewTask] = useState("");
-  
+  const [defaultsApplied, setDefaultsApplied] = useState(false);
+
   // Configuration hooks with dynamic data from database
   const { clients, isLoading: clientsLoading } = useClientsOptimized();
   const { items: jobTypes, isLoading: jobTypesLoading } = useJobTypes();
@@ -58,6 +74,38 @@ export const useScheduleJobForm = ({ preselectedClientId }: UseScheduleJobFormPr
   const { items: tags, isLoading: tagsLoading } = useTags();
   const { availableFields: customFields, isLoading: customFieldsLoading } = useJobCustomFields();
   const { properties: clientProperties, isLoading: propertiesLoading } = useClientProperties(formData.client_id);
+
+  // Apply defaults from settings and config items on load
+  useEffect(() => {
+    if (defaultsApplied) return;
+
+    // Wait for config items to load
+    if (jobTypesLoading || leadSourcesLoading) return;
+
+    const updates: Partial<FormData> = {};
+
+    // Auto-select default job type on load (not just during validation)
+    if (!formData.job_type && jobTypes.length > 0) {
+      const defaultJobType = jobTypes.find(jt => jt.is_default) || jobTypes[0];
+      updates.job_type = defaultJobType.name;
+    }
+
+    // Auto-select default lead source on load
+    if (!formData.lead_source && leadSources.length > 0) {
+      const defaultLeadSource = leadSources.find(ls => ls.is_default) || leadSources[0];
+      updates.lead_source = defaultLeadSource.name;
+    }
+
+    // Apply duration from settings if available
+    if (companySettings?.default_job_duration) {
+      updates.duration = String(companySettings.default_job_duration);
+    }
+
+    if (Object.keys(updates).length > 0) {
+      setFormData(prev => ({ ...prev, ...updates }));
+      setDefaultsApplied(true);
+    }
+  }, [jobTypes, leadSources, jobTypesLoading, leadSourcesLoading, companySettings, defaultsApplied, formData.job_type, formData.lead_source]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { id, value } = e.target;
@@ -147,19 +195,41 @@ export const useScheduleJobForm = ({ preselectedClientId }: UseScheduleJobFormPr
     });
     setNewTask("");
     setFormErrors([]);
+    setDefaultsApplied(false); // Allow defaults to be re-applied on next open
   };
 
   const validateForm = () => {
     const errors: string[] = [];
-    
+
     if (!formData.client_id) {
       errors.push("Please select a client");
     }
-    
-    // Auto-select default job type if none selected
-    if (!formData.job_type && jobTypes.length > 0) {
-      const defaultJobType = jobTypes.find(jt => jt.is_default) || jobTypes[0];
-      setFormData(prev => ({ ...prev, job_type: defaultJobType.name }));
+
+    // Validate schedule date/time
+    if (!formData.schedule_start) {
+      errors.push("Please select a scheduled date and time");
+    } else {
+      const startDate = new Date(formData.schedule_start);
+      const now = new Date();
+
+      // Check if schedule_start is in the past (allow some buffer for same-day scheduling)
+      const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      if (startDate < startOfToday) {
+        errors.push("Scheduled date cannot be in the past");
+      }
+
+      // Validate schedule_end is after schedule_start
+      if (formData.schedule_end) {
+        const endDate = new Date(formData.schedule_end);
+        if (endDate <= startDate) {
+          errors.push("End time must be after start time");
+        }
+      }
+    }
+
+    // Job type validation - now just check if selected (defaults applied on load)
+    if (!formData.job_type) {
+      errors.push("Please select a job type");
     }
 
     // Validate required custom fields
@@ -193,6 +263,7 @@ export const useScheduleJobForm = ({ preselectedClientId }: UseScheduleJobFormPr
     customFieldsLoading,
     clientProperties,
     propertiesLoading,
+    companySettings, // Expose settings for business hours etc.
     handleChange,
     handleSelectChange,
     handleTagToggle,

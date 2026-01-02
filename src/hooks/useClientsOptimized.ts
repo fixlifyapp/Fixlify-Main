@@ -4,7 +4,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { usePermissions } from "@/hooks/usePermissions";
 import type { Client } from "@/types/core/client";
 import { localStorageCache } from "@/utils/cacheConfig";
-import { withRetry, handleJobsError } from "@/utils/errorHandling";
+import { withClientRetry, handleClientsError } from "@/utils/errorHandling";
 import { toast } from "sonner";
 import { generateNextId } from "@/utils/idGeneration";
 import { formatPhoneForTelnyx } from "@/utils/phoneUtils";
@@ -141,37 +141,37 @@ export const useClientsOptimized = (options: UseClientsOptimizedOptions = {}) =>
           setIsLoading(false);
         }
         
-        // Fetch from database
-        return await withRetry(async () => {
+        // Fetch from database - no circuit breaker, simple retry
+        return await withClientRetry(async () => {
           let query = supabase
             .from('clients')
             .select('*', { count: 'exact' });
-          
+
           // Apply user filter
           query = query.or(`user_id.eq.${user.id},created_by.eq.${user.id}`);
-          
+
           // Apply search filter if provided
           if (searchQuery) {
             query = query.or(`name.ilike.%${searchQuery}%,email.ilike.%${searchQuery}%,phone.ilike.%${searchQuery}%,company.ilike.%${searchQuery}%`);
           }
-          
+
           // Apply pagination
           query = query
             .order('created_at', { ascending: false })
             .range((page - 1) * pageSize, page * pageSize - 1);
-          
+
           const { data, error, count } = await query;
-          
+
           if (error) throw error;
-          
+
           const result: ClientsResult = {
             clients: data || [],
             totalCount: count || 0
           };
-          
+
           // Cache the result
           localStorageCache.set(cacheKey, result, 5); // 5 minute cache
-          
+
           return result;
         }, {
           maxRetries: 2,
@@ -179,7 +179,7 @@ export const useClientsOptimized = (options: UseClientsOptimizedOptions = {}) =>
         });
       } catch (error) {
         setHasError(true);
-        handleJobsError(error, 'useClientsOptimized - fetchClients');
+        handleClientsError(error, 'useClientsOptimized - fetchClients');
         throw error;
       }
     })();

@@ -94,7 +94,10 @@ export function useFullCalendarEvents() {
       // Transform jobs
       const formattedJobs: CalendarJob[] = (jobsData || []).map(job => {
         const scheduledDate = job.date ? new Date(job.date) : null;
-        const scheduledEnd = scheduledDate ? addHours(scheduledDate, 2) : null; // Default 2 hours
+        // Use schedule_end from DB if available, otherwise default to 1 hour
+        const scheduledEnd = job.schedule_end
+          ? new Date(job.schedule_end)
+          : (scheduledDate ? addHours(scheduledDate, 1) : null);
 
         return {
           id: job.id,
@@ -209,16 +212,27 @@ export function useFullCalendarEvents() {
   const handleEventResize = useCallback(async (info: EventChangeArg) => {
     const { event, revert } = info;
     const jobId = event.id;
+    const newStart = event.start;
     const newEnd = event.end;
 
-    if (!newEnd) {
+    if (!newEnd || !newStart) {
       revert();
       return;
     }
 
     try {
-      // Note: If your jobs table has a duration or end_date column, update it here
-      // For now, we'll just show a success message as duration isn't stored
+      // Save both date and schedule_end to database
+      const { error } = await supabase
+        .from('jobs')
+        .update({
+          date: newStart.toISOString(),
+          schedule_start: newStart.toISOString(),
+          schedule_end: newEnd.toISOString()
+        })
+        .eq('id', jobId);
+
+      if (error) throw error;
+
       toast.success('Duration updated');
       fetchJobs();
     } catch (err) {

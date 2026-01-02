@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Dialog } from '@/components/ui/dialog';
-import { X, CheckCircle, UserPlus, Trash, Tag, DollarSign, Download } from 'lucide-react';
+import { X, CheckCircle, UserPlus, Trash2, Tag, DollarSign, Download } from 'lucide-react';
 import { AssignTechnicianDialog } from './dialogs/AssignTechnicianDialog';
 import { TagJobsDialog } from './dialogs/TagJobsDialog';
 import { DeleteJobsDialog } from './dialogs/DeleteJobsDialog';
@@ -50,85 +50,86 @@ export const BulkActionsBar: React.FC<BulkActionsBarProps> = ({
 
   return (
     <>
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t shadow-lg z-50 py-3 px-4 flex items-center">
-        <div className="container mx-auto flex flex-wrap items-center gap-3">
-          <div className="bg-fixlyfy text-white px-3 py-1 rounded-full text-sm font-medium">
-            {selectedJobs.length} jobs selected
-          </div>
-          
-          <Button 
-            variant="outline" 
-            size="sm" 
-            className="gap-1"
-            onClick={onClearSelection}
-          >
-            <X size={14} />
-            Clear
-          </Button>
-          
-          <div className="ml-auto flex flex-wrap gap-2">
-            <Button 
-              variant="outline" 
-              size="sm" 
-              className="gap-1"
+      {/* Inline bar at top - matching Clients page style */}
+      <div className="bg-white rounded-xl border border-slate-200 shadow-sm mb-4 p-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex flex-wrap items-center gap-3">
+            <span className="bg-blue-600 text-white px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap">
+              {selectedJobs.length} job{selectedJobs.length !== 1 ? 's' : ''} selected
+            </span>
+
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-2"
               onClick={() => onUpdateStatus(selectedJobs, 'completed')}
             >
-              <CheckCircle size={14} />
-              Mark Complete
+              <CheckCircle className="h-4 w-4" />
+              Complete
             </Button>
-            
-            <Button 
-              variant="outline" 
-              size="sm" 
-              className="gap-1"
+
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-2"
               onClick={() => setIsAssignDialogOpen(true)}
             >
-              <UserPlus size={14} />
+              <UserPlus className="h-4 w-4" />
               Assign
             </Button>
-            
-            <Button 
-              variant="outline" 
-              size="sm" 
-              className="gap-1"
+
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-2"
               onClick={() => setIsTagDialogOpen(true)}
             >
-              <Tag size={14} />
+              <Tag className="h-4 w-4" />
               Tag
             </Button>
-            
-            <Button 
-              variant="outline" 
-              size="sm" 
-              className="gap-1 bg-green-50 text-green-700 border-green-200 hover:bg-green-100"
+
+            <Button
+              variant="outline"
+              size="sm"
               onClick={() => onExport(selectedJobs)}
+              className="gap-2 text-emerald-700 border-emerald-200 hover:bg-emerald-50"
             >
-              <Download size={14} />
+              <Download className="h-4 w-4" />
               Export
             </Button>
-            
+
             {onMarkAsPaid && (
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="gap-1"
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-2"
                 onClick={() => onMarkAsPaid(selectedJobs, 'card')}
               >
-                <DollarSign size={14} />
+                <DollarSign className="h-4 w-4" />
                 Mark Paid
               </Button>
             )}
-            
-            <Button 
-              variant="destructive" 
-              size="sm" 
-              className="gap-1"
+
+            <Button
+              variant="destructive"
+              size="sm"
+              className="gap-2"
               onClick={() => setIsDeleteDialogOpen(true)}
             >
-              <Trash size={14} />
+              <Trash2 className="h-4 w-4" />
               Delete
             </Button>
           </div>
+
+          <Button
+            variant="ghost"
+            size="sm"
+            className="gap-2"
+            onClick={onClearSelection}
+          >
+            <X className="h-4 w-4" />
+            Clear Selection
+          </Button>
         </div>
       </div>
 

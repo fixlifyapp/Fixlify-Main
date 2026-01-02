@@ -1,53 +1,63 @@
-
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
+import { useAuth } from '@/hooks/use-auth';
 
 export interface Technician {
   id: string;
   name: string;
+  email: string;
   role: string;
-  status: string;
+  avatar_url?: string;
 }
 
-export const useTechnicians = () => {
+export function useTechnicians() {
+  const { user } = useAuth();
   const [technicians, setTechnicians] = useState<Technician[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const fetchTechnicians = async () => {
+  const fetchTechnicians = useCallback(async () => {
+    if (!user) {
+      setIsLoading(false);
+      return;
+    }
+
     try {
       setIsLoading(true);
-      const { data, error } = await supabase
+      setError(null);
+
+      const { data: profiles, error: fetchError } = await supabase
         .from('profiles')
-        .select('id, name, role, status')
-        .eq('role', 'technician')
-        .eq('status', 'active');
+        .select('id, name, email, role, avatar_url')
+        .eq('role', 'technician');
 
-      if (error) throw error;
+      if (fetchError) throw fetchError;
 
-      const formattedTechnicians = (data || []).map(profile => ({
-        id: profile.id,
-        name: profile.name || 'Unknown Name',
-        role: profile.role || 'technician',
-        status: profile.status || 'active'
+      const techList: Technician[] = (profiles || []).map(p => ({
+        id: p.id,
+        name: p.name || p.email?.split('@')[0] || 'Technician',
+        email: p.email || '',
+        role: p.role || 'technician',
+        avatar_url: p.avatar_url || undefined
       }));
 
-      setTechnicians(formattedTechnicians);
-    } catch (error) {
-      console.error('Error fetching technicians:', error);
-      toast.error('Failed to load technicians');
+      setTechnicians(techList);
+    } catch (err) {
+      console.error('Error fetching technicians:', err);
+      setError(err instanceof Error ? err.message : 'Failed to load technicians');
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [user]);
 
   useEffect(() => {
     fetchTechnicians();
-  }, []);
+  }, [fetchTechnicians]);
 
   return {
     technicians,
     isLoading,
+    error,
     refetch: fetchTechnicians
   };
-};
+}

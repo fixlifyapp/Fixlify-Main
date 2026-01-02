@@ -353,6 +353,17 @@ const JobsPage = () => {
             </div>
           </ModernCard>
           
+          {/* Bulk Actions Bar - appears at top when jobs selected */}
+          <BulkActionsBar
+            selectedJobs={selectedJobs}
+            onClearSelection={() => setSelectedJobs([])}
+            onUpdateStatus={handleBulkUpdateStatus}
+            onAssignTechnician={handleBulkAssignTechnician}
+            onDeleteJobs={handleBulkDelete}
+            onTagJobs={handleBulkTagJobs}
+            onExport={handleBulkExport}
+          />
+
           <JobsList
             isGridView={isGridView}
             jobs={filteredJobs}
@@ -364,16 +375,6 @@ const JobsPage = () => {
           />
         </div>
       </AnimatedContainer>
-      
-      <BulkActionsBar
-        selectedJobs={selectedJobs}
-        onClearSelection={() => setSelectedJobs([])}
-        onUpdateStatus={handleBulkUpdateStatus}
-        onAssignTechnician={handleBulkAssignTechnician}
-        onDeleteJobs={handleBulkDelete}
-        onTagJobs={handleBulkTagJobs}
-        onExport={handleBulkExport}
-      />
       
       <ScheduleJobModal 
         open={isCreateJobModalOpen} 

@@ -265,13 +265,24 @@ const JobsPageOptimized = () => {
             </div>
           </ModernCard>
           
+          {/* Bulk Actions Bar - appears at top when jobs selected */}
+          <BulkActionsBar
+            selectedJobs={selectedJobs}
+            onClearSelection={() => setSelectedJobs([])}
+            onUpdateStatus={handleBulkUpdateStatus}
+            onAssignTechnician={handleBulkAssignTechnician}
+            onDeleteJobs={handleBulkDelete}
+            onTagJobs={handleBulkTagJobs}
+            onExport={handleBulkExport}
+          />
+
           {isLoading ? (
-            <LoadingSkeleton 
-              type={isGridView ? "job-card" : "job-list"} 
-              count={6} 
+            <LoadingSkeleton
+              type={isGridView ? "job-card" : "job-list"}
+              count={6}
             />
           ) : (
-            <JobsList 
+            <JobsList
               isGridView={isGridView}
               jobs={jobs}
               selectedJobs={selectedJobs}
@@ -282,16 +293,6 @@ const JobsPageOptimized = () => {
           )}
         </div>
       </AnimatedContainer>
-      
-      <BulkActionsBar
-        selectedJobs={selectedJobs}
-        onClearSelection={() => setSelectedJobs([])}
-        onUpdateStatus={handleBulkUpdateStatus}
-        onAssignTechnician={handleBulkAssignTechnician}
-        onDeleteJobs={handleBulkDelete}
-        onTagJobs={handleBulkTagJobs}
-        onExport={handleBulkExport}
-      />
       
       <ScheduleJobModal 
         open={isCreateJobModalOpen} 

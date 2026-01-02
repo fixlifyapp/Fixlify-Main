@@ -22,6 +22,7 @@ import { format } from "date-fns";
 import { Job } from "@/types/job";
 import { useJobStatuses, useJobTypes, useTags } from "@/hooks/useConfigItems";
 import { usePortalLink } from "@/hooks/usePortalLink";
+import { JobsTable } from "./JobsTable";
 
 interface JobsListProps {
   jobs: Job[];
@@ -312,152 +313,13 @@ export const JobsList = ({
     );
   }
 
-  // List view (table format)
+  // List view - modern table
   return (
-    <ModernCard variant="elevated">
-      <div className="overflow-x-auto">
-        <table className="w-full">
-          <thead>
-            <tr className="border-b">
-              <th className="text-left p-4 w-12">
-                <Checkbox 
-                  checked={areAllJobsSelected}
-                  onCheckedChange={onSelectAllJobs}
-                />
-              </th>
-              <th className="text-left p-4 font-semibold">Job Number</th>
-              <th className="text-left p-4 font-semibold">Client Name</th>
-              <th className="text-left p-4 font-semibold">Time</th>
-              <th className="text-left p-4 font-semibold">Address</th>
-              <th className="text-left p-4 font-semibold">Tags</th>
-              <th className="text-left p-4 font-semibold">Revenue</th>
-              <th className="text-right p-4 w-32">
-                Actions
-                {onRefresh && (
-                  <Button 
-                    variant="ghost" 
-                    size="sm"
-                    onClick={onRefresh}
-                    className="ml-2"
-                  >
-                    Refresh
-                  </Button>
-                )}
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {jobs.map((job) => {
-              const statusStyle = getStatusBadgeStyle(job.status);
-              const resolvedTags = resolveJobTags(job.tags || []);
-              
-              return (
-                <tr 
-                  key={job.id} 
-                  className="border-b hover:bg-muted/50 cursor-pointer transition-colors"
-                  onClick={() => handleJobClick(job.id)}
-                >
-                  <td className="p-4">
-                    <Checkbox 
-                      checked={selectedJobs.includes(job.id)}
-                      onCheckedChange={(checked) => onSelectJob(job.id, !!checked)}
-                      onClick={(e) => e.stopPropagation()}
-                    />
-                  </td>
-                  <td className="p-4">
-                    <div className="flex items-center gap-2">
-                      <span className="font-mono text-sm font-medium text-fixlyfy">{job.id}</span>
-                      <Badge 
-                        variant="outline" 
-                        className="text-xs"
-                        style={statusStyle}
-                      >
-                        {job.status}
-                      </Badge>
-                    </div>
-                  </td>
-                  <td className="p-4">
-                    <div className="font-medium">
-                      <HighlightText text={job.client?.name || 'Unknown Client'} highlight={searchTerm} />
-                    </div>
-                  </td>
-                  <td className="p-4">
-                    <div className="flex items-center text-sm">
-                      <Clock className="h-4 w-4 mr-2" />
-                      {formatTime(job)}
-                    </div>
-                  </td>
-                  <td className="p-4">
-                    {job.address ? (
-                      <div className="flex items-center text-sm">
-                        <MapPin className="h-4 w-4 mr-2" />
-                        <span className="truncate max-w-[200px]">
-                          <HighlightText text={job.address} highlight={searchTerm} />
-                        </span>
-                      </div>
-                    ) : (
-                      <span className="text-muted-foreground">—</span>
-                    )}
-                  </td>
-                  <td className="p-4">
-                    {resolvedTags && resolvedTags.length > 0 ? (
-                      <div className="flex items-center gap-1 flex-wrap">
-                        {resolvedTags.slice(0, 2).map((tag, index) => (
-                          <Badge 
-                            key={index} 
-                            variant="outline" 
-                            className="text-xs"
-                            style={tag.color ? { borderColor: tag.color, color: tag.color } : undefined}
-                          >
-                            {tag.name}
-                          </Badge>
-                        ))}
-                        {resolvedTags.length > 2 && (
-                          <span className="text-xs text-muted-foreground">
-                            +{resolvedTags.length - 2}
-                          </span>
-                        )}
-                      </div>
-                    ) : (
-                      <span className="text-muted-foreground">—</span>
-                    )}
-                  </td>
-                  <td className="p-4">
-                    {job.revenue && job.revenue > 0 ? (
-                      <div className="flex items-center text-sm font-medium text-green-600">
-                        <DollarSign className="h-4 w-4 mr-1" />
-                        ${job.revenue.toFixed(2)}
-                      </div>
-                    ) : (
-                      <span className="text-muted-foreground">—</span>
-                    )}
-                  </td>
-                  <td className="p-4 text-right">
-                    <div className="flex gap-1 justify-end">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={(e) => handlePortalLink(e, job)}
-                        disabled={!job.client_id || isGenerating}
-                        title="Copy portal link"
-                      >
-                        <Link className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={(e) => handleEditJob(e, job.id)}
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
-    </ModernCard>
+    <JobsTable
+      jobs={jobs}
+      selectedJobs={selectedJobs}
+      onSelectJob={onSelectJob}
+      onSelectAllJobs={onSelectAllJobs}
+    />
   );
 };

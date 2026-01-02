@@ -9,8 +9,8 @@ import { toast } from "sonner";
 import { useJobTypes } from "@/hooks/useConfigItems";
 
 export interface ScheduleFiltersProps {
-  view: 'day' | 'week' | 'month';
-  onViewChange: (view: 'day' | 'week' | 'month') => void;
+  view: 'day' | 'week' | 'month' | 'team';
+  onViewChange: (view: 'day' | 'week' | 'month' | 'team') => void;
   currentDate?: Date;
   onDateChange?: (date: Date) => void;
 }
@@ -54,7 +54,7 @@ export const ScheduleFilters = ({
   const handlePrevious = () => {
     if (onDateChange) {
       const newDate = new Date(currentDate);
-      if (view === 'day') {
+      if (view === 'day' || view === 'team') {
         newDate.setDate(currentDate.getDate() - 1);
       } else if (view === 'week') {
         newDate.setDate(currentDate.getDate() - 7);
@@ -64,11 +64,11 @@ export const ScheduleFilters = ({
       onDateChange(newDate);
     }
   };
-  
+
   const handleNext = () => {
     if (onDateChange) {
       const newDate = new Date(currentDate);
-      if (view === 'day') {
+      if (view === 'day' || view === 'team') {
         newDate.setDate(currentDate.getDate() + 1);
       } else if (view === 'week') {
         newDate.setDate(currentDate.getDate() + 7);
@@ -105,14 +105,15 @@ export const ScheduleFilters = ({
         
         {/* View Selection and Filters */}
         <div className="flex flex-wrap gap-3 items-center">
-          <Select value={view} onValueChange={v => onViewChange(v as 'day' | 'week' | 'month')}>
-            <SelectTrigger className="w-[120px]">
+          <Select value={view} onValueChange={v => onViewChange(v as 'day' | 'week' | 'month' | 'team')}>
+            <SelectTrigger className="w-[130px]">
               <SelectValue placeholder="Select View" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="day">Day View</SelectItem>
               <SelectItem value="week">Week View</SelectItem>
               <SelectItem value="month">Month View</SelectItem>
+              <SelectItem value="team">Team View</SelectItem>
             </SelectContent>
           </Select>
           

@@ -78,7 +78,7 @@ export const useScheduleJobSubmit = ({
         schedule_start: formData.schedule_start || undefined,
         schedule_end: scheduleEnd || undefined,
         technician_id: formData.technician_id || undefined,
-        status: 'New',
+        status: 'scheduled',
         revenue: 0,
         tags: formData.tags,
         tasks: formData.tasks
