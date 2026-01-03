@@ -1,13 +1,22 @@
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Save, Info, RefreshCw, Globe, Clock } from "lucide-react";
-import { useState, useEffect } from "react";
+import { Info, Globe, Clock, Loader2, Check } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
 import { formatCompanyNameForEmail, generateFromEmail } from "@/utils/emailUtils";
 import { TIMEZONES, DEFAULT_TIMEZONE, getTimezonesGrouped, getCurrentTimeInTimezone } from "@/utils/timezones";
+
+// Debounce hook for autosave
+function useDebounce<T>(value: T, delay: number): T {
+  const [debouncedValue, setDebouncedValue] = useState<T>(value);
+  useEffect(() => {
+    const handler = setTimeout(() => setDebouncedValue(value), delay);
+    return () => clearTimeout(handler);
+  }, [value, delay]);
+  return debouncedValue;
+}
 
 interface CompanyInfoSectionProps {
   companySettings: any;
@@ -17,47 +26,61 @@ interface CompanyInfoSectionProps {
 
 export const CompanyInfoSection = ({ companySettings, updateCompanySettings, isEditing = true }: CompanyInfoSectionProps) => {
   const [localSettings, setLocalSettings] = useState(companySettings);
-  const [hasChanges, setHasChanges] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
+  const [savingField, setSavingField] = useState<string | null>(null);
+  const [savedField, setSavedField] = useState<string | null>(null);
+  const isInitialMount = useRef(true);
+
+  // Debounced settings for autosave (800ms delay for company info)
+  const debouncedSettings = useDebounce(localSettings, 800);
 
   // Update local settings when companySettings changes
   useEffect(() => {
-    console.log('CompanyInfoSection - Received company settings:', companySettings);
     setLocalSettings(companySettings);
-    setHasChanges(false);
+    isInitialMount.current = true; // Reset on external update
   }, [companySettings]);
 
-  const handleFieldChange = (field: string, value: string) => {
-    console.log(`CompanyInfoSection - Field changed: ${field} = "${value}"`);
-    setLocalSettings(prev => ({ ...prev, [field]: value }));
-    setHasChanges(true);
-  };
+  // Autosave effect - triggers when debounced settings changes
+  useEffect(() => {
+    // Skip initial mount to prevent saving on load
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      return;
+    }
 
-  const handleSave = async () => {
+    // Check if there are actual changes
+    const hasChanges = JSON.stringify(debouncedSettings) !== JSON.stringify(companySettings);
     if (!hasChanges) return;
-    
-    setIsSaving(true);
+
+    saveSettings();
+  }, [debouncedSettings]);
+
+  const saveSettings = async () => {
+    setSavingField('company');
     try {
-      console.log('CompanyInfoSection - Saving company info with data:', localSettings);
-      console.log('CompanyInfoSection - Company name being saved:', localSettings.company_name);
-      
-      await updateCompanySettings(localSettings);
-      setHasChanges(false);
-      toast.success('Company information saved successfully');
-      
-      console.log('CompanyInfoSection - Save completed successfully');
+      await updateCompanySettings(debouncedSettings);
+      setSavingField(null);
+      setSavedField('company');
+      setTimeout(() => setSavedField(null), 2000);
     } catch (error) {
       console.error('CompanyInfoSection - Error saving company settings:', error);
+      setSavingField(null);
       toast.error('Failed to save company information');
-    } finally {
-      setIsSaving(false);
     }
   };
 
-  const handleCancel = () => {
-    console.log('CompanyInfoSection - Canceling changes, reverting to:', companySettings);
-    setLocalSettings(companySettings);
-    setHasChanges(false);
+  const handleFieldChange = (field: string, value: string) => {
+    setLocalSettings(prev => ({ ...prev, [field]: value }));
+  };
+
+  // Save indicator component
+  const SaveIndicator = () => {
+    if (savingField === 'company') {
+      return <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />;
+    }
+    if (savedField === 'company') {
+      return <Check className="h-4 w-4 text-emerald-500" />;
+    }
+    return null;
   };
 
   // Get the auto-generated email address
@@ -81,36 +104,7 @@ export const CompanyInfoSection = ({ companySettings, updateCompanySettings, isE
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-medium">Company Information</h3>
-        {hasChanges && (
-          <div className="flex gap-2">
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={handleCancel}
-              disabled={isSaving}
-            >
-              Cancel
-            </Button>
-            <Button 
-              size="sm" 
-              onClick={handleSave}
-              disabled={isSaving}
-              className="bg-fixlyfy hover:bg-fixlyfy/90"
-            >
-              {isSaving ? (
-                <>
-                  <RefreshCw className="h-4 w-4 mr-1 animate-spin" />
-                  Saving...
-                </>
-              ) : (
-                <>
-                  <Save className="h-4 w-4 mr-1" />
-                  Save Changes
-                </>
-              )}
-            </Button>
-          </div>
-        )}
+        <SaveIndicator />
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -122,7 +116,7 @@ export const CompanyInfoSection = ({ companySettings, updateCompanySettings, isE
             onChange={(e) => handleFieldChange('company_name', e.target.value)}
             disabled={!isEditing}
             placeholder="Enter your company name"
-            className={hasChanges ? 'border-blue-500' : ''}
+            className=""
             required
           />
           <p className="text-xs text-muted-foreground">
@@ -262,7 +256,7 @@ export const CompanyInfoSection = ({ companySettings, updateCompanySettings, isE
             onValueChange={(value) => handleFieldChange('company_timezone', value)}
             disabled={!isEditing}
           >
-            <SelectTrigger className={hasChanges ? 'border-blue-500' : ''}>
+            <SelectTrigger>
               <SelectValue placeholder="Select timezone" />
             </SelectTrigger>
             <SelectContent>

@@ -1,6 +1,6 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { Button } from "@/components/ui/button";
-import { 
+import {
   Sidebar,
   SidebarContent,
   SidebarHeader,
@@ -12,87 +12,42 @@ import {
 import { LayoutDashboard, Briefcase, Users, Calendar, DollarSign, MessageSquare, BarChart3, Settings, Bot, Zap, UserCheck, Phone, Package } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { TrackingWrapper } from "@/components/ui/TrackingWrapper";
-import { cn } from "@/lib/utils";
+import { useRBAC } from "@/components/auth/RBACProvider";
+import { canAccessRoute } from "@/config/routePermissions";
 
 interface RouteItem {
   label: string;
-  icon: any;
+  icon: React.ComponentType<{ className?: string }>;
   href: string;
   color: string;
-  indent?: boolean;
-  isSection?: boolean;
 }
+
+// Static route definitions - permissions are centralized in routePermissions.ts
+const SIDEBAR_ROUTES: RouteItem[] = [
+  { label: 'Dashboard', icon: LayoutDashboard, href: '/dashboard', color: "text-fixlyfy" },
+  { label: 'Jobs', icon: Briefcase, href: '/jobs', color: "text-fixlyfy" },
+  { label: 'Clients', icon: Users, href: '/clients', color: "text-fixlyfy" },
+  { label: 'Schedule', icon: Calendar, href: '/schedule', color: "text-fixlyfy" },
+  { label: 'Finance', icon: DollarSign, href: '/finance', color: "text-fixlyfy" },
+  { label: 'Products', icon: Package, href: '/products', color: "text-fixlyfy" },
+  { label: 'Connect', icon: MessageSquare, href: '/connect', color: "text-fixlyfy" },
+  { label: 'AI Center', icon: Bot, href: '/ai-center', color: "text-fixlyfy" },
+  { label: 'Automations', icon: Zap, href: '/automations', color: "text-fixlyfy" },
+  { label: 'Analytics', icon: BarChart3, href: '/analytics', color: "text-fixlyfy" },
+  { label: 'Team', icon: UserCheck, href: '/team', color: "text-fixlyfy" },
+  { label: 'Phone Numbers', icon: Phone, href: '/settings/phone-numbers', color: "text-fixlyfy" },
+  { label: 'Settings', icon: Settings, href: '/settings', color: "text-fixlyfy-text-muted" },
+];
 
 export function AppSidebar() {
   const location = useLocation();
   const navigate = useNavigate();
+  const { hasPermission } = useRBAC();
 
-  const routes = [{
-    label: 'Dashboard',
-    icon: LayoutDashboard,
-    href: '/dashboard',
-    color: "text-fixlyfy"
-  }, {
-    label: 'Jobs',
-    icon: Briefcase,
-    href: '/jobs',
-    color: "text-fixlyfy"
-  }, {
-    label: 'Clients',
-    icon: Users,
-    href: '/clients',
-    color: "text-fixlyfy"
-  }, {
-    label: 'Schedule',
-    icon: Calendar,
-    href: '/schedule',
-    color: "text-fixlyfy"
-  }, {
-    label: 'Finance',
-    icon: DollarSign,
-    href: '/finance',
-    color: "text-fixlyfy"
-  }, {
-    label: 'Products',
-    icon: Package,
-    href: '/products',
-    color: "text-fixlyfy"
-  }, {
-    label: 'Connect',
-    icon: MessageSquare,
-    href: '/connect',
-    color: "text-fixlyfy"
-  }, {
-    label: 'AI Center',
-    icon: Bot,
-    href: '/ai-center',
-    color: "text-fixlyfy"
-  }, {
-    label: 'Automations',
-    icon: Zap,
-    href: '/automations',
-    color: "text-fixlyfy"
-  }, {
-    label: 'Analytics',
-    icon: BarChart3,
-    href: '/analytics',
-    color: "text-fixlyfy"
-  }, {
-    label: 'Team',
-    icon: UserCheck,
-    href: '/team',
-    color: "text-fixlyfy"
-  }, {
-    label: 'Phone Numbers',
-    icon: Phone,
-    href: '/settings/phone-numbers',
-    color: "text-fixlyfy"
-  }, {
-    label: 'Settings',
-    icon: Settings,
-    href: '/settings',
-    color: "text-fixlyfy-text-muted"
-  }];
+  // Filter routes based on user permissions (centralized in routePermissions.ts)
+  const routes = useMemo(() => {
+    return SIDEBAR_ROUTES.filter((route) => canAccessRoute(route.href, hasPermission));
+  }, [hasPermission]);
 
   const handleNavigation = (href: string) => {
     console.log(`Navigating to: ${href}`);

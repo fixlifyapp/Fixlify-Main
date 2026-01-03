@@ -44,8 +44,6 @@ const ApprovalPage = () => {
     }
 
     try {
-      console.log("🔍 Fetching approval data for token:", token);
-      
       // First get the approval record with new RLS policies
       const { data: approval, error: approvalError } = await supabase
         .from('document_approvals')
@@ -53,17 +51,13 @@ const ApprovalPage = () => {
         .eq('approval_token', token)
         .maybeSingle(); // Use maybeSingle to handle no results gracefully
 
-      console.log("📋 Approval query result:", { approval, approvalError });
-
       if (approvalError) {
-        console.error("❌ Error fetching approval:", approvalError);
         setError("Failed to load approval data");
         setLoading(false);
         return;
       }
 
       if (!approval) {
-        console.log("❌ No approval found for token");
         setError("Invalid or expired approval link");
         setLoading(false);
         return;
@@ -71,7 +65,6 @@ const ApprovalPage = () => {
 
       // Check if expired
       if (new Date(approval.expires_at) < new Date()) {
-        console.log("❌ Approval expired");
         setError("This approval link has expired");
         setLoading(false);
         return;
@@ -79,13 +72,10 @@ const ApprovalPage = () => {
 
       // Check if already processed
       if (approval.status !== 'pending') {
-        console.log("❌ Approval already processed:", approval.status);
         setError(`This approval has already been ${approval.status}`);
         setLoading(false);
         return;
       }
-
-      console.log("✅ Valid approval found, fetching document details");
 
       // Get document details based on type
       let documentData = null;
@@ -114,10 +104,8 @@ const ApprovalPage = () => {
       }
 
       setApprovalData({ ...approval, ...documentData });
-      console.log("✅ Approval data loaded successfully");
-      
+
     } catch (error) {
-      console.error("❌ Unexpected error fetching approval data:", error);
       setError("An unexpected error occurred while loading the approval");
     } finally {
       setLoading(false);
@@ -129,8 +117,6 @@ const ApprovalPage = () => {
 
     setSubmitting(true);
     try {
-      console.log(`🎯 Processing ${action} for approval:`, approvalData.id);
-
       // Update approval record
       const { error: updateError } = await supabase
         .from('document_approvals')
@@ -144,11 +130,8 @@ const ApprovalPage = () => {
         .eq('approval_token', token);
 
       if (updateError) {
-        console.error("❌ Error updating approval:", updateError);
         throw new Error('Failed to update approval status');
       }
-
-      console.log("✅ Approval status updated successfully");
 
       // Update document status
       const tableName = approvalData.document_type === 'estimate' ? 'estimates' : 'invoices';
@@ -157,19 +140,14 @@ const ApprovalPage = () => {
         .update({ status: action })
         .eq('id', approvalData.document_id);
 
-      if (docError) {
-        console.warn("⚠️ Failed to update document status:", docError);
-        // Don't throw error here as the approval was already processed
-      }
+      // docError is non-critical since the approval was already processed
 
-      console.log(`✅ ${action} processed successfully`);
       toast.success(`${approvalData.document_type} ${action} successfully!`);
 
       // Redirect to success page
       navigate(`/approve/${token}/success?action=${action}`);
-      
+
     } catch (error: any) {
-      console.error(`❌ Error processing ${action}:`, error);
       toast.error(`Failed to process your response: ${error.message}`);
     } finally {
       setSubmitting(false);

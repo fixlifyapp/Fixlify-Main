@@ -9,7 +9,16 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { FileText, ChevronDown, ChevronUp } from "lucide-react";
+import {
+  FileText,
+  ChevronDown,
+  ChevronUp,
+  ClipboardList,
+  Calendar,
+  Tags as TagsIcon,
+  Settings2,
+  Loader2
+} from "lucide-react";
 import {
   Collapsible,
   CollapsibleContent,
@@ -19,11 +28,13 @@ import {
 // Import custom hooks and components
 import { useScheduleJobForm } from "./modal/useScheduleJobForm";
 import { useScheduleJobSubmit } from "./modal/useScheduleJobSubmit";
+import { useCompanySettings } from "@/hooks/useCompanySettings";
 import { JobInformationSection } from "./modal/JobInformationSection";
 import { ScheduleSection } from "./modal/ScheduleSection";
 import { TagsTasksSection } from "./modal/TagsTasksSection";
 import { CustomFieldsSection } from "./modal/CustomFieldsSection";
 import { JobTemplateManager } from "../jobs/templates/JobTemplateManager";
+import { SectionCard } from "./modal/SectionCard";
 
 
 interface ScheduleJobModalProps {
@@ -42,6 +53,9 @@ export const ScheduleJobModal = ({
   preselectedClientId
 }: ScheduleJobModalProps) => {
   const [showTemplates, setShowTemplates] = useState(false);
+
+  // Get company settings for defaults
+  const { companySettings, isLoading: settingsLoading } = useCompanySettings();
 
   const {
     formData,
@@ -62,6 +76,7 @@ export const ScheduleJobModal = ({
     customFieldsLoading,
     clientProperties,
     propertiesLoading,
+    companySettings: formSettings,
     handleChange,
     handleSelectChange,
     handleTagToggle,
@@ -71,7 +86,7 @@ export const ScheduleJobModal = ({
     applyTemplate,
     resetForm,
     validateForm,
-  } = useScheduleJobForm({ preselectedClientId });
+  } = useScheduleJobForm({ preselectedClientId, companySettings });
 
   const handleUseTemplate = (template: any) => {
     applyTemplate(template);
@@ -110,105 +125,137 @@ export const ScheduleJobModal = ({
   
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-[900px] w-[95vw] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Create New Job</DialogTitle>
           <DialogDescription>
-            Create a comprehensive job with all details and schedule it for a technician.
+            Fill in job details and schedule for a technician.
           </DialogDescription>
         </DialogHeader>
-        
+
         {formErrors.length > 0 && (
-          <div className="bg-red-50 border border-red-200 rounded-md p-3">
-            <ul className="text-sm text-red-600 space-y-1">
+          <div className="bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 rounded-md p-3">
+            <ul className="text-sm text-red-600 dark:text-red-400 space-y-1">
               {formErrors.map((error, index) => (
                 <li key={index}>• {error}</li>
               ))}
             </ul>
           </div>
         )}
-        
+
         <form onSubmit={onSubmit}>
-          <div className="grid gap-6 py-4">
-            {/* Template Selection */}
-            <Collapsible open={showTemplates} onOpenChange={setShowTemplates}>
-              <CollapsibleTrigger asChild>
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="w-full justify-between"
-                >
-                  <span className="flex items-center gap-2">
-                    <FileText className="h-4 w-4" />
-                    Use a Job Template
-                  </span>
-                  {showTemplates ? (
-                    <ChevronUp className="h-4 w-4" />
-                  ) : (
-                    <ChevronDown className="h-4 w-4" />
-                  )}
-                </Button>
-              </CollapsibleTrigger>
-              <CollapsibleContent className="mt-4">
-                <JobTemplateManager onUseTemplate={handleUseTemplate} />
-              </CollapsibleContent>
-            </Collapsible>
+          {/* Template Selection */}
+          <Collapsible open={showTemplates} onOpenChange={setShowTemplates}>
+            <CollapsibleTrigger asChild>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="w-full justify-between mb-4"
+              >
+                <span className="flex items-center gap-2">
+                  <FileText className="h-4 w-4" />
+                  Use a Job Template
+                </span>
+                {showTemplates ? (
+                  <ChevronUp className="h-4 w-4" />
+                ) : (
+                  <ChevronDown className="h-4 w-4" />
+                )}
+              </Button>
+            </CollapsibleTrigger>
+            <CollapsibleContent className="mb-4">
+              <JobTemplateManager onUseTemplate={handleUseTemplate} />
+            </CollapsibleContent>
+          </Collapsible>
 
-            {/* Basic Information */}
-            <JobInformationSection
-              formData={formData}
-              clients={clients}
-              clientsLoading={clientsLoading}
-              clientProperties={clientProperties}
-              propertiesLoading={propertiesLoading}
-              jobTypes={jobTypes}
-              jobTypesLoading={jobTypesLoading}
-              leadSources={leadSources}
-              leadSourcesLoading={leadSourcesLoading}
-              handleChange={handleChange}
-              handleSelectChange={handleSelectChange}
-            />
+          {/* Two-Column Layout */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            {/* Left Column - Job Details */}
+            <SectionCard icon={ClipboardList} title="Job Details">
+              <JobInformationSection
+                formData={formData}
+                clients={clients}
+                clientsLoading={clientsLoading}
+                clientProperties={clientProperties}
+                propertiesLoading={propertiesLoading}
+                jobTypes={jobTypes}
+                jobTypesLoading={jobTypesLoading}
+                leadSources={leadSources}
+                leadSourcesLoading={leadSourcesLoading}
+                handleChange={handleChange}
+                handleSelectChange={handleSelectChange}
+              />
+            </SectionCard>
 
-            {/* Schedule Information */}
-            <ScheduleSection
-              formData={formData}
-              setFormData={setFormData}
-              handleSelectChange={handleSelectChange}
-            />
+            {/* Right Column - Schedule */}
+            <SectionCard icon={Calendar} title="Schedule">
+              <ScheduleSection
+                formData={formData}
+                setFormData={setFormData}
+                handleSelectChange={handleSelectChange}
+                companySettings={companySettings}
+              />
+            </SectionCard>
 
+            {/* Full Width - Tags and Tasks */}
+            <SectionCard
+              icon={TagsIcon}
+              title="Tags & Tasks"
+              className="lg:col-span-2"
+            >
+              <TagsTasksSection
+                formData={formData}
+                tags={tags}
+                tagsLoading={tagsLoading}
+                newTask={newTask}
+                setNewTask={setNewTask}
+                handleTagToggle={handleTagToggle}
+                handleAddTask={handleAddTask}
+                handleRemoveTask={handleRemoveTask}
+              />
+            </SectionCard>
 
-            {/* Tags and Tasks */}
-            <TagsTasksSection
-              formData={formData}
-              tags={tags}
-              tagsLoading={tagsLoading}
-              newTask={newTask}
-              setNewTask={setNewTask}
-              handleTagToggle={handleTagToggle}
-              handleAddTask={handleAddTask}
-              handleRemoveTask={handleRemoveTask}
-            />
-
-            {/* Custom Fields */}
-            <CustomFieldsSection
-              formData={formData}
-              customFields={customFields}
-              customFieldsLoading={customFieldsLoading}
-              handleCustomFieldChange={handleCustomFieldChange}
-            />
+            {/* Full Width - Custom Fields (only if fields exist) */}
+            {customFields.length > 0 && (
+              <SectionCard
+                icon={Settings2}
+                title="Custom Fields"
+                className="lg:col-span-2"
+              >
+                <CustomFieldsSection
+                  formData={formData}
+                  customFields={customFields}
+                  customFieldsLoading={customFieldsLoading}
+                  handleCustomFieldChange={handleCustomFieldChange}
+                />
+              </SectionCard>
+            )}
           </div>
-          
-          <DialogFooter>
+
+          <DialogFooter className="mt-6 flex flex-col-reverse sm:flex-row gap-2 sm:gap-3">
             <Button
               type="button"
               variant="outline"
               onClick={() => onOpenChange(false)}
               disabled={isSubmitting}
+              className="w-full sm:w-auto"
             >
               Cancel
             </Button>
-            <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? "Creating..." : "Create Job"}
+            <Button
+              type="submit"
+              disabled={isSubmitting || clientsLoading || jobTypesLoading}
+              className="w-full sm:w-auto"
+            >
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Creating...
+                </>
+              ) : (
+                "Create Job"
+              )}
             </Button>
           </DialogFooter>
         </form>

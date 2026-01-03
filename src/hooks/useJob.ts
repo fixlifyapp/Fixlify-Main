@@ -2,7 +2,7 @@
 // Job hook for job data management
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { JobInfo } from '@/types/job.types';
+import { JobInfo } from '@/components/jobs/context/types';
 
 export const useJob = (jobId: string) => {
   const [job, setJob] = useState<JobInfo | null>(null);
@@ -42,7 +42,9 @@ export const useJob = (jobId: string) => {
           technician_id: data.technician_id,
           schedule_start: data.schedule_start,
           schedule_end: data.schedule_end,
-          title: data.title
+          title: data.title,
+          job_type: data.job_type,
+          lead_source: data.lead_source,
         });
       }
     } catch (err) {

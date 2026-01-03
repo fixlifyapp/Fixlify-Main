@@ -1,13 +1,14 @@
 import React, { useState } from "react";
-import { ModernCard, ModernCardHeader, ModernCardContent, ModernCardTitle } from "@/components/ui/modern-card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Edit, Save, X, FileText, Loader2 } from "lucide-react";
+import { Edit, Save, X, Calendar, Loader2, Clock } from "lucide-react";
 import { useJobs } from "@/hooks/useJobs";
 import { UnifiedJobTypeSelector } from "@/components/shared/UnifiedJobTypeSelector";
 import { useUnifiedJobData } from "@/hooks/useUnifiedJobData";
 import { toast } from "sonner";
+import { ProfessionalCard, ProfessionalSectionHeader } from "@/components/ui/professional-card";
+import { format } from "date-fns";
 
 interface EditableJobDetailsCardProps {
   scheduleStart?: string;
@@ -17,12 +18,12 @@ interface EditableJobDetailsCardProps {
   onUpdate?: () => void;
 }
 
-export const EditableJobDetailsCard = ({ 
-  scheduleStart, 
-  scheduleEnd, 
+export const EditableJobDetailsCard = ({
+  scheduleStart,
+  scheduleEnd,
   jobType,
-  jobId, 
-  onUpdate 
+  jobId,
+  onUpdate
 }: EditableJobDetailsCardProps) => {
   const { jobTypes, isLoading: jobTypesLoading } = useUnifiedJobData();
   const [isEditing, setIsEditing] = useState(false);
@@ -41,7 +42,7 @@ export const EditableJobDetailsCard = ({
 
   const handleSave = async () => {
     setIsSaving(true);
-    
+
     // Optimistic update
     setOptimisticValues({
       schedule_start: editValues.schedule_start,
@@ -49,7 +50,7 @@ export const EditableJobDetailsCard = ({
       job_type: editValues.job_type,
     });
     setIsEditing(false);
-    
+
     try {
       const result = await updateJob(jobId, {
         schedule_start: editValues.schedule_start || null,
@@ -88,20 +89,27 @@ export const EditableJobDetailsCard = ({
     setIsEditing(false);
   };
 
+  const formatDateTime = (dateStr: string) => {
+    try {
+      return format(new Date(dateStr), "MMM d, yyyy 'at' h:mm a");
+    } catch {
+      return dateStr;
+    }
+  };
+
   return (
-    <ModernCard variant="elevated" className="hover:shadow-lg transition-all duration-300">
-      <ModernCardHeader className="pb-4">
-        <div className="flex items-center justify-between">
-          <ModernCardTitle icon={FileText}>
-            Schedule Details
-            {isSaving && <Loader2 className="h-4 w-4 ml-2 animate-spin" />}
-          </ModernCardTitle>
-          {!isEditing ? (
+    <ProfessionalCard>
+      <ProfessionalSectionHeader
+        icon={Calendar}
+        title="Schedule Details"
+        subtitle={isSaving ? "Saving..." : undefined}
+        action={
+          !isEditing ? (
             <Button
               variant="ghost"
               size="sm"
               onClick={() => setIsEditing(true)}
-              className="text-fixlyfy hover:text-fixlyfy-dark"
+              className="text-slate-600 hover:text-slate-800 hover:bg-slate-100"
               disabled={isSaving}
             >
               <Edit className="h-4 w-4" />
@@ -112,7 +120,7 @@ export const EditableJobDetailsCard = ({
                 variant="ghost"
                 size="sm"
                 onClick={handleSave}
-                className="text-green-600 hover:text-green-700"
+                className="text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50"
                 disabled={isSaving}
               >
                 {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
@@ -121,93 +129,104 @@ export const EditableJobDetailsCard = ({
                 variant="ghost"
                 size="sm"
                 onClick={handleCancel}
-                className="text-gray-500 hover:text-gray-600"
+                className="text-slate-500 hover:text-slate-600 hover:bg-slate-50"
                 disabled={isSaving}
               >
                 <X className="h-4 w-4" />
               </Button>
             </div>
-          )}
-        </div>
-      </ModernCardHeader>
-      <ModernCardContent>
-        <div className={`space-y-4 ${isSaving ? "opacity-70" : ""}`}>
-          {isEditing ? (
-            <div className="space-y-4">
-              <UnifiedJobTypeSelector
-                value={editValues.job_type}
-                onValueChange={(value) => setEditValues(prev => ({ ...prev, job_type: value }))}
-                jobTypes={jobTypes}
-                isLoading={jobTypesLoading}
-                label="Job Type"
-                className="w-full"
-                showManageLink={false}
-              />
-              
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="schedule_start">Scheduled Start</Label>
-                  <Input
-                    id="schedule_start"
-                    type="datetime-local"
-                    value={editValues.schedule_start}
-                    onChange={(e) => setEditValues(prev => ({ ...prev, schedule_start: e.target.value }))}
-                    disabled={isSaving}
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="schedule_end">Scheduled End</Label>
-                  <Input
-                    id="schedule_end"
-                    type="datetime-local"
-                    value={editValues.schedule_end}
-                    onChange={(e) => setEditValues(prev => ({ ...prev, schedule_end: e.target.value }))}
-                    disabled={isSaving}
-                  />
-                </div>
+          )
+        }
+      />
+
+      <div className={`space-y-4 ${isSaving ? "opacity-70" : ""}`}>
+        {isEditing ? (
+          <div className="space-y-4">
+            <UnifiedJobTypeSelector
+              value={editValues.job_type}
+              onValueChange={(value) => setEditValues(prev => ({ ...prev, job_type: value }))}
+              jobTypes={jobTypes}
+              isLoading={jobTypesLoading}
+              label="Job Type"
+              className="w-full"
+              showManageLink={false}
+            />
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="schedule_start" className="text-xs font-medium text-slate-500 uppercase tracking-wide">
+                  Scheduled Start
+                </Label>
+                <Input
+                  id="schedule_start"
+                  type="datetime-local"
+                  value={editValues.schedule_start}
+                  onChange={(e) => setEditValues(prev => ({ ...prev, schedule_start: e.target.value }))}
+                  disabled={isSaving}
+                  className="border-slate-200 focus:border-slate-400 focus:ring-slate-300"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="schedule_end" className="text-xs font-medium text-slate-500 uppercase tracking-wide">
+                  Scheduled End
+                </Label>
+                <Input
+                  id="schedule_end"
+                  type="datetime-local"
+                  value={editValues.schedule_end}
+                  onChange={(e) => setEditValues(prev => ({ ...prev, schedule_end: e.target.value }))}
+                  disabled={isSaving}
+                  className="border-slate-200 focus:border-slate-400 focus:ring-slate-300"
+                />
               </div>
             </div>
-          ) : (
-            <div className="space-y-4">
-              {optimisticValues.job_type && (
-                <div>
-                  <h4 className="font-medium mb-1">Job Type</h4>
-                  <p className="text-sm text-muted-foreground">
-                    {optimisticValues.job_type}
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {optimisticValues.job_type && (
+              <div className="bg-slate-50 border border-slate-200 rounded-lg p-3">
+                <p className="text-xs font-medium text-slate-500 uppercase tracking-wide mb-1">Job Type</p>
+                <p className="text-sm font-medium text-slate-700">
+                  {optimisticValues.job_type}
+                </p>
+              </div>
+            )}
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {optimisticValues.schedule_start && (
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                  <div className="flex items-center gap-2 mb-1">
+                    <Clock className="h-3.5 w-3.5 text-blue-600" />
+                    <p className="text-xs font-medium text-blue-600 uppercase tracking-wide">Start</p>
+                  </div>
+                  <p className="text-sm font-medium text-blue-800">
+                    {formatDateTime(optimisticValues.schedule_start)}
                   </p>
                 </div>
               )}
-              
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {optimisticValues.schedule_start && (
-                  <div>
-                    <h4 className="font-medium mb-1">Scheduled Start</h4>
-                    <p className="text-sm text-muted-foreground">
-                      {new Date(optimisticValues.schedule_start).toLocaleString()}
-                    </p>
+
+              {optimisticValues.schedule_end && (
+                <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-3">
+                  <div className="flex items-center gap-2 mb-1">
+                    <Clock className="h-3.5 w-3.5 text-emerald-600" />
+                    <p className="text-xs font-medium text-emerald-600 uppercase tracking-wide">End</p>
                   </div>
-                )}
-                
-                {optimisticValues.schedule_end && (
-                  <div>
-                    <h4 className="font-medium mb-1">Scheduled End</h4>
-                    <p className="text-sm text-muted-foreground">
-                      {new Date(optimisticValues.schedule_end).toLocaleString()}
-                    </p>
-                  </div>
-                )}
-                
-                {!optimisticValues.schedule_start && !optimisticValues.schedule_end && (
-                  <div className="col-span-2">
-                    <p className="text-sm text-muted-foreground">No schedule set</p>
-                  </div>
-                )}
-              </div>
+                  <p className="text-sm font-medium text-emerald-800">
+                    {formatDateTime(optimisticValues.schedule_end)}
+                  </p>
+                </div>
+              )}
+
+              {!optimisticValues.schedule_start && !optimisticValues.schedule_end && (
+                <div className="col-span-2">
+                  <p className="text-sm text-slate-400 italic">No schedule set</p>
+                </div>
+              )}
             </div>
-          )}
-        </div>
-      </ModernCardContent>
-    </ModernCard>
+          </div>
+        )}
+      </div>
+    </ProfessionalCard>
   );
 };

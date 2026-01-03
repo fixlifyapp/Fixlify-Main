@@ -1,17 +1,17 @@
 import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Plus, CreditCard, Trash2, RotateCcw } from "lucide-react";
+import { Plus, CreditCard, TrendingUp, Banknote } from "lucide-react";
 import { usePayments } from "@/hooks/usePayments";
 import { useInvoices } from "@/hooks/useInvoices";
 import { usePaymentActions } from "@/hooks/usePaymentActions";
 import { UnifiedPaymentDialog } from "@/components/jobs/dialogs/UnifiedPaymentDialog";
 import { formatDistanceToNow } from "date-fns";
 import { formatCurrency, roundToCurrency } from "@/lib/utils";
-import { useIsMobile } from "@/hooks/use-mobile";
 import { useJobDetails } from "./context/JobDetailsContext";
 import { executeDelayedRefresh } from "@/utils/refreshUtils";
+import { PaymentRowActions } from "./shared/PaymentRowActions";
+import { ProfessionalCard, ProfessionalSectionHeader } from "@/components/ui/professional-card";
 
 interface JobPaymentsProps {
   jobId: string;
@@ -24,35 +24,15 @@ export const JobPayments = ({ jobId }: JobPaymentsProps) => {
   const { refreshFinancials } = useJobDetails();
   const [showPaymentDialog, setShowPaymentDialog] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState<any>(null);
-  const isMobile = useIsMobile();
 
-  const getPaymentMethodBadge = (method: string) => {
-    const colors = {
-      'cash': 'bg-green-100 text-green-800',
-      'credit-card': 'bg-blue-100 text-blue-800',
-      'e-transfer': 'bg-purple-100 text-purple-800',
-      'cheque': 'bg-orange-100 text-orange-800'
-    };
-    
-    const methodMap = {
-      'credit-card': 'Credit Card',
+  const getMethodLabel = (method: string) => {
+    const methodMap: Record<string, string> = {
+      'credit-card': 'Card',
       'cash': 'Cash',
       'e-transfer': 'E-Transfer',
       'cheque': 'Cheque'
     };
-    
-    return (
-      <Badge className={colors[method as keyof typeof colors] || 'bg-gray-100 text-gray-800'}>
-        {methodMap[method as keyof typeof methodMap] || method}
-      </Badge>
-    );
-  };
-
-  const getStatusBadge = (amount: number) => {
-    if (amount < 0) {
-      return <Badge className="bg-red-100 text-red-800">Refunded</Badge>;
-    }
-    return <Badge className="bg-green-100 text-green-800">Paid</Badge>;
+    return methodMap[method] || method;
   };
 
   const handleRefundPayment = async (paymentId: string) => {
@@ -96,118 +76,116 @@ export const JobPayments = ({ jobId }: JobPaymentsProps) => {
   const outstandingBalance = roundToCurrency(invoices.reduce((sum, invoice) => sum + (invoice.balance || 0), 0));
 
   return (
-    <div className="space-y-4 sm:space-y-6 px-2 sm:px-0">
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
-        <Card className="border-fixlyfy-border shadow-sm">
-          <CardHeader className="pb-2 px-3 pt-3 sm:px-6 sm:pt-6">
-            <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground">Total Paid</CardTitle>
-          </CardHeader>
-          <CardContent className="px-3 pb-3 sm:px-6 sm:pb-6">
-            <div className="text-lg sm:text-2xl font-bold text-green-600 break-all">{formatCurrency(totalPaid)}</div>
-          </CardContent>
-        </Card>
-        
-        <Card className="border-fixlyfy-border shadow-sm">
-          <CardHeader className="pb-2 px-3 pt-3 sm:px-6 sm:pt-6">
-            <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground">Total Refunded</CardTitle>
-          </CardHeader>
-          <CardContent className="px-3 pb-3 sm:px-6 sm:pb-6">
-            <div className="text-lg sm:text-2xl font-bold text-red-600 break-all">{formatCurrency(totalRefunded)}</div>
-          </CardContent>
-        </Card>
-        
-        <Card className="border-fixlyfy-border shadow-sm">
-          <CardHeader className="pb-2 px-3 pt-3 sm:px-6 sm:pt-6">
-            <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground">Net Amount</CardTitle>
-          </CardHeader>
-          <CardContent className="px-3 pb-3 sm:px-6 sm:pb-6">
-            <div className="text-lg sm:text-2xl font-bold break-all">{formatCurrency(netAmount)}</div>
-          </CardContent>
-        </Card>
+    <div className="space-y-4">
+      {/* Compact Summary Row */}
+      <div className="grid grid-cols-3 gap-3">
+        <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-3">
+          <div className="flex items-center gap-2 text-emerald-600 mb-1">
+            <TrendingUp className="h-3.5 w-3.5" />
+            <span className="text-xs font-medium uppercase tracking-wide">Received</span>
+          </div>
+          <p className="text-lg font-bold text-emerald-700">{formatCurrency(totalPaid)}</p>
+        </div>
+
+        <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+          <div className="flex items-center gap-2 text-red-600 mb-1">
+            <Banknote className="h-3.5 w-3.5" />
+            <span className="text-xs font-medium uppercase tracking-wide">Refunded</span>
+          </div>
+          <p className="text-lg font-bold text-red-700">{formatCurrency(totalRefunded)}</p>
+        </div>
+
+        <div className="bg-slate-50 border border-slate-200 rounded-lg p-3">
+          <div className="flex items-center gap-2 text-slate-500 mb-1">
+            <CreditCard className="h-3.5 w-3.5" />
+            <span className="text-xs font-medium uppercase tracking-wide">Net</span>
+          </div>
+          <p className="text-lg font-bold text-slate-900">{formatCurrency(netAmount)}</p>
+        </div>
       </div>
 
       {/* Payments List */}
-      <Card className="border-fixlyfy-border shadow-sm">
-        <CardHeader className="px-3 pt-3 pb-3 sm:px-6 sm:pt-6 sm:pb-6">
-          <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
-              <CreditCard className="h-4 w-4 sm:h-5 sm:w-5" />
-              Payments ({payments.length})
-            </CardTitle>
-            <Button 
-              onClick={handleAddPayment} 
+      <ProfessionalCard>
+        <ProfessionalSectionHeader
+          icon={CreditCard}
+          title="Payments"
+          subtitle={payments.length > 0 ? `${payments.length} total` : undefined}
+          action={
+            <Button
+              onClick={handleAddPayment}
               disabled={outstandingBalance <= 0}
-              className="bg-fixlyfy hover:bg-fixlyfy-dark"
+              size="sm"
+              className="h-8 bg-slate-900 hover:bg-slate-800 text-white"
             >
-              <Plus className="h-4 w-4 mr-2" />
-              Add Payment
+              <Plus className="h-3.5 w-3.5 mr-1.5" />
+              Record
             </Button>
+          }
+        />
+
+        {isLoading ? (
+          <div className="text-center py-8">
+            <div className="animate-spin rounded-full h-6 w-6 border-2 border-slate-300 border-t-slate-600 mx-auto"></div>
+            <p className="mt-3 text-sm text-slate-500">Loading payments...</p>
           </div>
-        </CardHeader>
-        <CardContent className="px-3 pb-3 sm:px-6 sm:pb-6">
-          {isLoading ? (
-            <div className="text-center py-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-              <p className="mt-2 text-sm text-muted-foreground">Loading payments...</p>
-            </div>
-          ) : payments.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              <CreditCard className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-              <p className="text-base sm:text-lg font-medium">No payments yet</p>
-              <p className="text-xs sm:text-sm">Record the first payment to get started</p>
-            </div>
-          ) : (
-            <div className="space-y-3 sm:space-y-4">
-              {payments.map((payment) => (
-                <div key={payment.id} className="border rounded-lg p-4 hover:shadow-md transition-shadow">
-                  <div className="flex flex-wrap items-center justify-between gap-4">
-                    {/* Left side - Payment info */}
-                    <div className="flex flex-wrap items-center gap-4 sm:gap-6">
-                      <div>
-                        <div className="flex items-center gap-3">
-                          <span className="font-semibold text-gray-900">{formatCurrency(Math.abs(payment.amount))}</span>
-                          {getPaymentMethodBadge(payment.method)}
-                          {getStatusBadge(payment.amount)}
-                        </div>
-                        <p className="text-sm text-gray-600 mt-1">Date: {new Date(payment.date).toLocaleDateString()}</p>
-                        <p className="text-sm text-gray-500">Recorded {formatDistanceToNow(new Date(payment.created_at || payment.date), { addSuffix: true })}</p>
-                      </div>
+        ) : payments.length === 0 ? (
+          <div className="text-center py-8">
+            <CreditCard className="mx-auto h-10 w-10 text-slate-300 mb-3" />
+            <p className="text-sm font-medium text-slate-600">No payments yet</p>
+            <p className="text-xs text-slate-400 mt-1">Record the first payment to get started</p>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {payments.map((payment) => (
+              <div
+                key={payment.id}
+                className="flex items-center justify-between p-3 bg-white border border-slate-200 rounded-lg hover:border-slate-300 hover:shadow-sm transition-all"
+              >
+                {/* Left side - Status and amount */}
+                <div className="flex items-center gap-3 min-w-0">
+                  <Badge
+                    variant="outline"
+                    className={
+                      payment.amount < 0
+                        ? "bg-red-50 text-red-700 border-red-200 text-xs"
+                        : "bg-emerald-50 text-emerald-700 border-emerald-200 text-xs"
+                    }
+                  >
+                    {payment.amount < 0 ? "Refund" : "Paid"}
+                  </Badge>
+
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-semibold text-slate-900">
+                        {formatCurrency(Math.abs(payment.amount))}
+                      </span>
+                      <span className="text-xs text-slate-400">·</span>
+                      <span className="text-xs text-slate-500">
+                        {getMethodLabel(payment.method)}
+                      </span>
+                      <span className="text-xs text-slate-400">·</span>
+                      <span className="text-xs text-slate-500">
+                        {new Date(payment.date).toLocaleDateString()}
+                      </span>
                     </div>
-                    
-                    {/* Right side - Action Buttons */}
-                    <div className="flex flex-wrap items-center gap-2">
-                      {payment.amount > 0 && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="text-orange-600 hover:text-orange-700 hover:bg-orange-50"
-                          onClick={() => handleRefundPayment(payment.id)}
-                          disabled={isProcessing}
-                        >
-                          <RotateCcw className="h-4 w-4 mr-2" />
-                          Refund
-                        </Button>
-                      )}
-                      
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                        onClick={() => handleDeletePayment(payment.id)}
-                        disabled={isProcessing}
-                      >
-                        <Trash2 className="h-4 w-4 mr-2" />
-                        Delete
-                      </Button>
-                    </div>
+                    <p className="text-xs text-slate-400 mt-0.5">
+                      Recorded {formatDistanceToNow(new Date(payment.created_at || payment.date), { addSuffix: true })}
+                    </p>
                   </div>
                 </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+
+                {/* Right side - Actions dropdown */}
+                <PaymentRowActions
+                  canRefund={payment.amount > 0}
+                  onRefund={() => handleRefundPayment(payment.id)}
+                  onDelete={() => handleDeletePayment(payment.id)}
+                  isProcessing={isProcessing}
+                />
+              </div>
+            ))}
+          </div>
+        )}
+      </ProfessionalCard>
 
       {/* Unified Payment Dialog */}
       {selectedInvoice && (

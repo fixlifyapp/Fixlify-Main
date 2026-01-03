@@ -36,14 +36,11 @@ export const TagsTasksSection = ({
   };
 
   return (
-    <>
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
       {/* Tags Section */}
-      <div className="space-y-4">
-        <h3 className="text-lg font-medium flex items-center gap-2">
-          <Tag className="w-4 h-4" />
-          Tags
-        </h3>
-        <div className="flex flex-wrap gap-2 max-h-[150px] overflow-y-auto">
+      <div className="space-y-3">
+        <h4 className="text-sm font-medium text-muted-foreground">Tags</h4>
+        <div className="flex flex-wrap gap-2 max-h-[120px] overflow-y-auto">
           {tagsLoading ? (
             <p className="text-sm text-muted-foreground">Loading tags...</p>
           ) : (
@@ -62,8 +59,8 @@ export const TagsTasksSection = ({
       </div>
 
       {/* Tasks Section */}
-      <div className="space-y-4">
-        <h3 className="text-lg font-medium">Tasks</h3>
+      <div className="space-y-3">
+        <h4 className="text-sm font-medium text-muted-foreground">Tasks</h4>
         <div className="space-y-2">
           <div className="flex gap-2">
             <Input
@@ -100,6 +97,6 @@ export const TagsTasksSection = ({
           )}
         </div>
       </div>
-    </>
+    </div>
   );
 }; 

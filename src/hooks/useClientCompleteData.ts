@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { useUnifiedRealtime } from "@/hooks/useUnifiedRealtime";
 import { localStorageCache } from "@/utils/cacheConfig";
-import { withRetry, handleJobsError } from "@/utils/errorHandling";
+import { withClientRetry, handleClientsError } from "@/utils/errorHandling";
 
 // Types
 export interface ClientCompleteData {
@@ -263,7 +263,7 @@ export const useClientCompleteData = (options: UseClientCompleteDataOptions) => 
         }
       } catch (error) {
         setHasError(true);
-        handleJobsError(error, 'useClientCompleteData - fetchData');
+        handleClientsError(error, 'useClientCompleteData - fetchData');
         throw error;
       }
     })();

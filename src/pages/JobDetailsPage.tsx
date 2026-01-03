@@ -32,7 +32,7 @@ const JobDetailsPage = () => {
       window.history.replaceState({}, document.title);
     }
   }, [location]);
-  
+
   const handleEstimateConverted = () => {
     setActiveTab("invoices");
     toast.success('Estimate converted to invoice successfully');
@@ -44,13 +44,13 @@ const JobDetailsPage = () => {
     toast.success('Job data export started');
     // TODO: Implement actual export functionality
   };
-  
+
   // Validate job ID format
   const isValidJobId = (jobId: string) => {
     // Job IDs should start with J- followed by numbers
     return /^J-\d+$/.test(jobId);
   };
-  
+
   if (!jobId) {
     console.error("❌ JobDetailsPage - No job ID provided");
     return (
@@ -59,9 +59,9 @@ const JobDetailsPage = () => {
           <div className="text-center py-8">
             <h1 className="text-xl sm:text-2xl font-bold text-red-600">Job not found</h1>
             <p className="text-muted-foreground mt-2 text-sm sm:text-base">No job ID provided.</p>
-            <Button 
-              variant="outline" 
-              className="mt-4" 
+            <Button
+              variant="outline"
+              className="mt-4"
               onClick={() => navigate('/jobs')}
             >
               <ArrowLeft className="h-4 w-4 mr-2" />
@@ -72,7 +72,7 @@ const JobDetailsPage = () => {
       </PageLayout>
     );
   }
-  
+
   if (!isValidJobId(jobId)) {
     console.error("❌ JobDetailsPage - Invalid job ID format:", jobId);
     return (
@@ -83,9 +83,9 @@ const JobDetailsPage = () => {
             <p className="text-muted-foreground mt-2 text-sm sm:text-base">
               Job ID "{jobId}" is not in the correct format. Expected format: J-####
             </p>
-            <Button 
-              variant="outline" 
-              className="mt-4" 
+            <Button
+              variant="outline"
+              className="mt-4"
               onClick={() => navigate('/jobs')}
             >
               <ArrowLeft className="h-4 w-4 mr-2" />
@@ -102,18 +102,18 @@ const JobDetailsPage = () => {
       <JobDetailsProvider jobId={jobId}>
         <div className="container mx-auto px-2 sm:px-4 max-w-none overflow-x-hidden">
           <JobDetailsHeader />
-          
+
           <div className="w-full mt-6">
-            <JobDetailsTabs 
-              activeTab={activeTab} 
+            <JobDetailsTabs
+              activeTab={activeTab}
               onTabChange={setActiveTab}
             >
               <TabsContent value="overview" className="mt-0">
                 <JobOverview jobId={jobId} />
               </TabsContent>
               <TabsContent value="estimates" className="mt-0">
-                <ModernJobEstimatesTab 
-                  jobId={jobId} 
+                <ModernJobEstimatesTab
+                  jobId={jobId}
                   onEstimateConverted={handleEstimateConverted}
                 />
               </TabsContent>

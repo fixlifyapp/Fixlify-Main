@@ -22,7 +22,7 @@ import { format } from "date-fns";
 import { Job } from "@/types/job";
 import { useJobStatuses, useJobTypes, useTags } from "@/hooks/useConfigItems";
 import { usePortalLink } from "@/hooks/usePortalLink";
-import { JobsTableRedesigned } from "./JobsTableRedesigned";
+import { JobsTable } from "./JobsTable";
 
 interface JobsListProps {
   jobs: Job[];
@@ -313,9 +313,9 @@ export const JobsList = ({
     );
   }
 
-  // List view - modern table with dark industrial theme
+  // List view - table
   return (
-    <JobsTableRedesigned
+    <JobsTable
       jobs={jobs}
       selectedJobs={selectedJobs}
       onSelectJob={onSelectJob}

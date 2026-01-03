@@ -21,6 +21,7 @@ interface UnifiedJobTypeSelectorProps {
   placeholder?: string;
   showManageLink?: boolean;
   className?: string;
+  hideLabel?: boolean;
 }
 
 export const UnifiedJobTypeSelector = ({
@@ -33,20 +34,23 @@ export const UnifiedJobTypeSelector = ({
   placeholder = "Select type",
   showManageLink = true,
   className = "",
+  hideLabel = false,
 }: UnifiedJobTypeSelectorProps) => {
   return (
     <div className={className}>
-      <div className="flex items-center justify-between mb-2">
-        <Label>{label} {required && "*"}</Label>
-        {showManageLink && (
-          <Link to="/settings/configuration">
-            <Button variant="ghost" size="sm" className="h-6 px-2">
-              <Settings className="w-3 h-3 mr-1" />
-              Manage
-            </Button>
-          </Link>
-        )}
-      </div>
+      {!hideLabel && (
+        <div className="flex items-center justify-between mb-2">
+          <Label>{label} {required && "*"}</Label>
+          {showManageLink && (
+            <Link to="/settings/configuration">
+              <Button variant="ghost" size="sm" className="h-6 px-2">
+                <Settings className="w-3 h-3 mr-1" />
+                Manage
+              </Button>
+            </Link>
+          )}
+        </div>
+      )}
       <Select onValueChange={onValueChange} value={value}>
         <SelectTrigger>
           <SelectValue placeholder={placeholder} />

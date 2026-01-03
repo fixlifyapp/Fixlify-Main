@@ -46,26 +46,15 @@ export default function AuthPage() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
 
-  console.log('🔐 AuthPage render state:', { 
-    user: !!user, 
-    loading, 
-    authLoading, 
-    isAuthenticated,
-    authError,
-    localError
-  });
-
   // Redirect if already authenticated
   useEffect(() => {
     if (!loading && isAuthenticated && user) {
-      console.log("✅ User is authenticated, redirecting to dashboard");
       navigate('/dashboard', { replace: true });
     }
   }, [user, loading, isAuthenticated, navigate]);
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("🔑 Attempting sign in with email:", email);
     setAuthLoading(true);
     setLocalError(null);
     
@@ -75,21 +64,16 @@ export default function AuthPage() {
         password
       });
       
-      console.log("🔐 Sign in response:", { data: !!data, error });
-      
       if (error) {
-        console.error("❌ Sign in error:", error);
         setLocalError(error.message);
         toast.error("Sign in failed", {
           description: error.message
         });
       } else if (data.session) {
-        console.log("✅ Sign in successful");
         toast.success("Signed in successfully");
         // Navigation will be handled by the useEffect above
       }
     } catch (error: any) {
-      console.error("💥 Sign in unexpected error:", error);
       const errorMessage = error?.message || "An unexpected error occurred";
       setLocalError(errorMessage);
       toast.error("Unexpected error", {
@@ -102,8 +86,7 @@ export default function AuthPage() {
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("📝 Attempting sign up with email:", email);
-    
+
     // Validate passwords match
     if (password !== confirmPassword) {
       setLocalError("Passwords do not match");
@@ -129,22 +112,17 @@ export default function AuthPage() {
         }
       });
       
-      console.log("📝 Sign up response:", { data: !!data, error });
-      
       if (error) {
-        console.error("❌ Sign up error:", error);
         setLocalError(error.message);
         toast.error("Sign up failed", {
           description: error.message
         });
       } else if (data.user) {
         if (data.session) {
-          console.log("✅ Sign up and auto sign in successful");
           toast.success("Account created and signed in successfully");
           // Don't show onboarding here - let ProtectedRoute handle it
           // Navigation will happen automatically
         } else {
-          console.log("📧 Sign up successful, email confirmation required");
           toast.success("Account created successfully", {
             description: "Please check your email to confirm your account"
           });
@@ -152,7 +130,6 @@ export default function AuthPage() {
         }
       }
     } catch (error: any) {
-      console.error("💥 Sign up unexpected error:", error);
       const errorMessage = error?.message || "An unexpected error occurred";
       setLocalError(errorMessage);
       toast.error("Unexpected error", {
@@ -168,7 +145,6 @@ export default function AuthPage() {
   };
 
   const handleGoogleSignIn = async () => {
-    console.log("🔵 Attempting Google sign in");
     setAuthLoading(true);
     setLocalError(null);
 
@@ -181,7 +157,6 @@ export default function AuthPage() {
       });
 
       if (error) {
-        console.error("❌ Google sign in error:", error);
         setLocalError(error.message);
         toast.error("Google sign in failed", {
           description: error.message
@@ -189,7 +164,6 @@ export default function AuthPage() {
       }
       // If successful, Supabase will redirect to Google OAuth page
     } catch (error: any) {
-      console.error("💥 Google sign in unexpected error:", error);
       const errorMessage = error?.message || "An unexpected error occurred";
       setLocalError(errorMessage);
       toast.error("Unexpected error", {

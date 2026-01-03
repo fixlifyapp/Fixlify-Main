@@ -1,16 +1,13 @@
-
 import React, { useState } from "react";
-import { ModernCard, ModernCardHeader, ModernCardContent, ModernCardTitle } from "@/components/ui/modern-card";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Edit, Save, X, User } from "lucide-react";
+import { Edit, Save, X, User, UserCheck } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { JobInfo } from "../context/types";
 import { useJobs } from "@/hooks/useJobs";
-import { useTechnicians } from "@/hooks/useTechnicians";
 import { UnifiedTechnicianSelector } from "@/components/shared/UnifiedTechnicianSelector";
 import { useUnifiedJobData } from "@/hooks/useUnifiedJobData";
 import { toast } from "sonner";
+import { ProfessionalCard, ProfessionalSectionHeader } from "@/components/ui/professional-card";
 
 interface TechnicianCardProps {
   job: JobInfo;
@@ -27,14 +24,13 @@ export const TechnicianCard = ({ job, jobId, editable = false, onUpdate }: Techn
 
   const handleSave = async () => {
     if (!jobId) return;
-    
+
     const result = await updateJob(jobId, {
       technician_id: editValue === "unassigned" ? null : editValue
     });
     if (result) {
       setIsEditing(false);
       toast.success("Technician assignment updated successfully");
-      // Trigger real-time refresh
       if (onUpdate) {
         onUpdate();
       }
@@ -52,18 +48,17 @@ export const TechnicianCard = ({ job, jobId, editable = false, onUpdate }: Techn
   };
 
   return (
-    <ModernCard variant="elevated" className="hover:shadow-lg transition-all duration-300">
-      <ModernCardHeader className="pb-4">
-        <div className="flex items-center justify-between">
-          <ModernCardTitle icon={User}>
-            Technician Assignment
-          </ModernCardTitle>
-          {editable && !isEditing ? (
+    <ProfessionalCard>
+      <ProfessionalSectionHeader
+        icon={User}
+        title="Technician"
+        action={
+          editable && !isEditing ? (
             <Button
               variant="ghost"
               size="sm"
               onClick={() => setIsEditing(true)}
-              className="text-fixlyfy hover:text-fixlyfy-dark"
+              className="text-slate-600 hover:text-slate-800 hover:bg-slate-100"
             >
               <Edit className="h-4 w-4" />
             </Button>
@@ -73,7 +68,7 @@ export const TechnicianCard = ({ job, jobId, editable = false, onUpdate }: Techn
                 variant="ghost"
                 size="sm"
                 onClick={handleSave}
-                className="text-green-600 hover:text-green-700"
+                className="text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50"
               >
                 <Save className="h-4 w-4" />
               </Button>
@@ -81,42 +76,54 @@ export const TechnicianCard = ({ job, jobId, editable = false, onUpdate }: Techn
                 variant="ghost"
                 size="sm"
                 onClick={handleCancel}
-                className="text-gray-500 hover:text-gray-600"
+                className="text-slate-500 hover:text-slate-600 hover:bg-slate-100"
               >
                 <X className="h-4 w-4" />
               </Button>
             </div>
-          ) : null}
-        </div>
-      </ModernCardHeader>
-      <ModernCardContent>
-        <div>
-          <p className="text-sm text-muted-foreground mb-2">Assigned Technician</p>
-          {isEditing ? (
-            <UnifiedTechnicianSelector
-              value={editValue}
-              onValueChange={setEditValue}
-              technicians={technicians}
-              isLoading={techniciansLoading}
-              label=""
-              className="w-full"
-              showManageLink={false}
-            />
-          ) : (
-            <div>
-              {job.technician_id ? (
-                <Badge variant="outline" className="bg-green-50 border-green-200 text-green-600">
-                  {getTechnicianName(job.technician_id)}
-                </Badge>
-              ) : (
-                <Badge variant="outline" className="bg-gray-50 border-gray-200 text-gray-600">
-                  Unassigned
-                </Badge>
-              )}
-            </div>
-          )}
-        </div>
-      </ModernCardContent>
-    </ModernCard>
+          ) : null
+        }
+      />
+
+      <div>
+        {isEditing ? (
+          <UnifiedTechnicianSelector
+            value={editValue}
+            onValueChange={setEditValue}
+            technicians={technicians}
+            isLoading={techniciansLoading}
+            label=""
+            className="w-full"
+            showManageLink={false}
+          />
+        ) : (
+          <div className="flex items-center gap-3">
+            {job.technician_id ? (
+              <>
+                <div className="p-2 bg-emerald-50 rounded-lg">
+                  <UserCheck className="h-4 w-4 text-emerald-600" />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-slate-800">
+                    {getTechnicianName(job.technician_id)}
+                  </p>
+                  <p className="text-xs text-slate-500">Assigned technician</p>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="p-2 bg-slate-100 rounded-lg">
+                  <User className="h-4 w-4 text-slate-400" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-slate-600">Unassigned</p>
+                  <p className="text-xs text-slate-400">No technician assigned</p>
+                </div>
+              </>
+            )}
+          </div>
+        )}
+      </div>
+    </ProfessionalCard>
   );
 };

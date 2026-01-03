@@ -1,18 +1,16 @@
 import { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Plus, FileText, Send, Trash2, Edit, DollarSign, Eye } from "lucide-react";
+import { Plus, FileText, TrendingUp, Clock } from "lucide-react";
 import { useEstimates } from "@/hooks/useEstimates";
 import { useEstimateActions } from "@/components/jobs/estimates/hooks/useEstimateActions";
 import { SteppedEstimateBuilder } from "@/components/jobs/dialogs/SteppedEstimateBuilder";
 import { UnifiedDocumentViewer } from "@/components/jobs/dialogs/UnifiedDocumentViewer";
 import { UniversalSendDialog } from "@/components/jobs/dialogs/shared/UniversalSendDialog";
-import { format } from "date-fns";
 import { toast } from "sonner";
-import { useIsMobile } from "@/hooks/use-mobile";
 import { useJobData } from "../dialogs/unified/hooks/useJobData";
 import { Estimate } from "@/types/documents";
+import { DocumentListItem, DocumentRowActions } from "../shared";
+import { ProfessionalCard, ProfessionalSectionHeader } from "@/components/ui/professional-card";
 
 interface ModernJobEstimatesTabProps {
   jobId: string;
@@ -28,7 +26,7 @@ export const ModernJobEstimatesTab = ({
   const { estimates, isLoading, refreshEstimates, convertEstimateToInvoice } = useEstimates(jobId);
   const [estimatesState, setEstimatesState] = useState<Estimate[]>(estimates);
   const { state, actions } = useEstimateActions(jobId, estimatesState, setEstimatesState, refreshEstimates, onEstimateConverted);
-  const { clientInfo, loading: jobDataLoading } = useJobData(jobId);
+  const { clientInfo } = useJobData(jobId);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [editingEstimate, setEditingEstimate] = useState<any>(null);
   const [previewEstimate, setPreviewEstimate] = useState<any>(null);
@@ -36,7 +34,6 @@ export const ModernJobEstimatesTab = ({
   const [sendingEstimate, setSendingEstimate] = useState<any>(null);
   const [showSendDialog, setShowSendDialog] = useState(false);
   const [isConverting, setIsConverting] = useState(false);
-  const isMobile = useIsMobile();
 
   // Keep estimates state in sync
   useEffect(() => {
@@ -46,22 +43,6 @@ export const ModernJobEstimatesTab = ({
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
-  };
-
-  const getStatusBadge = (status: string) => {
-    const statusStyles = {
-      'draft': 'bg-gray-100 text-gray-800',
-      'sent': 'bg-blue-100 text-blue-800',
-      'approved': 'bg-green-100 text-green-800',
-      'rejected': 'bg-red-100 text-red-800',
-      'converted': 'bg-purple-100 text-purple-800'
-    };
-
-    return (
-      <Badge className={statusStyles[status as keyof typeof statusStyles] || 'bg-gray-100 text-gray-800'}>
-        {status.charAt(0).toUpperCase() + status.slice(1)}
-      </Badge>
-    );
   };
 
   const totalEstimateValue = estimatesState.reduce((sum, estimate) => sum + (estimate.total || 0), 0);
@@ -182,144 +163,91 @@ export const ModernJobEstimatesTab = ({
 
   return (
     <>
-      <div className="space-y-4 sm:space-y-6 px-2 sm:px-0">
-        {/* Summary Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
-          <Card className="border-fixlyfy-border shadow-sm">
-            <CardHeader className="pb-2 px-3 pt-3 sm:px-6 sm:pt-6">
-              <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground">Total Estimates</CardTitle>
-            </CardHeader>
-            <CardContent className="px-3 pb-3 sm:px-6 sm:pb-6">
-              <div className="text-lg sm:text-2xl font-bold">{estimatesState.length}</div>
-            </CardContent>
-          </Card>
-          
-          <Card className="border-fixlyfy-border shadow-sm">
-            <CardHeader className="pb-2 px-3 pt-3 sm:px-6 sm:pt-6">
-              <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground">Total Value</CardTitle>
-            </CardHeader>
-            <CardContent className="px-3 pb-3 sm:px-6 sm:pb-6">
-              <div className="text-lg sm:text-2xl font-bold text-blue-600 break-all">{formatCurrency(totalEstimateValue)}</div>
-            </CardContent>
-          </Card>
-          
-          <Card className="border-fixlyfy-border shadow-sm">
-            <CardHeader className="pb-2 px-3 pt-3 sm:px-6 sm:pt-6">
-              <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground">Pending Approval</CardTitle>
-            </CardHeader>
-            <CardContent className="px-3 pb-3 sm:px-6 sm:pb-6">
-              <div className="text-lg sm:text-2xl font-bold text-orange-600">{pendingApproval}</div>
-            </CardContent>
-          </Card>
+      <div className="space-y-4">
+        {/* Compact Summary Row */}
+        <div className="grid grid-cols-3 gap-3">
+          <div className="bg-slate-50 border border-slate-200 rounded-lg p-3">
+            <div className="flex items-center gap-2 text-slate-500 mb-1">
+              <FileText className="h-3.5 w-3.5" />
+              <span className="text-xs font-medium uppercase tracking-wide">Total</span>
+            </div>
+            <p className="text-lg font-bold text-slate-900">{estimatesState.length}</p>
+          </div>
+
+          <div className="bg-slate-50 border border-slate-200 rounded-lg p-3">
+            <div className="flex items-center gap-2 text-slate-500 mb-1">
+              <TrendingUp className="h-3.5 w-3.5" />
+              <span className="text-xs font-medium uppercase tracking-wide">Value</span>
+            </div>
+            <p className="text-lg font-bold text-slate-900">{formatCurrency(totalEstimateValue)}</p>
+          </div>
+
+          <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
+            <div className="flex items-center gap-2 text-amber-600 mb-1">
+              <Clock className="h-3.5 w-3.5" />
+              <span className="text-xs font-medium uppercase tracking-wide">Pending</span>
+            </div>
+            <p className="text-lg font-bold text-amber-700">{pendingApproval}</p>
+          </div>
         </div>
 
         {/* Estimates List */}
-        <Card className="border-fixlyfy-border shadow-sm">
-          <CardHeader className="px-3 pt-3 pb-3 sm:px-6 sm:pt-6 sm:pb-6">
-            <div className="flex items-center justify-between">
-              <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
-                <FileText className="h-4 w-4 sm:h-5 sm:w-5" />
-                Estimates ({estimatesState.length})
-              </CardTitle>
-              <Button 
+        <ProfessionalCard>
+          <ProfessionalSectionHeader
+            icon={FileText}
+            title="Estimates"
+            subtitle={estimatesState.length > 0 ? `${estimatesState.length} total` : undefined}
+            action={
+              <Button
                 onClick={handleCreateNew}
+                size="sm"
+                className="h-8 bg-slate-900 hover:bg-slate-800 text-white"
               >
-                <Plus className="h-4 w-4 mr-2" />
-                Create Estimate
+                <Plus className="h-3.5 w-3.5 mr-1.5" />
+                Create
               </Button>
+            }
+          />
+
+          {isLoading ? (
+            <div className="text-center py-8">
+              <div className="animate-spin rounded-full h-6 w-6 border-2 border-slate-300 border-t-slate-600 mx-auto"></div>
+              <p className="mt-3 text-sm text-slate-500">Loading estimates...</p>
             </div>
-          </CardHeader>
-          <CardContent className="px-3 pb-3 sm:px-6 sm:pb-6">
-            {isLoading ? (
-              <div className="text-center py-8">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-                <p className="mt-2 text-sm text-muted-foreground">Loading estimates...</p>
-              </div>
-            ) : estimatesState.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">
-                <FileText className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-                <p className="text-lg font-medium">No estimates yet</p>
-                <p className="text-sm">Create your first estimate to get started</p>
-              </div>
-            ) : (
-              <div className="space-y-3 sm:space-y-4">
-                {estimatesState.map((estimate) => (
-                  <div key={estimate.id} className="border rounded-lg p-4 hover:shadow-md transition-shadow">
-                    <div className="flex items-center justify-between">
-                      {/* Left side - Estimate info */}
-                      <div className="flex items-center gap-6">
-                        <div>
-                          <div className="flex items-center gap-3">
-                            <h4 className="font-semibold text-gray-900">{estimate.estimate_number}</h4>
-                            {getStatusBadge(estimate.status)}
-                          </div>
-                          <p className="text-sm text-gray-600 mt-1">Created: {format(new Date(estimate.created_at), 'MMM dd, yyyy')}</p>
-                        </div>
-                        <div className="text-xl font-bold text-blue-600">
-                          {formatCurrency(estimate.total || 0)}
-                        </div>
-                      </div>
-                      
-                      {/* Right side - Action Buttons */}
-                      <div className="flex flex-wrap items-center gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleViewEstimate(estimate)}
-                        >
-                          <Eye className="h-4 w-4 mr-2" />
-                          View
-                        </Button>
-
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleEditEstimate(estimate)}
-                        >
-                          <Edit className="h-4 w-4 mr-2" />
-                          Edit
-                        </Button>
-
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleSendEstimate(estimate)}
-                        >
-                          <Send className="h-4 w-4 mr-2" />
-                          Send
-                        </Button>
-                        
-                        {estimate.status !== 'converted' && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="text-green-600 hover:text-green-700 hover:bg-green-50"
-                            onClick={() => handleConvertEstimate(estimate)}
-                            disabled={isConverting}
-                          >
-                            <DollarSign className="h-4 w-4 mr-2" />
-                            Convert to Invoice
-                          </Button>
-                        )}
-                        
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                          onClick={() => handleDeleteEstimate(estimate)}
-                          disabled={state.isDeleting}
-                        >
-                          <Trash2 className="h-4 w-4 mr-2" />
-                          Delete
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+          ) : estimatesState.length === 0 ? (
+            <div className="text-center py-8">
+              <FileText className="mx-auto h-10 w-10 text-slate-300 mb-3" />
+              <p className="text-sm font-medium text-slate-600">No estimates yet</p>
+              <p className="text-xs text-slate-400 mt-1">Create your first estimate to get started</p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {estimatesState.map((estimate) => (
+                <DocumentListItem
+                  key={estimate.id}
+                  type="estimate"
+                  number={estimate.estimate_number}
+                  status={estimate.status}
+                  createdAt={estimate.created_at}
+                  amount={estimate.total || 0}
+                  actions={
+                    <DocumentRowActions
+                      documentType="estimate"
+                      status={estimate.status}
+                      onView={() => handleViewEstimate(estimate)}
+                      onEdit={() => handleEditEstimate(estimate)}
+                      onSend={() => handleSendEstimate(estimate)}
+                      onConvert={() => handleConvertEstimate(estimate)}
+                      onDelete={() => handleDeleteEstimate(estimate)}
+                      isDeleting={state.isDeleting}
+                      isConverting={isConverting}
+                    />
+                  }
+                />
+              ))}
+            </div>
+          )}
+        </ProfessionalCard>
       </div>
 
       {/* Dialogs */}

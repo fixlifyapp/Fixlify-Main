@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { TeamMemberProfile, TeamMemberSkill, ServiceArea } from "@/types/team-member";
 import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -11,34 +11,151 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { RoleDropdown } from "@/components/team/RoleDropdown";
-import { Plus, X, Upload, Phone, MapPin } from "lucide-react";
+import { Plus, X, Upload, Phone, MapPin, Loader2, Check } from "lucide-react";
 import { useRBAC } from "@/components/auth/RBACProvider";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+
+// Debounce hook for autosave
+function useDebounce<T>(value: T, delay: number): T {
+  const [debouncedValue, setDebouncedValue] = useState<T>(value);
+  useEffect(() => {
+    const handler = setTimeout(() => setDebouncedValue(value), delay);
+    return () => clearTimeout(handler);
+  }, [value, delay]);
+  return debouncedValue;
+}
 
 interface ProfileTabProps {
   member: TeamMemberProfile;
   isEditing: boolean;
+  onUpdate?: () => void;
 }
 
-export const ProfileTab = ({ member, isEditing }: ProfileTabProps) => {
+export const ProfileTab = ({ member, isEditing, onUpdate }: ProfileTabProps) => {
+  // Controlled state for all editable fields
+  const [formData, setFormData] = useState({
+    name: member.name || '',
+    email: member.email || '',
+    address: member.address || '',
+    internalNotes: member.internalNotes || '',
+    laborCostPerHour: member.laborCostPerHour || 50,
+    scheduleColor: member.scheduleColor || '#6366f1',
+    isPublic: member.isPublic ?? true,
+    availableForJobs: member.availableForJobs ?? true,
+    twoFactorEnabled: member.twoFactorEnabled || false,
+    callMaskingEnabled: member.callMaskingEnabled || false
+  });
+
   const [phoneNumbers, setPhoneNumbers] = useState<string[]>(member.phone || []);
   const [newPhone, setNewPhone] = useState("");
   const [skills, setSkills] = useState<TeamMemberSkill[]>(member.skills || []);
   const [newSkill, setNewSkill] = useState("");
   const [serviceAreas, setServiceAreas] = useState<ServiceArea[]>(member.serviceAreas || []);
+  const [savingField, setSavingField] = useState<string | null>(null);
+  const [savedField, setSavedField] = useState<string | null>(null);
+  const isInitialMount = useRef(true);
   const { hasRole } = useRBAC();
-  
+
   const isAdmin = hasRole('admin');
+
+  // Debounced form data for autosave (500ms)
+  const debouncedFormData = useDebounce(formData, 500);
+
+  // Update local state when member prop changes
+  useEffect(() => {
+    setFormData({
+      name: member.name || '',
+      email: member.email || '',
+      address: member.address || '',
+      internalNotes: member.internalNotes || '',
+      laborCostPerHour: member.laborCostPerHour || 50,
+      scheduleColor: member.scheduleColor || '#6366f1',
+      isPublic: member.isPublic ?? true,
+      availableForJobs: member.availableForJobs ?? true,
+      twoFactorEnabled: member.twoFactorEnabled || false,
+      callMaskingEnabled: member.callMaskingEnabled || false
+    });
+    setPhoneNumbers(member.phone || []);
+    setSkills(member.skills || []);
+    setServiceAreas(member.serviceAreas || []);
+    isInitialMount.current = true;
+  }, [member]);
+
+  // Autosave effect
+  useEffect(() => {
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      return;
+    }
+
+    if (!isEditing) return;
+
+    saveProfile();
+  }, [debouncedFormData]);
+
+  const saveProfile = async () => {
+    setSavingField('profile');
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          name: debouncedFormData.name,
+          phone: phoneNumbers[0] || null, // profiles table stores single phone
+          internal_notes: debouncedFormData.internalNotes,
+          labor_cost_per_hour: debouncedFormData.laborCostPerHour,
+          schedule_color: debouncedFormData.scheduleColor,
+          is_public: debouncedFormData.isPublic,
+          available_for_jobs: debouncedFormData.availableForJobs,
+          two_factor_enabled: debouncedFormData.twoFactorEnabled,
+          call_masking_enabled: debouncedFormData.callMaskingEnabled
+        })
+        .eq('id', member.id);
+
+      if (error) throw error;
+
+      setSavingField(null);
+      setSavedField('profile');
+      setTimeout(() => setSavedField(null), 2000);
+      onUpdate?.();
+    } catch (error) {
+      console.error('Error saving profile:', error);
+      setSavingField(null);
+      toast.error('Failed to save profile');
+    }
+  };
+
+  const handleFieldChange = (field: string, value: any) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  // Save indicator component
+  const SaveIndicator = () => {
+    if (savingField === 'profile') {
+      return <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />;
+    }
+    if (savedField === 'profile') {
+      return <Check className="h-4 w-4 text-emerald-500" />;
+    }
+    return null;
+  };
 
   const handleAddPhone = () => {
     if (newPhone && !phoneNumbers.includes(newPhone) && isAdmin) {
-      setPhoneNumbers([...phoneNumbers, newPhone]);
+      const updatedPhones = [...phoneNumbers, newPhone];
+      setPhoneNumbers(updatedPhones);
       setNewPhone("");
+      // Trigger save for phone update
+      handleFieldChange('_trigger', Date.now());
     }
   };
 
   const handleRemovePhone = (phone: string) => {
     if (isAdmin) {
-      setPhoneNumbers(phoneNumbers.filter(p => p !== phone));
+      const updatedPhones = phoneNumbers.filter(p => p !== phone);
+      setPhoneNumbers(updatedPhones);
+      // Trigger save for phone update
+      handleFieldChange('_trigger', Date.now());
     }
   };
 
@@ -63,7 +180,10 @@ export const ProfileTab = ({ member, isEditing }: ProfileTabProps) => {
       {/* Left Column - Personal Info */}
       <div className="space-y-6">
         <Card className="p-6 border-fixlyfy-border shadow-sm">
-          <h3 className="text-lg font-medium mb-4">Personal Information</h3>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-medium">Personal Information</h3>
+            <SaveIndicator />
+          </div>
           
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 mb-6">
             <Avatar className="h-20 w-20">
@@ -88,17 +208,19 @@ export const ProfileTab = ({ member, isEditing }: ProfileTabProps) => {
                 <Label htmlFor="name">Full Name</Label>
                 <Input
                   id="name"
-                  defaultValue={member.name}
+                  value={formData.name}
+                  onChange={(e) => handleFieldChange('name', e.target.value)}
                   disabled={!isEditing}
                   className="mt-1"
                 />
               </div>
-              
+
               <div>
                 <Label htmlFor="email">Email Address</Label>
                 <Input
                   id="email"
-                  defaultValue={member.email}
+                  value={formData.email}
+                  onChange={(e) => handleFieldChange('email', e.target.value)}
                   disabled={!isEditing}
                   className="mt-1"
                 />
@@ -173,7 +295,8 @@ export const ProfileTab = ({ member, isEditing }: ProfileTabProps) => {
                   <MapPin className="h-4 w-4 text-muted-foreground mt-3" />
                   <Textarea
                     id="address"
-                    defaultValue={member.address || ""}
+                    value={formData.address}
+                    onChange={(e) => handleFieldChange('address', e.target.value)}
                     disabled={!isEditing}
                     className="flex-1"
                     rows={2}
@@ -189,7 +312,8 @@ export const ProfileTab = ({ member, isEditing }: ProfileTabProps) => {
           <h3 className="text-lg font-medium mb-4">Internal Notes</h3>
           <Textarea
             disabled={!isEditing}
-            defaultValue={member.internalNotes || ""}
+            value={formData.internalNotes}
+            onChange={(e) => handleFieldChange('internalNotes', e.target.value)}
             placeholder="Add internal notes about this team member..."
             rows={5}
           />
@@ -223,24 +347,26 @@ export const ProfileTab = ({ member, isEditing }: ProfileTabProps) => {
                 <Input
                   id="cost"
                   type="number"
-                  defaultValue={member.laborCostPerHour}
+                  value={formData.laborCostPerHour}
+                  onChange={(e) => handleFieldChange('laborCostPerHour', Number(e.target.value))}
                   disabled={!isEditing}
                   className="pl-8"
                 />
               </div>
             </div>
-            
+
             <div>
               <Label htmlFor="color">Schedule Color</Label>
               <div className="flex items-center gap-3 mt-1">
-                <div 
-                  className="w-8 h-8 rounded-full border" 
-                  style={{ backgroundColor: member.scheduleColor }}
+                <div
+                  className="w-8 h-8 rounded-full border"
+                  style={{ backgroundColor: formData.scheduleColor }}
                 ></div>
                 <Input
                   id="color"
                   type="color"
-                  defaultValue={member.scheduleColor}
+                  value={formData.scheduleColor}
+                  onChange={(e) => handleFieldChange('scheduleColor', e.target.value)}
                   disabled={!isEditing}
                   className="w-16 h-8 p-0 border-none"
                 />
@@ -344,46 +470,50 @@ export const ProfileTab = ({ member, isEditing }: ProfileTabProps) => {
                   <Label htmlFor="isPublic">Public Profile</Label>
                   <p className="text-sm text-muted-foreground">Allow clients to see this team member</p>
                 </div>
-                <Switch 
-                  id="isPublic" 
-                  checked={member.isPublic} 
-                  disabled={!isEditing} 
+                <Switch
+                  id="isPublic"
+                  checked={formData.isPublic}
+                  onCheckedChange={(checked) => handleFieldChange('isPublic', checked)}
+                  disabled={!isEditing}
                 />
               </div>
-              
+
               <div className="flex items-center justify-between py-2">
                 <div>
                   <Label htmlFor="availableForJobs">Available for Jobs</Label>
                   <p className="text-sm text-muted-foreground">Can be assigned to new jobs</p>
                 </div>
-                <Switch 
-                  id="availableForJobs" 
-                  checked={member.availableForJobs} 
-                  disabled={!isEditing} 
+                <Switch
+                  id="availableForJobs"
+                  checked={formData.availableForJobs}
+                  onCheckedChange={(checked) => handleFieldChange('availableForJobs', checked)}
+                  disabled={!isEditing}
                 />
               </div>
-              
+
               <div className="flex items-center justify-between py-2">
                 <div>
                   <Label htmlFor="twoFactor">Two-Factor Authentication</Label>
                   <p className="text-sm text-muted-foreground">Extra security for account login</p>
                 </div>
-                <Switch 
-                  id="twoFactor" 
-                  checked={member.twoFactorEnabled} 
-                  disabled={!isEditing} 
+                <Switch
+                  id="twoFactor"
+                  checked={formData.twoFactorEnabled}
+                  onCheckedChange={(checked) => handleFieldChange('twoFactorEnabled', checked)}
+                  disabled={!isEditing}
                 />
               </div>
-              
+
               <div className="flex items-center justify-between py-2">
                 <div>
                   <Label htmlFor="callMasking">Call Masking</Label>
                   <p className="text-sm text-muted-foreground">Hide personal number from clients</p>
                 </div>
-                <Switch 
-                  id="callMasking" 
-                  checked={member.callMaskingEnabled} 
-                  disabled={!isEditing} 
+                <Switch
+                  id="callMasking"
+                  checked={formData.callMaskingEnabled}
+                  onCheckedChange={(checked) => handleFieldChange('callMaskingEnabled', checked)}
+                  disabled={!isEditing}
                 />
               </div>
             </div>

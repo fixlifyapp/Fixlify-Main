@@ -1,11 +1,20 @@
-import { Badge } from "@/components/ui/badge";
 import { JobStatusBadge } from "./JobStatusBadge";
-import { ClientContactButtons } from "./ClientContactButtons";
-import { FileText, CreditCard, CheckCircle, MapPin } from "lucide-react";
+import {
+  FileText,
+  CreditCard,
+  CheckCircle,
+  MapPin,
+  Phone,
+  MessageSquare,
+  Mail,
+  ArrowUpRight
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { useJobFinancials } from "@/hooks/useJobFinancials";
 import { useState, useEffect } from "react";
-import { useIsMobile } from "@/hooks/use-mobile";
 import { useJobDetails } from "../context/JobDetailsContext";
+import { format } from "date-fns";
+import { cn } from "@/lib/utils";
 
 interface JobInfoSectionProps {
   job: {
@@ -25,6 +34,8 @@ interface JobInfoSectionProps {
   onEditClient: () => void;
   clientName?: string;
   jobType?: string;
+  scheduleStart?: string;
+  scheduleEnd?: string;
 }
 
 export const JobInfoSection = ({
@@ -35,12 +46,13 @@ export const JobInfoSection = ({
   onMessageClick,
   onEditClient,
   clientName,
-  jobType
+  jobType,
+  scheduleStart,
+  scheduleEnd
 }: JobInfoSectionProps) => {
-  const isMobile = useIsMobile();
   const [currentStatus, setCurrentStatus] = useState(status);
   const { financialRefreshTrigger } = useJobDetails();
-  
+
   useEffect(() => {
     if (status !== currentStatus) {
       setCurrentStatus(status);
@@ -58,7 +70,6 @@ export const JobInfoSection = ({
     refreshFinancials
   } = useJobFinancials(job.id);
 
-  // Refresh financials when trigger changes
   useEffect(() => {
     if (financialRefreshTrigger > 0) {
       refreshFinancials();
@@ -76,13 +87,8 @@ export const JobInfoSection = ({
   };
 
   const handleStatusChange = async (newStatus: string) => {
-    // Check if status is actually changing
-    if (status === newStatus) {
-      return;
-    }
-
+    if (status === newStatus) return;
     setCurrentStatus(newStatus);
-
     try {
       await onStatusChange(newStatus);
     } catch (error) {
@@ -92,16 +98,32 @@ export const JobInfoSection = ({
     }
   };
 
+  const formatScheduleTime = (dateStr?: string) => {
+    if (!dateStr) return null;
+    try {
+      return format(new Date(dateStr), "MMM d, yyyy");
+    } catch {
+      return null;
+    }
+  };
+
   if (isLoadingFinancials) {
     return (
-      <div className="bg-gradient-to-br from-fixlyfy/5 to-fixlyfy-light/10 backdrop-blur-sm border border-fixlyfy/20 rounded-2xl p-3 sm:p-4 shadow-lg">
-        <div className="space-y-3">
-          <div className="h-6 sm:h-8 w-32 sm:w-40 bg-gray-200 rounded animate-pulse" />
-          <div className="h-8 sm:h-10 w-48 sm:w-64 bg-gray-200 rounded animate-pulse" />
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <div className="h-16 sm:h-20 bg-gray-200 rounded animate-pulse" />
-            <div className="h-16 sm:h-20 bg-gray-200 rounded animate-pulse" />
-            <div className="h-16 sm:h-20 bg-gray-200 rounded animate-pulse" />
+      <div className="space-y-4">
+        <div className="relative overflow-hidden bg-gradient-to-br from-fixlyfy/10 via-fixlyfy-light/10 to-blue-50 border border-fixlyfy/20 rounded-2xl p-6 shadow-sm">
+          {/* Background blur elements */}
+          <div className="absolute top-0 right-0 w-64 h-64 bg-fixlyfy/5 rounded-full blur-3xl" />
+          <div className="absolute bottom-0 left-0 w-48 h-48 bg-fixlyfy-light/5 rounded-full blur-3xl" />
+          <div className="relative animate-pulse space-y-4">
+            <div className="space-y-2">
+              <div className="h-7 w-48 bg-fixlyfy/20 rounded-lg" />
+              <div className="h-4 w-64 bg-fixlyfy/10 rounded-lg" />
+            </div>
+            <div className="flex gap-3 mt-4">
+              <div className="h-9 w-20 bg-fixlyfy/10 rounded-lg" />
+              <div className="h-9 w-24 bg-fixlyfy/10 rounded-lg" />
+              <div className="h-9 w-20 bg-fixlyfy/10 rounded-lg" />
+            </div>
           </div>
         </div>
       </div>
@@ -109,151 +131,196 @@ export const JobInfoSection = ({
   }
 
   return (
-    <div className="bg-gradient-to-br from-fixlyfy/5 to-fixlyfy-light/10 backdrop-blur-sm border border-fixlyfy/20 rounded-2xl p-3 sm:p-4 shadow-lg hover:shadow-xl transition-all duration-300">
-      <div className="space-y-3 sm:space-y-4">
-        {/* Header Section */}
-        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4">
-          <div className="space-y-2 min-w-0 flex-1">
-            {/* Status Badge Section with Client Name and Job Type */}
-            <div className="relative">
-              <div className="absolute inset-0 bg-gradient-to-r from-fixlyfy to-fixlyfy-light rounded-lg blur-sm opacity-30 transform translate-y-0.5"></div>
-              <div className="relative bg-gradient-to-r from-fixlyfy to-fixlyfy-light p-3 rounded-lg shadow-lg border border-white/20 backdrop-blur-sm">
-                <div className="flex items-center gap-2 mb-2">
-                  <div className="w-1.5 h-1.5 bg-white rounded-full animate-pulse"></div>
-                  <span className="text-white text-xs font-medium uppercase tracking-wide">Status</span>
-                </div>
-                <div className="space-y-2">
-                  <div>
-                    <JobStatusBadge 
-                      status={currentStatus} 
-                      onStatusChange={handleStatusChange} 
-                      className="bg-white/90 text-fixlyfy border-white/30 hover:bg-white shadow-md text-sm h-7 font-medium" 
-                    />
-                  </div>
-                  {clientName && (
-                    <div className="text-white text-base sm:text-lg font-semibold">
-                      {clientName}
-                    </div>
-                  )}
-                  {jobType && (
-                    <div className="text-white/90 text-sm sm:text-base">
-                      {jobType}
-                    </div>
-                  )}
-                </div>
-              </div>
+    <div className="space-y-4">
+      {/* Client Info Card - Fixlyfy Brand Style (matching ClientHeaderCard) */}
+      <div className="relative overflow-hidden bg-gradient-to-br from-fixlyfy/10 via-fixlyfy-light/10 to-blue-50 rounded-2xl border border-fixlyfy/20 shadow-sm">
+        {/* Background blur elements */}
+        <div className="absolute top-0 right-0 w-64 h-64 bg-fixlyfy/5 rounded-full blur-3xl" />
+        <div className="absolute bottom-0 left-0 w-48 h-48 bg-fixlyfy-light/5 rounded-full blur-3xl" />
+
+        {/* Content */}
+        <div className="relative p-6 space-y-5">
+          {/* Header Row: Name + Status + Contact Info */}
+          <div className="space-y-2">
+            <div className="flex items-center gap-3 flex-wrap">
+              <h2 className="text-2xl font-bold text-slate-900 tracking-tight">
+                {clientName || 'Unknown Client'}
+              </h2>
+              <JobStatusBadge
+                status={currentStatus}
+                onStatusChange={handleStatusChange}
+                className="font-semibold text-xs"
+              />
             </div>
+
+            {/* Contact Info Row - Phone & Email */}
+            {(job.phone || job.email) && (
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+                {job.phone && (
+                  <a
+                    href={`tel:${job.phone}`}
+                    className="flex items-center gap-1.5 text-sm text-slate-600 hover:text-fixlyfy transition-colors"
+                  >
+                    <Phone className="h-3.5 w-3.5" />
+                    <span>{job.phone}</span>
+                  </a>
+                )}
+                {job.email && (
+                  <a
+                    href={`mailto:${job.email}`}
+                    className="flex items-center gap-1.5 text-sm text-slate-600 hover:text-fixlyfy transition-colors"
+                  >
+                    <Mail className="h-3.5 w-3.5" />
+                    <span className="truncate max-w-[200px]">{job.email}</span>
+                  </a>
+                )}
+              </div>
+            )}
+
+            {/* Job Type & Schedule */}
+            <p className="text-sm text-slate-600">
+              {jobType && <span className="text-fixlyfy font-medium">{jobType}</span>}
+              {jobType && scheduleStart && <span className="mx-2 text-slate-400">·</span>}
+              {scheduleStart && <span>{formatScheduleTime(scheduleStart)}</span>}
+              {!jobType && !scheduleStart && <span className="text-slate-400">Job details</span>}
+            </p>
           </div>
-          
-          {/* Contact Actions - Now properly positioned */}
-          <div className="bg-fixlyfy/5 border border-fixlyfy/20 rounded-lg p-2 shadow-sm w-full sm:w-auto">
-            <ClientContactButtons onCallClick={onCallClick} onMessageClick={onMessageClick} onEditClient={onEditClient} />
+
+          {/* Action Buttons Row */}
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onCallClick}
+              className="bg-white/80 border-fixlyfy/30 text-fixlyfy hover:bg-fixlyfy/5 hover:border-fixlyfy/50 shadow-sm"
+            >
+              <Phone className="h-4 w-4 mr-2" />
+              Call
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onMessageClick}
+              className="bg-white/80 border-fixlyfy/30 text-fixlyfy hover:bg-fixlyfy/5 hover:border-fixlyfy/50 shadow-sm"
+            >
+              <MessageSquare className="h-4 w-4 mr-2" />
+              Message
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onEditClient}
+              className="bg-white/80 border-fixlyfy/30 text-fixlyfy hover:bg-fixlyfy/5 hover:border-fixlyfy/50 shadow-sm"
+            >
+              <Mail className="h-4 w-4 mr-2" />
+              Email
+            </Button>
+          </div>
+
+          {/* Address Section */}
+          {job.address && (
+            <button
+              onClick={handleAddressClick}
+              className="w-full text-left group"
+            >
+              <div className="flex items-center gap-3 bg-white/60 backdrop-blur-sm border border-fixlyfy/20 rounded-xl p-3 transition-all duration-200 hover:bg-white/80 hover:border-fixlyfy/40 hover:shadow-sm">
+                <div className="p-2 bg-fixlyfy/10 rounded-lg group-hover:bg-fixlyfy/20 transition-colors">
+                  <MapPin className="h-4 w-4 text-fixlyfy" />
+                </div>
+                <p className="text-sm font-medium text-slate-700 flex-1 truncate">
+                  {job.address}
+                </p>
+                <ArrowUpRight className="h-4 w-4 text-fixlyfy/50 group-hover:text-fixlyfy transition-colors flex-shrink-0" />
+              </div>
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Financial Summary Cards - Client Management Style */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        {/* Invoice Card */}
+        <div className="relative overflow-hidden bg-slate-50/80 border border-slate-200 rounded-2xl p-5 transition-all duration-300 hover:shadow-md hover:border-slate-300">
+          <div className="flex items-start justify-between mb-4">
+            <div className="p-2.5 bg-slate-100 rounded-xl">
+              <FileText className="h-5 w-5 text-slate-600" />
+            </div>
+            <span className="text-xs font-medium text-slate-600 bg-slate-100 px-2.5 py-1 rounded-full">
+              Invoice
+            </span>
+          </div>
+          <div>
+            <p className="text-3xl font-bold text-slate-900 tracking-tight">
+              {formatCurrency(invoiceAmount)}
+            </p>
+            <p className="text-sm text-slate-500 mt-1">
+              {paidInvoices > 0 || unpaidInvoices > 0
+                ? `${paidInvoices} paid · ${unpaidInvoices} pending`
+                : "Total Invoiced"}
+            </p>
           </div>
         </div>
 
-        {/* Job Address - Made more mobile-friendly */}
-        {job.address && (
-          <div 
-            className="bg-fixlyfy/10 border border-fixlyfy/20 rounded-xl p-3 cursor-pointer hover:bg-fixlyfy/15 transition-colors duration-200 group"
-            onClick={handleAddressClick}
-            role="button"
-            tabIndex={0}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault();
-                handleAddressClick();
-              }
-            }}
-          >
-            <div className="flex items-start gap-3">
-              <MapPin className="h-4 w-4 text-fixlyfy mt-0.5 flex-shrink-0 group-hover:text-fixlyfy-dark transition-colors" />
-              <div className="min-w-0 flex-1">
-                <p className="text-xs font-medium text-fixlyfy mb-1 group-hover:text-fixlyfy-dark transition-colors">Service Address</p>
-                <p className="text-fixlyfy/80 font-medium leading-relaxed text-sm group-hover:text-fixlyfy-dark transition-colors break-words">
-                  {job.address}
-                </p>
-                <p className="text-xs text-fixlyfy/60 mt-1 group-hover:text-fixlyfy-dark transition-colors">
-                  Click to open in Google Maps
-                </p>
-              </div>
+        {/* Received Card */}
+        <div className="relative overflow-hidden bg-emerald-50/50 border border-emerald-200 rounded-2xl p-5 transition-all duration-300 hover:shadow-md hover:border-emerald-300">
+          <div className="flex items-start justify-between mb-4">
+            <div className="p-2.5 bg-emerald-50 rounded-xl">
+              <CreditCard className="h-5 w-5 text-emerald-600" />
             </div>
+            <span className="text-xs font-medium text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-full">
+              Received
+            </span>
           </div>
-        )}
+          <div>
+            <p className="text-3xl font-bold text-slate-900 tracking-tight">
+              {formatCurrency(totalPaid)}
+            </p>
+            <p className="text-sm text-slate-500 mt-1">
+              {totalPaid > 0 ? "Payments Received" : "No Payments Yet"}
+            </p>
+          </div>
+        </div>
 
-        {/* Financial Cards - Responsive grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          {/* Invoice Card */}
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 hover:shadow-md transition-shadow">
-            <div className="flex items-center justify-between mb-2">
-              <div className="p-1.5 bg-blue-100 rounded-md">
-                <FileText className="h-4 w-4 text-blue-600" />
-              </div>
-              <span className="text-xs font-semibold text-blue-700 uppercase tracking-wider">
-                Invoice
-              </span>
+        {/* Outstanding/Complete Card */}
+        <div className={cn(
+          "relative overflow-hidden border rounded-2xl p-5 transition-all duration-300 hover:shadow-md",
+          balance > 0
+            ? "bg-amber-50/50 border-amber-200 hover:border-amber-300"
+            : "bg-sky-50/50 border-sky-200 hover:border-sky-300"
+        )}>
+          <div className="flex items-start justify-between mb-4">
+            <div className={cn(
+              "p-2.5 rounded-xl",
+              balance > 0 ? "bg-amber-50" : "bg-sky-100"
+            )}>
+              <CheckCircle className={cn(
+                "h-5 w-5",
+                balance > 0 ? "text-amber-600" : "text-sky-600"
+              )} />
             </div>
-            <div className="space-y-1">
-              <div className="text-lg sm:text-xl font-bold text-blue-900 break-words">
-                {formatCurrency(invoiceAmount)}
-              </div>
-              {(paidInvoices > 0 || unpaidInvoices > 0) && (
-                <div className="text-xs text-blue-700 font-medium">
-                  {paidInvoices} paid • {unpaidInvoices} pending
-                </div>
-              )}
-            </div>
+            <span className={cn(
+              "text-xs font-medium px-2.5 py-1 rounded-full",
+              balance > 0
+                ? "text-amber-600 bg-amber-50"
+                : "text-sky-600 bg-sky-100"
+            )}>
+              {balance > 0 ? "Balance" : "Complete"}
+            </span>
           </div>
-
-          {/* Received Card */}
-          <div className="bg-green-50 border border-green-200 rounded-lg p-3 hover:shadow-md transition-shadow">
-            <div className="flex items-center justify-between mb-2">
-              <div className="p-1.5 bg-green-100 rounded-md">
-                <CreditCard className="h-4 w-4 text-green-600" />
-              </div>
-              <span className="text-xs font-semibold text-green-700 uppercase tracking-wider">
-                Received
-              </span>
-            </div>
-            <div className="space-y-1">
-              <div className="text-lg sm:text-xl font-bold text-green-900 break-words">
-                {formatCurrency(totalPaid)}
-              </div>
-              {totalPaid > 0 && (
-                <div className="text-xs text-green-700 font-medium">
-                  Payment received
-                </div>
-              )}
-            </div>
-          </div>
-          
-          {/* Outstanding/Complete Card */}
-          <div className={`${balance > 0 ? "bg-amber-50 border-amber-200" : "bg-emerald-50 border-emerald-200"} border rounded-lg p-3 hover:shadow-md transition-shadow`}>
-            <div className="flex items-center justify-between mb-2">
-              <div className={`p-1.5 rounded-md ${balance > 0 ? "bg-amber-100" : "bg-emerald-100"}`}>
-                <CheckCircle className={`h-4 w-4 ${balance > 0 ? "text-amber-600" : "text-emerald-600"}`} />
-              </div>
-              <span className={`text-xs font-semibold uppercase tracking-wider ${balance > 0 ? "text-amber-700" : "text-emerald-700"}`}>
-                {balance > 0 ? "Outstanding" : "Complete"}
-              </span>
-            </div>
-            <div className="space-y-1">
-              <div className={`text-lg sm:text-xl font-bold ${balance > 0 ? "text-amber-900" : "text-emerald-900"} break-words`}>
-                {formatCurrency(balance)}
-              </div>
-              {overdueAmount > 0 ? (
-                <div className="text-xs text-red-600 font-medium">
-                  ${overdueAmount.toFixed(2)} overdue
-                </div>
-              ) : balance === 0 ? (
-                <div className="text-xs text-emerald-700 font-medium">
-                  Fully paid
-                </div>
-              ) : (
-                <div className="text-xs text-amber-700 font-medium">
-                  Payment pending
-                </div>
-              )}
-            </div>
+          <div>
+            <p className={cn(
+              "text-3xl font-bold tracking-tight",
+              balance > 0 ? "text-amber-600" : "text-sky-600"
+            )}>
+              {formatCurrency(balance)}
+            </p>
+            <p className="text-sm text-slate-500 mt-1">
+              {overdueAmount > 0
+                ? `$${overdueAmount.toFixed(2)} overdue`
+                : balance === 0
+                ? "Fully Paid"
+                : "Outstanding"}
+            </p>
           </div>
         </div>
       </div>

@@ -1,10 +1,10 @@
-
 import { useJobCustomFields } from "@/hooks/useJobCustomFields";
 import { CustomFieldRenderer } from "./CustomFieldRenderer";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
-import { Loader2, Edit2, Save, X } from "lucide-react";
+import { Loader2, Edit2, Save, X, Settings } from "lucide-react";
 import { toast } from "sonner";
+import { ProfessionalCard, ProfessionalSectionHeader, ProfessionalEmptyState } from "@/components/ui/professional-card";
 
 interface JobCustomFieldsDisplayProps {
   jobId: string;
@@ -26,15 +26,15 @@ export const JobCustomFieldsDisplay = ({ jobId }: JobCustomFieldsDisplayProps) =
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-8">
-        <Loader2 className="h-6 w-6 animate-spin" />
-        <span className="ml-2">Loading custom fields...</span>
+        <Loader2 className="h-6 w-6 animate-spin text-slate-400" />
+        <span className="ml-2 text-slate-500">Loading custom fields...</span>
       </div>
     );
   }
 
   if (availableFields.length === 0) {
     return (
-      <div className="text-muted-foreground">No custom fields configured for jobs.</div>
+      <p className="text-slate-400 text-sm italic">No custom fields configured for jobs.</p>
     );
   }
 
@@ -72,35 +72,49 @@ export const JobCustomFieldsDisplay = ({ jobId }: JobCustomFieldsDisplayProps) =
   };
 
   return (
-    <div className="space-y-0">
-      <div className="flex items-center justify-end mb-4">
+    <div className="space-y-4">
+      <div className="flex items-center justify-end">
         {!isEditing ? (
-          <Button variant="outline" size="sm" onClick={handleEdit}>
-            <Edit2 className="h-4 w-4 mr-2" />
-            Edit
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleEdit}
+            className="text-violet-600 hover:text-violet-700 hover:bg-violet-50"
+          >
+            <Edit2 className="h-4 w-4" />
           </Button>
         ) : (
           <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={handleCancel} disabled={isSaving}>
-              <X className="h-4 w-4 mr-2" />
-              Cancel
-            </Button>
-            <Button size="sm" onClick={handleSave} disabled={isSaving}>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleSave}
+              disabled={isSaving}
+              className="text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50"
+            >
               {isSaving ? (
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
-                <Save className="h-4 w-4 mr-2" />
+                <Save className="h-4 w-4" />
               )}
-              Save
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleCancel}
+              disabled={isSaving}
+              className="text-slate-500 hover:text-slate-600 hover:bg-slate-50"
+            >
+              <X className="h-4 w-4" />
             </Button>
           </div>
         )}
       </div>
-      
-      <div className="grid grid-cols-1 gap-4">
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {availableFields.map((field) => {
           const existingValue = customFieldValues.find(cfv => cfv.custom_field_id === field.id);
-          const displayValue = isEditing 
+          const displayValue = isEditing
             ? editValues[field.id] || ''
             : existingValue?.value || field.default_value || '';
 
@@ -117,14 +131,14 @@ export const JobCustomFieldsDisplay = ({ jobId }: JobCustomFieldsDisplayProps) =
 
           // Display mode
           return (
-            <div key={field.id} className="space-y-1">
-              <div className="text-sm font-medium text-gray-700">
+            <div key={field.id} className="bg-slate-50 border border-slate-200 rounded-lg p-4">
+              <p className="text-xs font-medium text-slate-500 uppercase tracking-wide mb-1">
                 {field.name}
                 {field.required && <span className="text-red-500 ml-1">*</span>}
-              </div>
-              <div className="text-sm text-gray-900 p-3 bg-gray-50 rounded-md border">
-                {displayValue || <span className="text-gray-400 italic">Not set</span>}
-              </div>
+              </p>
+              <p className="text-base font-medium text-slate-800">
+                {displayValue || <span className="text-slate-400 italic">Not set</span>}
+              </p>
             </div>
           );
         })}
