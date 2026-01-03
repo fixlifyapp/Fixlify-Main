@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { useProducts } from "@/hooks/useProducts";
 import { Shield, Info } from "lucide-react";
@@ -10,11 +10,14 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { UpsellStepProps } from "../shared/types";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useUpsellSettings } from "@/hooks/useUpsellSettings";
+import { useUpsellAnalytics } from "@/hooks/useUpsellAnalytics";
+import { useAuth } from "@/hooks/use-auth";
 
-export const InvoiceUpsellStep = ({ 
-  onContinue, 
-  onBack, 
-  documentTotal, 
+export const InvoiceUpsellStep = ({
+  onContinue,
+  onBack,
+  documentTotal,
   existingUpsellItems = [],
   estimateToConvert,
   jobContext
@@ -25,7 +28,14 @@ export const InvoiceUpsellStep = ({
   const [isSavingWarranty, setIsSavingWarranty] = useState(false);
   const [hasExistingWarranties, setHasExistingWarranties] = useState(false);
   const [isLoadingExistingWarranties, setIsLoadingExistingWarranties] = useState(true);
+  const [autoAddedIds, setAutoAddedIds] = useState<Set<string>>(new Set());
+  const autoSelectApplied = useRef(false);
+  const shownTracked = useRef(false);
+
   const { products: warrantyProducts, isLoading } = useProducts("Warranties");
+  const { config, invoiceProducts, isLoading: isLoadingConfig } = useUpsellSettings();
+  const { trackEvent } = useUpsellAnalytics();
+  const { user } = useAuth();
 
   // Get invoice ID from jobContext or other source
   const invoiceId = jobContext?.invoiceId;
@@ -123,18 +133,150 @@ export const InvoiceUpsellStep = ({
 
     const warrantyUpsells = warrantyProducts.map(product => {
       const existingSelection = existingUpsellItems.find(item => item.id === product.id);
-      
+
       return {
         id: product.id,
         title: product.name,
         description: product.description || "",
         price: product.price,
         icon: Shield,
-        selected: existingSelection ? existingSelection.selected : false
+        selected: existingSelection ? existingSelection.selected : false,
+        isAutoAdded: false,
+        // Enhanced fields from database
+        costPrice: product.cost_price,
+        isTopSeller: product.is_featured,
+        conversionHint: product.conversion_hint
       };
     });
     setUpsellItems(warrantyUpsells);
   }, [warrantyProducts, existingUpsellItems, hasExistingWarranties, isLoadingExistingWarranties]);
+
+  // Track "shown" events when upsell items are displayed
+  useEffect(() => {
+    if (
+      shownTracked.current ||
+      !invoiceId ||
+      upsellItems.length === 0 ||
+      isLoading ||
+      isLoadingConfig ||
+      hasExistingWarranties
+    ) {
+      return;
+    }
+
+    shownTracked.current = true;
+
+    // Track each item as "shown"
+    upsellItems.forEach(item => {
+      trackEvent({
+        documentType: 'invoice',
+        documentId: invoiceId,
+        productId: item.id,
+        productName: item.title,
+        productPrice: item.price,
+        eventType: 'shown',
+        jobType: jobContext?.job_type,
+        clientId: jobContext?.clientId
+      });
+    });
+  }, [invoiceId, upsellItems, isLoading, isLoadingConfig, hasExistingWarranties, trackEvent, jobContext]);
+
+  // Auto-select products based on admin configuration (only for new invoices without existing warranties)
+  useEffect(() => {
+    if (
+      autoSelectApplied.current ||
+      isLoadingConfig ||
+      !config?.invoices?.auto_select ||
+      invoiceProducts.length === 0 ||
+      existingUpsellItems.length > 0 ||
+      upsellItems.length === 0 ||
+      hasExistingWarranties ||
+      !invoiceId
+    ) {
+      return;
+    }
+
+    // Mark as applied to prevent re-running
+    autoSelectApplied.current = true;
+
+    const autoSelectProductIds = invoiceProducts.map(p => p.id);
+    const itemsToAutoAdd = upsellItems.filter(
+      item => autoSelectProductIds.includes(item.id) && !item.selected
+    );
+
+    if (itemsToAutoAdd.length === 0) return;
+
+    // Auto-add products to database
+    const autoAddProducts = async () => {
+      setIsSavingWarranty(true);
+      const newAutoAddedIds = new Set<string>();
+
+      try {
+        for (const item of itemsToAutoAdd) {
+          const { error: lineItemError } = await supabase
+            .from('line_items')
+            .insert({
+              parent_id: invoiceId,
+              parent_type: 'invoice',
+              description: item.title + (item.description ? ` - ${item.description}` : ''),
+              quantity: 1,
+              unit_price: item.price,
+              taxable: false
+            });
+
+          if (!lineItemError) {
+            newAutoAddedIds.add(item.id);
+          }
+        }
+
+        // Update UI to show auto-added items
+        if (newAutoAddedIds.size > 0) {
+          setUpsellItems(prev => prev.map(item => ({
+            ...item,
+            selected: newAutoAddedIds.has(item.id) ? true : item.selected,
+            isAutoAdded: newAutoAddedIds.has(item.id)
+          })));
+          setAutoAddedIds(newAutoAddedIds);
+
+          // Update invoice total
+          const addedTotal = itemsToAutoAdd
+            .filter(item => newAutoAddedIds.has(item.id))
+            .reduce((sum, item) => sum + item.price, 0);
+
+          if (addedTotal > 0) {
+            await supabase
+              .from('invoices')
+              .update({ total: documentTotal + addedTotal })
+              .eq('id', invoiceId);
+          }
+
+          // Track auto_added events
+          itemsToAutoAdd
+            .filter(item => newAutoAddedIds.has(item.id))
+            .forEach(item => {
+              trackEvent({
+                documentType: 'invoice',
+                documentId: invoiceId,
+                productId: item.id,
+                productName: item.title,
+                productPrice: item.price,
+                eventType: 'auto_added',
+                jobType: jobContext?.job_type,
+                clientId: jobContext?.clientId
+              });
+            });
+
+          toast.success(`${newAutoAddedIds.size} warranty product(s) auto-added`);
+        }
+      } catch (error) {
+        console.error('Error auto-adding products:', error);
+      } finally {
+        setIsSavingWarranty(false);
+      }
+    };
+
+    autoAddProducts();
+  }, [config, invoiceProducts, upsellItems, existingUpsellItems, invoiceId, hasExistingWarranties, documentTotal, isLoadingConfig, trackEvent, jobContext]);
 
   const handleUpsellToggle = async (itemId: string) => {
     if (isProcessing || isSavingWarranty) return;
@@ -184,6 +326,18 @@ export const InvoiceUpsellStep = ({
           return;
         }
 
+        // Track accepted event
+        trackEvent({
+          documentType: 'invoice',
+          documentId: invoiceId,
+          productId: item.id,
+          productName: item.title,
+          productPrice: item.price,
+          eventType: 'accepted',
+          jobType: jobContext?.job_type,
+          clientId: jobContext?.clientId
+        });
+
         toast.success(`${item.title} added to invoice`);
       } else {
         // Remove warranty from database
@@ -214,6 +368,18 @@ export const InvoiceUpsellStep = ({
           toast.error('Failed to update invoice total');
           return;
         }
+
+        // Track removed event
+        trackEvent({
+          documentType: 'invoice',
+          documentId: invoiceId,
+          productId: item.id,
+          productName: item.title,
+          productPrice: item.price,
+          eventType: 'removed',
+          jobType: jobContext?.job_type,
+          clientId: jobContext?.clientId
+        });
 
         toast.success(`${item.title} removed from invoice`);
       }
@@ -265,7 +431,7 @@ export const InvoiceUpsellStep = ({
     }
   };
 
-  if (isLoading || isLoadingExistingWarranties) {
+  if (isLoading || isLoadingExistingWarranties || isLoadingConfig) {
     return (
       <div className="space-y-6">
         <div className="text-center">

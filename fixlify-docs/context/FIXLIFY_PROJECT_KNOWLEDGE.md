@@ -2686,3 +2686,73 @@ SELECT cron.schedule(
 - **Database Tables**: `automation_workflows`, `automation_execution_logs`
 - **Trigger Types**: job_status_changed, job_created, client_created, invoice_paid, etc.
 - **Action Types**: email, sms, task, notification
+
+## 🔧 SMS Parameter Fix & Organization Phone Numbers (2025-01-03)
+
+### Problem
+SMS sending was failing because frontend code was using incorrect parameter names when calling the `telnyx-sms` edge function.
+
+### Root Cause
+Multiple files were using wrong parameters:
+- Used `to` instead of `recipientPhone`
+- Used `userId` instead of `user_id`
+
+The edge function expects: `recipientPhone`, `message`, `user_id`, `metadata`
+
+### Files Fixed
+
+| File | Old Params | New Params |
+|------|-----------|------------|
+| `src/services/communications/TelnyxService.ts` | `to`, `userId` | `recipientPhone`, `user_id` |
+| `src/components/messages/MessageDialog.tsx` | `to`, `userId` | `recipientPhone`, `user_id` |
+| `src/services/automationService.ts` | `to`, `userId` | `recipientPhone`, `user_id` |
+
+### Already Correct (No Changes Needed)
+- `src/contexts/SMSContext.tsx` - Connect page SMS
+- `supabase/functions/send-invoice-sms/index.ts`
+- `supabase/functions/send-estimate-sms/index.ts`
+
+### Phone Number Resolution Priority
+All SMS/Voice functions use this priority order:
+1. **Explicit `from` parameter** (if provided)
+2. **Organization's primary number** (`is_primary = true`)
+3. **Organization's any active/purchased number**
+4. **User's primary number** (legacy fallback)
+5. **User's any number** (legacy fallback)
+
+### Organization Phone Number Setup
+Phone numbers must be configured in the database:
+```sql
+-- Example: Assign phone to organization
+UPDATE phone_numbers
+SET
+  organization_id = 'org-uuid-here',
+  status = 'purchased',
+  is_primary = true
+WHERE phone_number = '+14375249932';
+```
+
+### Telnyx Account Numbers (Active)
+| Number | Voice Connection | SMS Profile |
+|--------|-----------------|-------------|
+| +1 (647) 498-4132 | ElevenLabs-Trunk | ❌ None |
+| +1 (289) 819-2158 | ❌ None | ✅ Fixlify |
+| +1 (437) 524-9932 | ai-assistant | ✅ Fixlify |
+
+### Functions Verified for Org Phone Usage
+| Function | Status | Notes |
+|----------|--------|-------|
+| `telnyx-sms` | ✅ | Org primary → org any → user primary → user any |
+| `telnyx-webhook` | ✅ | Looks up by `to` field in `phone_numbers` |
+| `telnyx-make-call` | ✅ | Same priority as SMS |
+| `telnyx-voice-webhook` | ✅ | Routes based on `ai_dispatcher_enabled` |
+| `ai-dispatcher-handler` | ✅ | Config tied to `phone_number_id` |
+| `send-invoice-sms` | ✅ | Calls telnyx-sms correctly |
+| `send-estimate-sms` | ✅ | Calls telnyx-sms correctly |
+
+### Result
+- ✅ SMS sending works from all pages
+- ✅ Phone numbers scoped to organizations
+- ✅ Two-way SMS conversations work
+- ✅ Voice calls use correct org number
+- ✅ AI Dispatcher properly configured per-number

@@ -26,6 +26,10 @@
     "code:report": "jscpd src --min-tokens 50 --reporters json --output reports/",
     "code:health-report": "node scripts/code-health-report.js",
     "code:full-check": "npm run lint && npm run code:duplicates && npm run code:health-report",
+    "test": "vitest",
+    "test:run": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "test:ui": "vitest --ui",
     "prepare": "husky"
   },
   "dependencies": {
@@ -36,6 +40,8 @@
     "@fullcalendar/daygrid": "^6.1.20",
     "@fullcalendar/interaction": "^6.1.20",
     "@fullcalendar/react": "^6.1.20",
+    "@fullcalendar/resource": "^6.1.20",
+    "@fullcalendar/resource-timegrid": "^6.1.20",
     "@fullcalendar/timegrid": "^6.1.20",
     "@hookform/resolvers": "^3.9.0",
     "@radix-ui/react-accordion": "^1.2.0",
@@ -118,17 +124,21 @@
   "devDependencies": {
     "@eslint/js": "^9.9.0",
     "@tailwindcss/typography": "^0.5.15",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.1",
     "@types/lodash": "^4.17.0",
     "@types/node": "^22.5.5",
     "@types/react": "^18.3.3",
     "@types/react-dom": "^18.3.0",
     "@vitejs/plugin-react-swc": "^3.5.0",
+    "@vitest/coverage-v8": "^4.0.16",
     "autoprefixer": "^10.4.20",
     "eslint": "^9.9.0",
     "eslint-plugin-react-hooks": "^5.1.0-rc.0",
     "eslint-plugin-react-refresh": "^0.4.9",
     "eslint-plugin-sonarjs": "^3.0.5",
     "globals": "^15.9.0",
+    "happy-dom": "^20.0.11",
     "husky": "^9.1.7",
     "jscpd": "^4.0.5",
     "lint-staged": "^16.2.7",
@@ -139,6 +149,7 @@
     "typescript": "^5.5.3",
     "typescript-eslint": "^8.0.1",
     "vite": "^5.4.1",
-    "vite-plugin-pwa": "^1.2.0"
+    "vite-plugin-pwa": "^1.2.0",
+    "vitest": "^4.0.16"
   }
 }

@@ -3,12 +3,11 @@ import { useState, useEffect } from "react";
 import { useParams, useLocation, useNavigate } from "react-router-dom";
 import { PageLayout } from "@/components/layout/PageLayout";
 import { JobDetailsTabs } from "@/components/jobs/JobDetailsTabs";
-import { Card } from "@/components/ui/card";
 import { JobDetailsHeader } from "@/components/jobs/JobDetailsHeader";
 import { TabsContent } from "@/components/ui/tabs";
 import { useRBAC } from "@/components/auth/RBACProvider";
 import { toast } from "sonner";
-import { JobDetailsProvider } from "@/components/jobs/context/JobDetailsContext";
+import { JobDetailsProvider, useJobDetails } from "@/components/jobs/context/JobDetailsContext";
 import { JobOverview } from "@/components/jobs/JobOverview";
 import { ModernJobEstimatesTab } from "@/components/jobs/overview/ModernJobEstimatesTab";
 import { ModernJobInvoicesTab } from "@/components/jobs/overview/ModernJobInvoicesTab";
@@ -16,19 +15,24 @@ import { JobPayments } from "@/components/jobs/JobPayments";
 import { JobHistory } from "@/components/jobs/JobHistory";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Download } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
+import { useEstimates } from "@/hooks/useEstimates";
+import { useInvoices } from "@/hooks/useInvoices";
+import { usePayments } from "@/hooks/usePayments";
 
-const JobDetailsPage = () => {
-  const { jobId } = useParams<{ jobId: string }>();
+// Inner component that uses hooks within the provider
+const JobDetailsContent = ({ jobId }: { jobId: string }) => {
   const location = useLocation();
-  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<string>("overview");
-  const { hasPermission } = useRBAC();
-  const isMobile = useIsMobile();
+
+  // Get data for progress indicator
+  const { estimates } = useEstimates(jobId);
+  const { invoices } = useInvoices(jobId);
+  const { payments } = usePayments(jobId);
 
   useEffect(() => {
-    if (location.state && location.state.activeTab) {
-      setActiveTab(location.state.activeTab);
+    if (location.state && (location.state as any).activeTab) {
+      setActiveTab((location.state as any).activeTab);
       window.history.replaceState({}, document.title);
     }
   }, [location]);
@@ -38,21 +42,72 @@ const JobDetailsPage = () => {
     toast.success('Estimate converted to invoice successfully');
   };
 
-  // Export job data functionality
-  const exportJobData = () => {
-    // Export estimates, invoices, payments to PDF/Excel
-    toast.success('Job data export started');
-    // TODO: Implement actual export functionality
-  };
+  // Calculate progress data
+  const estimateCount = estimates?.length || 0;
+  const invoiceCount = invoices?.length || 0;
+  const paymentCount = payments?.length || 0;
+  const hasApprovedEstimate = estimates?.some(e => e.status === 'approved' || e.status === 'converted') || false;
+  const hasSentInvoice = invoices?.some(i => i.status === 'sent' || i.status === 'paid' || i.status === 'partial') || false;
+  const hasPayments = paymentCount > 0;
+  const outstandingBalance = invoices?.reduce((sum, inv) => {
+    const balance = inv.balance_due ?? inv.balance ?? (inv.total - (inv.amount_paid || 0));
+    return sum + (balance > 0 ? balance : 0);
+  }, 0) || 0;
 
-  // Validate job ID format
-  const isValidJobId = (jobId: string) => {
-    // Job IDs should start with J- followed by numbers
-    return /^J-\d+$/.test(jobId);
-  };
+  return (
+    <div className="container mx-auto px-2 sm:px-4 max-w-none overflow-x-hidden">
+      <JobDetailsHeader />
+
+      <div className="w-full mt-6">
+        <JobDetailsTabs
+          activeTab={activeTab}
+          onTabChange={setActiveTab}
+          estimateCount={estimateCount}
+          invoiceCount={invoiceCount}
+          paymentCount={paymentCount}
+          hasApprovedEstimate={hasApprovedEstimate}
+          hasSentInvoice={hasSentInvoice}
+          hasPayments={hasPayments}
+          outstandingBalance={outstandingBalance}
+        >
+          {/* Lazy load tabs - only render active tab to prevent duplicate data fetches */}
+          <TabsContent value="overview" className="mt-0">
+            {activeTab === "overview" && <JobOverview jobId={jobId} />}
+          </TabsContent>
+          <TabsContent value="estimates" className="mt-0">
+            {activeTab === "estimates" && (
+              <ModernJobEstimatesTab
+                jobId={jobId}
+                onEstimateConverted={handleEstimateConverted}
+              />
+            )}
+          </TabsContent>
+          <TabsContent value="invoices" className="mt-0">
+            {activeTab === "invoices" && <ModernJobInvoicesTab jobId={jobId} />}
+          </TabsContent>
+          <TabsContent value="payments" className="mt-0">
+            {activeTab === "payments" && <JobPayments jobId={jobId} />}
+          </TabsContent>
+          <TabsContent value="history" className="mt-0">
+            {activeTab === "history" && <JobHistory jobId={jobId} />}
+          </TabsContent>
+        </JobDetailsTabs>
+      </div>
+    </div>
+  );
+};
+
+// Validate job ID format
+const isValidJobId = (jobId: string) => {
+  // Job IDs should start with J- followed by numbers
+  return /^J-\d+$/.test(jobId);
+};
+
+const JobDetailsPage = () => {
+  const { jobId } = useParams<{ jobId: string }>();
+  const navigate = useNavigate();
 
   if (!jobId) {
-    console.error("❌ JobDetailsPage - No job ID provided");
     return (
       <PageLayout>
         <div className="container mx-auto px-2 sm:px-4">
@@ -74,7 +129,6 @@ const JobDetailsPage = () => {
   }
 
   if (!isValidJobId(jobId)) {
-    console.error("❌ JobDetailsPage - Invalid job ID format:", jobId);
     return (
       <PageLayout>
         <div className="container mx-auto px-2 sm:px-4">
@@ -100,35 +154,7 @@ const JobDetailsPage = () => {
   return (
     <PageLayout>
       <JobDetailsProvider jobId={jobId}>
-        <div className="container mx-auto px-2 sm:px-4 max-w-none overflow-x-hidden">
-          <JobDetailsHeader />
-
-          <div className="w-full mt-6">
-            <JobDetailsTabs
-              activeTab={activeTab}
-              onTabChange={setActiveTab}
-            >
-              <TabsContent value="overview" className="mt-0">
-                <JobOverview jobId={jobId} />
-              </TabsContent>
-              <TabsContent value="estimates" className="mt-0">
-                <ModernJobEstimatesTab
-                  jobId={jobId}
-                  onEstimateConverted={handleEstimateConverted}
-                />
-              </TabsContent>
-              <TabsContent value="invoices" className="mt-0">
-                <ModernJobInvoicesTab jobId={jobId} />
-              </TabsContent>
-              <TabsContent value="payments" className="mt-0">
-                <JobPayments jobId={jobId} />
-              </TabsContent>
-              <TabsContent value="history" className="mt-0">
-                <JobHistory jobId={jobId} />
-              </TabsContent>
-            </JobDetailsTabs>
-          </div>
-        </div>
+        <JobDetailsContent jobId={jobId} />
       </JobDetailsProvider>
     </PageLayout>
   );

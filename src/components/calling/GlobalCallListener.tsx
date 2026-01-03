@@ -4,6 +4,8 @@ import { ActiveCallInterface } from './ActiveCallInterface';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/use-auth';
 
+const isDev = process.env.NODE_ENV === 'development';
+
 interface IncomingCall {
   callControlId: string;
   from: string;
@@ -42,13 +44,13 @@ export const GlobalCallListener = () => {
   useEffect(() => {
     if (!user?.id) return;
 
-    console.log('[GlobalCallListener] Setting up call subscriptions for user:', user.id);
+    if (isDev) console.log('[GlobalCallListener] Setting up call subscriptions');
 
     // Subscribe to incoming calls
     const incomingChannel = supabase
       .channel('incoming-calls-global')
       .on('broadcast', { event: 'incoming_call' }, (payload) => {
-        console.log('[GlobalCallListener] Incoming call received:', payload);
+        if (isDev) console.log('[GlobalCallListener] Incoming call received:', payload);
         const callData = payload.payload as IncomingCall;
         setIncomingCall(callData);
 
@@ -56,20 +58,20 @@ export const GlobalCallListener = () => {
         try {
           const audio = new Audio('/sounds/incoming-call.mp3');
           audio.volume = 0.5;
-          audio.play().catch(err => console.log('Could not play notification sound:', err));
-        } catch (e) {
-          console.log('Audio not available');
+          audio.play().catch(() => {}); // Silent catch
+        } catch {
+          // Audio not available
         }
       })
       .subscribe((status) => {
-        console.log('[GlobalCallListener] Incoming calls channel status:', status);
+        if (isDev) console.log('[GlobalCallListener] Incoming calls channel:', status);
       });
 
     // Subscribe to call updates
     const updatesChannel = supabase
       .channel('call-updates-global')
       .on('broadcast', { event: 'call_answered' }, (payload) => {
-        console.log('[GlobalCallListener] Call answered:', payload);
+        if (isDev) console.log('[GlobalCallListener] Call answered:', payload);
         const currentIncoming = incomingCallRef.current;
         if (currentIncoming?.callControlId === payload.payload.callControlId) {
           setActiveCall({
@@ -83,7 +85,7 @@ export const GlobalCallListener = () => {
         }
       })
       .on('broadcast', { event: 'call_ended' }, (payload) => {
-        console.log('[GlobalCallListener] Call ended:', payload);
+        if (isDev) console.log('[GlobalCallListener] Call ended:', payload);
         if (activeCallRef.current?.callControlId === payload.payload.callControlId) {
           setActiveCall(null);
         }
@@ -92,7 +94,7 @@ export const GlobalCallListener = () => {
         }
       })
       .on('broadcast', { event: 'call_action' }, (payload) => {
-        console.log('[GlobalCallListener] Call action:', payload);
+        if (isDev) console.log('[GlobalCallListener] Call action:', payload);
         if (activeCallRef.current?.callControlId === payload.payload.callControlId) {
           const { action } = payload.payload;
           if (action === 'hold') {
@@ -103,11 +105,11 @@ export const GlobalCallListener = () => {
         }
       })
       .subscribe((status) => {
-        console.log('[GlobalCallListener] Call updates channel status:', status);
+        if (isDev) console.log('[GlobalCallListener] Call updates channel:', status);
       });
 
     return () => {
-      console.log('[GlobalCallListener] Cleaning up subscriptions');
+      if (isDev) console.log('[GlobalCallListener] Cleaning up subscriptions');
       supabase.removeChannel(incomingChannel);
       supabase.removeChannel(updatesChannel);
     };
@@ -116,16 +118,16 @@ export const GlobalCallListener = () => {
   const handleAnswerCall = () => {
     // InboundCallNotification handles the API call
     // State will be updated via real-time subscription
-    console.log('[GlobalCallListener] Answer button clicked');
+    if (isDev) console.log('[GlobalCallListener] Answer button clicked');
   };
 
   const handleDeclineCall = () => {
-    console.log('[GlobalCallListener] Decline button clicked');
+    if (isDev) console.log('[GlobalCallListener] Decline button clicked');
     setIncomingCall(null);
   };
 
   const handleEndCall = () => {
-    console.log('[GlobalCallListener] End call clicked');
+    if (isDev) console.log('[GlobalCallListener] End call clicked');
     setActiveCall(null);
   };
 

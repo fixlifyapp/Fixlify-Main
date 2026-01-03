@@ -3,16 +3,47 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
+/**
+ * Business hours configuration for each day of the week
+ */
+interface DayHours {
+  enabled: boolean;
+  open: string;
+  close: string;
+}
+
+/**
+ * Complete business hours schedule
+ */
+interface BusinessHours {
+  monday: DayHours;
+  tuesday: DayHours;
+  wednesday: DayHours;
+  thursday: DayHours;
+  friday: DayHours;
+  saturday: DayHours;
+  sunday: DayHours;
+}
+
+/**
+ * AWS credentials for voice configuration
+ */
+interface AWSCredentials {
+  aws_region?: string;
+  connect_instance_arn?: string;
+  [key: string]: any;
+}
+
 interface AIAgentConfig {
   id: string;
   user_id: string;
   company_name: string;
   business_niche: string;
-  service_types: any; // Using any to match Json type from database
-  service_areas: any[];
+  service_types: string[];
+  service_areas: string[];
   diagnostic_price: number;
   emergency_surcharge: number;
-  business_hours: any;
+  business_hours: BusinessHours;
   custom_prompt_additions?: string;
   is_active: boolean;
   agent_name: string;
@@ -60,9 +91,10 @@ export const useAIAgentConfig = () => {
       } else {
         setConfig(null);
       }
-    } catch (err: any) {
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to load AI agent configuration';
       console.error('Error in loadConfig:', err);
-      setError(err.message);
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -100,9 +132,10 @@ export const useAIAgentConfig = () => {
       setConfig(transformedData);
       toast.success('AI agent configuration saved successfully');
       return transformedData;
-    } catch (err: any) {
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to save AI agent configuration';
       console.error('Error in saveConfig:', err);
-      setError(err.message);
+      setError(errorMessage);
       toast.error('Failed to save AI agent configuration');
       throw err;
     } finally {
@@ -130,11 +163,12 @@ export const useAIAgentConfig = () => {
       }
 
       setConfig(prev => prev ? { ...prev, is_active: newActiveState } : null);
-      
+
       return newActiveState;
-    } catch (err: any) {
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to toggle AI agent status';
       console.error('Error in toggleActive:', err);
-      setError(err.message);
+      setError(errorMessage);
       toast.error('Failed to toggle AI agent status');
       throw err;
     }
@@ -179,19 +213,20 @@ export const useAIAgentConfig = () => {
       };
 
       return await saveConfig(defaultConfig);
-    } catch (err: any) {
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to create default AI agent configuration';
       console.error('Error creating default config:', err);
-      setError(err.message);
+      setError(errorMessage);
       toast.error('Failed to create default AI agent configuration');
       throw err;
     }
   };
 
-  const saveAWSCredentials = async (credentials: any) => {
+  const saveAWSCredentials = async (credentials: Partial<AWSCredentials>): Promise<AIAgentConfig> => {
     try {
       // For now, just save to the config
       return await saveConfig(credentials);
-    } catch (err: any) {
+    } catch (err) {
       console.error('Error saving AWS credentials:', err);
       throw err;
     }

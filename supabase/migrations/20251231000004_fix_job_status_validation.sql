@@ -19,18 +19,33 @@
 -- STEP 1: Update existing data to standard format
 -- =====================================================
 
--- Convert underscored statuses to hyphenated format
+-- Convert ALL non-standard statuses to hyphenated format
 UPDATE jobs
 SET status = CASE
     WHEN status = 'in_progress' THEN 'in-progress'
     WHEN status = 'on_hold' THEN 'on-hold'
+    WHEN status = 'pending' THEN 'scheduled'
+    WHEN status = 'open' THEN 'scheduled'
+    WHEN status = 'new' THEN 'scheduled'
+    WHEN status = 'done' THEN 'completed'
+    WHEN status = 'finished' THEN 'completed'
+    WHEN status = 'closed' THEN 'completed'
+    WHEN status = 'canceled' THEN 'cancelled'
+    WHEN status = 'waiting' THEN 'on-hold'
+    WHEN status = 'paused' THEN 'on-hold'
+    WHEN status = 'active' THEN 'in-progress'
+    WHEN status = 'working' THEN 'in-progress'
+    WHEN status IS NULL THEN 'scheduled'
+    WHEN status NOT IN ('scheduled', 'in-progress', 'completed', 'cancelled', 'on-hold') THEN 'scheduled'
     ELSE status
-END
-WHERE status IN ('in_progress', 'on_hold');
+END;
 
 -- =====================================================
 -- STEP 2: Add CHECK constraint
 -- =====================================================
+
+-- Drop constraint if it already exists
+ALTER TABLE jobs DROP CONSTRAINT IF EXISTS jobs_status_check;
 
 -- Add constraint to enforce valid status values
 ALTER TABLE jobs

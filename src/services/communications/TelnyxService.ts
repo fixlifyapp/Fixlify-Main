@@ -5,9 +5,9 @@ export class TelnyxService {
     try {
       const { data, error } = await supabase.functions.invoke('telnyx-sms', {
         body: {
-          to,
+          recipientPhone: to,
           message,
-          userId,
+          user_id: userId,
           metadata
         }
       });

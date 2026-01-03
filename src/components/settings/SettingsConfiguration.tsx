@@ -10,6 +10,7 @@ import { TelnyxConfig } from "./configuration/TelnyxConfig";
 import { DocumentNumberingConfig } from "./configuration/DocumentNumberingConfig";
 import { NicheConfig } from "./configuration/NicheConfig";
 import { TaxConfig } from "./configuration/TaxConfig";
+import { UpsellConfig } from "./configuration/UpsellConfig";
 import { useAuth } from "@/hooks/use-auth";
 
 
@@ -28,7 +29,7 @@ export function SettingsConfiguration() {
       </div>
 
       <Tabs defaultValue="business-niche" className="space-y-4">
-        <TabsList className="grid grid-cols-10 w-full">
+        <TabsList className="grid grid-cols-11 w-full">
           <TabsTrigger value="business-niche">Business Niche</TabsTrigger>
           <TabsTrigger value="document-numbering">Document Numbering</TabsTrigger>
           <TabsTrigger value="job-types">Job Types</TabsTrigger>
@@ -37,6 +38,7 @@ export function SettingsConfiguration() {
           <TabsTrigger value="tags">Tags</TabsTrigger>
           <TabsTrigger value="custom-fields">Custom Fields</TabsTrigger>
           <TabsTrigger value="tax-config">Tax Settings</TabsTrigger>
+          <TabsTrigger value="upsells">Upsells</TabsTrigger>
           <TabsTrigger value="mailgun">Email</TabsTrigger>
           <TabsTrigger value="telnyx">SMS</TabsTrigger>
         </TabsList>
@@ -83,6 +85,10 @@ export function SettingsConfiguration() {
 
         <TabsContent value="tax-config">
           <TaxConfig />
+        </TabsContent>
+
+        <TabsContent value="upsells">
+          <UpsellConfig />
         </TabsContent>
 
         <TabsContent value="mailgun">

@@ -2,9 +2,11 @@
 import { useEffect, useRef, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
+const isDev = process.env.NODE_ENV === 'development';
+
 /**
  * Hook to set up real-time subscriptions to Supabase tables
- * 
+ *
  * @param options Configuration options for real-time subscriptions
  * @param options.tables Array of tables to subscribe to
  * @param options.onUpdate Callback function to run when changes occur
@@ -37,14 +39,14 @@ export const useRealtimeSync = ({
     if (!enabled) return;
 
     const currentTables = tablesKey.split(',').filter(Boolean);
-    console.log("🔄 Setting up real-time sync for tables:", currentTables);
+    if (isDev) console.log("🔄 Setting up real-time sync for tables:", currentTables);
 
     // Store all channels so we can clean them up later
     const channels = currentTables.map(table => {
       // Map display names to actual table names
       const tableNameMap: Record<string, string> = {
         'tags': 'tags',
-        'job_types': 'job_types', 
+        'job_types': 'job_types',
         'job_statuses': 'job_statuses',
         'custom_fields': 'custom_fields',
         'lead_sources': 'lead_sources',
@@ -52,9 +54,9 @@ export const useRealtimeSync = ({
         'clients': 'clients',
         'job_custom_field_values': 'job_custom_field_values'
       };
-      
+
       const actualTableName = tableNameMap[table] || table;
-      
+
       // Create filter string if filter is provided
       let filterString = undefined;
       const currentFilter = filterRef.current;
@@ -65,14 +67,12 @@ export const useRealtimeSync = ({
           filterString = `${column}=eq.${value}`;
         }
       }
-      
-      console.log(`📡 Creating real-time channel for table: ${actualTableName}`, {
-        filter: filterString
-      });
-      
-      // Create and subscribe to the channel
+
+      if (isDev) console.log(`📡 Creating real-time channel for table: ${actualTableName}`);
+
+      // Create and subscribe to the channel - use static channel name to avoid recreation
       const channel = supabase
-        .channel(`realtime-${actualTableName}-${Date.now()}`)
+        .channel(`realtime-sync-${actualTableName}`)
         .on(
           'postgres_changes',
           {
@@ -82,25 +82,20 @@ export const useRealtimeSync = ({
             filter: filterString
           },
           (payload) => {
-            console.log(`🔔 Real-time update for ${actualTableName}:`, {
-              event: payload.eventType,
-              table: payload.table,
-              old: payload.old,
-              new: payload.new
-            });
+            if (isDev) console.log(`🔔 Real-time update for ${actualTableName}:`, payload.eventType);
             onUpdateRef.current();
           }
         )
         .subscribe((status) => {
-          console.log(`📡 Subscription status for ${actualTableName}:`, status);
+          if (isDev) console.log(`📡 Subscription status for ${actualTableName}:`, status);
         });
-        
+
       return channel;
     });
-    
+
     // Clean up all subscriptions when component unmounts
     return () => {
-      console.log("🧹 Cleaning up real-time subscriptions");
+      if (isDev) console.log("🧹 Cleaning up real-time subscriptions");
       channels.forEach(channel => {
         if (channel) {
           supabase.removeChannel(channel);

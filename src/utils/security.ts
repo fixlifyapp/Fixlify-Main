@@ -41,7 +41,8 @@ export const validateSessionToken = (token: string): boolean => {
 
 export const getPortalDomain = (): string => {
   // Make portal domain configurable with fallback
-  return process.env.PORTAL_DOMAIN || 'https://hub.fixlify.app';
+  // Note: hub.fixlify.app was not properly configured - using main domain
+  return process.env.PORTAL_DOMAIN || 'https://fixlify.app';
 };
 
 export const validatePortalDomain = (domain: string): boolean => {

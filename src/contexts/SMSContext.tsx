@@ -3,6 +3,14 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/use-auth';
 
+interface SMSMetadata {
+  conversationId?: string;
+  clientId?: string;
+  clientName?: string;
+  source?: string;
+  [key: string]: string | number | boolean | null | undefined;
+}
+
 interface SMSConversation {
   id: string;
   user_id: string;
@@ -33,7 +41,7 @@ interface SMSMessage {
   content: string;
   status: string;
   external_id?: string;
-  metadata?: any;
+  metadata?: SMSMetadata;
   created_at: string;
 }
 
@@ -89,13 +97,14 @@ export const SMSProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       
       setConversations(data || []);
     } catch (error) {
-      console.error('Error fetching conversations:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      console.error('Error fetching conversations:', errorMessage);
     }
   }, [user?.id]);
 
   const fetchMessages = useCallback(async (conversationId: string) => {
     if (!conversationId) return;
-    
+
     setIsLoading(true);
     try {
       const { data, error } = await supabase
@@ -105,14 +114,15 @@ export const SMSProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         .order('created_at', { ascending: true });
 
       if (error) throw error;
-      
+
       setMessages((data || []).map(msg => ({
         ...msg,
         direction: msg.direction as 'inbound' | 'outbound'
       })));
       prevMessageCountRef.current = data?.length || 0;
     } catch (error) {
-      console.error('Error fetching messages:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      console.error('Error fetching messages:', errorMessage);
       toast.error('Failed to load messages');
     } finally {
       setIsLoading(false);
@@ -205,12 +215,13 @@ export const SMSProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       }
 
       toast.success('Message sent successfully');
-      
+
       // Refresh messages and conversations
       await fetchMessages(conversationId);
       await fetchConversations();
-    } catch (error: any) {
-      console.error('Error sending message:', error);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      console.error('Error sending message:', errorMessage);
       toast.error('Failed to send message');
     } finally {
       setIsSending(false);
@@ -219,7 +230,7 @@ export const SMSProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   const createConversation = useCallback(async (clientId: string, phoneNumber: string): Promise<string | null> => {
     if (!user?.id) return null;
-    
+
     try {
       // Get user's phone number
       const { data: phoneData, error: phoneError } = await supabase
@@ -265,7 +276,8 @@ export const SMSProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       await fetchConversations();
       return data.id;
     } catch (error) {
-      console.error('Error creating conversation:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      console.error('Error creating conversation:', errorMessage);
       toast.error('Failed to create conversation');
       return null;
     }
@@ -278,7 +290,8 @@ export const SMSProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         .update({ unread_count: 0 })
         .eq('id', conversationId);
     } catch (error) {
-      console.error('Error marking as read:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      console.error('Error marking as read:', errorMessage);
     }
   }, []);
 
@@ -350,7 +363,8 @@ export const SMSProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
           supabase.removeChannel(conversationsChannel);
         }
       } catch (error) {
-        console.warn('Error removing conversations channel:', error);
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        console.warn('Error removing conversations channel:', errorMessage);
       }
     };
   }, [user?.id, fetchConversations]);
@@ -391,7 +405,8 @@ export const SMSProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       try {
         supabase.removeChannel(allMessagesChannel);
       } catch (error) {
-        console.warn('Error removing global messages channel:', error);
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        console.warn('Error removing global messages channel:', errorMessage);
       }
     };
   }, [user?.id, activeConversation?.id, fetchConversations, fetchMessages]);
@@ -417,7 +432,7 @@ export const SMSProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         (payload) => {
           console.log('SMS message updated:', payload);
           fetchMessages(activeConversation.id);
-          
+
           // If it's a new inbound message, mark conversation as having unread messages
           if (payload.eventType === 'INSERT' && payload.new.direction === 'inbound') {
             fetchConversations();
@@ -432,7 +447,8 @@ export const SMSProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
           supabase.removeChannel(messagesChannel);
         }
       } catch (error) {
-        console.warn('Error removing messages channel:', error);
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        console.warn('Error removing messages channel:', errorMessage);
       }
     };
   }, [activeConversation?.id, fetchMessages, fetchConversations]);

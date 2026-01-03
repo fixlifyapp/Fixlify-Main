@@ -3,10 +3,11 @@
 -- (owner, tenant, property_manager, emergency_contact) for landlord/tenant scenarios
 
 -- Create property_contacts junction table
+-- Note: client_id is TEXT because clients.id is TEXT (not UUID)
 CREATE TABLE IF NOT EXISTS property_contacts (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   property_id UUID NOT NULL REFERENCES client_properties(id) ON DELETE CASCADE,
-  client_id UUID NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
+  client_id TEXT NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
 
   -- Role/type of contact for this property
   role TEXT NOT NULL CHECK (role IN ('owner', 'tenant', 'property_manager', 'emergency_contact')),

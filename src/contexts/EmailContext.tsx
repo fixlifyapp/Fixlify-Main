@@ -3,6 +3,19 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/use-auth';
 import { toast } from 'sonner';
 
+interface EmailAttachment {
+  id?: string;
+  filename: string;
+  mimetype: string;
+  size: number;
+  url?: string;
+  [key: string]: any;
+}
+
+interface EmailMetadata {
+  [key: string]: string | number | boolean | null | undefined;
+}
+
 interface EmailConversation {
   id: string;
   user_id: string;
@@ -29,12 +42,12 @@ interface EmailMessage {
   subject: string | null;
   body: string;
   html_body: string | null;
-  attachments: any;
+  attachments: EmailAttachment[];
   is_read: boolean;
   email_id: string | null;
   thread_id: string | null;
   status: string;
-  metadata: any;
+  metadata: EmailMetadata;
   created_at: string;
 }
 
@@ -82,7 +95,8 @@ export const EmailProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       if (error) throw error;
       setConversations(data || []);
     } catch (error) {
-      console.error('Error fetching email conversations:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      console.error('Error fetching email conversations:', errorMessage);
       toast.error('Failed to load email conversations');
     } finally {
       setIsLoading(false);
@@ -104,10 +118,11 @@ export const EmailProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       setMessages((data || []).map(msg => ({
         ...msg,
         direction: msg.direction as 'inbound' | 'outbound',
-        attachments: Array.isArray(msg.attachments) ? msg.attachments : []
+        attachments: Array.isArray(msg.attachments) ? msg.attachments as EmailAttachment[] : []
       })));
     } catch (error) {
-      console.error('Error fetching email messages:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      console.error('Error fetching email messages:', errorMessage);
       toast.error('Failed to load email messages');
     }
   };
@@ -191,7 +206,8 @@ export const EmailProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         }
       }
     } catch (error) {
-      console.error('Error in sendEmail:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      console.error('Error in sendEmail:', errorMessage);
       toast.error('Failed to send email');
     }
   };
@@ -205,12 +221,13 @@ export const EmailProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         .eq('id', messageId);
 
       if (error) throw error;
-      
-      setMessages(prev => 
+
+      setMessages(prev =>
         prev.map(m => m.id === messageId ? { ...m, is_read: true } : m)
       );
     } catch (error) {
-      console.error('Error marking email as read:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      console.error('Error marking email as read:', errorMessage);
     }
   };
 
@@ -223,14 +240,16 @@ export const EmailProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         .eq('id', conversationId);
 
       if (error) throw error;
-      
+
       toast.success('Conversation archived');
       await fetchConversations();
     } catch (error) {
-      console.error('Error archiving conversation:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      console.error('Error archiving conversation:', errorMessage);
       toast.error('Failed to archive conversation');
     }
   };
+
   // Delete conversation
   const deleteConversation = async (conversationId: string) => {
     try {
@@ -240,12 +259,13 @@ export const EmailProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         .eq('id', conversationId);
 
       if (error) throw error;
-      
+
       toast.success('Conversation deleted');
       setSelectedConversation(null);
       await fetchConversations();
     } catch (error) {
-      console.error('Error deleting conversation:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      console.error('Error deleting conversation:', errorMessage);
       toast.error('Failed to delete conversation');
     }
   };

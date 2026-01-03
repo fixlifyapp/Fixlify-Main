@@ -1,429 +1,623 @@
-import { useState, useEffect } from "react";
-import { useParams } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Card } from "@/components/ui/card";
-import { Loader2, Download, CreditCard, Printer, Clock, CheckCircle, DollarSign, Eye, Share2 } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
-import QRCode from "react-qr-code";
-import { format } from "date-fns";
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useParams } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
+import { Badge } from '@/components/ui/badge';
+import { Card } from '@/components/ui/card';
+import { DollarSign, CheckCircle, Clock } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
+import { format } from 'date-fns';
+import QRCode from 'react-qr-code';
 import {
   DocumentHeader,
   DocumentItemsTable,
   DocumentTotals,
-  DocumentNotes
-} from "@/components/documents/DocumentComponents";
-import { PortalThemeProvider, usePortalTheme } from "@/components/portal/PortalThemeProvider";
-import { ThemeToggle } from "@/components/portal/ThemeToggle";
-import { AccessibilityControls } from "@/components/portal/AccessibilityControls";
+  DocumentNotes,
+} from '@/components/documents/DocumentComponents';
+import { PortalThemeProvider, usePortalTheme } from '@/components/portal/PortalThemeProvider';
+import { PortalActionBar } from '@/components/portal/PortalActionBar';
+import { PortalLoadingSkeleton } from '@/components/portal/PortalLoadingSkeleton';
+import { PortalErrorState } from '@/components/portal/PortalErrorState';
+import { cn } from '@/lib/utils';
+
+interface InvoiceData {
+  id: string;
+  invoice_number: string;
+  payment_status: string;
+  status?: string;
+  description?: string;
+  notes?: string;
+  terms?: string;
+  created_at: string;
+  invoice_date?: string;
+  due_date?: string;
+  tax_rate?: number;
+  tax_amount?: number;
+  discount_amount?: number;
+  total?: number;
+  subtotal?: number;
+  job_id?: string;
+  client_id?: string;
+  contact_role?: 'owner' | 'tenant' | 'property_manager' | 'emergency_contact';
+}
+
+interface JobData {
+  id: string;
+  title: string;
+  description?: string;
+  property_id?: string;
+}
+
+interface ClientData {
+  id: string;
+  name: string;
+  email?: string;
+  phone?: string;
+  company?: string;
+  address?: string;
+  city?: string;
+  state?: string;
+  zip?: string;
+}
+
+interface PropertyData {
+  id: string;
+  property_name?: string;
+  address?: string;
+  city?: string;
+  state?: string;
+  zip?: string;
+  property_type?: string;
+}
+
+interface CompanyData {
+  name?: string;
+  email?: string;
+  phone?: string;
+  website?: string;
+  address?: string;
+  city?: string;
+  state?: string;
+  zip?: string;
+  logo?: string;
+}
+
+interface PaymentData {
+  id: string;
+  amount: number | string;
+  method: string;
+  status?: string;
+  payment_date?: string;
+  created_at: string;
+  reference?: string;
+}
+
+interface LineItem {
+  id: string;
+  name?: string;
+  description?: string;
+  quantity?: string | number;
+  rate?: string | number;
+  price?: string | number;
+  amount?: string | number;
+  total?: string | number;
+}
 
 function InvoicePortalContent() {
-  const { token } = useParams();
+  const { token } = useParams<{ token: string }>();
   const [loading, setLoading] = useState(true);
-  const [invoice, setInvoice] = useState<any>(null);
-  const [job, setJob] = useState<any>(null);
-  const [client, setClient] = useState<any>(null);
-  const [company, setCompany] = useState<any>(null);
-  const [payments, setPayments] = useState<any[]>([]);
-  const [lineItems, setLineItems] = useState<any[]>([]);
+  const [error, setError] = useState<string | null>(null);
+  const [invoice, setInvoice] = useState<InvoiceData | null>(null);
+  const [job, setJob] = useState<JobData | null>(null);
+  const [client, setClient] = useState<ClientData | null>(null);
+  const [property, setProperty] = useState<PropertyData | null>(null);
+  const [company, setCompany] = useState<CompanyData | null>(null);
+  const [payments, setPayments] = useState<PaymentData[]>([]);
+  const [lineItems, setLineItems] = useState<LineItem[]>([]);
   const { toast } = useToast();
   const { isDark } = usePortalTheme();
 
-  useEffect(() => {
-    if (token) {
-      loadInvoiceData();
+  const loadInvoiceData = useCallback(async () => {
+    if (!token) {
+      setError('Invalid access link. Please check your URL and try again.');
+      setLoading(false);
+      return;
     }
-  }, [token]);
 
-  const loadInvoiceData = async () => {
     try {
       setLoading(true);
-      
+      setError(null);
+
       // Load invoice by portal access token
       const { data: invoiceData, error: invoiceError } = await supabase
-        .from("invoices")
-        .select("*")
-        .eq("portal_access_token", token)
+        .from('invoices')
+        .select('*')
+        .eq('portal_access_token', token)
         .maybeSingle();
 
-      if (invoiceError || !invoiceData) {
-        throw new Error("Invoice not found or invalid access token");
+      if (invoiceError) {
+        console.error('Invoice fetch error:', invoiceError);
+        throw new Error('Unable to load invoice. Please try again.');
+      }
+
+      if (!invoiceData) {
+        setError('This invoice could not be found or the link has expired.');
+        setLoading(false);
+        return;
       }
 
       setInvoice(invoiceData);
 
+      // Load related data in parallel for better performance
+      const promises: Promise<void>[] = [];
+
       // Load job if exists
       if (invoiceData.job_id) {
-        const { data: jobData } = await supabase
-          .from("jobs")
-          .select("*")
-          .eq("id", invoiceData.job_id)
-          .maybeSingle();
-        
-        if (jobData) {
-          setJob(jobData);
-        }
+        promises.push(
+          supabase
+            .from('jobs')
+            .select('id, title, description, property_id')
+            .eq('id', invoiceData.job_id)
+            .maybeSingle()
+            .then(({ data: jobData }) => {
+              if (jobData) {
+                setJob(jobData);
+                // Load property if job has one
+                if (jobData.property_id) {
+                  return supabase
+                    .from('client_properties')
+                    .select('id, property_name, address, city, state, zip, property_type')
+                    .eq('id', jobData.property_id)
+                    .maybeSingle()
+                    .then(({ data: propertyData }) => {
+                      if (propertyData) setProperty(propertyData);
+                    });
+                }
+              }
+            })
+        );
       }
 
       // Load client if exists
       if (invoiceData.client_id) {
-        const { data: clientData } = await supabase
-          .from("clients")
-          .select("*")
-          .eq("id", invoiceData.client_id)
-          .maybeSingle();
-        
-        if (clientData) {
-          setClient(clientData);
-        }
+        promises.push(
+          supabase
+            .from('clients')
+            .select('id, name, email, phone, company, address, city, state, zip')
+            .eq('id', invoiceData.client_id)
+            .maybeSingle()
+            .then(({ data: clientData }) => {
+              if (clientData) setClient(clientData);
+            })
+        );
       }
 
-      // Load payments for this invoice
-      const { data: paymentsData } = await supabase
-        .from("payments")
-        .select("*")
-        .eq("invoice_id", invoiceData.id)
-        .order("payment_date", { ascending: false });
+      // Load payments
+      promises.push(
+        supabase
+          .from('payments')
+          .select('*')
+          .eq('invoice_id', invoiceData.id)
+          .order('payment_date', { ascending: false })
+          .then(({ data: paymentsData }) => {
+            if (paymentsData) setPayments(paymentsData);
+          })
+      );
 
-      if (paymentsData) {
-        setPayments(paymentsData);
-      }
-
-      // Load line items for this invoice
-      const { data: lineItemsData } = await supabase
-        .from("line_items")
-        .select("*")
-        .eq("parent_type", "invoice")
-        .eq("parent_id", invoiceData.id)
-        .order("created_at", { ascending: true });
-
-      if (lineItemsData) {
-        setLineItems(lineItemsData);
-      }
+      // Load line items
+      promises.push(
+        supabase
+          .from('line_items')
+          .select('*')
+          .eq('parent_type', 'invoice')
+          .eq('parent_id', invoiceData.id)
+          .order('created_at', { ascending: true })
+          .then(({ data: lineItemsData }) => {
+            if (lineItemsData) setLineItems(lineItemsData);
+          })
+      );
 
       // Load company settings
-      const { data: companyData } = await supabase
-        .from("company_settings")
-        .select("*")
-        .limit(1)
-        .maybeSingle();
-      
-      if (companyData) {
-        setCompany({
-          name: companyData.company_name,
-          email: companyData.company_email,
-          phone: companyData.company_phone,
-          website: companyData.company_website,
-          address: companyData.company_address,
-          city: companyData.company_city,
-          state: companyData.company_state,
-          zip: companyData.company_zip,
-          logo: companyData.company_logo_url
-        });
-      }
-    } catch (error) {
-      console.error("Error loading invoice:", error);
-      toast.error("Failed to load invoice. Please check your link and try again.");
+      promises.push(
+        supabase
+          .from('company_settings')
+          .select('*')
+          .limit(1)
+          .maybeSingle()
+          .then(({ data: companyData }) => {
+            if (companyData) {
+              setCompany({
+                name: companyData.company_name,
+                email: companyData.company_email,
+                phone: companyData.company_phone,
+                website: companyData.company_website,
+                address: companyData.company_address,
+                city: companyData.company_city,
+                state: companyData.company_state,
+                zip: companyData.company_zip,
+                logo: companyData.company_logo_url,
+              });
+            }
+          })
+      );
+
+      await Promise.all(promises);
+    } catch (err) {
+      console.error('Error loading invoice:', err);
+      setError(
+        err instanceof Error
+          ? err.message
+          : 'Failed to load invoice. Please try again.'
+      );
+      toast.error('Failed to load invoice. Please check your link and try again.');
     } finally {
       setLoading(false);
     }
-  };
+  }, [token, toast]);
 
-  const handlePrint = () => {
-    window.print();
-  };
+  useEffect(() => {
+    loadInvoiceData();
+  }, [loadInvoiceData]);
 
-  const handleDownload = () => {
-    toast.info("PDF download feature will be available soon. You can print this page using your browser's print function.");
-    window.print();
-  };
+  const handlePayNow = useCallback(() => {
+    toast.info(
+      'Online payment will be available soon. Please contact us for payment options.'
+    );
+    // TODO: Implement online payment flow (Stripe integration)
+  }, [toast]);
 
-  const handlePayNow = () => {
-    toast.info("Online payment will be available soon. Please contact us for payment options.");
-  };
+  // Utility functions
+  const formatCurrency = useCallback((amount: number) => {
+    return `$${Math.abs(amount).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',')}`;
+  }, []);
 
-  const handleShare = async () => {
-    const shareData = {
-      title: `Invoice #${invoice?.invoice_number}`,
-      text: `View invoice from ${company?.name || 'our company'}`,
-      url: window.location.href
-    };
+  const formatPaymentMethod = useCallback((method: string) => {
+    return method
+      .split('-')
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ');
+  }, []);
 
-    try {
-      if (navigator.share && navigator.canShare(shareData)) {
-        await navigator.share(shareData);
-      } else {
-        // Fallback: copy link to clipboard
-        await navigator.clipboard.writeText(window.location.href);
-        toast.success("Link copied to clipboard!");
-      }
-    } catch (error) {
-      if ((error as Error).name !== 'AbortError') {
-        await navigator.clipboard.writeText(window.location.href);
-        toast.success("Link copied to clipboard!");
-      }
-    }
-  };
+  // Calculate totals
+  const calculatedTotals = useMemo(() => {
+    if (!invoice) return { subtotal: 0, taxAmount: 0, taxRate: 0, discountAmount: 0, total: 0, totalPaid: 0, balance: 0, isPaid: false };
 
-  const formatCurrency = (amount: number) => {
-    return `$${amount.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',')}`;
-  };
+    const productItems = lineItems.filter(
+      (item) =>
+        !item.name?.toLowerCase().includes('tax') &&
+        !item.description?.toLowerCase().includes('tax')
+    );
 
-  const formatPaymentMethod = (method: string) => {
-    return method.split('-').map(word => 
-      word.charAt(0).toUpperCase() + word.slice(1)
-    ).join(' ');
-  };
+    const subtotal = productItems.reduce((sum, item) => {
+      const amount = parseFloat(String(item.total || item.amount || '0'));
+      return sum + amount;
+    }, 0);
 
+    const taxRate = invoice.tax_rate || 0;
+    const taxAmount = invoice.tax_amount || (subtotal * taxRate) / 100;
+    const discountAmount = invoice.discount_amount || 0;
+    const total = invoice.total || subtotal + taxAmount - discountAmount;
+    const totalPaid = payments.reduce(
+      (sum, payment) => sum + (parseFloat(String(payment.amount)) || 0),
+      0
+    );
+    const balance = total - totalPaid;
+    const isPaid = invoice.payment_status === 'paid' || balance <= 0;
+
+    return { subtotal, taxAmount, taxRate, discountAmount, total, totalPaid, balance, isPaid, productItems };
+  }, [invoice, lineItems, payments]);
+
+  // Loading state
   if (loading) {
+    return <PortalLoadingSkeleton documentType="invoice" />;
+  }
+
+  // Error state
+  if (error || !invoice) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
-        <div className="text-center">
-          <Loader2 className="h-12 w-12 animate-spin text-green-600 mx-auto mb-4" />
-          <p className="text-gray-600 dark:text-gray-400">Loading invoice...</p>
-        </div>
-      </div>
+      <PortalErrorState
+        type={!invoice ? 'not_found' : 'generic'}
+        message={error || undefined}
+        onRetry={loadInvoiceData}
+        supportEmail={company?.email}
+      />
     );
   }
 
-  if (!invoice) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
-        <div className="text-center">
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-12 max-w-md">
-            <div className="w-20 h-20 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-6">
-              <Eye className="h-10 w-10 text-gray-400" />
-            </div>
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Invoice Not Found</h2>
-            <p className="text-gray-600 dark:text-gray-400">The invoice you're looking for doesn't exist or has been removed.</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  const { subtotal, taxAmount, taxRate, discountAmount, total, totalPaid, balance, isPaid, productItems } = calculatedTotals;
 
-  // Filter out tax items from line items
-  const productItems = lineItems.filter((item: any) => 
-    !item.name?.toLowerCase().includes('tax') && 
-    !item.description?.toLowerCase().includes('tax')
-  );
-  const subtotal = productItems.reduce((sum: number, item: any) => {
-    const amount = parseFloat(item.total || item.amount || '0');
-    return sum + amount;
-  }, 0);
-  const taxRate = parseFloat(invoice.tax_rate) || 0;
-  const taxAmount = parseFloat(invoice.tax_amount) || (subtotal * taxRate / 100);
-  const discountAmount = parseFloat(invoice.discount_amount) || 0;
-  const total = parseFloat(invoice.total) || subtotal + taxAmount - discountAmount;
-  const totalPaid = payments.reduce((sum: number, payment: any) => 
-    sum + (parseFloat(payment.amount) || 0), 0
-  );
-  const balance = total - totalPaid;
-  const isPaid = invoice.payment_status === 'paid' || balance <= 0;
+  // Check if payment is needed
+  const needsPayment = !isPaid && balance > 0;
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-950 flex flex-col">
       {/* Action Bar */}
-      <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 sticky top-0 z-10 print:hidden">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-4">
-            <h1 className="text-lg font-semibold text-gray-900 dark:text-white">
-              Invoice #{invoice.invoice_number}
-            </h1>
-            <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-              {!isPaid && balance > 0 && (
-                <Button
-                  onClick={handlePayNow}
-                  className="bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800"
-                >
-                  <CreditCard className="h-4 w-4 sm:mr-2" />
-                  <span className="hidden sm:inline">Pay Now</span>
-                </Button>
-              )}
-              <Button
-                variant="outline"
-                onClick={handleShare}
-                title="Share"
-              >
-                <Share2 className="h-4 w-4 sm:mr-2" />
-                <span className="hidden sm:inline">Share</span>
-              </Button>
-              <Button
-                variant="outline"
-                onClick={handlePrint}
-                title="Print"
-              >
-                <Printer className="h-4 w-4 sm:mr-2" />
-                <span className="hidden sm:inline">Print</span>
-              </Button>
-              <Button
-                variant="outline"
-                onClick={handleDownload}
-                title="Download PDF"
-              >
-                <Download className="h-4 w-4 sm:mr-2" />
-                <span className="hidden sm:inline">Download</span>
-              </Button>
-              <ThemeToggle />
-              <AccessibilityControls />
+      <PortalActionBar
+        documentType="invoice"
+        documentNumber={invoice.invoice_number}
+        status={invoice.payment_status}
+        companyName={company?.name}
+        balance={balance}
+        onPrimaryAction={needsPayment ? handlePayNow : undefined}
+        primaryActionLabel={needsPayment ? `Pay ${formatCurrency(balance)}` : undefined}
+      />
+
+      {/* Main Content */}
+      <main className="flex-1">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+          {/* Payment Status Banner */}
+          {isPaid && (
+            <div className="mb-6 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl p-4 flex items-center gap-3">
+              <div className="flex-shrink-0 w-10 h-10 bg-green-100 dark:bg-green-900/50 rounded-full flex items-center justify-center">
+                <CheckCircle className="h-5 w-5 text-green-600 dark:text-green-400" />
+              </div>
+              <div>
+                <p className="font-semibold text-green-800 dark:text-green-200">
+                  Payment Complete
+                </p>
+                <p className="text-sm text-green-600 dark:text-green-400">
+                  Thank you for your payment of {formatCurrency(totalPaid)}
+                </p>
+              </div>
             </div>
-          </div>
-        </div>
-      </div>
+          )}
 
-      {/* Document Content */}
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg overflow-hidden">
-          {/* Header with Company and Client Info */}
-          <DocumentHeader
-            type="invoice"
-            documentNumber={invoice.invoice_number}
-            date={invoice.created_at}
-            dueDate={invoice.due_date}
-            status={invoice.payment_status}
-            company={company}
-            client={client}
-          />
+          {/* Overdue Warning */}
+          {invoice.payment_status === 'overdue' && (
+            <div className="mb-6 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-4 flex items-center gap-3">
+              <div className="flex-shrink-0 w-10 h-10 bg-red-100 dark:bg-red-900/50 rounded-full flex items-center justify-center">
+                <Clock className="h-5 w-5 text-red-600 dark:text-red-400" />
+              </div>
+              <div>
+                <p className="font-semibold text-red-800 dark:text-red-200">
+                  Payment Overdue
+                </p>
+                <p className="text-sm text-red-600 dark:text-red-400">
+                  This invoice is past due. Please make payment as soon as possible.
+                </p>
+              </div>
+            </div>
+          )}
 
-          {/* Job Information */}
-          {job && (
-            <div className="px-8 py-6 border-t border-gray-100">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider">Job Reference</h3>
-                  <p className="mt-1 text-lg text-gray-900">{job.title}</p>
-                </div>
-                {invoice.invoice_date && (
-                  <div className="text-right">
-                    <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider">Invoice Date</h3>
-                    <p className="mt-1 text-lg text-gray-900">
-                      {format(new Date(invoice.invoice_date), "MMMM dd, yyyy")}
+          <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-lg overflow-hidden">
+            {/* Header with Company and Client Info */}
+            <DocumentHeader
+              type="invoice"
+              documentNumber={invoice.invoice_number}
+              date={invoice.invoice_date || invoice.created_at}
+              dueDate={invoice.due_date}
+              status={invoice.payment_status}
+              company={company || undefined}
+              client={client || undefined}
+              property={
+                property
+                  ? {
+                      name: property.property_name,
+                      address: property.address,
+                      city: property.city,
+                      state: property.state,
+                      zip: property.zip,
+                      type: property.property_type,
+                    }
+                  : undefined
+              }
+              contactRole={invoice.contact_role}
+            />
+
+            {/* Job Information */}
+            {job && (
+              <div className="px-6 sm:px-8 py-4 sm:py-6 border-t border-gray-100 dark:border-gray-800">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                  <div>
+                    <h3 className="text-xs sm:text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                      Job Reference
+                    </h3>
+                    <p className="mt-1 text-base sm:text-lg text-gray-900 dark:text-white">
+                      {job.title}
                     </p>
                   </div>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* Description */}
-          {invoice.description && (
-            <div className="px-8 py-6 border-t border-gray-100">
-              <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">Description</h3>
-              <p className="text-gray-700 whitespace-pre-wrap">{invoice.description}</p>
-            </div>
-          )}
-
-          {/* Line Items */}
-          {productItems.length > 0 && (
-            <div className="px-8 py-6 border-t border-gray-100">
-              <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4">Items</h3>
-              <DocumentItemsTable items={productItems} />
-            </div>
-          )}
-
-          {/* Payment History */}
-          {payments.length > 0 && (
-            <div className="px-8 py-6 border-t border-gray-100 bg-gray-50">
-              <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4">Payment History</h3>
-              <div className="space-y-3">
-                {payments.map((payment: any) => (
-                  <Card key={payment.id} className="p-4">
-                    <div className="flex justify-between items-center">
-                      <div className="flex items-center gap-4">
-                        <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
-                          <DollarSign className="h-5 w-5 text-green-600" />
-                        </div>
-                        <div>
-                          <p className="font-semibold text-gray-900">
-                            {formatCurrency(parseFloat(payment.amount))}
-                          </p>
-                          <p className="text-sm text-gray-600">
-                            {formatPaymentMethod(payment.method)} • {format(new Date(payment.payment_date || payment.created_at), "MMM dd, yyyy")}
-                          </p>
-                        </div>
-                      </div>
-                      <Badge variant={payment.status === 'completed' ? 'default' : 'secondary'}>
-                        {payment.status === 'completed' && <CheckCircle className="h-3 w-3 mr-1" />}
-                        {payment.status || 'Completed'}
-                      </Badge>
+                  {invoice.due_date && (
+                    <div className="text-left sm:text-right">
+                      <h3 className="text-xs sm:text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                        Due Date
+                      </h3>
+                      <p className={cn(
+                        'mt-1 text-base sm:text-lg font-medium',
+                        invoice.payment_status === 'overdue'
+                          ? 'text-red-600 dark:text-red-400'
+                          : 'text-gray-900 dark:text-white'
+                      )}>
+                        {format(new Date(invoice.due_date), 'MMMM dd, yyyy')}
+                      </p>
                     </div>
-                    {payment.reference && (
-                      <p className="text-sm text-gray-500 mt-2">Ref: {payment.reference}</p>
-                    )}
-                  </Card>
-                ))}
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Description */}
+            {invoice.description && (
+              <div className="px-6 sm:px-8 py-4 sm:py-6 border-t border-gray-100 dark:border-gray-800">
+                <h3 className="text-xs sm:text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2 sm:mb-3">
+                  Description
+                </h3>
+                <p className="text-sm sm:text-base text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
+                  {invoice.description}
+                </p>
+              </div>
+            )}
+
+            {/* Line Items */}
+            {productItems && productItems.length > 0 && (
+              <div className="px-6 sm:px-8 py-4 sm:py-6 border-t border-gray-100 dark:border-gray-800">
+                <h3 className="text-xs sm:text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3 sm:mb-4">
+                  Items
+                </h3>
+                <DocumentItemsTable items={productItems} />
+              </div>
+            )}
+
+            {/* Payment History */}
+            {payments.length > 0 && (
+              <div className="px-6 sm:px-8 py-4 sm:py-6 border-t border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/30">
+                <h3 className="text-xs sm:text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3 sm:mb-4">
+                  Payment History
+                </h3>
+                <div className="space-y-3">
+                  {payments.map((payment) => (
+                    <Card
+                      key={payment.id}
+                      className="p-3 sm:p-4 bg-white dark:bg-gray-900 border-gray-100 dark:border-gray-800"
+                    >
+                      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
+                        <div className="flex items-center gap-3 sm:gap-4">
+                          <div className="w-9 h-9 sm:w-10 sm:h-10 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center flex-shrink-0">
+                            <DollarSign className="h-4 w-4 sm:h-5 sm:w-5 text-green-600 dark:text-green-400" />
+                          </div>
+                          <div>
+                            <p className="font-semibold text-gray-900 dark:text-white text-sm sm:text-base">
+                              {formatCurrency(parseFloat(String(payment.amount)))}
+                            </p>
+                            <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
+                              {formatPaymentMethod(payment.method)} -{' '}
+                              {format(
+                                new Date(payment.payment_date || payment.created_at),
+                                'MMM dd, yyyy'
+                              )}
+                            </p>
+                          </div>
+                        </div>
+                        <Badge
+                          className={cn(
+                            'self-start sm:self-center text-xs',
+                            payment.status === 'completed'
+                              ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300'
+                              : 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300'
+                          )}
+                        >
+                          {payment.status === 'completed' && (
+                            <CheckCircle className="h-3 w-3 mr-1" />
+                          )}
+                          {payment.status || 'Completed'}
+                        </Badge>
+                      </div>
+                      {payment.reference && (
+                        <p className="text-xs text-gray-500 dark:text-gray-500 mt-2 pl-12 sm:pl-14">
+                          Ref: {payment.reference}
+                        </p>
+                      )}
+                    </Card>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Totals and Notes */}
+            <div className="px-6 sm:px-8 py-4 sm:py-6 border-t border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/50">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8">
+                {/* Notes */}
+                <div className="order-2 lg:order-1">
+                  {invoice.notes && (
+                    <DocumentNotes
+                      title="Notes"
+                      content={invoice.notes}
+                      type="info"
+                    />
+                  )}
+                  {invoice.terms && (
+                    <DocumentNotes
+                      title="Terms & Conditions"
+                      content={invoice.terms}
+                      type="warning"
+                    />
+                  )}
+                </div>
+
+                {/* Totals */}
+                <div className="order-1 lg:order-2">
+                  <DocumentTotals
+                    subtotal={subtotal}
+                    taxAmount={taxAmount}
+                    taxRate={taxRate}
+                    discountAmount={discountAmount}
+                    total={total}
+                    paidAmount={totalPaid}
+                  />
+                </div>
               </div>
             </div>
-          )}
 
-          {/* Totals and Notes */}
-          <div className="px-8 py-6 border-t border-gray-100 bg-gray-50">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              {/* Notes */}
-              <div>
-                {invoice.notes && (
-                  <DocumentNotes
-                    title="Notes"
-                    content={invoice.notes}
-                    type="info"
-                  />
-                )}
-                {invoice.terms && (
-                  <DocumentNotes
-                    title="Terms & Conditions"
-                    content={invoice.terms}
-                    type="warning"
-                  />
-                )}
+            {/* Mobile CTA - Sticky at bottom on mobile */}
+            {needsPayment && (
+              <div className="sm:hidden sticky bottom-0 px-4 py-4 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800 shadow-lg">
+                <button
+                  onClick={handlePayNow}
+                  className={cn(
+                    'w-full py-3 px-4 rounded-lg font-semibold text-white',
+                    'bg-green-600 hover:bg-green-700 active:bg-green-800',
+                    'transition-colors focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2',
+                    'dark:focus:ring-offset-gray-900'
+                  )}
+                >
+                  Pay Now - {formatCurrency(balance)}
+                </button>
               </div>
+            )}
 
-              {/* Totals */}
-              <div>
-                <DocumentTotals
-                  subtotal={subtotal}
-                  taxAmount={taxAmount}
-                  taxRate={taxRate}
-                  discountAmount={discountAmount}
-                  total={total}
-                  paidAmount={totalPaid}
+            {/* Footer */}
+            <div
+              className={cn(
+                'px-6 sm:px-8 py-6 text-white text-center',
+                'bg-gradient-to-r from-green-600 to-green-700'
+              )}
+            >
+              <p className="text-sm sm:text-base">
+                {isPaid
+                  ? 'Thank you for your payment. We appreciate your business!'
+                  : 'Thank you for your business. Please remit payment at your earliest convenience.'}
+              </p>
+              {company?.email && (
+                <p className="text-sm mt-2 opacity-90">
+                  Questions? Contact us at{' '}
+                  <a
+                    href={`mailto:${company.email}`}
+                    className="underline hover:no-underline"
+                  >
+                    {company.email}
+                  </a>
+                </p>
+              )}
+            </div>
+          </div>
+
+          {/* QR Code Section - Desktop only */}
+          <div className="mt-6 hidden sm:flex justify-center print:hidden">
+            <div className="bg-white dark:bg-gray-900 rounded-xl shadow-md p-6 text-center">
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
+                Scan to view on mobile
+              </p>
+              <div className="bg-white p-3 inline-block rounded-lg">
+                <QRCode
+                  value={window.location.href}
+                  size={100}
+                  level="M"
+                  bgColor="#ffffff"
+                  fgColor="#000000"
                 />
               </div>
             </div>
           </div>
 
-          {/* Footer */}
-          <div className="px-8 py-6 bg-gradient-to-r from-green-600 to-green-700 text-white text-center">
-            <p className="text-sm">
-              {isPaid
-                ? "Thank you for your payment. We appreciate your business!"
-                : "Thank you for your business. Please remit payment at your earliest convenience."
-              }
+          {/* Powered by footer */}
+          <div className="mt-6 text-center print:hidden">
+            <p className="text-sm text-gray-400 dark:text-gray-600">
+              Powered by{' '}
+              <span className="font-medium text-green-600 dark:text-green-400">
+                Fixlify
+              </span>
             </p>
-            {company?.email && (
-              <p className="text-sm mt-2 opacity-90">
-                Questions? Contact us at {company.email}
-              </p>
-            )}
           </div>
         </div>
-
-        {/* QR Code Section - for easy mobile access */}
-        <div className="mt-6 flex justify-center print:hidden">
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 text-center">
-            <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">Scan to view on mobile</p>
-            <div className="bg-white p-2 inline-block rounded-lg">
-              <QRCode
-                value={window.location.href}
-                size={120}
-                level="M"
-                bgColor="#ffffff"
-                fgColor="#000000"
-              />
-            </div>
-          </div>
-        </div>
-      </div>
+      </main>
     </div>
   );
 }

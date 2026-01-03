@@ -77,10 +77,11 @@ export function useAuthState() {
       setAuthState(prev => ({ ...prev, loading: true }));
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
-    } catch (error: any) {
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
       setAuthState(prev => ({
         ...prev,
-        error: error.message,
+        error: errorMessage,
         loading: false
       }));
     }

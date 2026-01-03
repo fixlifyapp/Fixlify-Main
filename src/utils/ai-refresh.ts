@@ -7,19 +7,26 @@ export const shouldRefreshAIInsights = async (): Promise<boolean> => {
   try {
     // Get the last refresh timestamp from localStorage
     const lastRefreshStr = localStorage.getItem(AI_REFRESH_KEY);
-    
+
     if (!lastRefreshStr) {
       // If no refresh has been recorded, we should refresh
       return true;
     }
-    
+
     const lastRefresh = new Date(lastRefreshStr);
+
+    // Check if the date is valid
+    if (isNaN(lastRefresh.getTime())) {
+      // Invalid date format, refresh to be safe
+      return true;
+    }
+
     const now = new Date();
-    
+
     // Calculate days difference
     const diffTime = Math.abs(now.getTime() - lastRefresh.getTime());
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    
+
     // Return true if more than 7 days have passed
     return diffDays >= 7;
   } catch (error) {

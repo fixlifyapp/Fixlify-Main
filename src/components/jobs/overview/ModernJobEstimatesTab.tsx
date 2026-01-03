@@ -7,7 +7,7 @@ import { SteppedEstimateBuilder } from "@/components/jobs/dialogs/SteppedEstimat
 import { UnifiedDocumentViewer } from "@/components/jobs/dialogs/UnifiedDocumentViewer";
 import { UniversalSendDialog } from "@/components/jobs/dialogs/shared/UniversalSendDialog";
 import { toast } from "sonner";
-import { useJobData } from "../dialogs/unified/hooks/useJobData";
+import { useJobDetails } from "../context/JobDetailsContext";
 import { Estimate } from "@/types/documents";
 import { DocumentListItem, DocumentRowActions } from "../shared";
 import { ProfessionalCard, ProfessionalSectionHeader } from "@/components/ui/professional-card";
@@ -26,7 +26,8 @@ export const ModernJobEstimatesTab = ({
   const { estimates, isLoading, refreshEstimates, convertEstimateToInvoice } = useEstimates(jobId);
   const [estimatesState, setEstimatesState] = useState<Estimate[]>(estimates);
   const { state, actions } = useEstimateActions(jobId, estimatesState, setEstimatesState, refreshEstimates, onEstimateConverted);
-  const { clientInfo } = useJobData(jobId);
+  // Use context's clientInfo to avoid duplicate data fetches
+  const { clientInfo } = useJobDetails();
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [editingEstimate, setEditingEstimate] = useState<any>(null);
   const [previewEstimate, setPreviewEstimate] = useState<any>(null);

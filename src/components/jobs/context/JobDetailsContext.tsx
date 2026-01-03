@@ -1,6 +1,6 @@
-import React, { createContext, useContext, useRef, useEffect, useState, useCallback } from "react";
+import React, { createContext, useContext, useRef, useEffect, useState, useCallback, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { JobDetailsContextType } from "./types";
+import { JobDetailsContextType, ClientInfo } from "./types";
 import { useJobData } from "./useJobData";
 import { useJobStatusUpdate } from "./useJobStatusUpdate";
 import { toast } from "sonner";
@@ -74,6 +74,40 @@ export const JobDetailsProvider = ({
   
   // Handle status updates
   const { updateJobStatus: handleUpdateJobStatus } = useJobStatusUpdate(jobId, refreshJob);
+
+  // Derive clientInfo from job data to prevent duplicate fetches
+  const clientInfo = useMemo((): ClientInfo | null => {
+    if (!job) return null;
+
+    // Extract client from job - could be in clients or client property
+    const client = (job as any).clients || (job as any).client;
+    if (!client || typeof client === 'string') {
+      return {
+        name: typeof client === 'string' ? client : 'Unknown Client',
+        email: job.email || '',
+        phone: job.phone || '',
+        company: '',
+        fullAddress: job.address || ''
+      };
+    }
+
+    // Format client address
+    const clientAddress = [
+      client.address,
+      client.city,
+      client.state,
+      client.zip
+    ].filter(Boolean).join(', ');
+
+    return {
+      id: client.id,
+      name: client.name || 'Unknown Client',
+      email: client.email || '',
+      phone: client.phone || '',
+      company: client.company || '',
+      fullAddress: clientAddress || job.address || ''
+    };
+  }, [job]);
   
   // Set up real-time subscription
   useEffect(() => {
@@ -197,6 +231,7 @@ export const JobDetailsProvider = ({
       currentStatus,
       invoiceAmount,
       balance,
+      clientInfo,
       refreshJob,
       refreshFinancials,
       financialRefreshTrigger,
@@ -208,4 +243,4 @@ export const JobDetailsProvider = ({
 };
 
 // Re-export types for backward compatibility
-export type { JobInfo } from "./types";
+export type { JobInfo, ClientInfo } from "./types";

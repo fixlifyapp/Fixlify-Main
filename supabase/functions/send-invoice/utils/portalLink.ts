@@ -11,7 +11,8 @@ export async function generatePortalLink(
     });
 
     if (!tokenError && tokenData) {
-      const portalLink = `https://hub.fixlify.app/portal/login?token=${tokenData}&redirect=/portal/invoices?id=${invoiceId}`;
+      // Use fixlify.app as default (hub.fixlify.app was not properly configured)
+      const portalLink = `https://fixlify.app/portal/login?token=${tokenData}&redirect=/portal/invoices?id=${invoiceId}`;
       console.log('Portal link generated for client portal');
       return portalLink;
     }

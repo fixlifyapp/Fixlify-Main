@@ -55,6 +55,7 @@ export const useJobsOptimized = (options: UseJobsOptimizedOptions = {}) => {
   const isMountedRef = useRef(true);
   const refreshDebounceRef = useRef<NodeJS.Timeout | null>(null);
   const hasErrorRef = useRef(false);
+  const initialRetryRef = useRef(false);
 
   // Keep ref in sync with state
   hasErrorRef.current = hasError;
@@ -91,20 +92,27 @@ export const useJobsOptimized = (options: UseJobsOptimizedOptions = {}) => {
     if (requestCache.has(cacheKey)) {
       try {
         const cachedRequest = await requestCache.get(cacheKey);
-        if (isMountedRef.current && cachedRequest) {
+        // Only use cached request if it has actual data - prevent using empty results
+        if (isMountedRef.current && cachedRequest && cachedRequest.jobs.length > 0) {
           setJobs(cachedRequest.jobs);
           setTotalCount(cachedRequest.totalCount);
           setIsLoading(false);
+          return;
         }
-        return;
+        // If cached request was empty, delete it and continue to make a fresh request
+        if (cachedRequest && cachedRequest.jobs.length === 0) {
+          requestCache.delete(cacheKey);
+        }
       } catch (error) {
         // Continue with fresh request if cached request failed
+        requestCache.delete(cacheKey);
       }
     }
 
     if (useCache) {
       const cachedJobs = localStorageCache.get<JobsResult>(cacheKey);
-      if (cachedJobs && isMountedRef.current) {
+      // Only use cache if it has actual data - don't cache empty results
+      if (cachedJobs && cachedJobs.jobs.length > 0 && isMountedRef.current) {
         setJobs(cachedJobs.jobs);
         setTotalCount(cachedJobs.totalCount);
         setIsLoading(false);
@@ -192,8 +200,9 @@ export const useJobsOptimized = (options: UseJobsOptimizedOptions = {}) => {
             jobs: processedJobs,
             totalCount: count || 0
           };
-          
-          if (useCache) {
+
+          // Only cache non-empty results to prevent caching error states
+          if (useCache && processedJobs.length > 0) {
             localStorageCache.set(cacheKey, result, 20);
           }
           
@@ -232,6 +241,23 @@ export const useJobsOptimized = (options: UseJobsOptimizedOptions = {}) => {
   useEffect(() => {
     fetchJobs();
   }, [fetchJobs]);
+
+  // Retry mechanism: if initial load returns empty but user is authenticated, retry after a short delay
+  // This handles race conditions where auth might not be ready on first render
+  useEffect(() => {
+    if (!isLoading && jobs.length === 0 && user?.id && !hasError && !initialRetryRef.current) {
+      initialRetryRef.current = true;
+      const retryTimer = setTimeout(() => {
+        if (isMountedRef.current && jobs.length === 0) {
+          console.log('[useJobsOptimized] Retrying fetch after empty initial load');
+          localStorageCache.remove(cacheKey);
+          requestCache.delete(cacheKey);
+          fetchJobs(false);
+        }
+      }, 500);
+      return () => clearTimeout(retryTimer);
+    }
+  }, [isLoading, jobs.length, user?.id, hasError, cacheKey, fetchJobs]);
 
   // Handle real-time updates
   const handleRealtimeUpdate = useCallback((payload: any) => {

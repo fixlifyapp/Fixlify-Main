@@ -1,9 +1,13 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { MessageSquare, Sparkles, Phone, Mail, ExternalLink, History } from "lucide-react";
-import { useEffect, useState, useCallback } from "react";
-import { useMessageContext } from "@/contexts/MessageContext";
+import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
+import {
+  MessageSquare, Sparkles, Phone, Mail, ExternalLink, History,
+  Send, X, Loader2
+} from "lucide-react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useMessageAI } from "./hooks/messaging/useMessageAI";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
@@ -11,6 +15,9 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import { format, isToday, isYesterday, isSameDay } from "date-fns";
 import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
+import { motion, AnimatePresence } from "framer-motion";
+import { useAuth } from "@/hooks/use-auth";
 
 interface Message {
   id: string;
@@ -30,33 +37,77 @@ interface JobMessagesProps {
   embedded?: boolean;
 }
 
+type MessageChannel = 'sms' | 'email';
+
 export const JobMessages = ({ jobId, embedded = false }: JobMessagesProps) => {
   const navigate = useNavigate();
-  const { openMessageDialog } = useMessageContext();
+  const { user } = useAuth();
   const [client, setClient] = useState({ name: "", phone: "", id: "", email: "" });
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [totalConversations, setTotalConversations] = useState(0);
+
+  // Two-way messaging state
+  const [messageText, setMessageText] = useState("");
+  const [emailSubject, setEmailSubject] = useState("");
+  const [channel, setChannel] = useState<MessageChannel>('sms');
+  const [isSending, setIsSending] = useState(false);
+  const [showAISuggestion, setShowAISuggestion] = useState(false);
+  const [aiSuggestion, setAiSuggestion] = useState("");
+  const [hasOrgPhone, setHasOrgPhone] = useState<boolean | null>(null);
+
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
+
+  // Check if organization has a phone number configured
+  useEffect(() => {
+    const checkOrgPhone = async () => {
+      if (!user?.id) return;
+      try {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('organization_id')
+          .eq('id', user.id)
+          .single();
+
+        if (profile?.organization_id) {
+          const { data: phones } = await supabase
+            .from('phone_numbers')
+            .select('id')
+            .eq('organization_id', profile.organization_id)
+            .in('status', ['active', 'purchased'])
+            .limit(1);
+
+          setHasOrgPhone(phones && phones.length > 0);
+        } else {
+          setHasOrgPhone(false);
+        }
+      } catch (err) {
+        console.error('Error checking org phone:', err);
+        setHasOrgPhone(false);
+      }
+    };
+    checkOrgPhone();
+  }, [user?.id]);
 
   // Fetch ALL messages for this client (across all jobs)
   const fetchAllClientMessages = useCallback(async (clientId: string, clientName: string) => {
     try {
       const allMessages: Message[] = [];
 
-      // 1. Fetch ALL conversations for this client
       const { data: conversations } = await supabase
         .from('conversations')
-        .select(`
-          id,
-          job_id,
-          jobs:job_id(title)
-        `)
+        .select(`id, job_id, jobs:job_id(title)`)
         .eq('client_id', clientId);
 
       if (conversations && conversations.length > 0) {
-        setTotalConversations(conversations.length);
-
-        // Fetch messages from all conversations
         const conversationIds = conversations.map(c => c.id);
         const { data: messagesData } = await supabase
           .from('messages')
@@ -65,7 +116,6 @@ export const JobMessages = ({ jobId, embedded = false }: JobMessagesProps) => {
           .order('created_at', { ascending: true });
 
         if (messagesData) {
-          // Map messages with job info
           const conversationJobMap = new Map(
             conversations.map(c => [c.id, { job_id: c.job_id, job_title: (c.jobs as any)?.title }])
           );
@@ -88,13 +138,9 @@ export const JobMessages = ({ jobId, embedded = false }: JobMessagesProps) => {
         }
       }
 
-      // 2. Fetch ALL communication_logs for this client
       const { data: commLogs } = await supabase
         .from('communication_logs')
-        .select(`
-          *,
-          jobs:job_id(title)
-        `)
+        .select(`*, jobs:job_id(title)`)
         .eq('client_id', clientId)
         .order('created_at', { ascending: true });
 
@@ -115,7 +161,6 @@ export const JobMessages = ({ jobId, embedded = false }: JobMessagesProps) => {
         });
       }
 
-      // Sort all messages by date
       allMessages.sort((a, b) =>
         new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
       );
@@ -133,10 +178,7 @@ export const JobMessages = ({ jobId, embedded = false }: JobMessagesProps) => {
       try {
         const { data: job } = await supabase
           .from('jobs')
-          .select(`
-            *,
-            clients:client_id(*)
-          `)
+          .select(`*, clients:client_id(*)`)
           .eq('id', jobId)
           .single();
 
@@ -149,7 +191,12 @@ export const JobMessages = ({ jobId, embedded = false }: JobMessagesProps) => {
           };
           setClient(clientData);
 
-          // Fetch ALL messages for this client
+          if (clientData.phone) {
+            setChannel('sms');
+          } else if (clientData.email) {
+            setChannel('email');
+          }
+
           await fetchAllClientMessages(clientData.id, clientData.name);
         }
       } catch (error) {
@@ -164,60 +211,111 @@ export const JobMessages = ({ jobId, embedded = false }: JobMessagesProps) => {
     }
   }, [jobId, fetchAllClientMessages]);
 
-  // Real-time subscription for new messages
+  // Real-time subscription
   useEffect(() => {
     if (!client.id) return;
 
-    const channel = supabase
+    const sub = supabase
       .channel(`client-messages-${client.id}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'messages'
-        },
-        () => {
-          fetchAllClientMessages(client.id, client.name);
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'communication_logs',
-          filter: `client_id=eq.${client.id}`
-        },
-        () => {
-          fetchAllClientMessages(client.id, client.name);
-        }
-      )
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, () => {
+        fetchAllClientMessages(client.id, client.name);
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'communication_logs', filter: `client_id=eq.${client.id}` }, () => {
+        fetchAllClientMessages(client.id, client.name);
+      })
       .subscribe();
 
-    return () => {
-      supabase.removeChannel(channel);
-    };
+    return () => { supabase.removeChannel(sub); };
   }, [client.id, client.name, fetchAllClientMessages]);
 
-  const handleOpenMessages = () => {
-    if (client.id) {
-      openMessageDialog(client);
-    }
+  const handleViewClientPage = () => {
+    if (client.id) navigate(`/clients/${client.id}`);
   };
 
-  const handleViewClientPage = () => {
-    if (client.id) {
-      navigate(`/clients/${client.id}`);
-    }
-  };
+  // AI suggestion handler
+  const handleUseSuggestion = useCallback((suggestion: string) => {
+    setAiSuggestion(suggestion);
+    setShowAISuggestion(true);
+  }, []);
 
   const { isAILoading, handleSuggestResponse } = useMessageAI({
     messages,
     client,
     jobId,
-    onUseSuggestion: () => {}
+    onUseSuggestion: handleUseSuggestion
   });
+
+  const applyAISuggestion = () => {
+    setMessageText(aiSuggestion);
+    setShowAISuggestion(false);
+    setAiSuggestion("");
+    textareaRef.current?.focus();
+  };
+
+  const dismissAISuggestion = () => {
+    setShowAISuggestion(false);
+    setAiSuggestion("");
+  };
+
+  // Send message
+  const handleSendMessage = async () => {
+    if (!messageText.trim()) return;
+    if (channel === 'sms' && !client.phone) {
+      toast.error("Client has no phone number");
+      return;
+    }
+    if (channel === 'email' && !client.email) {
+      toast.error("Client has no email address");
+      return;
+    }
+
+    setIsSending(true);
+    try {
+      if (channel === 'sms') {
+        const { data, error } = await supabase.functions.invoke('telnyx-sms', {
+          body: {
+            recipientPhone: client.phone,
+            message: messageText,
+            user_id: user?.id,
+            metadata: { clientId: client.id, jobId }
+          }
+        });
+        if (error) throw error;
+        if (data && !data.success) {
+          throw new Error(data.error || 'Failed to send SMS');
+        }
+        toast.success("SMS sent successfully");
+      } else {
+        const { error } = await supabase.functions.invoke('mailgun-email', {
+          body: { to: client.email, subject: emailSubject || `Update on your job`, body: messageText, clientId: client.id, jobId }
+        });
+        if (error) throw error;
+        toast.success("Email sent successfully");
+      }
+
+      setMessageText("");
+      setEmailSubject("");
+      await fetchAllClientMessages(client.id, client.name);
+    } catch (error: any) {
+      console.error("Send error:", error);
+      // Check if it's a "no phone number" error
+      const errorMsg = error.message || '';
+      if (errorMsg.includes('No phone number available')) {
+        toast.error("No business phone number configured", {
+          description: "Go to Settings → Phone Numbers to set up your phone number",
+          action: {
+            label: "Set Up",
+            onClick: () => navigate('/settings/phone-numbers')
+          },
+          duration: 8000
+        });
+      } else {
+        toast.error(`Failed to send ${channel}: ${errorMsg || 'Unknown error'}`);
+      }
+    } finally {
+      setIsSending(false);
+    }
+  };
 
   // Group messages by date
   const groupMessagesByDate = (msgs: Message[]) => {
@@ -242,9 +340,7 @@ export const JobMessages = ({ jobId, embedded = false }: JobMessagesProps) => {
     return format(date, 'MMMM d, yyyy');
   };
 
-  const formatTime = (timestamp: string) => {
-    return format(new Date(timestamp), 'h:mm a');
-  };
+  const formatTime = (timestamp: string) => format(new Date(timestamp), 'h:mm a');
 
   const getTypeIcon = (type?: string) => {
     if (type === 'email') return <Mail className="h-3 w-3" />;
@@ -261,6 +357,8 @@ export const JobMessages = ({ jobId, embedded = false }: JobMessagesProps) => {
   };
 
   const messageGroups = groupMessagesByDate(messages);
+  const charCount = messageText.length;
+  const maxSmsChars = 160;
 
   const content = (
     <div className="flex flex-col h-full">
@@ -278,7 +376,7 @@ export const JobMessages = ({ jobId, embedded = false }: JobMessagesProps) => {
               {messages.length > 0 && (
                 <Badge variant="secondary" className="text-xs bg-slate-100">
                   <History className="h-3 w-3 mr-1" />
-                  {messages.length} messages
+                  {messages.length}
                 </Badge>
               )}
             </div>
@@ -290,7 +388,7 @@ export const JobMessages = ({ jobId, embedded = false }: JobMessagesProps) => {
                 </span>
               )}
               {client.email && (
-                <span className="flex items-center gap-1">
+                <span className="flex items-center gap-1 truncate max-w-[150px]">
                   <Mail className="h-3 w-3" />
                   {client.email}
                 </span>
@@ -300,12 +398,7 @@ export const JobMessages = ({ jobId, embedded = false }: JobMessagesProps) => {
         </div>
 
         {!embedded && (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleViewClientPage}
-            className="text-slate-500 hover:text-slate-700"
-          >
+          <Button variant="ghost" size="sm" onClick={handleViewClientPage} className="text-slate-500 hover:text-slate-700">
             <ExternalLink className="h-4 w-4 mr-1" />
             View Client
           </Button>
@@ -313,7 +406,7 @@ export const JobMessages = ({ jobId, embedded = false }: JobMessagesProps) => {
       </div>
 
       {/* Messages List */}
-      <div className="flex-1 overflow-y-auto max-h-80 space-y-4 mb-4 pr-1">
+      <div className="flex-1 overflow-y-auto max-h-64 space-y-4 mb-4 pr-1">
         {isLoading ? (
           <div className="flex justify-center py-8">
             <LoadingSpinner size="md" />
@@ -329,68 +422,51 @@ export const JobMessages = ({ jobId, embedded = false }: JobMessagesProps) => {
         ) : (
           messageGroups.map((group, groupIdx) => (
             <div key={groupIdx}>
-              {/* Date separator */}
               <div className="flex items-center gap-3 my-3">
                 <div className="flex-1 h-px bg-slate-200" />
-                <span className="text-xs font-medium text-slate-400 px-2">
-                  {formatDateHeader(group.date)}
-                </span>
+                <span className="text-xs font-medium text-slate-400 px-2">{formatDateHeader(group.date)}</span>
                 <div className="flex-1 h-px bg-slate-200" />
               </div>
 
-              {/* Messages for this date */}
               <div className="space-y-3">
                 {group.messages.map((message) => {
                   const isFromClient = message.direction === 'inbound';
                   const isCurrentJob = message.job_id === jobId;
 
                   return (
-                    <div
+                    <motion.div
                       key={message.id}
-                      className={cn(
-                        "flex gap-2",
-                        !isFromClient && "flex-row-reverse"
-                      )}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className={cn("flex gap-2", !isFromClient && "flex-row-reverse")}
                     >
                       <Avatar className="h-7 w-7 flex-shrink-0">
                         <AvatarFallback className={cn(
                           "text-xs font-medium",
-                          isFromClient
-                            ? "bg-slate-200 text-slate-700"
-                            : "bg-slate-800 text-white"
+                          isFromClient ? "bg-slate-200 text-slate-700" : "bg-slate-800 text-white"
                         )}>
                           {isFromClient ? client.name?.substring(0, 2).toUpperCase() : 'ME'}
                         </AvatarFallback>
                       </Avatar>
 
-                      <div className={cn(
-                        "flex flex-col max-w-[80%]",
-                        !isFromClient && "items-end"
-                      )}>
+                      <div className={cn("flex flex-col max-w-[80%]", !isFromClient && "items-end")}>
                         <div className={cn(
                           "px-3 py-2 rounded-2xl text-sm",
-                          isFromClient
-                            ? "bg-slate-100 text-slate-800 rounded-bl-sm"
-                            : "bg-slate-800 text-white rounded-br-sm"
+                          isFromClient ? "bg-slate-100 text-slate-800 rounded-bl-sm" : "bg-slate-800 text-white rounded-br-sm"
                         )}>
                           <p className="break-words whitespace-pre-wrap">{message.body}</p>
                         </div>
 
-                        <div className={cn(
-                          "flex items-center gap-2 mt-1 text-xs text-slate-400",
-                          !isFromClient && "flex-row-reverse"
-                        )}>
+                        <div className={cn("flex items-center gap-2 mt-1 text-xs text-slate-400", !isFromClient && "flex-row-reverse")}>
                           <span className="flex items-center gap-1">
                             {getTypeIcon(message.type)}
                             {formatTime(message.created_at)}
                           </span>
-
                           {message.status && !isFromClient && (
                             <Badge variant="secondary" className={cn("text-[10px] px-1.5 py-0", getStatusColor(message.status))}>
                               {message.status}
                             </Badge>
                           )}
-
                           {message.job_title && !isCurrentJob && (
                             <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-slate-300">
                               {message.job_title}
@@ -398,44 +474,154 @@ export const JobMessages = ({ jobId, embedded = false }: JobMessagesProps) => {
                           )}
                         </div>
                       </div>
-                    </div>
+                    </motion.div>
                   );
                 })}
               </div>
             </div>
           ))
         )}
+        <div ref={messagesEndRef} />
       </div>
 
-      {/* Footer with actions */}
-      <div className="pt-3 border-t border-slate-200 flex items-center justify-between">
-        <p className="text-xs text-slate-400">
-          Full conversation history with this client
-        </p>
-        <div className="flex gap-2">
+      {/* AI Suggestion Panel */}
+      <AnimatePresence>
+        {showAISuggestion && aiSuggestion && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            className="mb-3 overflow-hidden"
+          >
+            <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
+              <div className="flex items-start justify-between gap-2 mb-2">
+                <div className="flex items-center gap-2">
+                  <Sparkles className="h-4 w-4 text-amber-500" />
+                  <span className="text-xs font-medium text-amber-700">AI Suggestion</span>
+                </div>
+                <Button variant="ghost" size="icon" className="h-5 w-5 text-amber-600 hover:text-amber-800" onClick={dismissAISuggestion}>
+                  <X className="h-3 w-3" />
+                </Button>
+              </div>
+              <p className="text-sm text-amber-800 mb-3 whitespace-pre-wrap">{aiSuggestion}</p>
+              <Button size="sm" className="w-full bg-amber-500 hover:bg-amber-600 text-white h-8" onClick={applyAISuggestion}>
+                Use This Response
+              </Button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Message Input Section */}
+      <div className="border-t border-slate-200 pt-3">
+        {/* Channel Toggle */}
+        <div className="flex items-center gap-2 mb-3">
+          <div className="flex bg-slate-100 rounded-lg p-1">
+            <button
+              onClick={() => setChannel('sms')}
+              disabled={!client.phone}
+              className={cn(
+                "flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all",
+                channel === 'sms' ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-700",
+                !client.phone && "opacity-50 cursor-not-allowed"
+              )}
+            >
+              <Phone className="h-3.5 w-3.5" />
+              SMS
+            </button>
+            <button
+              onClick={() => setChannel('email')}
+              disabled={!client.email}
+              className={cn(
+                "flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all",
+                channel === 'email' ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-700",
+                !client.email && "opacity-50 cursor-not-allowed"
+              )}
+            >
+              <Mail className="h-3.5 w-3.5" />
+              Email
+            </button>
+          </div>
+
+          <div className="flex-1" />
+
           <Button
-            variant="outline"
+            variant="ghost"
             size="sm"
             onClick={() => handleSuggestResponse()}
             disabled={isAILoading || isLoading || messages.length === 0}
-            className="gap-1.5 text-xs h-8 border-slate-200 hover:bg-slate-50"
+            className="gap-1.5 text-xs h-8 text-amber-600 hover:text-amber-700 hover:bg-amber-50"
           >
-            {isAILoading ? (
-              <LoadingSpinner size="sm" />
-            ) : (
-              <Sparkles className="h-3.5 w-3.5 text-amber-500" />
-            )}
-            AI
-          </Button>
-          <Button
-            onClick={handleOpenMessages}
-            size="sm"
-            className="gap-1.5 text-xs h-8 bg-slate-800 hover:bg-slate-700"
-          >
-            <MessageSquare className="h-3.5 w-3.5" />
-            Message
+            {isAILoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
+            AI Assist
           </Button>
         </div>
+
+        {/* No Phone Number Warning */}
+        {channel === 'sms' && hasOrgPhone === false && (
+          <div className="flex items-center gap-2 p-2.5 mb-2 bg-amber-50 border border-amber-200 rounded-lg text-amber-800">
+            <Phone className="h-4 w-4 flex-shrink-0" />
+            <span className="text-xs flex-1">No business phone number configured.</span>
+            <Button
+              variant="link"
+              size="sm"
+              className="h-auto p-0 text-xs text-amber-700 hover:text-amber-900"
+              onClick={() => navigate('/settings/phone-numbers')}
+            >
+              Set up now →
+            </Button>
+          </div>
+        )}
+
+        {/* Email Subject */}
+        {channel === 'email' && (
+          <Input
+            placeholder="Subject (optional)"
+            value={emailSubject}
+            onChange={(e) => setEmailSubject(e.target.value)}
+            className="mb-2 h-9 text-sm"
+          />
+        )}
+
+        {/* Message Input */}
+        <div className="relative">
+          <Textarea
+            ref={textareaRef}
+            placeholder={channel === 'sms' ? "Type your SMS message..." : "Type your email message..."}
+            value={messageText}
+            onChange={(e) => setMessageText(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                handleSendMessage();
+              }
+            }}
+            className="min-h-[80px] pr-12 resize-none text-sm"
+          />
+
+          <Button
+            size="icon"
+            onClick={handleSendMessage}
+            disabled={!messageText.trim() || isSending || (channel === 'sms' && hasOrgPhone === false)}
+            className={cn(
+              "absolute right-2 bottom-2 h-8 w-8 rounded-full transition-all",
+              messageText.trim() && !(channel === 'sms' && hasOrgPhone === false) ? "bg-slate-800 hover:bg-slate-700" : "bg-slate-300"
+            )}
+          >
+            {isSending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+          </Button>
+        </div>
+
+        {/* Character count for SMS */}
+        {channel === 'sms' && messageText.length > 0 && (
+          <div className="flex justify-between items-center mt-1.5 text-xs">
+            <span className={cn(charCount > maxSmsChars ? "text-orange-500" : "text-slate-400")}>
+              {charCount}/{maxSmsChars} characters
+              {charCount > maxSmsChars && ` (${Math.ceil(charCount / maxSmsChars)} SMS)`}
+            </span>
+            <span className="text-slate-400">Press Enter to send</span>
+          </div>
+        )}
       </div>
     </div>
   );

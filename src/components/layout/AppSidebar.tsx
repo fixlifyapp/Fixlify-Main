@@ -50,7 +50,6 @@ export function AppSidebar() {
   }, [hasPermission]);
 
   const handleNavigation = (href: string) => {
-    console.log(`Navigating to: ${href}`);
     navigate(href);
   };
 

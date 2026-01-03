@@ -83,7 +83,8 @@ serve(async (req) => {
     }
 
     // Generate portal URL with token
-    const baseUrl = Deno.env.get('PUBLIC_SITE_URL') || 'https://hub.fixlify.app';
+    // Use fixlify.app as default (hub.fixlify.app was not properly configured)
+    const baseUrl = Deno.env.get('PUBLIC_SITE_URL') || 'https://fixlify.app';
     const portalUrl = `${baseUrl}/portal/${portalToken}`;
 
     // Create message

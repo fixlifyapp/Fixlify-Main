@@ -150,7 +150,8 @@ serve(async (req) => {
       );
     }
 
-    const portalLink = `${Deno.env.get("PUBLIC_SITE_URL") || "https://hub.fixlify.app"}/portal/${portalToken}`;
+    // Use fixlify.app as default (hub.fixlify.app was not properly configured)
+    const portalLink = `${Deno.env.get("PUBLIC_SITE_URL") || "https://fixlify.app"}/portal/${portalToken}`;
     
     // Generate personalized email address
     const cleanName = companyName.toLowerCase().replace(/[^a-z0-9]/g, '').substring(0, 20) || 'team';
@@ -252,11 +253,31 @@ serve(async (req) => {
     });
 
     if (!mailgunResponse.ok) {
-      const error = await mailgunResponse.text();
-      console.error("[send-estimate] Error sending email:", error);
+      const errorText = await mailgunResponse.text();
+      console.error("[send-estimate] Error sending email:", errorText);
+
+      // Parse error response to provide user-friendly message
+      let errorMessage = "Failed to send email";
+      let errorCode = "EMAIL_FAILED";
+      try {
+        const errorData = JSON.parse(errorText);
+        if (errorData.code === "MAILGUN_SUBSCRIPTION_CANCELED") {
+          errorMessage = "Email service is temporarily unavailable. Please try SMS or contact support.";
+          errorCode = errorData.code;
+        } else {
+          errorMessage = errorData.error || errorData.message || errorText;
+        }
+      } catch {
+        errorMessage = errorText;
+      }
+
       return new Response(
-        JSON.stringify({ error: "Failed to send email", details: error }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({
+          success: false,
+          error: errorMessage,
+          code: errorCode
+        }),
+        { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 

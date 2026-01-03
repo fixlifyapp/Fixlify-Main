@@ -112,6 +112,9 @@ WHERE EXISTS (
 -- OPTIONAL: Function to manually recalculate revenue
 -- =====================================================
 
+-- Drop existing function first to avoid parameter name conflicts
+DROP FUNCTION IF EXISTS recalculate_job_revenue(TEXT);
+
 CREATE OR REPLACE FUNCTION recalculate_job_revenue(p_job_id TEXT)
 RETURNS NUMERIC AS $$
 DECLARE

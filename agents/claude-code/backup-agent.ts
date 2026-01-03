@@ -40,7 +40,7 @@ export class BackupAgent {
   async backupConfiguration() {
     return {
       envVars: Object.keys(process.env).filter(k => k.startsWith('NEXT_PUBLIC')),
-      version: require('../../package.json').version
+      version: '1.0.0' // Version would be loaded from package.json via build
     }
   }
 

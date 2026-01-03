@@ -9,6 +9,8 @@ import { toast } from "sonner";
 import { generateNextId } from "@/utils/idGeneration";
 import { formatPhoneForTelnyx } from "@/utils/phoneUtils";
 
+const isDev = process.env.NODE_ENV === 'development';
+
 interface UseClientsOptimizedOptions {
   page?: number;
   pageSize?: number;
@@ -67,32 +69,27 @@ export const useClientsOptimized = (options: UseClientsOptimizedOptions = {}) =>
   // Fetch statistics using database function
   const fetchStatistics = useCallback(async () => {
     if (!isAuthenticated || !user?.id) {
-      console.log('fetchStatistics: Not authenticated or no user ID', { isAuthenticated, userId: user?.id });
       return;
     }
-    
+
     const statsCacheKey = `client_stats_${user.id}`;
-    
+
     try {
       // Try cache first
       const cached = localStorageCache.get<ClientStatistics>(statsCacheKey);
       if (cached) {
-        console.log('fetchStatistics: Using cached stats', cached);
         setStatistics(cached);
       }
-      
-      console.log('fetchStatistics: Calling RPC with user ID', user.id);
+
       // Fetch from database function
       const { data, error } = await supabase
         .rpc('get_client_statistics', { p_user_id: user.id });
-      
+
       if (error) {
-        console.error('fetchStatistics: RPC error', error);
+        if (isDev) console.error('fetchStatistics: RPC error', error);
         throw error;
       }
-      
-      console.log('fetchStatistics: RPC response', data);
-      
+
       if (data && data.length > 0) {
         const stats: ClientStatistics = {
           total: Number(data[0].total_clients) || 0,
@@ -102,13 +99,12 @@ export const useClientsOptimized = (options: UseClientsOptimizedOptions = {}) =>
           totalRevenue: Number(data[0].total_revenue) || 0,
           averageClientValue: Number(data[0].average_client_value) || 0
         };
-        
-        console.log('fetchStatistics: Setting stats', stats);
+
         setStatistics(stats);
         localStorageCache.set(statsCacheKey, stats, 5); // 5 minute cache
       }
     } catch (error) {
-      console.error('Error fetching client statistics:', error);
+      if (isDev) console.error('Error fetching client statistics:', error);
     }
   }, [isAuthenticated, user?.id]);  
   const fetchClients = useCallback(async () => {
@@ -289,7 +285,7 @@ export const useClientsOptimized = (options: UseClientsOptimizedOptions = {}) =>
       toast.success('Client added successfully');
       return data;
     } catch (error) {
-      console.error('Error adding client:', error);
+      if (isDev) console.error('Error adding client:', error);
       toast.error('Failed to add client');
       throw error;
     }
@@ -339,7 +335,7 @@ export const useClientsOptimized = (options: UseClientsOptimizedOptions = {}) =>
       toast.success('Client updated successfully');
       return data;
     } catch (error) {
-      console.error('Error updating client:', error);
+      if (isDev) console.error('Error updating client:', error);
       toast.error('Failed to update client');
       return null;
     }
@@ -375,7 +371,7 @@ export const useClientsOptimized = (options: UseClientsOptimizedOptions = {}) =>
       toast.success('Client deleted successfully');
       return true;
     } catch (error) {
-      console.error('Error deleting client:', error);
+      if (isDev) console.error('Error deleting client:', error);
       toast.error('Failed to delete client');
       return false;
     }
@@ -397,7 +393,7 @@ export const useClientsOptimized = (options: UseClientsOptimizedOptions = {}) =>
         return acc;
       }, {});
     } catch (error) {
-      console.error('Error fetching batch client stats:', error);
+      if (isDev) console.error('Error fetching batch client stats:', error);
       return {};
     }
   }, []);
@@ -437,7 +433,7 @@ export const useClientsOptimized = (options: UseClientsOptimizedOptions = {}) =>
 
       return data || [];
     } catch (error) {
-      console.error('Error checking for duplicates:', error);
+      if (isDev) console.error('Error checking for duplicates:', error);
       return [];
     }
   }, [isAuthenticated, user?.id]);  

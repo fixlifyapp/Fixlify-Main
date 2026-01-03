@@ -147,13 +147,15 @@ REFERENCES clients(id)
 ON DELETE CASCADE;
 
 -- =====================================================
--- 5. FIX JOB_HISTORY TABLE (if it exists)
+-- 5. FIX JOB_HISTORY TABLE (if it exists AND has client_id column)
 -- =====================================================
 
 DO $$
 BEGIN
-    -- Only proceed if the table exists
-    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'job_history') THEN
+    -- Only proceed if the table exists AND has client_id column
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'job_history' AND table_schema = 'public')
+       AND EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'job_history' AND column_name = 'client_id' AND table_schema = 'public')
+    THEN
         IF EXISTS (
             SELECT 1
             FROM information_schema.table_constraints tc

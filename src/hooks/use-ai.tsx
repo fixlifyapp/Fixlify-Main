@@ -15,6 +15,35 @@ interface UseAIOptions {
   forceRefresh?: boolean;
 }
 
+/**
+ * Data structure for generating business insights from various data sources
+ */
+interface InsightData {
+  [key: string]: string | number | boolean | object | null | undefined;
+}
+
+/**
+ * Typed metrics data for analytics generation
+ * Includes key business performance indicators
+ */
+interface MetricsData {
+  revenue?: number;
+  expenses?: number;
+  profit?: number;
+  jobsCompleted?: number;
+  clientCount?: number;
+  averageJobValue?: number;
+  conversionRate?: number;
+  [key: string]: string | number | boolean | object | null | undefined;
+}
+
+/**
+ * Data structure for generating personalized business recommendations
+ */
+interface RecommendationData {
+  [key: string]: string | number | boolean | object | null | undefined;
+}
+
 export function useAI(options: UseAIOptions = {}) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -104,7 +133,7 @@ export function useAI(options: UseAIOptions = {}) {
     }
   };
   
-  const generateInsights = useCallback(async (data: any, topic: string, customOptions?: Partial<UseAIOptions>) => {
+  const generateInsights = useCallback(async (data: InsightData, topic: string, customOptions?: Partial<UseAIOptions>) => {
     setIsLoading(true);
     setError(null);
     
@@ -135,7 +164,7 @@ export function useAI(options: UseAIOptions = {}) {
     }
   }, [options]);
   
-  const generateAnalytics = useCallback(async (metrics: any, timeframe: string = "last month", customOptions?: Partial<UseAIOptions>) => {
+  const generateAnalytics = useCallback(async (metrics: MetricsData, timeframe: string = "last month", customOptions?: Partial<UseAIOptions>) => {
     setIsLoading(true);
     setError(null);
     
@@ -166,7 +195,7 @@ export function useAI(options: UseAIOptions = {}) {
     }
   }, [options]);
   
-  const generateRecommendations = useCallback(async (data: any, subject: string, customOptions?: Partial<UseAIOptions>) => {
+  const generateRecommendations = useCallback(async (data: RecommendationData, subject: string, customOptions?: Partial<UseAIOptions>) => {
     setIsLoading(true);
     setError(null);
     

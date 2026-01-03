@@ -1,7 +1,8 @@
 import { createContext, useContext, useEffect, useState, ReactNode, useRef, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
 import { RealtimeChannel } from '@supabase/supabase-js';
+
+const isDev = process.env.NODE_ENV === 'development';
 
 interface GlobalRealtimeContextType {
   refreshJobs: () => void;
@@ -82,20 +83,27 @@ export const GlobalRealtimeProvider = ({ children }: GlobalRealtimeProviderProps
     });
   }, []);
 
+  // Use ref to store debounceRefresh for stable access in useEffect
+  const debounceRefreshRef = useRef(debounceRefresh);
+  debounceRefreshRef.current = debounceRefresh;
+
   useEffect(() => {
-    console.log('🔌 Setting up optimized realtime channel...');
-    
+    // Prevent double setup in StrictMode
+    let isSetup = false;
+
+    if (isDev) console.log('🔌 Setting up optimized realtime channel...');
+
     const setupRealtimeChannel = () => {
-      // Clean up existing channel
-      if (channelRef.current) {
-        supabase.removeChannel(channelRef.current);
-        channelRef.current = null;
+      // Don't setup if already done or unmounting
+      if (isSetup || channelRef.current) {
+        return;
       }
+      isSetup = true;
 
       try {
-        // Create a single consolidated channel for all tables
-        const channelName = `global-realtime-${Date.now()}`;
-        console.log(`📡 Creating optimized channel: ${channelName}`);
+        // Use static channel name to prevent recreation
+        const channelName = 'global-realtime-main';
+        if (isDev) console.log(`📡 Creating channel: ${channelName}`);
         
         const channel = supabase
           .channel(channelName, {
@@ -109,44 +117,44 @@ export const GlobalRealtimeProvider = ({ children }: GlobalRealtimeProviderProps
             event: '*',
             schema: 'public',
             table: 'jobs'
-          }, () => debounceRefresh('jobs', refreshCallbacksRef.current.jobs))
+          }, () => debounceRefreshRef.current('jobs', refreshCallbacksRef.current.jobs))
           // Clients table
           .on('postgres_changes', {
             event: '*',
             schema: 'public',
             table: 'clients'
-          }, () => debounceRefresh('clients', refreshCallbacksRef.current.clients))
+          }, () => debounceRefreshRef.current('clients', refreshCallbacksRef.current.clients))
           // Messages table
           .on('postgres_changes', {
             event: '*',
             schema: 'public',
             table: 'messages'
-          }, () => debounceRefresh('messages', refreshCallbacksRef.current.messages))
+          }, () => debounceRefreshRef.current('messages', refreshCallbacksRef.current.messages))
           // Invoices table
           .on('postgres_changes', {
             event: '*',
             schema: 'public',
             table: 'invoices'
-          }, () => debounceRefresh('invoices', refreshCallbacksRef.current.invoices))
+          }, () => debounceRefreshRef.current('invoices', refreshCallbacksRef.current.invoices))
           // Subscribe to channel
           .subscribe((status) => {
-            console.log('📡 Channel status:', status);
-            
+            if (isDev) console.log('📡 Channel status:', status);
+
             if (status === 'SUBSCRIBED') {
-              console.log('✅ Realtime channel connected');
+              if (isDev) console.log('✅ Realtime channel connected');
               setIsConnected(true);
               reconnectAttemptsRef.current = 0;
-              
+
               if (reconnectTimeoutRef.current) {
                 clearTimeout(reconnectTimeoutRef.current);
                 reconnectTimeoutRef.current = null;
               }
             } else if (status === 'CHANNEL_ERROR' || status === 'CLOSED') {
-              console.error('❌ Channel error or closed:', status);
+              if (isDev) console.error('❌ Channel error or closed:', status);
               setIsConnected(false);
               handleReconnect();
             } else if (status === 'TIMED_OUT') {
-              console.warn('⏱️ Channel subscription timed out');
+              if (isDev) console.warn('⏱️ Channel subscription timed out');
               setIsConnected(false);
               handleReconnect();
             }
@@ -155,7 +163,7 @@ export const GlobalRealtimeProvider = ({ children }: GlobalRealtimeProviderProps
         channelRef.current = channel;
         
       } catch (error) {
-        console.error('❌ Error setting up realtime channel:', error);
+        if (isDev) console.error('❌ Error setting up realtime channel:', error);
         handleReconnect();
       }
     };
@@ -167,11 +175,13 @@ export const GlobalRealtimeProvider = ({ children }: GlobalRealtimeProviderProps
 
       reconnectAttemptsRef.current++;
       const delay = Math.min(1000 * Math.pow(2, reconnectAttemptsRef.current), 30000);
-      
-      console.log(`🔄 Attempting to reconnect in ${delay}ms (attempt ${reconnectAttemptsRef.current})`);
-      
+
+      if (isDev) console.log(`🔄 Attempting to reconnect in ${delay}ms (attempt ${reconnectAttemptsRef.current})`);
+
       reconnectTimeoutRef.current = setTimeout(() => {
         reconnectTimeoutRef.current = null;
+        isSetup = false; // Allow re-setup
+        channelRef.current = null;
         setupRealtimeChannel();
       }, delay);
     };
@@ -180,19 +190,19 @@ export const GlobalRealtimeProvider = ({ children }: GlobalRealtimeProviderProps
 
     // Cleanup function
     return () => {
-      console.log('🧹 Cleaning up realtime channel...');
-      
+      if (isDev) console.log('🧹 Cleaning up realtime channel...');
+
       if (reconnectTimeoutRef.current) {
         clearTimeout(reconnectTimeoutRef.current);
         reconnectTimeoutRef.current = null;
       }
-      
+
       if (channelRef.current) {
         supabase.removeChannel(channelRef.current);
         channelRef.current = null;
       }
     };
-  }, [debounceRefresh]);
+  }, []); // Empty deps - run once on mount, use refs for callbacks
 
   // Memoized refresh functions to prevent unnecessary re-renders
   const refreshJobs = useCallback(() => {

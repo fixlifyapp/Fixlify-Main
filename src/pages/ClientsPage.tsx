@@ -25,6 +25,8 @@ import { toast } from "sonner";
 import { formatCurrency } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
 
+const isDev = process.env.NODE_ENV === 'development';
+
 const ClientsPage = () => {
   const [isGridView, setIsGridView] = useState(false);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -51,18 +53,11 @@ const ClientsPage = () => {
     searchQuery,
     enableRealtime: true
   });
-  
-  // Debug log
-  useEffect(() => {
-    console.log('ClientsPage - Statistics:', statistics);
-    console.log('ClientsPage - Clients:', clients);
-    console.log('ClientsPage - Loading:', isLoading);
-  }, [statistics, clients, isLoading]);
-  
+
   useRealtimeSync({
     tables: ['clients'],
     onUpdate: () => {
-      console.log('Clients table updated, refreshing...');
+      if (isDev) console.log('Clients table updated, refreshing...');
       refreshClients();
     },
     enabled: true
@@ -70,12 +65,12 @@ const ClientsPage = () => {
 
   useEffect(() => {
     const handleCustomRefresh = () => {
-      console.log('Custom refresh event triggered');
+      if (isDev) console.log('Custom refresh event triggered');
       refreshClients();
     };
 
     window.addEventListener('clientsRefresh', handleCustomRefresh);
-    
+
     return () => {
       window.removeEventListener('clientsRefresh', handleCustomRefresh);
     };

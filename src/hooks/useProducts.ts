@@ -16,6 +16,10 @@ export interface Product {
   sku?: string;
   created_at?: string;
   updated_at?: string;
+  // Advanced upsell fields
+  cost_price?: number;       // For profit margin calculation
+  is_featured?: boolean;     // Top seller / featured product
+  conversion_hint?: string;  // Hint text like "High adoption rate"
 }
 
 export const useProducts = (category?: string) => {

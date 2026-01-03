@@ -14,12 +14,23 @@ export type JobInfo = JobWithRelations & {
   total?: number; // Deprecated: Use revenue instead
 };
 
+// Client info for sending documents
+export interface ClientInfo {
+  id?: string;
+  name: string;
+  email: string;
+  phone: string;
+  company?: string;
+  fullAddress?: string;
+}
+
 export interface JobDetailsContextType {
   job: JobInfo | null;
   isLoading: boolean;
   currentStatus: string;
   invoiceAmount: number;
   balance: number;
+  clientInfo: ClientInfo | null;
   refreshJob: () => void;
   refreshFinancials: () => void;
   financialRefreshTrigger: number;

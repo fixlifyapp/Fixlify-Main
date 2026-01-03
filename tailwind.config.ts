@@ -131,5 +131,8 @@ export default {
 			}
 		}
 	},
-	plugins: [require("tailwindcss-animate")],
+	plugins: [
+		// Note: tailwindcss-animate is loaded via @tailwindcss/animate package
+		// Plugin configuration moved to global CSS imports
+	],
 } satisfies Config;

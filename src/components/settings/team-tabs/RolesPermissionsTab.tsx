@@ -1,34 +1,68 @@
-import { useState } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Shield, Users, Edit, Eye, Trash2, Plus } from "lucide-react";
+import { Shield, Users, Edit, Eye, Trash2, Plus, Loader2 } from "lucide-react";
 import { PERMISSIONS_LIST, DEFAULT_PERMISSIONS } from "@/components/auth/types";
 import { useRBAC } from "@/components/auth/RBACProvider";
 import { CreateCustomRoleModal } from "@/components/team/CreateCustomRoleModal";
+import { supabase } from "@/integrations/supabase/client";
+
+type RoleCounts = Record<string, number>;
 
 export const RolesPermissionsTab = () => {
   const [selectedRole, setSelectedRole] = useState<string>("admin");
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-  
+  const [roleCounts, setRoleCounts] = useState<RoleCounts>({});
+  const [isLoadingCounts, setIsLoadingCounts] = useState(true);
+
   const { customRoles, deleteCustomRole } = useRBAC();
 
-  const roles = [
-    { id: "admin", name: "Admin", color: "bg-red-100 text-red-800", members: 2, isCustom: false },
-    { id: "manager", name: "Manager", color: "bg-blue-100 text-blue-800", members: 3, isCustom: false },
-    { id: "dispatcher", name: "Dispatcher", color: "bg-green-100 text-green-800", members: 2, isCustom: false },
-    { id: "technician", name: "Technician", color: "bg-gray-100 text-gray-800", members: 8, isCustom: false },
+  // Fetch actual member counts by role from database
+  useEffect(() => {
+    const fetchRoleCounts = async () => {
+      setIsLoadingCounts(true);
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('role');
+
+        if (error) throw error;
+
+        // Count profiles by role
+        const counts: RoleCounts = {};
+        data?.forEach(profile => {
+          const role = profile.role || 'technician';
+          counts[role] = (counts[role] || 0) + 1;
+        });
+
+        setRoleCounts(counts);
+      } catch (err) {
+        console.error('Error fetching role counts:', err);
+      } finally {
+        setIsLoadingCounts(false);
+      }
+    };
+
+    fetchRoleCounts();
+  }, []);
+
+  const roles = useMemo(() => [
+    { id: "admin", name: "Admin", color: "bg-red-100 text-red-800", members: roleCounts['admin'] || 0, isCustom: false },
+    { id: "manager", name: "Manager", color: "bg-blue-100 text-blue-800", members: roleCounts['manager'] || 0, isCustom: false },
+    { id: "dispatcher", name: "Dispatcher", color: "bg-green-100 text-green-800", members: roleCounts['dispatcher'] || 0, isCustom: false },
+    { id: "technician", name: "Technician", color: "bg-gray-100 text-gray-800", members: roleCounts['technician'] || 0, isCustom: false },
     ...customRoles.map(role => ({
       id: role.id,
       name: role.name,
       color: "bg-purple-100 text-purple-800",
-      members: 0, // TODO: Count actual members
+      members: roleCounts[role.id] || 0,
       isCustom: true,
       description: role.description
     }))
-  ];
+  ], [roleCounts, customRoles]);
 
   const handleDeleteCustomRole = async (roleId: string) => {
     if (confirm('Are you sure you want to delete this custom role?')) {
@@ -80,7 +114,11 @@ export const RolesPermissionsTab = () => {
                     {role.isCustom && <Badge variant="outline">Custom</Badge>}
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="text-sm text-muted-foreground">{role.members} members</span>
+                    {isLoadingCounts ? (
+                      <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
+                    ) : (
+                      <span className="text-sm text-muted-foreground">{role.members} members</span>
+                    )}
                     {role.isCustom && (
                       <Button
                         size="sm"

@@ -1,10 +1,11 @@
 
 import { createContext, useContext, ReactNode } from 'react';
+import { User, Session } from '@supabase/supabase-js';
 import { useAuthState } from './useAuthState';
 
 interface AuthContextType {
-  session: any;
-  user: any;
+  session: Session | null;
+  user: User | null;
   loading: boolean;
   error: string | null;
   isAuthenticated: boolean;

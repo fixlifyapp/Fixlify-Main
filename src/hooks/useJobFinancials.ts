@@ -1,6 +1,26 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
+/**
+ * Payment record for an invoice
+ */
+interface PaymentRecord {
+  amount: number;
+  [key: string]: any;
+}
+
+/**
+ * Invoice with associated payments
+ */
+interface InvoiceWithPayments {
+  id: string;
+  job_id: string;
+  total: number;
+  due_date?: string;
+  payments: PaymentRecord[];
+  [key: string]: any;
+}
+
 export const useJobFinancials = (jobId: string) => {
   const [invoiceAmount, setInvoiceAmount] = useState(0);
   const [balance, setBalance] = useState(0);
@@ -26,7 +46,7 @@ export const useJobFinancials = (jobId: string) => {
       isFetchingRef.current = true;
 
       // Fetch invoices with their payments for this job
-      const { data: invoices, error: invoicesError } = await supabase
+      const { data: invoicesData, error: invoicesError } = await supabase
         .from('invoices')
         .select(`
           *,
@@ -39,13 +59,15 @@ export const useJobFinancials = (jobId: string) => {
         return;
       }
 
+      const invoices = invoicesData as InvoiceWithPayments[] | null;
+
       // Calculate totals with proper payment linking
       const totalInvoiced = invoices?.reduce((sum, invoice) => sum + (invoice.total || 0), 0) || 0;
-      
+
       // Calculate total paid from actual payment records
       const totalPaidAmount = invoices?.reduce((sum, invoice) => {
-        const invoicePayments = invoice.payments || [];
-        const invoicePaid = invoicePayments.reduce((paySum: number, payment: any) => paySum + (payment.amount || 0), 0);
+        const invoicePayments: PaymentRecord[] = invoice.payments || [];
+        const invoicePaid = invoicePayments.reduce((paySum: number, payment: PaymentRecord) => paySum + (payment.amount || 0), 0);
         return sum + invoicePaid;
       }, 0) || 0;
 
@@ -53,24 +75,24 @@ export const useJobFinancials = (jobId: string) => {
 
       // Count paid and unpaid invoices based on actual payment status
       const paidCount = invoices?.filter(invoice => {
-        const invoicePayments = invoice.payments || [];
-        const invoicePaid = invoicePayments.reduce((sum: number, payment: any) => sum + (payment.amount || 0), 0);
+        const invoicePayments: PaymentRecord[] = invoice.payments || [];
+        const invoicePaid = invoicePayments.reduce((sum: number, payment: PaymentRecord) => sum + (payment.amount || 0), 0);
         return invoicePaid >= (invoice.total || 0);
       }).length || 0;
-      
+
       const unpaidCount = invoices?.filter(invoice => {
-        const invoicePayments = invoice.payments || [];
-        const invoicePaid = invoicePayments.reduce((sum: number, payment: any) => sum + (payment.amount || 0), 0);
+        const invoicePayments: PaymentRecord[] = invoice.payments || [];
+        const invoicePaid = invoicePayments.reduce((sum: number, payment: PaymentRecord) => sum + (payment.amount || 0), 0);
         return invoicePaid < (invoice.total || 0);
       }).length || 0;
 
       // Calculate overdue amount (invoices past due date with remaining balance)
       const now = new Date();
       const overdueTotal = invoices?.reduce((sum, invoice) => {
-        const invoicePayments = invoice.payments || [];
-        const invoicePaid = invoicePayments.reduce((paySum: number, payment: any) => paySum + (payment.amount || 0), 0);
+        const invoicePayments: PaymentRecord[] = invoice.payments || [];
+        const invoicePaid = invoicePayments.reduce((paySum: number, payment: PaymentRecord) => paySum + (payment.amount || 0), 0);
         const remainingBalance = (invoice.total || 0) - invoicePaid;
-        
+
         if (remainingBalance > 0 && invoice.due_date && new Date(invoice.due_date) < now) {
           return sum + remainingBalance;
         }

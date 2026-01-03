@@ -8,7 +8,6 @@ import { UniversalSendDialog } from "../dialogs/shared/UniversalSendDialog";
 import { UnifiedDocumentViewer } from "../dialogs/UnifiedDocumentViewer";
 import { formatCurrency } from "@/lib/utils";
 import { toast } from "sonner";
-import { useJobData } from "../dialogs/unified/hooks/useJobData";
 import { supabase } from "@/integrations/supabase/client";
 import { UnifiedPaymentDialog } from "../dialogs/UnifiedPaymentDialog";
 import { useJobDetails } from "../context/JobDetailsContext";
@@ -23,7 +22,8 @@ interface ModernJobInvoicesTabProps {
 export const ModernJobInvoicesTab = ({ jobId }: ModernJobInvoicesTabProps) => {
   const { invoices, isLoading, refreshInvoices } = useInvoices(jobId);
   const { estimates } = useEstimates(jobId);
-  const { refreshFinancials } = useJobDetails();
+  // Use context's clientInfo instead of separate useJobData hook
+  const { refreshFinancials, clientInfo } = useJobDetails();
   const [showInvoiceBuilder, setShowInvoiceBuilder] = useState(false);
   const [showSendDialog, setShowSendDialog] = useState(false);
   const [showPaymentDialog, setShowPaymentDialog] = useState(false);
@@ -31,10 +31,6 @@ export const ModernJobInvoicesTab = ({ jobId }: ModernJobInvoicesTabProps) => {
   const [selectedInvoice, setSelectedInvoice] = useState<any>(null);
   const [selectedEstimate, setSelectedEstimate] = useState<any>(null);
   const [isDeleting, setIsDeleting] = useState(false);
-
-  // Load job data only when needed (when sending)
-  const [loadJobData, setLoadJobData] = useState(false);
-  const { clientInfo } = useJobData(loadJobData ? jobId : '');
 
   const handleCreateInvoice = () => {
     setSelectedInvoice(null);
@@ -56,7 +52,6 @@ export const ModernJobInvoicesTab = ({ jobId }: ModernJobInvoicesTabProps) => {
 
   const handleSendInvoice = (invoice: any) => {
     setSelectedInvoice(invoice);
-    setLoadJobData(true);  // Load job data when sending
     setShowSendDialog(true);
   };
 

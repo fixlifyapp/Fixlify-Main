@@ -37,14 +37,108 @@ serve(async (req) => {
     // Handle test requests
     if (requestData.test === true) {
       console.log('Test request received for mailgun-email');
+      const mailgunApiKey = Deno.env.get('MAILGUN_API_KEY');
+      const mailgunDomain = Deno.env.get('MAILGUN_DOMAIN') || 'mg.fixlify.app';
       return new Response(
-        JSON.stringify({ 
-          success: true, 
+        JSON.stringify({
+          success: true,
           message: 'Mailgun email service is accessible',
-          version: '1.0.0'
+          version: '1.0.1',
+          config: {
+            hasApiKey: !!mailgunApiKey,
+            domain: mailgunDomain,
+            apiKeyPrefix: mailgunApiKey ? mailgunApiKey.substring(0, 8) + '...' : null
+          }
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
+    }
+
+    // Handle status check requests (verify Mailgun credentials)
+    if (requestData.status === true) {
+      console.log('Status check request received for mailgun-email');
+      const mailgunApiKey = Deno.env.get('MAILGUN_API_KEY');
+      const mailgunDomain = Deno.env.get('MAILGUN_DOMAIN') || 'mg.fixlify.app';
+
+      if (!mailgunApiKey) {
+        return new Response(
+          JSON.stringify({
+            success: false,
+            error: 'Mailgun API key not configured',
+            domain: mailgunDomain
+          }),
+          { status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      // First list all available domains
+      try {
+        const domainsResponse = await fetch('https://api.mailgun.net/v3/domains', {
+          method: 'GET',
+          headers: {
+            'Authorization': `Basic ${btoa(`api:${mailgunApiKey}`)}`,
+          },
+        });
+
+        const domainsResult = await domainsResponse.text();
+        console.log('Mailgun domains list:', domainsResponse.status, domainsResult);
+
+        let availableDomains: string[] = [];
+        try {
+          const parsed = JSON.parse(domainsResult);
+          availableDomains = parsed.items?.map((d: { name: string }) => d.name) || [];
+        } catch {
+          // Couldn't parse domains
+        }
+
+        // Verify specific domain
+        const verifyResponse = await fetch(`https://api.mailgun.net/v3/domains/${mailgunDomain}`, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Basic ${btoa(`api:${mailgunApiKey}`)}`,
+          },
+        });
+
+        const verifyResult = await verifyResponse.text();
+        console.log('Mailgun domain verification:', verifyResponse.status, verifyResult);
+
+        if (!verifyResponse.ok) {
+          return new Response(
+            JSON.stringify({
+              success: false,
+              error: 'Mailgun domain verification failed',
+              status: verifyResponse.status,
+              details: verifyResult,
+              configuredDomain: mailgunDomain,
+              availableDomains: availableDomains,
+              suggestion: availableDomains.length > 0 ?
+                `Consider using one of these domains: ${availableDomains.join(', ')}` :
+                'No domains found in Mailgun account. Please add a domain at mailgun.com'
+            }),
+            { status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        return new Response(
+          JSON.stringify({
+            success: true,
+            message: 'Mailgun configuration verified',
+            domain: mailgunDomain,
+            availableDomains: availableDomains,
+            domainInfo: JSON.parse(verifyResult)
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      } catch (error) {
+        return new Response(
+          JSON.stringify({
+            success: false,
+            error: 'Failed to verify Mailgun configuration',
+            details: error.message
+          }),
+          { status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
     }
     
     const emailRequest: EmailRequest = requestData;
@@ -52,7 +146,7 @@ serve(async (req) => {
     
     // Get Mailgun configuration from environment
     const mailgunApiKey = Deno.env.get('MAILGUN_API_KEY');
-    const mailgunDomain = Deno.env.get('MAILGUN_DOMAIN') || 'fixlify.app';
+    const mailgunDomain = Deno.env.get('MAILGUN_DOMAIN') || 'mg.fixlify.app';
     const mailgunFromEmail = Deno.env.get('MAILGUN_FROM_EMAIL') || `noreply@${mailgunDomain}`;
     
     // For testing purposes, if Mailgun is not configured, we'll simulate the email
@@ -205,7 +299,12 @@ serve(async (req) => {
       
       if (!mailgunResponse.ok) {
         console.error('Mailgun API error:', responseText);
-        
+
+        // Check for subscription/billing errors
+        const isSubscriptionError = responseText.includes('Subscription Canceled') ||
+          responseText.includes('billing') ||
+          responseText.includes('payment');
+
         // Log failure if Supabase is available
         if (supabase) {
           try {
@@ -216,22 +315,42 @@ serve(async (req) => {
                 client_id: emailRequest.clientId,
                 type: 'email',
                 direction: 'outbound',
-                status: 'failed',
+                status: isSubscriptionError ? 'pending' : 'failed',
                 from_address: fromEmail,
                 to_address: emailRequest.to,
                 subject: emailRequest.subject,
                 content: emailRequest.text || emailRequest.html,
-                error_message: responseText,
+                error_message: isSubscriptionError
+                  ? 'Email service temporarily unavailable - pending Mailgun subscription reactivation'
+                  : responseText,
                 metadata: {
                   ...emailRequest.metadata,
-                  mailgun_status: mailgunResponse.status
+                  mailgun_status: mailgunResponse.status,
+                  requires_action: isSubscriptionError ? 'reactivate_mailgun_subscription' : undefined
                 }
               });
           } catch (logError) {
             console.error('Failed to log email error:', logError);
           }
         }
-        
+
+        // Provide clear error message for subscription issues
+        if (isSubscriptionError) {
+          return new Response(
+            JSON.stringify({
+              success: false,
+              error: 'Email service temporarily unavailable',
+              code: 'MAILGUN_SUBSCRIPTION_CANCELED',
+              message: 'The Mailgun email subscription needs to be reactivated. Please log into mailgun.com and update billing information.',
+              logged: true
+            }),
+            {
+              status: 503,
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+            }
+          );
+        }
+
         throw new Error(`Failed to send email: ${responseText}`);
       }
       
@@ -267,10 +386,11 @@ serve(async (req) => {
     }
     
     return new Response(
-      JSON.stringify({ 
-        success: true, 
+      JSON.stringify({
+        success: true,
         message: 'Email sent successfully',
         messageId: mailgunResult.id,
+        mailgunId: mailgunResult.id, // Alias for compatibility
         recipient: emailRequest.to
       }),
       {

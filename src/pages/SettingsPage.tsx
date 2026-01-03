@@ -97,7 +97,21 @@ const SettingsPage = () => {
             </div>
           </div>
         </Link>
-        
+
+        {/* AI Insights Card */}
+        <Link to="/settings/ai-insights">
+          <div className="h-full hover:shadow-md transition-shadow fixlyfy-card cursor-pointer">
+            <div className="flex items-center p-6 space-x-4">
+              <div className="bg-purple-100 p-3 rounded-full">
+                <Brain className="h-6 w-6 text-purple-600" />
+              </div>
+              <div>
+                <h3 className="font-medium">AI Insights</h3>
+                <p className="text-sm text-muted-foreground">Understand how AI makes decisions and learns</p>
+              </div>
+            </div>
+          </div>
+        </Link>
 
       </div>
     </PageLayout>

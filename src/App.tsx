@@ -18,43 +18,43 @@ import "@/utils/realtimeDebug";
 import "@/utils/realtimeErrorHandler";
 // Automation now handled by database triggers and cron jobs
 
-// Pages
+// Pages - Critical pages loaded immediately, others lazy-loaded
 import AuthPage from "@/pages/AuthPage";
 import Dashboard from "@/pages/Dashboard";
 import JobsPageOptimized from "@/pages/JobsPageOptimized";
-import JobDetailsPage from "@/pages/JobDetailsPage";
-import ClientsPage from "@/pages/ClientsPage";
-import ClientDetailPage from "@/pages/ClientDetailPageV2";
-import SchedulePage from "@/pages/SchedulePage";
-import FinancePage from "@/pages/FinancePage";
-import ConnectPage from "@/pages/ConnectPage";
-import AiCenterPage from "@/pages/AiCenterPage";
-import AutomationsPage from "@/pages/AutomationsPage";
-import AnalyticsPage from "@/pages/AnalyticsPage";
-import TeamManagementPage from "@/pages/TeamManagementPage";
-import TasksPage from "@/pages/TasksPage";
-import SettingsPage from "@/pages/SettingsPage";
-import ProfileCompanyPage from "@/pages/ProfileCompanyPage";
-import ConfigurationPage from "@/pages/ConfigurationPage";
-import ProductsPage from "@/pages/ProductsPage";
-import IntegrationsPage from "@/pages/IntegrationsPage";
-import PhoneNumberManagementPage from "@/pages/PhoneNumberManagementPage";
-import PhoneNumberPurchasePage from "@/pages/PhoneNumberPurchasePage";
-import PhoneNumberConfigPage from "@/pages/settings/PhoneNumberConfigPage";
-import EstimatesPage from "@/pages/EstimatesPage";
-import InvoicesPage from "@/pages/InvoicesPage";
-import ReportsPage from "@/pages/ReportsPage";
-import DocumentsPage from "@/pages/DocumentsPage";
-import InventoryPage from "@/pages/InventoryPage";
-import AdminRolesPage from "@/pages/AdminRolesPage";
-import TeamMemberProfilePage from "@/pages/TeamMemberProfilePage";
 import AcceptInvitationPage from "@/pages/AcceptInvitationPage";
-import ClientPortal from "@/pages/ClientPortal";
-import EstimatePortal from "@/pages/EstimatePortal";
 import UniversalPortal from "@/pages/UniversalPortal";
 
-import EdgeFunctionsPage from "@/pages/EdgeFunctionsPage";
-import AdminPhonePoolPage from "@/pages/AdminPhonePoolPage";
+// Lazy-loaded pages to reduce initial bundle
+const JobDetailsPage = React.lazy(() => import("@/pages/JobDetailsPage"));
+const ClientsPage = React.lazy(() => import("@/pages/ClientsPage"));
+const ClientDetailPage = React.lazy(() => import("@/pages/ClientDetailPageV2"));
+const SchedulePage = React.lazy(() => import("@/pages/SchedulePage"));
+const FinancePage = React.lazy(() => import("@/pages/FinancePage"));
+const EstimatesPage = React.lazy(() => import("@/pages/EstimatesPage"));
+const InvoicesPage = React.lazy(() => import("@/pages/InvoicesPage"));
+const ConnectPage = React.lazy(() => import("@/pages/ConnectPage"));
+const AiCenterPage = React.lazy(() => import("@/pages/AiCenterPage"));
+const AutomationsPage = React.lazy(() => import("@/pages/AutomationsPage"));
+const AnalyticsPage = React.lazy(() => import("@/pages/AnalyticsPage"));
+const ReportsPage = React.lazy(() => import("@/pages/ReportsPage"));
+const TeamManagementPage = React.lazy(() => import("@/pages/TeamManagementPage"));
+const TeamMemberProfilePage = React.lazy(() => import("@/pages/TeamMemberProfilePage"));
+const TasksPage = React.lazy(() => import("@/pages/TasksPage"));
+const SettingsPage = React.lazy(() => import("@/pages/SettingsPage"));
+const ProfileCompanyPage = React.lazy(() => import("@/pages/ProfileCompanyPage"));
+const ConfigurationPage = React.lazy(() => import("@/pages/ConfigurationPage"));
+const ProductsPage = React.lazy(() => import("@/pages/ProductsPage"));
+const IntegrationsPage = React.lazy(() => import("@/pages/IntegrationsPage"));
+const PhoneNumberManagementPage = React.lazy(() => import("@/pages/PhoneNumberManagementPage"));
+const PhoneNumberPurchasePage = React.lazy(() => import("@/pages/PhoneNumberPurchasePage"));
+const PhoneNumberConfigPage = React.lazy(() => import("@/pages/settings/PhoneNumberConfigPage"));
+const AIInsightsPage = React.lazy(() => import("@/pages/settings/AIInsightsPage"));
+const DocumentsPage = React.lazy(() => import("@/pages/DocumentsPage"));
+const InventoryPage = React.lazy(() => import("@/pages/InventoryPage"));
+const AdminRolesPage = React.lazy(() => import("@/pages/AdminRolesPage"));
+const EdgeFunctionsPage = React.lazy(() => import("@/pages/EdgeFunctionsPage"));
+const AdminPhonePoolPage = React.lazy(() => import("@/pages/AdminPhonePoolPage"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -69,6 +69,22 @@ const queryClient = new QueryClient({
   },
 });
 
+// Loading fallback component for lazy-loaded routes
+const PageLoadingFallback = () => (
+  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh' }}>
+    <div style={{ textAlign: 'center' }}>
+      <div style={{ fontSize: '18px', marginBottom: '16px' }}>Loading...</div>
+      <div style={{ width: '40px', height: '40px', border: '3px solid #f0f0f0', borderTop: '3px solid #3b82f6', borderRadius: '50%', animation: 'spin 1s linear infinite', margin: '0 auto' }} />
+    </div>
+    <style>{`
+      @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+      }
+    `}</style>
+  </div>
+);
+
 // Wrapper for protected routes with providers
 const ProtectedRouteWithProviders = ({ children }: { children: React.ReactNode }) => {
   return (
@@ -79,6 +95,17 @@ const ProtectedRouteWithProviders = ({ children }: { children: React.ReactNode }
     </ProtectedRoute>
   );
 };
+
+// Wrapper for lazy-loaded protected routes
+const LazyProtectedRoute = ({ children }: { children: React.ReactNode }) => (
+  <React.Suspense fallback={<PageLoadingFallback />}>
+    <AuthProvider>
+      <ProtectedRouteWithProviders>
+        {children}
+      </ProtectedRouteWithProviders>
+    </AuthProvider>
+  </React.Suspense>
+);
 
 function App() {
   // Setup auth error handler
@@ -116,11 +143,9 @@ function App() {
 
             {/* Edge Functions Management */}
             <Route path="/edge-functions" element={
-              <AuthProvider>
-                <ProtectedRouteWithProviders>
-                  <EdgeFunctionsPage />
-                </ProtectedRouteWithProviders>
-              </AuthProvider>
+              <LazyProtectedRoute>
+                <EdgeFunctionsPage />
+              </LazyProtectedRoute>
             } />
             
             
@@ -148,73 +173,57 @@ function App() {
                 </ProtectedRouteWithProviders>
               </AuthProvider>
             } />
-            
+
             <Route path="/jobs/:jobId" element={
-              <AuthProvider>
-                <ProtectedRouteWithProviders>
-                  <JobDetailsPage />
-                </ProtectedRouteWithProviders>
-              </AuthProvider>
+              <LazyProtectedRoute>
+                <JobDetailsPage />
+              </LazyProtectedRoute>
             } />
-            
+
             {/* Clients */}
             <Route path="/clients" element={
-              <AuthProvider>
-                <ProtectedRouteWithProviders>
-                  <ClientsPage />
-                </ProtectedRouteWithProviders>
-              </AuthProvider>
+              <LazyProtectedRoute>
+                <ClientsPage />
+              </LazyProtectedRoute>
             } />
-            
+
             <Route path="/clients/:clientId" element={
-              <AuthProvider>
-                <ProtectedRouteWithProviders>
-                  <ClientDetailPage />
-                </ProtectedRouteWithProviders>
-              </AuthProvider>
+              <LazyProtectedRoute>
+                <ClientDetailPage />
+              </LazyProtectedRoute>
             } />
-            
+
             {/* Schedule */}
             <Route path="/schedule" element={
-              <AuthProvider>
-                <ProtectedRouteWithProviders>
-                  <SchedulePage />
-                </ProtectedRouteWithProviders>
-              </AuthProvider>
+              <LazyProtectedRoute>
+                <SchedulePage />
+              </LazyProtectedRoute>
             } />
-            
+
             {/* Finance */}
             <Route path="/finance" element={
-              <AuthProvider>
-                <ProtectedRouteWithProviders>
-                  <FinancePage />
-                </ProtectedRouteWithProviders>
-              </AuthProvider>
+              <LazyProtectedRoute>
+                <FinancePage />
+              </LazyProtectedRoute>
             } />
-            
+
             <Route path="/estimates" element={
-              <AuthProvider>
-                <ProtectedRouteWithProviders>
-                  <EstimatesPage />
-                </ProtectedRouteWithProviders>
-              </AuthProvider>
+              <LazyProtectedRoute>
+                <EstimatesPage />
+              </LazyProtectedRoute>
             } />
-            
+
             <Route path="/invoices" element={
-              <AuthProvider>
-                <ProtectedRouteWithProviders>
-                  <InvoicesPage />
-                </ProtectedRouteWithProviders>
-              </AuthProvider>
+              <LazyProtectedRoute>
+                <InvoicesPage />
+              </LazyProtectedRoute>
             } />
-            
+
             {/* Connect - Main communication hub */}
             <Route path="/connect" element={
-              <AuthProvider>
-                <ProtectedRouteWithProviders>
-                  <ConnectPage />
-                </ProtectedRouteWithProviders>
-              </AuthProvider>
+              <LazyProtectedRoute>
+                <ConnectPage />
+              </LazyProtectedRoute>
             } />
             
             {/* Communication - Legacy route, redirect to Connect */}
@@ -239,201 +248,159 @@ function App() {
             
             {/* AI Center */}
             <Route path="/ai-center" element={
-              <AuthProvider>
-                <ProtectedRouteWithProviders>
-                  <AiCenterPage />
-                </ProtectedRouteWithProviders>
-              </AuthProvider>
+              <LazyProtectedRoute>
+                <AiCenterPage />
+              </LazyProtectedRoute>
             } />
             
             {/* Automations */}
             <Route path="/automations" element={
-              <AuthProvider>
-                <ProtectedRouteWithProviders>
-                  <AutomationsPage />
-                </ProtectedRouteWithProviders>
-              </AuthProvider>
+              <LazyProtectedRoute>
+                <AutomationsPage />
+              </LazyProtectedRoute>
             } />
             
             {/* Analytics */}
             <Route path="/analytics" element={
-              <AuthProvider>
-                <ProtectedRouteWithProviders>
-                  <AnalyticsPage />
-                </ProtectedRouteWithProviders>
-              </AuthProvider>
+              <LazyProtectedRoute>
+                <AnalyticsPage />
+              </LazyProtectedRoute>
             } />
-            
+
             <Route path="/reports" element={
-              <AuthProvider>
-                <ProtectedRouteWithProviders>
-                  <ReportsPage />
-                </ProtectedRouteWithProviders>
-              </AuthProvider>
+              <LazyProtectedRoute>
+                <ReportsPage />
+              </LazyProtectedRoute>
             } />
             
             {/* Team */}
             <Route path="/team" element={
-              <AuthProvider>
-                <ProtectedRouteWithProviders>
-                  <TeamManagementPage />
-                </ProtectedRouteWithProviders>
-              </AuthProvider>
+              <LazyProtectedRoute>
+                <TeamManagementPage />
+              </LazyProtectedRoute>
             } />
-            
+
             <Route path="/team/:memberId" element={
-              <AuthProvider>
-                <ProtectedRouteWithProviders>
-                  <TeamMemberProfilePage />
-                </ProtectedRouteWithProviders>
-              </AuthProvider>
+              <LazyProtectedRoute>
+                <TeamMemberProfilePage />
+              </LazyProtectedRoute>
             } />
             
             {/* Tasks */}
             <Route path="/tasks" element={
-              <AuthProvider>
-                <ProtectedRouteWithProviders>
-                  <TasksPage />
-                </ProtectedRouteWithProviders>
-              </AuthProvider>
+              <LazyProtectedRoute>
+                <TasksPage />
+              </LazyProtectedRoute>
             } />
             
             {/* Settings Routes */}
             <Route path="/settings" element={
-              <AuthProvider>
-                <ProtectedRouteWithProviders>
-                  <SettingsPage />
-                </ProtectedRouteWithProviders>
-              </AuthProvider>
+              <LazyProtectedRoute>
+                <SettingsPage />
+              </LazyProtectedRoute>
             } />
-            
+
             <Route path="/settings/profile" element={
-              <AuthProvider>
-                <ProtectedRouteWithProviders>
-                  <ProfileCompanyPage />
-                </ProtectedRouteWithProviders>
-              </AuthProvider>
+              <LazyProtectedRoute>
+                <ProfileCompanyPage />
+              </LazyProtectedRoute>
             } />
-            
+
             <Route path="/profile-company" element={
-              <AuthProvider>
-                <ProtectedRouteWithProviders>
-                  <ProfileCompanyPage />
-                </ProtectedRouteWithProviders>
-              </AuthProvider>
+              <LazyProtectedRoute>
+                <ProfileCompanyPage />
+              </LazyProtectedRoute>
             } />
-            
+
             <Route path="/settings/configuration" element={
-              <AuthProvider>
-                <ProtectedRouteWithProviders>
-                  <ConfigurationPage />
-                </ProtectedRouteWithProviders>
-              </AuthProvider>
+              <LazyProtectedRoute>
+                <ConfigurationPage />
+              </LazyProtectedRoute>
             } />
-            
+
             <Route path="/configuration" element={
-              <AuthProvider>
-                <ProtectedRouteWithProviders>
-                  <ConfigurationPage />
-                </ProtectedRouteWithProviders>
-              </AuthProvider>
+              <LazyProtectedRoute>
+                <ConfigurationPage />
+              </LazyProtectedRoute>
             } />
-            
+
             <Route path="/settings/products" element={
-              <AuthProvider>
-                <ProtectedRouteWithProviders>
-                  <ProductsPage />
-                </ProtectedRouteWithProviders>
-              </AuthProvider>
+              <LazyProtectedRoute>
+                <ProductsPage />
+              </LazyProtectedRoute>
             } />
-            
+
             <Route path="/products" element={
-              <AuthProvider>
-                <ProtectedRouteWithProviders>
-                  <ProductsPage />
-                </ProtectedRouteWithProviders>
-              </AuthProvider>
+              <LazyProtectedRoute>
+                <ProductsPage />
+              </LazyProtectedRoute>
             } />
-            
+
             <Route path="/settings/integrations" element={
-              <AuthProvider>
-                <ProtectedRouteWithProviders>
-                  <IntegrationsPage />
-                </ProtectedRouteWithProviders>
-              </AuthProvider>
+              <LazyProtectedRoute>
+                <IntegrationsPage />
+              </LazyProtectedRoute>
             } />
-            
+
             <Route path="/integrations" element={
-              <AuthProvider>
-                <ProtectedRouteWithProviders>
-                  <IntegrationsPage />
-                </ProtectedRouteWithProviders>
-              </AuthProvider>
+              <LazyProtectedRoute>
+                <IntegrationsPage />
+              </LazyProtectedRoute>
             } />
-            
+
             <Route path="/settings/phone-numbers" element={
-              <AuthProvider>
-                <ProtectedRouteWithProviders>
-                  <PhoneNumberManagementPage />
-                </ProtectedRouteWithProviders>
-              </AuthProvider>
+              <LazyProtectedRoute>
+                <PhoneNumberManagementPage />
+              </LazyProtectedRoute>
             } />
-            
+
             <Route path="/settings/phone-numbers/purchase" element={
-              <AuthProvider>
-                <ProtectedRouteWithProviders>
-                  <PhoneNumberPurchasePage />
-                </ProtectedRouteWithProviders>
-              </AuthProvider>
+              <LazyProtectedRoute>
+                <PhoneNumberPurchasePage />
+              </LazyProtectedRoute>
             } />
-            
+
             <Route path="/settings/phone-config/:phoneId" element={
-              <AuthProvider>
-                <ProtectedRouteWithProviders>
-                  <PhoneNumberConfigPage />
-                </ProtectedRouteWithProviders>
-              </AuthProvider>
+              <LazyProtectedRoute>
+                <PhoneNumberConfigPage />
+              </LazyProtectedRoute>
             } />
-            
+
+            <Route path="/settings/ai-insights" element={
+              <LazyProtectedRoute>
+                <AIInsightsPage />
+              </LazyProtectedRoute>
+            } />
+
             <Route path="/settings/admin-roles" element={
-              <AuthProvider>
-                <ProtectedRouteWithProviders>
-                  <AdminRolesPage />
-                </ProtectedRouteWithProviders>
-              </AuthProvider>
+              <LazyProtectedRoute>
+                <AdminRolesPage />
+              </LazyProtectedRoute>
             } />
 
             {/* Admin Phone Pool Management */}
             <Route path="/admin/phone-pool" element={
-              <AuthProvider>
-                <ProtectedRouteWithProviders>
-                  <AdminPhonePoolPage />
-                </ProtectedRouteWithProviders>
-              </AuthProvider>
+              <LazyProtectedRoute>
+                <AdminPhonePoolPage />
+              </LazyProtectedRoute>
             } />
-            
+
             <Route path="/admin-roles" element={
-              <AuthProvider>
-                <ProtectedRouteWithProviders>
-                  <AdminRolesPage />
-                </ProtectedRouteWithProviders>
-              </AuthProvider>
+              <LazyProtectedRoute>
+                <AdminRolesPage />
+              </LazyProtectedRoute>
             } />
-            
+
             <Route path="/documents" element={
-              <AuthProvider>
-                <ProtectedRouteWithProviders>
-                  <DocumentsPage />
-                </ProtectedRouteWithProviders>
-              </AuthProvider>
+              <LazyProtectedRoute>
+                <DocumentsPage />
+              </LazyProtectedRoute>
             } />
-            
+
             <Route path="/inventory" element={
-              <AuthProvider>
-                <ProtectedRouteWithProviders>
-                  <InventoryPage />
-                </ProtectedRouteWithProviders>
-              </AuthProvider>
+              <LazyProtectedRoute>
+                <InventoryPage />
+              </LazyProtectedRoute>
             } />
             
             {/* 404 */}
