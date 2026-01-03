@@ -42,12 +42,14 @@ const SIDEBAR_ROUTES: RouteItem[] = [
 export function AppSidebar() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { hasPermission } = useRBAC();
+  const { hasPermission, loading } = useRBAC();
 
   // Filter routes based on user permissions (centralized in routePermissions.ts)
+  // Show all routes while RBAC is loading to prevent flash
   const routes = useMemo(() => {
+    if (loading) return SIDEBAR_ROUTES;
     return SIDEBAR_ROUTES.filter((route) => canAccessRoute(route.href, hasPermission));
-  }, [hasPermission]);
+  }, [hasPermission, loading]);
 
   const handleNavigation = (href: string) => {
     navigate(href);
