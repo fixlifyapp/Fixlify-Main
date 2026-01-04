@@ -225,14 +225,38 @@ serve(async (req) => {
     // Store in unified sms_messages system (source of truth)
     let conversationId: string | null = null;
     try {
-      // Find existing conversation for this phone pair
-      const { data: existingConversation } = await supabase
+      // Normalize phone numbers for lookup (last 10 digits)
+      const normalizedClientPhone = toE164Number.replace(/\D/g, '').slice(-10);
+      const normalizedOurPhone = fromE164.replace(/\D/g, '').slice(-10);
+
+      // First try exact match (fastest)
+      let existingConversation = null;
+      const { data: exactMatch } = await supabase
         .from('sms_conversations')
         .select('id')
         .eq('client_phone', toE164Number)
         .eq('phone_number', fromE164)
         .eq('status', 'active')
-        .single();
+        .maybeSingle();
+
+      existingConversation = exactMatch;
+
+      // If no exact match, try flexible matching with last 10 digits
+      if (!existingConversation) {
+        const { data: allConvs } = await supabase
+          .from('sms_conversations')
+          .select('id, client_phone, phone_number')
+          .eq('status', 'active')
+          .limit(100);
+
+        if (allConvs) {
+          existingConversation = allConvs.find(conv => {
+            const convClientPhone = conv.client_phone?.replace(/\D/g, '').slice(-10) || '';
+            const convOurPhone = conv.phone_number?.replace(/\D/g, '').slice(-10) || '';
+            return convClientPhone === normalizedClientPhone && convOurPhone === normalizedOurPhone;
+          }) || null;
+        }
+      }
 
       conversationId = existingConversation?.id || null;
 
