@@ -65,13 +65,29 @@ export const JobMessages = ({ jobId, embedded = false }: JobMessagesProps) => {
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const prevMessageCountRef = useRef(0);
+  const isInitialLoadRef = useRef(true);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
+  // Only scroll to bottom when NEW messages arrive (not on initial load)
   useEffect(() => {
-    scrollToBottom();
+    if (isInitialLoadRef.current) {
+      // Skip scroll on initial load
+      if (messages.length > 0) {
+        isInitialLoadRef.current = false;
+        prevMessageCountRef.current = messages.length;
+      }
+      return;
+    }
+
+    // Only scroll if message count increased (new message arrived)
+    if (messages.length > prevMessageCountRef.current) {
+      scrollToBottom();
+    }
+    prevMessageCountRef.current = messages.length;
   }, [messages]);
 
   // Check if organization has a phone number configured
