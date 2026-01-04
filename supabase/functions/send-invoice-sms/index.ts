@@ -112,7 +112,9 @@ serve(async (req) => {
         metadata: {
           invoice_id: invoiceId,
           type: 'invoice_sms',
-          portal_url: portalUrl
+          portal_url: portalUrl,
+          clientId: clientId,
+          clientName: client?.name
         }
       })
     });

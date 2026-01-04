@@ -221,8 +221,95 @@ serve(async (req) => {
     }
     
     console.log('SMS sent successfully via Telnyx:', telnyxResult.data?.id);
-    
-    // Log the SMS in database
+
+    // Store in unified sms_messages system (source of truth)
+    let conversationId: string | null = null;
+    try {
+      // Find existing conversation for this phone pair
+      const { data: existingConversation } = await supabase
+        .from('sms_conversations')
+        .select('id')
+        .eq('client_phone', toE164Number)
+        .eq('phone_number', fromE164)
+        .eq('status', 'active')
+        .single();
+
+      conversationId = existingConversation?.id || null;
+
+      // If no conversation exists and we have client info, create one
+      if (!conversationId && smsRequest.user_id) {
+        // Try to find client by phone number
+        let clientId = smsRequest.metadata?.clientId;
+
+        if (!clientId) {
+          // Search for client by phone number
+          const { data: clientData } = await supabase
+            .from('clients')
+            .select('id')
+            .or(`phone.eq.${toE164Number},phone.ilike.%${toE164Number.slice(-10)}%`)
+            .limit(1)
+            .single();
+
+          clientId = clientData?.id;
+        }
+
+        // Create new conversation
+        const { data: newConversation, error: convError } = await supabase
+          .from('sms_conversations')
+          .insert({
+            user_id: smsRequest.user_id,
+            client_id: clientId || null,
+            phone_number: fromE164,
+            client_phone: toE164Number,
+            status: 'active',
+            last_message_at: new Date().toISOString(),
+            last_message_preview: smsRequest.message.substring(0, 100)
+          })
+          .select()
+          .single();
+
+        if (!convError && newConversation) {
+          conversationId = newConversation.id;
+          console.log('Created new SMS conversation:', conversationId);
+        }
+      }
+
+      // Insert message into sms_messages (unified system)
+      if (conversationId) {
+        const { error: msgError } = await supabase
+          .from('sms_messages')
+          .insert({
+            conversation_id: conversationId,
+            external_id: telnyxResult.data?.id,
+            direction: 'outbound',
+            from_number: fromE164,
+            to_number: toE164Number,
+            content: smsRequest.message,
+            status: 'sent',
+            metadata: smsRequest.metadata || {}
+          });
+
+        if (msgError) {
+          console.error('Failed to insert sms_message:', msgError);
+        } else {
+          console.log('SMS stored in sms_messages table');
+
+          // Update conversation with last message info
+          await supabase
+            .from('sms_conversations')
+            .update({
+              last_message_at: new Date().toISOString(),
+              last_message_preview: smsRequest.message.substring(0, 100)
+            })
+            .eq('id', conversationId);
+        }
+      }
+    } catch (smsDbError) {
+      console.error('Failed to store in sms_messages:', smsDbError);
+      // Don't fail the request if sms_messages insert fails
+    }
+
+    // Also log in communication_logs for audit trail
     try {
       await supabase
         .from('communication_logs')
@@ -237,13 +324,14 @@ serve(async (req) => {
           metadata: {
             ...smsRequest.metadata,
             telnyx_message_id: telnyxResult.data?.id,
-            messaging_profile_id: telnyxMessagingProfileId
+            messaging_profile_id: telnyxMessagingProfileId,
+            sms_conversation_id: conversationId
           }
         });
-      
-      console.log('SMS logged in database');
+
+      console.log('SMS logged in communication_logs (audit)');
     } catch (dbError) {
-      console.error('Failed to log SMS in database:', dbError);
+      console.error('Failed to log SMS in communication_logs:', dbError);
       // Don't fail the request if logging fails
     }
     

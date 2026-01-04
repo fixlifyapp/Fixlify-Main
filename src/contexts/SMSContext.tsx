@@ -45,14 +45,20 @@ interface SMSMessage {
   created_at: string;
 }
 
+const PAGE_SIZE = 15;
+
 interface SMSContextType {
   conversations: SMSConversation[];
   activeConversation: SMSConversation | null;
   messages: SMSMessage[];
   isLoading: boolean;
   isSending: boolean;
+  hasMoreMessages: boolean;
+  loadingMoreMessages: boolean;
+  totalMessageCount: number;
   fetchConversations: () => Promise<void>;
   fetchMessages: (conversationId: string) => Promise<void>;
+  loadMoreMessages: () => Promise<void>;
   sendMessage: (conversationId: string, content: string) => Promise<void>;
   createConversation: (clientId: string, phoneNumber: string) => Promise<string | null>;
   setActiveConversation: (conversation: SMSConversation | null) => void;
@@ -76,6 +82,9 @@ export const SMSProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const [messages, setMessages] = useState<SMSMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isSending, setIsSending] = useState(false);
+  const [hasMoreMessages, setHasMoreMessages] = useState(false);
+  const [loadingMoreMessages, setLoadingMoreMessages] = useState(false);
+  const [totalMessageCount, setTotalMessageCount] = useState(0);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const prevMessageCountRef = useRef(0);
 
@@ -107,19 +116,35 @@ export const SMSProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
     setIsLoading(true);
     try {
+      // Get total count first
+      const { count } = await supabase
+        .from('sms_messages')
+        .select('id', { count: 'exact', head: true })
+        .eq('conversation_id', conversationId);
+
+      setTotalMessageCount(count || 0);
+
+      // Fetch initial messages (newest first, then reverse for display)
       const { data, error } = await supabase
         .from('sms_messages')
         .select('*')
         .eq('conversation_id', conversationId)
-        .order('created_at', { ascending: true });
+        .order('created_at', { ascending: false })
+        .limit(PAGE_SIZE);
 
       if (error) throw error;
 
-      setMessages((data || []).map(msg => ({
+      // Reverse to show oldest first for chat display
+      const reversedData = (data || []).reverse();
+
+      setMessages(reversedData.map(msg => ({
         ...msg,
         direction: msg.direction as 'inbound' | 'outbound'
       })));
-      prevMessageCountRef.current = data?.length || 0;
+
+      // Set hasMore based on count
+      setHasMoreMessages((count || 0) > PAGE_SIZE);
+      prevMessageCountRef.current = reversedData.length;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       console.error('Error fetching messages:', errorMessage);
@@ -128,6 +153,45 @@ export const SMSProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       setIsLoading(false);
     }
   }, []);
+
+  const loadMoreMessages = useCallback(async () => {
+    if (!activeConversation?.id || loadingMoreMessages || !hasMoreMessages) return;
+
+    setLoadingMoreMessages(true);
+    try {
+      // Fetch older messages (skip already loaded ones)
+      const { data, error } = await supabase
+        .from('sms_messages')
+        .select('*')
+        .eq('conversation_id', activeConversation.id)
+        .order('created_at', { ascending: false })
+        .range(messages.length, messages.length + PAGE_SIZE - 1);
+
+      if (error) throw error;
+
+      if (data && data.length > 0) {
+        // Reverse to get chronological order, then prepend
+        const olderMessages = data.reverse().map(msg => ({
+          ...msg,
+          direction: msg.direction as 'inbound' | 'outbound'
+        }));
+
+        setMessages(prev => [...olderMessages, ...prev]);
+
+        // Update hasMore
+        const newTotal = messages.length + data.length;
+        setHasMoreMessages(newTotal < totalMessageCount);
+      } else {
+        setHasMoreMessages(false);
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      console.error('Error loading more messages:', errorMessage);
+      toast.error('Failed to load more messages');
+    } finally {
+      setLoadingMoreMessages(false);
+    }
+  }, [activeConversation?.id, loadingMoreMessages, hasMoreMessages, messages.length, totalMessageCount]);
 
   const sendMessage = useCallback(async (conversationId: string, content: string) => {
     if (!user?.id || !conversationId || !content.trim()) return;
@@ -469,8 +533,12 @@ export const SMSProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     messages,
     isLoading,
     isSending,
+    hasMoreMessages,
+    loadingMoreMessages,
+    totalMessageCount,
     fetchConversations,
     fetchMessages,
+    loadMoreMessages,
     sendMessage,
     createConversation,
     setActiveConversation,

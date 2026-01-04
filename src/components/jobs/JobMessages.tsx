@@ -30,7 +30,10 @@ interface Message {
   type?: string;
   job_id?: string;
   job_title?: string;
+  conversation_id?: string;
 }
+
+const PAGE_SIZE = 15;
 
 interface JobMessagesProps {
   jobId: string;
@@ -45,6 +48,11 @@ export const JobMessages = ({ jobId, embedded = false }: JobMessagesProps) => {
   const [client, setClient] = useState({ name: "", phone: "", id: "", email: "" });
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+
+  // Pagination state
+  const [hasMore, setHasMore] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [totalCount, setTotalCount] = useState(0);
 
   // Two-way messaging state
   const [messageText, setMessageText] = useState("");
@@ -97,80 +105,113 @@ export const JobMessages = ({ jobId, embedded = false }: JobMessagesProps) => {
     checkOrgPhone();
   }, [user?.id]);
 
-  // Fetch ALL messages for this client (across all jobs)
-  const fetchAllClientMessages = useCallback(async (clientId: string, clientName: string) => {
+  // Normalize phone number for database query
+  const normalizePhone = (phone: string): string => {
+    const cleaned = phone.replace(/\D/g, '');
+    return cleaned.length >= 10 ? cleaned.slice(-10) : cleaned;
+  };
+
+  // Fetch messages from unified sms_messages table (with pagination)
+  const fetchClientMessages = useCallback(async (
+    clientPhone: string,
+    clientName: string,
+    offset: number = 0,
+    append: boolean = false
+  ) => {
     try {
-      const allMessages: Message[] = [];
+      if (!clientPhone) {
+        setMessages([]);
+        setHasMore(false);
+        return;
+      }
 
+      const normalizedPhone = normalizePhone(clientPhone);
+
+      // Find all conversations for this client's phone number
       const { data: conversations } = await supabase
-        .from('conversations')
-        .select(`id, job_id, jobs:job_id(title)`)
-        .eq('client_id', clientId);
+        .from('sms_conversations')
+        .select('id, client_id')
+        .or(`client_phone.ilike.%${normalizedPhone}%,client_phone.eq.+1${normalizedPhone}`);
 
-      if (conversations && conversations.length > 0) {
-        const conversationIds = conversations.map(c => c.id);
-        const { data: messagesData } = await supabase
-          .from('messages')
-          .select('*')
-          .in('conversation_id', conversationIds)
-          .order('created_at', { ascending: true });
-
-        if (messagesData) {
-          const conversationJobMap = new Map(
-            conversations.map(c => [c.id, { job_id: c.job_id, job_title: (c.jobs as any)?.title }])
-          );
-
-          messagesData.forEach(msg => {
-            const jobInfo = conversationJobMap.get(msg.conversation_id);
-            allMessages.push({
-              id: msg.id,
-              body: msg.body,
-              direction: msg.direction,
-              created_at: msg.created_at,
-              sender: msg.sender,
-              recipient: msg.recipient,
-              status: msg.status,
-              type: 'sms',
-              job_id: jobInfo?.job_id,
-              job_title: jobInfo?.job_title
-            });
-          });
+      if (!conversations || conversations.length === 0) {
+        if (!append) {
+          setMessages([]);
+          setTotalCount(0);
+          setHasMore(false);
         }
+        return;
       }
 
-      const { data: commLogs } = await supabase
-        .from('communication_logs')
-        .select(`*, jobs:job_id(title)`)
-        .eq('client_id', clientId)
-        .order('created_at', { ascending: true });
+      const conversationIds = conversations.map(c => c.id);
 
-      if (commLogs && commLogs.length > 0) {
-        commLogs.forEach(log => {
-          allMessages.push({
-            id: log.id,
-            body: log.message_body || log.subject || 'Communication',
-            direction: log.direction || 'outbound',
-            created_at: log.created_at,
-            sender: log.direction === 'inbound' ? clientName : 'You',
-            recipient: log.direction === 'inbound' ? 'You' : clientName,
-            status: log.status,
-            type: log.communication_type || log.type || 'email',
-            job_id: log.job_id,
-            job_title: (log.jobs as any)?.title
-          });
-        });
+      // Get total count first
+      const { count } = await supabase
+        .from('sms_messages')
+        .select('id', { count: 'exact', head: true })
+        .in('conversation_id', conversationIds);
+
+      setTotalCount(count || 0);
+
+      // Fetch messages with pagination (newest first for initial load, then we reverse)
+      const { data: smsMessages, error } = await supabase
+        .from('sms_messages')
+        .select('*')
+        .in('conversation_id', conversationIds)
+        .order('created_at', { ascending: false })
+        .range(offset, offset + PAGE_SIZE - 1);
+
+      if (error) throw error;
+
+      if (smsMessages && smsMessages.length > 0) {
+        // Transform to Message format and reverse for display (oldest first)
+        const transformedMessages: Message[] = smsMessages
+          .reverse()
+          .map(msg => ({
+            id: msg.id,
+            body: msg.content,
+            direction: msg.direction,
+            created_at: msg.created_at,
+            sender: msg.direction === 'inbound' ? clientName : 'You',
+            recipient: msg.direction === 'inbound' ? 'You' : clientName,
+            status: msg.status,
+            type: 'sms',
+            conversation_id: msg.conversation_id
+          }));
+
+        if (append) {
+          // Prepend older messages at the beginning
+          setMessages(prev => [...transformedMessages, ...prev]);
+        } else {
+          setMessages(transformedMessages);
+        }
+
+        // Check if there are more messages to load
+        const loadedSoFar = append ? messages.length + smsMessages.length : smsMessages.length;
+        setHasMore(loadedSoFar < (count || 0));
+      } else if (!append) {
+        setMessages([]);
+        setHasMore(false);
       }
-
-      allMessages.sort((a, b) =>
-        new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
-      );
-
-      setMessages(allMessages);
     } catch (error) {
       console.error("Error fetching client messages:", error);
-      setMessages([]);
+      if (!append) {
+        setMessages([]);
+        setHasMore(false);
+      }
     }
-  }, []);
+  }, [messages.length]);
+
+  // Load more messages (older ones)
+  const handleLoadMore = useCallback(async () => {
+    if (loadingMore || !hasMore || !client.phone) return;
+
+    setLoadingMore(true);
+    try {
+      await fetchClientMessages(client.phone, client.name, messages.length, true);
+    } finally {
+      setLoadingMore(false);
+    }
+  }, [loadingMore, hasMore, client.phone, client.name, messages.length, fetchClientMessages]);
 
   useEffect(() => {
     const fetchJobData = async () => {
@@ -197,7 +238,10 @@ export const JobMessages = ({ jobId, embedded = false }: JobMessagesProps) => {
             setChannel('email');
           }
 
-          await fetchAllClientMessages(clientData.id, clientData.name);
+          // Use new unified fetch directly with client phone
+          if (clientData.phone) {
+            await fetchClientMessages(clientData.phone, clientData.name, 0, false);
+          }
         }
       } catch (error) {
         console.error("Error fetching job data:", error);
@@ -209,24 +253,29 @@ export const JobMessages = ({ jobId, embedded = false }: JobMessagesProps) => {
     if (jobId) {
       fetchJobData();
     }
-  }, [jobId, fetchAllClientMessages]);
+  }, [jobId, fetchClientMessages]);
 
-  // Real-time subscription
+  // Real-time subscription for sms_messages (unified system)
   useEffect(() => {
-    if (!client.id) return;
+    if (!client.phone) return;
 
+    const normalizedPhone = normalizePhone(client.phone);
+
+    // Subscribe to sms_messages changes
     const sub = supabase
-      .channel(`client-messages-${client.id}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, () => {
-        fetchAllClientMessages(client.id, client.name);
-      })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'communication_logs', filter: `client_id=eq.${client.id}` }, () => {
-        fetchAllClientMessages(client.id, client.name);
+      .channel(`sms-messages-client-${normalizedPhone}`)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'sms_messages' }, (payload) => {
+        // Check if this message is for our client
+        const msg = payload.new as any;
+        if (msg.to_number?.includes(normalizedPhone) || msg.from_number?.includes(normalizedPhone)) {
+          // Refresh messages (just latest, not all)
+          fetchClientMessages(client.phone, client.name, 0, false);
+        }
       })
       .subscribe();
 
     return () => { supabase.removeChannel(sub); };
-  }, [client.id, client.name, fetchAllClientMessages]);
+  }, [client.phone, client.name, fetchClientMessages]);
 
   const handleViewClientPage = () => {
     if (client.id) navigate(`/clients/${client.id}`);
@@ -295,7 +344,10 @@ export const JobMessages = ({ jobId, embedded = false }: JobMessagesProps) => {
 
       setMessageText("");
       setEmailSubject("");
-      await fetchAllClientMessages(client.id, client.name);
+      // Refresh messages from unified sms_messages system
+      if (client.phone) {
+        await fetchClientMessages(client.phone, client.name, 0, false);
+      }
     } catch (error: any) {
       console.error("Send error:", error);
       // Check if it's a "no phone number" error
@@ -420,7 +472,32 @@ export const JobMessages = ({ jobId, embedded = false }: JobMessagesProps) => {
             <p className="text-xs text-slate-400 mt-1">Start a conversation with {client.name}</p>
           </div>
         ) : (
-          messageGroups.map((group, groupIdx) => (
+          <>
+            {/* Load More Button (for older messages) */}
+            {hasMore && (
+              <div className="flex justify-center mb-3">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleLoadMore}
+                  disabled={loadingMore}
+                  className="text-slate-500 hover:text-slate-700 hover:bg-slate-100 gap-2"
+                >
+                  {loadingMore ? (
+                    <>
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      Loading...
+                    </>
+                  ) : (
+                    <>
+                      <History className="h-3.5 w-3.5" />
+                      Load Earlier Messages ({totalCount - messages.length} more)
+                    </>
+                  )}
+                </Button>
+              </div>
+            )}
+            {messageGroups.map((group, groupIdx) => (
             <div key={groupIdx}>
               <div className="flex items-center gap-3 my-3">
                 <div className="flex-1 h-px bg-slate-200" />
@@ -479,7 +556,8 @@ export const JobMessages = ({ jobId, embedded = false }: JobMessagesProps) => {
                 })}
               </div>
             </div>
-          ))
+          ))}
+          </>
         )}
         <div ref={messagesEndRef} />
       </div>

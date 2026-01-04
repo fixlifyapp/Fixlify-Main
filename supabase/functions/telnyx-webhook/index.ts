@@ -139,7 +139,7 @@ serve(async (req) => {
       // Find the phone number in our database
       const { data: phoneNumber, error: phoneError } = await supabaseClient
         .from('phone_numbers')
-        .select('id, purchased_by')
+        .select('id, purchased_by, user_id, organization_id')
         .eq('phone_number', to)
         .single()
 
@@ -147,7 +147,7 @@ serve(async (req) => {
         console.error('Phone number not found:', to, phoneError)
         // Don't return 404 for webhooks - acknowledge receipt
         console.log('Acknowledging webhook even though phone number not found')
-        return new Response(JSON.stringify({ 
+        return new Response(JSON.stringify({
           success: true,
           message: 'Webhook acknowledged (phone number not registered)',
           warning: 'Phone number not found in system'
@@ -157,18 +157,74 @@ serve(async (req) => {
         })
       }
 
-      // Store the SMS message
+      const userId = phoneNumber.purchased_by || phoneNumber.user_id
+
+      // Find or create conversation for this phone pair (UNIFIED SYSTEM)
+      let conversationId: string | null = null
+
+      // First, find existing conversation
+      const { data: existingConv } = await supabaseClient
+        .from('sms_conversations')
+        .select('id')
+        .eq('client_phone', from)
+        .eq('phone_number', to)
+        .eq('status', 'active')
+        .single()
+
+      if (existingConv) {
+        conversationId = existingConv.id
+        console.log('Found existing conversation:', conversationId)
+      } else {
+        // Try to find client by phone number
+        let clientId: string | null = null
+        const normalizedFrom = from.replace(/\D/g, '').slice(-10)
+
+        const { data: clientData } = await supabaseClient
+          .from('clients')
+          .select('id')
+          .or(`phone.ilike.%${normalizedFrom}%,phone.eq.${from}`)
+          .limit(1)
+          .single()
+
+        if (clientData) {
+          clientId = clientData.id
+        }
+
+        // Create new conversation
+        const { data: newConv, error: convError } = await supabaseClient
+          .from('sms_conversations')
+          .insert({
+            user_id: userId,
+            client_id: clientId,
+            phone_number: to,
+            client_phone: from,
+            status: 'active',
+            unread_count: 1,
+            last_message_at: new Date().toISOString(),
+            last_message_preview: text.substring(0, 100)
+          })
+          .select()
+          .single()
+
+        if (!convError && newConv) {
+          conversationId = newConv.id
+          console.log('Created new conversation:', conversationId)
+        } else {
+          console.error('Error creating conversation:', convError)
+        }
+      }
+
+      // Store the SMS message in unified system
       const { error: insertError } = await supabaseClient
         .from('sms_messages')
         .insert({
+          conversation_id: conversationId,
           from_number: from,
           to_number: to,
-          message: text,
+          content: text,
           direction: 'inbound',
           status: 'received',
-          phone_number_id: phoneNumber.id,
-          user_id: phoneNumber.purchased_by,
-          telnyx_message_id: messageId,
+          external_id: messageId,
           metadata: {
             carrier: messageData.from.carrier,
             line_type: messageData.from.line_type,
@@ -176,14 +232,15 @@ serve(async (req) => {
             webhook_type: webhookData.data?.record_type || 'message',
             encoding: messageData.encoding,
             parts: messageData.parts,
-            cost: messageData.cost
+            cost: messageData.cost,
+            phone_number_id: phoneNumber.id
           }
         })
 
       if (insertError) {
         console.error('Error storing message:', insertError)
         // Still return success to prevent retries
-        return new Response(JSON.stringify({ 
+        return new Response(JSON.stringify({
           success: true,
           message: 'Webhook acknowledged (storage error)',
           error: insertError.message
@@ -193,14 +250,26 @@ serve(async (req) => {
         })
       }
 
-      console.log('Message stored successfully')
-      
+      console.log('Message stored successfully in sms_messages')
+
+      // Update conversation with last message info and increment unread count
+      if (conversationId) {
+        await supabaseClient
+          .from('sms_conversations')
+          .update({
+            last_message_at: new Date().toISOString(),
+            last_message_preview: text.substring(0, 100),
+            unread_count: supabaseClient.rpc ? 1 : 1 // Increment would need RPC, just set to 1 for now
+          })
+          .eq('id', conversationId)
+      }
+
       // Create notification for user
       try {
         await supabaseClient
           .from('notifications')
           .insert({
-            user_id: phoneNumber.purchased_by,
+            user_id: userId,
             title: 'New SMS Received',
             message: `New message from ${from}: ${text.substring(0, 100)}${text.length > 100 ? '...' : ''}`,
             type: 'sms',

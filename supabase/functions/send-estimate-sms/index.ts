@@ -112,7 +112,9 @@ serve(async (req) => {
         metadata: {
           estimate_id: estimateId,
           type: 'estimate_sms',
-          portal_url: portalUrl
+          portal_url: portalUrl,
+          clientId: clientId,
+          clientName: client?.name
         }
       })
     });

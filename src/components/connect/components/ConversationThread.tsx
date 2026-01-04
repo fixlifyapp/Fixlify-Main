@@ -2,7 +2,7 @@ import { formatDistanceToNow } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Archive, Phone, Mail, User, CheckCheck, Check, X, Clock, MoreVertical, MessageSquare } from "lucide-react";
+import { Archive, Phone, Mail, User, CheckCheck, Check, X, Clock, MoreVertical, MessageSquare, Loader2, History } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { MessageInput } from "./MessageInput";
 import { useSMS } from "@/contexts/SMSContext";
@@ -32,7 +32,15 @@ interface ConversationThreadProps {
 }
 
 export const ConversationThread = ({ messages, clientName, client, onArchive }: ConversationThreadProps) => {
-  const { activeConversation, sendMessage, isSending } = useSMS();
+  const {
+    activeConversation,
+    sendMessage,
+    isSending,
+    hasMoreMessages,
+    loadingMoreMessages,
+    loadMoreMessages,
+    totalMessageCount
+  } = useSMS();
 
   const getStatusIcon = (status: string) => {
     switch (status) {
@@ -124,7 +132,32 @@ export const ConversationThread = ({ messages, clientName, client, onArchive }: 
                 <p className="text-sm">No messages yet. Send a message to start!</p>
               </div>
             ) : (
-              messages.map((message) => (
+              <>
+                {/* Load More Button (for older messages) */}
+                {hasMoreMessages && (
+                  <div className="flex justify-center mb-4">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={loadMoreMessages}
+                      disabled={loadingMoreMessages}
+                      className="text-gray-500 hover:text-gray-700 hover:bg-gray-100 gap-2"
+                    >
+                      {loadingMoreMessages ? (
+                        <>
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          Loading...
+                        </>
+                      ) : (
+                        <>
+                          <History className="h-3.5 w-3.5" />
+                          Load Earlier Messages ({totalMessageCount - messages.length} more)
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                )}
+                {messages.map((message) => (
                 <div
                   key={message.id}
                   className={`flex ${
@@ -158,7 +191,8 @@ export const ConversationThread = ({ messages, clientName, client, onArchive }: 
                     </div>
                   </div>
                 </div>
-              ))
+              ))}
+              </>
             )}
           </div>
         </ScrollArea>
