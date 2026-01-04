@@ -162,18 +162,42 @@ serve(async (req) => {
       // Find or create conversation for this phone pair (UNIFIED SYSTEM)
       let conversationId: string | null = null
 
-      // First, find existing conversation
-      const { data: existingConv } = await supabaseClient
+      // Normalize phone numbers for lookup (last 10 digits)
+      const normalizedClientPhone = from.replace(/\D/g, '').slice(-10)
+      const normalizedOurPhone = to.replace(/\D/g, '').slice(-10)
+
+      console.log('Looking for conversation with client_phone containing:', normalizedClientPhone, 'and phone_number containing:', normalizedOurPhone)
+
+      // First, try exact match (fastest)
+      let { data: existingConv } = await supabaseClient
         .from('sms_conversations')
-        .select('id')
+        .select('id, client_phone, phone_number')
         .eq('client_phone', from)
         .eq('phone_number', to)
         .eq('status', 'active')
-        .single()
+        .maybeSingle()
+
+      // If no exact match, try flexible matching with last 10 digits
+      if (!existingConv) {
+        console.log('No exact match, trying flexible phone matching...')
+        const { data: allConvs } = await supabaseClient
+          .from('sms_conversations')
+          .select('id, client_phone, phone_number')
+          .eq('status', 'active')
+          .limit(100)
+
+        if (allConvs) {
+          existingConv = allConvs.find(conv => {
+            const convClientPhone = conv.client_phone?.replace(/\D/g, '').slice(-10) || ''
+            const convOurPhone = conv.phone_number?.replace(/\D/g, '').slice(-10) || ''
+            return convClientPhone === normalizedClientPhone && convOurPhone === normalizedOurPhone
+          }) || null
+        }
+      }
 
       if (existingConv) {
         conversationId = existingConv.id
-        console.log('Found existing conversation:', conversationId)
+        console.log('Found existing conversation:', conversationId, 'client_phone:', existingConv.client_phone, 'phone_number:', existingConv.phone_number)
       } else {
         // Try to find client by phone number
         let clientId: string | null = null
@@ -254,14 +278,25 @@ serve(async (req) => {
 
       // Update conversation with last message info and increment unread count
       if (conversationId) {
-        await supabaseClient
+        const updatePayload = {
+          last_message_at: new Date().toISOString(),
+          last_message_preview: text.substring(0, 100),
+          unread_count: 1
+        }
+        console.log('Updating conversation:', conversationId, 'with preview:', updatePayload.last_message_preview)
+
+        const { error: updateError } = await supabaseClient
           .from('sms_conversations')
-          .update({
-            last_message_at: new Date().toISOString(),
-            last_message_preview: text.substring(0, 100),
-            unread_count: supabaseClient.rpc ? 1 : 1 // Increment would need RPC, just set to 1 for now
-          })
+          .update(updatePayload)
           .eq('id', conversationId)
+
+        if (updateError) {
+          console.error('Error updating conversation preview:', updateError)
+        } else {
+          console.log('Successfully updated conversation preview to:', updatePayload.last_message_preview)
+        }
+      } else {
+        console.warn('No conversationId found, skipping preview update')
       }
 
       // Create notification for user
