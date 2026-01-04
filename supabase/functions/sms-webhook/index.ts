@@ -166,14 +166,37 @@ async function processWebhookAsync(body: any, supabase: any) {
         }
 
         // Find or create conversation (use org context when available)
-        const { data: existingConv } = await supabase
+        // Normalize phone numbers for flexible matching
+        const normalizedFromPhone = fromNumber.replace(/\D/g, '').slice(-10)
+        const normalizedToPhone = toNumber.replace(/\D/g, '').slice(-10)
+
+        // First try exact match
+        let { data: existingConv } = await supabase
           .from('sms_conversations')
           .select('*')
           .eq('user_id', ownerId)
           .eq('client_phone', fromNumber)
           .eq('phone_number', toNumber)
           .eq('status', 'active')
-          .single()
+          .maybeSingle()
+
+        // If no exact match, try flexible matching
+        if (!existingConv) {
+          const { data: allConvs } = await supabase
+            .from('sms_conversations')
+            .select('*')
+            .eq('user_id', ownerId)
+            .eq('status', 'active')
+            .limit(100)
+
+          if (allConvs) {
+            existingConv = allConvs.find(conv => {
+              const convFromPhone = conv.client_phone?.replace(/\D/g, '').slice(-10) || ''
+              const convToPhone = conv.phone_number?.replace(/\D/g, '').slice(-10) || ''
+              return convFromPhone === normalizedFromPhone && convToPhone === normalizedToPhone
+            }) || null
+          }
+        }
 
         let conversation = existingConv
 

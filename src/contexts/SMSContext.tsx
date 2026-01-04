@@ -309,14 +309,35 @@ export const SMSProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         return null;
       }
 
-      // Check if conversation already exists
-      const { data: existing } = await supabase
+      // Check if conversation already exists (flexible phone matching)
+      const normalizedPhone = phoneNumber.replace(/\D/g, '').slice(-10);
+
+      // First try exact match
+      let { data: existing } = await supabase
         .from('sms_conversations')
         .select('id')
         .eq('user_id', user.id)
         .eq('client_id', clientId)
         .eq('client_phone', phoneNumber)
-        .single();
+        .maybeSingle();
+
+      // If no exact match, try flexible matching
+      if (!existing) {
+        const { data: allConvs } = await supabase
+          .from('sms_conversations')
+          .select('id, client_phone')
+          .eq('user_id', user.id)
+          .eq('client_id', clientId)
+          .eq('status', 'active')
+          .limit(50);
+
+        if (allConvs) {
+          existing = allConvs.find(conv => {
+            const convPhone = conv.client_phone?.replace(/\D/g, '').slice(-10) || '';
+            return convPhone === normalizedPhone;
+          }) || null;
+        }
+      }
 
       if (existing) {
         return existing.id;
