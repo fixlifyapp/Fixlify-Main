@@ -12,6 +12,8 @@ import {
   PaymentHistoryCard,
   PropertiesCard
 } from "@/components/clients/detail-v2";
+import { ClientCustomFieldsCard } from "@/components/clients/ClientCustomFieldsCard";
+import { Settings2 } from "lucide-react";
 import { ScheduleJobModal } from "@/components/schedule/ScheduleJobModal";
 import { PropertyCreateDialog } from "@/components/clients/client-form/PropertyCreateDialog";
 import { useState } from "react";
@@ -211,13 +213,24 @@ const ClientDetailPageV2 = () => {
                 />
               </div>
 
-              {/* Right Column - Contact & Properties */}
+              {/* Right Column - Contact, Properties & Custom Fields */}
               <div className="space-y-4">
                 <ContactInfoCard client={client} />
                 <PropertiesCard
                   properties={properties}
                   onAddProperty={handleAddProperty}
                 />
+
+                {/* Custom Fields */}
+                <div className="rounded-xl border border-border/50 bg-card shadow-sm">
+                  <div className="flex items-center gap-2 px-4 py-3 border-b border-border/30">
+                    <Settings2 className="h-4 w-4 text-muted-foreground" />
+                    <h3 className="text-sm font-medium">Custom Fields</h3>
+                  </div>
+                  <div className="p-4">
+                    <ClientCustomFieldsCard clientId={clientId} embedded />
+                  </div>
+                </div>
               </div>
             </div>
           </div>

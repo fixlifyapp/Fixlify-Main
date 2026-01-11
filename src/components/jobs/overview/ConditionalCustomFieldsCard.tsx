@@ -5,23 +5,30 @@ import { Settings } from "lucide-react";
 import { JobCustomFieldsDisplay } from "../JobCustomFieldsDisplay";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useOrganization } from "@/hooks/use-organization";
 
 interface ConditionalCustomFieldsCardProps {
   jobId: string;
 }
 
 export const ConditionalCustomFieldsCard = ({ jobId }: ConditionalCustomFieldsCardProps) => {
+  const { organization } = useOrganization();
+
   const { data: customFields, isLoading } = useQuery({
-    queryKey: ['custom-fields', 'job'],
+    queryKey: ['custom-fields', 'job', organization?.id],
     queryFn: async () => {
+      if (!organization?.id) return [];
+
       const { data, error } = await supabase
         .from('custom_fields')
         .select('*')
-        .eq('entity_type', 'job');
-      
+        .eq('entity_type', 'job')
+        .eq('organization_id', organization.id);
+
       if (error) throw error;
       return data;
-    }
+    },
+    enabled: !!organization?.id
   });
 
   if (isLoading) {

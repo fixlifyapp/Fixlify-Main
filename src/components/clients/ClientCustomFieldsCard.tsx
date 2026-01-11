@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from "react";
-import { useJobCustomFields } from "@/hooks/useJobCustomFields";
+import React, { useState } from "react";
+import { useClientCustomFields } from "@/hooks/useClientCustomFields";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -27,8 +27,8 @@ import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
 
-interface CustomFieldsCardProps {
-  jobId: string;
+interface ClientCustomFieldsCardProps {
+  clientId: string;
   embedded?: boolean;
 }
 
@@ -63,7 +63,7 @@ const getFieldTypeBadge = (fieldType: string) => {
   return colors[fieldType] || colors.text;
 };
 
-export const CustomFieldsCard = ({ jobId, embedded = false }: CustomFieldsCardProps) => {
+export const ClientCustomFieldsCard = ({ clientId, embedded = false }: ClientCustomFieldsCardProps) => {
   const navigate = useNavigate();
   const {
     customFieldValues,
@@ -71,7 +71,7 @@ export const CustomFieldsCard = ({ jobId, embedded = false }: CustomFieldsCardPr
     isLoading,
     saveCustomFieldValues,
     refreshFields
-  } = useJobCustomFields(jobId);
+  } = useClientCustomFields(clientId);
 
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -101,7 +101,7 @@ export const CustomFieldsCard = ({ jobId, embedded = false }: CustomFieldsCardPr
 
     setIsSaving(true);
     try {
-      const success = await saveCustomFieldValues(jobId, editValues);
+      const success = await saveCustomFieldValues(clientId, editValues);
       if (success) {
         setIsEditing(false);
         refreshFields();
@@ -142,8 +142,8 @@ export const CustomFieldsCard = ({ jobId, embedded = false }: CustomFieldsCardPr
           <Settings2 className="h-5 w-5 text-slate-400" />
         </div>
         <div className="text-center">
-          <p className="text-sm font-medium text-slate-600">No custom fields configured</p>
-          <p className="text-xs text-slate-400 mt-0.5">Add custom fields in settings to track additional job info</p>
+          <p className="text-sm font-medium text-slate-600">No client custom fields configured</p>
+          <p className="text-xs text-slate-400 mt-0.5">Add custom fields in settings to track additional client info</p>
         </div>
         <Button
           variant="outline"

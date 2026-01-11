@@ -40,7 +40,7 @@ export const CustomFieldsSection = ({
                 <SelectValue placeholder={field.placeholder || `Select ${field.name}`} />
               </SelectTrigger>
               <SelectContent>
-                {field.options?.map((option: string) => (
+                {field.options?.options?.map((option: string) => (
                   <SelectItem key={option} value={option}>{option}</SelectItem>
                 ))}
               </SelectContent>
