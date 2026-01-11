@@ -17,9 +17,9 @@ export default defineConfig(({ mode }) => ({
       registerType: "autoUpdate",
       includeAssets: ["favicon.ico", "lovable-uploads/*.png"],
       manifest: {
-        name: "Fixlify - Repair Shop Management",
+        name: "Fixlify - AI-Powered Field Service Management",
         short_name: "Fixlify",
-        description: "Professional repair shop management system with AI-powered automation",
+        description: "AI-powered field service management platform with smart scheduling, automation, and customer communication",
         theme_color: "#3b82f6",
         background_color: "#ffffff",
         display: "standalone",
