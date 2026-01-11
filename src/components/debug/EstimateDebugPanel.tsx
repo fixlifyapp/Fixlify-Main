@@ -35,12 +35,15 @@ export const EstimateDebugPanel = ({ estimateId }: EstimateDebugPanelProps) => {
 
   const testSendEmail = async () => {
     try {
-      const result = await supabase.functions.invoke('send-estimate', {
-        body: { estimateId, method: 'email' }
+      const result = await supabase.functions.invoke('send-document-email', {
+        body: {
+          documentType: 'estimate',
+          documentId: estimateId
+        }
       });
-      
+
       if (result.error) throw result.error;
-      
+
       toast.success('Email sent successfully');
     } catch (error) {
       console.error('Send error:', error);
@@ -50,12 +53,15 @@ export const EstimateDebugPanel = ({ estimateId }: EstimateDebugPanelProps) => {
 
   const testSendSMS = async () => {
     try {
-      const result = await supabase.functions.invoke('send-estimate-sms', {
-        body: { estimateId }
+      const result = await supabase.functions.invoke('send-document-sms', {
+        body: {
+          documentType: 'estimate',
+          documentId: estimateId
+        }
       });
-      
+
       if (result.error) throw result.error;
-      
+
       toast.success('SMS sent successfully');
     } catch (error) {
       console.error('Send error:', error);

@@ -36,16 +36,14 @@ export const useDocumentSending = () => {
         // Format phone number to E.164 format for Telnyx
         const formattedPhone = toE164(sendTo);
 
-        // Use the specific SMS edge function based on document type
-        const smsFunction = documentType === 'estimate' ? 'send-estimate-sms' : 'send-invoice-sms';
-        const { data, error } = await supabase.functions.invoke(smsFunction, {
+        // Use unified send-document-sms edge function
+        const { data, error } = await supabase.functions.invoke('send-document-sms', {
           body: {
-            [`${documentType}Id`]: documentId,
+            documentType,
+            documentId,
             recipientPhone: formattedPhone,
             customMessage: customMessage,
             metadata: {
-              documentType,
-              documentId,
               recipientName: contactInfo?.name
             }
           }
@@ -66,11 +64,11 @@ export const useDocumentSending = () => {
         toast.success(`${documentType} sent via SMS successfully!`);
         return { success: true };
       } else {
-        // Email sending using specialized edge functions
-        const functionName = documentType === 'estimate' ? 'send-estimate' : 'send-invoice';
-        const { data, error } = await supabase.functions.invoke(functionName, {
+        // Email sending using unified send-document-email edge function
+        const { data, error } = await supabase.functions.invoke('send-document-email', {
           body: {
-            [`${documentType}Id`]: documentId,
+            documentType,
+            documentId,
             recipientEmail: sendTo,
             customMessage: customMessage
           }
