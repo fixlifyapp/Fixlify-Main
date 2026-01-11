@@ -44,3 +44,14 @@ supabase/.env.production
 
 .claude/settings.local.json
 .cursor
+
+# Windows reserved device names
+nul
+con
+prn
+aux
+
+# Temp directories
+.cp-images/
+.playwright-mcp/
+_bmad-output/
