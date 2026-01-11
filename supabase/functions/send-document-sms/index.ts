@@ -144,7 +144,7 @@ serve(async (req) => {
     }
 
     // Generate portal URL with token
-    const baseUrl = Deno.env.get('PUBLIC_SITE_URL') || 'https://fixlify.app';
+    const baseUrl = Deno.env.get('PUBLIC_SITE_URL') || 'https://hub.fixlify.app';
     const portalUrl = `${baseUrl}/portal/${portalToken}`;
 
     // Get document number and total

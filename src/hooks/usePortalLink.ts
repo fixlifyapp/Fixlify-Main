@@ -34,8 +34,7 @@ export const usePortalLink = () => {
 
       console.log('✅ Portal access token generated:', portalToken);
 
-      // Use main domain for portal (hub.fixlify.app was not configured)
-      const portalLink = `https://fixlify.app/portal/${portalToken}`;
+      const portalLink = `https://hub.fixlify.app/portal/${portalToken}`;
       console.log('🔗 Portal link:', portalLink);
 
       return portalLink;

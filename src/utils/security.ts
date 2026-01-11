@@ -15,8 +15,8 @@ export const validateEmail = (email: string): boolean => {
 
 export const validatePhoneNumber = (phone: string): boolean => {
   // Basic phone number validation - allows various formats
-  const phoneRegex = /^[\+]?[1-9][\d]{0,15}$/;
-  const cleanPhone = phone.replace(/[\s\-\(\)\.]/g, '');
+  const phoneRegex = /^[+]?[1-9]\d{0,15}$/;
+  const cleanPhone = phone.replace(/[\s\-().]/g, '');
   return phoneRegex.test(cleanPhone) && cleanPhone.length >= 10 && cleanPhone.length <= 16;
 };
 
@@ -41,8 +41,7 @@ export const validateSessionToken = (token: string): boolean => {
 
 export const getPortalDomain = (): string => {
   // Make portal domain configurable with fallback
-  // Note: hub.fixlify.app was not properly configured - using main domain
-  return process.env.PORTAL_DOMAIN || 'https://fixlify.app';
+  return process.env.PORTAL_DOMAIN || 'https://hub.fixlify.app';
 };
 
 export const validatePortalDomain = (domain: string): boolean => {

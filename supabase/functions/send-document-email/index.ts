@@ -223,7 +223,7 @@ serve(async (req) => {
       );
     }
 
-    const portalLink = `${Deno.env.get("PUBLIC_SITE_URL") || "https://fixlify.app"}/portal/${portalToken}`;
+    const portalLink = `${Deno.env.get("PUBLIC_SITE_URL") || "https://hub.fixlify.app"}/portal/${portalToken}`;
 
     // Generate personalized email address
     const cleanName = companyName.toLowerCase().replace(/[^a-z0-9]/g, '').substring(0, 20) || 'team';

@@ -49,8 +49,7 @@ export const UniversalSendDialog = ({
   const generateDefaultMessage = (method: "email" | "sms") => {
     const clientName = contactInfo?.name || "Valued Customer";
     const docType = documentType === "estimate" ? "Estimate" : "Invoice";
-    // Use main domain for portal (hub.fixlify.app was not configured)
-    const portalUrl = `https://fixlify.app/portal/PORTAL_TOKEN`;
+    const portalUrl = `https://hub.fixlify.app/portal/PORTAL_TOKEN`;
     const companyName = companySettings?.company_name || "Your Company";
     
     if (method === "email") {

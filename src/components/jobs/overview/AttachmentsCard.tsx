@@ -1,8 +1,7 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Paperclip, Upload, Download, Trash2, Eye, Loader2 } from "lucide-react";
-import { AttachmentUploadDialog } from "../dialogs/AttachmentUploadDialog";
 import { useJobAttachments } from "@/hooks/useJobAttachments";
 import {
   AlertDialog,
@@ -22,19 +21,36 @@ interface AttachmentsCardProps {
 }
 
 export const AttachmentsCard = ({ jobId, embedded = false }: AttachmentsCardProps) => {
-  const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const {
     attachments,
     isLoading,
+    isUploading,
+    uploadAttachments,
     downloadAttachment,
     viewAttachment,
     deleteAttachment,
     formatFileSize,
     refreshAttachments
   } = useJobAttachments(jobId);
+
+  const handleUploadClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (files && files.length > 0) {
+      await uploadAttachments(Array.from(files));
+      // Reset input so same file can be uploaded again
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
 
   const getFileTypeColor = (mimeType: string) => {
     if (mimeType?.includes('image')) return 'bg-emerald-50 text-emerald-700 border-emerald-200';
@@ -72,11 +88,16 @@ export const AttachmentsCard = ({ jobId, embedded = false }: AttachmentsCardProp
             <Button
               variant="outline"
               size="sm"
-              onClick={() => setUploadDialogOpen(true)}
+              onClick={handleUploadClick}
+              disabled={isUploading}
               className="text-slate-700 border-slate-300 hover:bg-slate-100 hover:border-slate-400"
             >
-              <Upload className="h-4 w-4 mr-2" />
-              Upload
+              {isUploading ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <Upload className="h-4 w-4 mr-2" />
+              )}
+              {isUploading ? 'Uploading...' : 'Upload'}
             </Button>
           }
         />
@@ -95,11 +116,16 @@ export const AttachmentsCard = ({ jobId, embedded = false }: AttachmentsCardProp
             action={
               <Button
                 variant="outline"
-                onClick={() => setUploadDialogOpen(true)}
+                onClick={handleUploadClick}
+                disabled={isUploading}
                 className="text-slate-700 border-slate-300 hover:bg-slate-100"
               >
-                <Upload className="h-4 w-4 mr-2" />
-                Upload your first file
+                {isUploading ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <Upload className="h-4 w-4 mr-2" />
+                )}
+                {isUploading ? 'Uploading...' : 'Upload your first file'}
               </Button>
             }
           />
@@ -172,14 +198,29 @@ export const AttachmentsCard = ({ jobId, embedded = false }: AttachmentsCardProp
           <Button
             variant="outline"
             size="sm"
-            onClick={() => setUploadDialogOpen(true)}
+            onClick={handleUploadClick}
+            disabled={isUploading}
             className="text-slate-700 border-slate-300 hover:bg-slate-100"
           >
-            <Upload className="h-4 w-4 mr-2" />
-            Upload File
+            {isUploading ? (
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            ) : (
+              <Upload className="h-4 w-4 mr-2" />
+            )}
+            {isUploading ? 'Uploading...' : 'Upload File'}
           </Button>
         </div>
       )}
+
+      {/* Hidden file input for direct upload */}
+      <input
+        type="file"
+        ref={fileInputRef}
+        onChange={handleFileChange}
+        className="hidden"
+        multiple
+        accept="image/*,.heic,.heif,.pdf,.doc,.docx,.xls,.xlsx,.txt,.csv"
+      />
     </>
   );
 
@@ -190,13 +231,6 @@ export const AttachmentsCard = ({ jobId, embedded = false }: AttachmentsCardProp
       ) : (
         <ProfessionalCard>{content}</ProfessionalCard>
       )}
-
-      <AttachmentUploadDialog
-        open={uploadDialogOpen}
-        onOpenChange={setUploadDialogOpen}
-        jobId={jobId}
-        onUploadComplete={refreshAttachments}
-      />
 
       <AlertDialog open={!!deleteConfirmId} onOpenChange={(open) => !open && setDeleteConfirmId(null)}>
         <AlertDialogContent>
