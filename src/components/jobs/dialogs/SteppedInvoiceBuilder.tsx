@@ -17,6 +17,7 @@ import { UpsellItem } from "./shared/types";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useJobData } from "./unified/hooks/useJobData";
+import { useUpsellSettings } from "@/hooks/useUpsellSettings";
 
 interface SteppedInvoiceBuilderProps {
   open: boolean;
@@ -52,6 +53,12 @@ export const SteppedInvoiceBuilder = ({
 
   // Get job and client data
   const { clientInfo, loading: jobLoading } = useJobData(jobId);
+
+  // Check if upsell step is enabled in admin settings
+  const { isInvoiceUpsellEnabled } = useUpsellSettings();
+
+  // Combined check: skip upsell if admin disabled OR warranties already exist
+  const shouldSkipUpsell = !isInvoiceUpsellEnabled || hasExistingWarranties;
 
   // Use the unified document builder hook
   const {
@@ -204,9 +211,9 @@ export const SteppedInvoiceBuilder = ({
         console.log("✅ Invoice saved successfully:", invoice.id);
         toast.success("Invoice saved successfully!");
         
-        // Skip upsell step if warranties already exist
-        if (hasExistingWarranties) {
-          console.log("Warranties already exist, skipping to send step");
+        // Skip upsell step if disabled by admin OR warranties already exist
+        if (shouldSkipUpsell) {
+          console.log("Skipping upsell step (disabled or warranties exist)");
           setCurrentStep("send");
         } else {
           setCurrentStep("upsell");
@@ -309,9 +316,9 @@ export const SteppedInvoiceBuilder = ({
     return savedInvoice?.id || existingInvoice?.id || '';
   };
 
-  // Update steps based on warranty status
+  // Update steps based on upsell settings and warranty status
   const getSteps = () => {
-    if (hasExistingWarranties) {
+    if (shouldSkipUpsell) {
       return [
         { number: 1, title: "Items & Pricing", description: "Add line items and set pricing" },
         { number: 2, title: "Send Invoice", description: "Review and send to client" }
@@ -327,7 +334,7 @@ export const SteppedInvoiceBuilder = ({
   const steps = getSteps();
 
   const isStepComplete = (stepNumber: number) => {
-    if (hasExistingWarranties) {
+    if (shouldSkipUpsell) {
       switch (stepNumber) {
         case 1:
           return lineItems.length > 0;
@@ -357,7 +364,7 @@ export const SteppedInvoiceBuilder = ({
   };
 
   const getCurrentStepNumber = () => {
-    if (hasExistingWarranties) {
+    if (shouldSkipUpsell) {
       return currentStep === "items" ? 1 : 2;
     }
     return currentStep === "items" ? 1 : currentStep === "upsell" ? 2 : 3;
@@ -376,9 +383,9 @@ export const SteppedInvoiceBuilder = ({
               </span>
               {stepTitles[currentStep]}
               {documentNumber && <span className="text-sm text-muted-foreground">(#{documentNumber})</span>}
-              {hasExistingWarranties && (
+              {shouldSkipUpsell && (
                 <span className="bg-green-100 text-green-800 px-2 py-1 rounded text-xs">
-                  Warranty Included
+                  {hasExistingWarranties ? "Warranty Included" : "Quick Mode"}
                 </span>
               )}
             </DialogTitle>
@@ -450,7 +457,7 @@ export const SteppedInvoiceBuilder = ({
                     disabled={isSubmitting || lineItems.length === 0}
                     className="gap-2"
                   >
-                    {isSubmitting ? "Saving..." : hasExistingWarranties ? "Save & Send" : "Save & Continue"}
+                    {isSubmitting ? "Saving..." : shouldSkipUpsell ? "Save & Send" : "Save & Continue"}
                     <ArrowRight className="h-4 w-4" />
                   </Button>
                 </div>
@@ -460,8 +467,8 @@ export const SteppedInvoiceBuilder = ({
         </DialogContent>
       </Dialog>
 
-      {/* Upsell Step Dialog - only show if no existing warranties */}
-      {!hasExistingWarranties && (
+      {/* Upsell Step Dialog - only show if upsell is enabled and no existing warranties */}
+      {!shouldSkipUpsell && (
         <Dialog open={currentStep === "upsell"} onOpenChange={(open) => {
           if (!open) {
             setCurrentStep("items");

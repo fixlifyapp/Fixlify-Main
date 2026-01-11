@@ -13,6 +13,7 @@ import { generateNextId } from "@/utils/idGeneration";
 import { useJobData } from "./unified/hooks/useJobData";
 import { UpsellItem } from "./shared/types";
 import { supabase } from "@/integrations/supabase/client";
+import { useUpsellSettings } from "@/hooks/useUpsellSettings";
 
 interface SteppedEstimateBuilderProps {
   open: boolean;
@@ -35,6 +36,9 @@ export const SteppedEstimateBuilder = ({
   
   // Use the optimized useJobData hook instead of fetching all jobs
   const { clientInfo, jobAddress, loading: jobDataLoading } = useJobData(jobId);
+
+  // Check if upsell step is enabled in admin settings
+  const { isEstimateUpsellEnabled } = useUpsellSettings();
   
   const [currentStep, setCurrentStep] = useState<BuilderStep>("items");
   const [savedEstimate, setSavedEstimate] = useState<any>(null);
@@ -146,9 +150,9 @@ export const SteppedEstimateBuilder = ({
         setEstimateCreated(true);
         console.log("✅ Estimate saved successfully:", estimate.id);
         toast.success("Estimate saved successfully!");
-        
-        // Move to upsell step
-        setCurrentStep("upsell");
+
+        // Move to upsell step or skip to send if upsell is disabled
+        setCurrentStep(isEstimateUpsellEnabled ? "upsell" : "send");
       } else {
         toast.error("Failed to save estimate. Please try again.");
         return;
@@ -217,7 +221,8 @@ export const SteppedEstimateBuilder = ({
   };
 
   const handleSendCancel = () => {
-    setCurrentStep("upsell");
+    // Go back to upsell if enabled, otherwise go to items
+    setCurrentStep(isEstimateUpsellEnabled ? "upsell" : "items");
   };
 
   const handleUpsellBack = () => {
@@ -226,7 +231,8 @@ export const SteppedEstimateBuilder = ({
 
   const handleDialogClose = () => {
     if (currentStep === "send") {
-      setCurrentStep("upsell");
+      // Go back to upsell if enabled, otherwise go to items
+      setCurrentStep(isEstimateUpsellEnabled ? "upsell" : "items");
     } else if (currentStep === "upsell") {
       setCurrentStep("items");
     } else {
@@ -256,12 +262,17 @@ export const SteppedEstimateBuilder = ({
     }
   };
 
-  // Step indicator logic matching invoice builder
-  const steps = [
-    { number: 1, title: "Items & Pricing", description: "Add line items and set pricing" },
-    { number: 2, title: "Additional Services", description: "Add warranties and extras" },
-    { number: 3, title: "Send Estimate", description: "Review and send to client" }
-  ];
+  // Step indicator logic - conditional based on upsell settings
+  const steps = isEstimateUpsellEnabled
+    ? [
+        { number: 1, title: "Items & Pricing", description: "Add line items and set pricing" },
+        { number: 2, title: "Additional Services", description: "Add warranties and extras" },
+        { number: 3, title: "Send Estimate", description: "Review and send to client" }
+      ]
+    : [
+        { number: 1, title: "Items & Pricing", description: "Add line items and set pricing" },
+        { number: 2, title: "Send Estimate", description: "Review and send to client" }
+      ];
 
   const isStepComplete = (stepNumber: number) => {
     switch (stepNumber) {
@@ -282,7 +293,12 @@ export const SteppedEstimateBuilder = ({
     send: "Send Estimate"
   };
 
-  const currentStepNumber = currentStep === "items" ? 1 : currentStep === "upsell" ? 2 : 3;
+  // Calculate current step number based on whether upsell is enabled
+  const currentStepNumber = isEstimateUpsellEnabled
+    ? (currentStep === "items" ? 1 : currentStep === "upsell" ? 2 : 3)
+    : (currentStep === "items" ? 1 : 2);
+
+  const totalSteps = isEstimateUpsellEnabled ? 3 : 2;
 
   return (
     <>
@@ -291,7 +307,7 @@ export const SteppedEstimateBuilder = ({
           <DialogHeader>
             <DialogTitle className="flex flex-wrap items-center gap-2">
               <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-sm font-medium">
-                Step {currentStepNumber} of 3
+                Step {currentStepNumber} of {totalSteps}
               </span>
               {stepTitles[currentStep]}
               {documentNumber && <span className="text-sm text-muted-foreground">(#{documentNumber})</span>}

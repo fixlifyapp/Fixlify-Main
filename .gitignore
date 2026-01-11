@@ -37,6 +37,9 @@ FIX_SEND_ESTIMATE_INSTRUCTIONS.md
 src/App.backup.tsx
 
 # Environment files
+.env
+.env.*
+!.env.example
 supabase/.env.production
 
 .claude/settings.local.json
