@@ -1,7 +1,6 @@
-import { FileText, Calendar, Tags, Paperclip, Building, MessageSquare } from "lucide-react";
+import { FileText, Calendar, Tags, Paperclip, Building } from "lucide-react";
 import { JobCustomFieldsDisplay } from "./JobCustomFieldsDisplay";
 import { AttachmentsCard } from "./overview/AttachmentsCard";
-import { JobMessages } from "./JobMessages";
 import { useJobDetails } from "./context/JobDetailsContext";
 import {
   SectionCard,
@@ -105,11 +104,6 @@ export const JobOverview = ({ jobId }: JobOverviewProps) => {
           <JobCustomFieldsDisplay jobId={jobId} />
         </SectionCard>
       </div>
-
-      {/* Row 4: Messages */}
-      <SectionCard icon={MessageSquare} title="Messages & Notes">
-        <JobMessages jobId={jobId} embedded />
-      </SectionCard>
     </div>
   );
 };
