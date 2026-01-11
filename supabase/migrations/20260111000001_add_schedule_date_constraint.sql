@@ -1,6 +1,14 @@
 -- Add CHECK constraint to prevent end_date before start_date in jobs
 -- This ensures data integrity at the database level
 
+-- First, fix any existing invalid rows by setting end = start + 1 hour
+UPDATE jobs
+SET schedule_end = schedule_start + INTERVAL '1 hour'
+WHERE schedule_end IS NOT NULL
+  AND schedule_start IS NOT NULL
+  AND schedule_end < schedule_start;
+
+-- Now add the constraint
 ALTER TABLE jobs
 ADD CONSTRAINT jobs_schedule_dates_valid
 CHECK (
