@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useOrganization } from "./use-organization";
 
 export interface JobCustomFieldValue {
   id: string;
@@ -19,17 +20,24 @@ export interface JobCustomFieldValue {
 }
 
 export const useJobCustomFields = (jobId?: string) => {
+  const { organization } = useOrganization();
   const [customFieldValues, setCustomFieldValues] = useState<JobCustomFieldValue[]>([]);
   const [availableFields, setAvailableFields] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Fetch available custom fields for jobs
+  // Fetch available custom fields for jobs (organization-scoped)
   const fetchAvailableFields = async () => {
+    if (!organization?.id) {
+      setAvailableFields([]);
+      return;
+    }
+
     try {
       const { data, error } = await supabase
         .from('custom_fields')
         .select('*')
         .eq('entity_type', 'job')
+        .eq('organization_id', organization.id)
         .order('name');
 
       if (error) throw error;
@@ -155,7 +163,7 @@ export const useJobCustomFields = (jobId?: string) => {
     };
 
     initializeData();
-  }, [jobId]);
+  }, [jobId, organization?.id]);
 
   return {
     customFieldValues,

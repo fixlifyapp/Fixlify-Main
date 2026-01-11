@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Paperclip, Upload, Download, Trash2, Eye, Loader2 } from "lucide-react";
@@ -13,7 +13,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { ProfessionalCard, ProfessionalSectionHeader, ProfessionalEmptyState } from "@/components/ui/professional-card";
+import { ProfessionalCard, ProfessionalSectionHeader } from "@/components/ui/professional-card";
 
 interface AttachmentsCardProps {
   jobId: string;
@@ -21,7 +21,8 @@ interface AttachmentsCardProps {
 }
 
 export const AttachmentsCard = ({ jobId, embedded = false }: AttachmentsCardProps) => {
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  // Use stable ID without special characters (useId() generates IDs with colons which can break label association)
+  const fileInputId = useMemo(() => `attachments-input-${jobId}`, [jobId]);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
@@ -37,18 +38,12 @@ export const AttachmentsCard = ({ jobId, embedded = false }: AttachmentsCardProp
     refreshAttachments
   } = useJobAttachments(jobId);
 
-  const handleUploadClick = () => {
-    fileInputRef.current?.click();
-  };
-
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (files && files.length > 0) {
       await uploadAttachments(Array.from(files));
       // Reset input so same file can be uploaded again
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
-      }
+      e.target.value = '';
     }
   };
 
@@ -85,50 +80,42 @@ export const AttachmentsCard = ({ jobId, embedded = false }: AttachmentsCardProp
           title="Attachments"
           subtitle={attachments.length > 0 ? `${attachments.length} file${attachments.length !== 1 ? 's' : ''}` : undefined}
           action={
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleUploadClick}
-              disabled={isUploading}
-              className="text-slate-700 border-slate-300 hover:bg-slate-100 hover:border-slate-400"
+            <label
+              htmlFor={fileInputId}
+              className={`inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 border border-slate-300 bg-background hover:bg-slate-100 hover:border-slate-400 h-9 px-3 text-slate-700 cursor-pointer ${isUploading ? 'pointer-events-none opacity-50' : ''}`}
             >
               {isUploading ? (
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
-                <Upload className="h-4 w-4 mr-2" />
+                <Upload className="h-4 w-4" />
               )}
               {isUploading ? 'Uploading...' : 'Upload'}
-            </Button>
+            </label>
           }
         />
       )}
 
       {isLoading ? (
-          <div className="text-center py-8">
-            <Loader2 className="h-8 w-8 mx-auto mb-4 animate-spin text-slate-400" />
-            <p className="text-sm text-slate-500">Loading attachments...</p>
+          <div className="text-center py-4">
+            <Loader2 className="h-5 w-5 mx-auto mb-2 animate-spin text-slate-400" />
+            <p className="text-xs text-slate-500">Loading...</p>
           </div>
         ) : attachments.length === 0 ? (
-          <ProfessionalEmptyState
-            icon={Paperclip}
-            title="No attachments"
-            description="Upload files to attach them to this job"
-            action={
-              <Button
-                variant="outline"
-                onClick={handleUploadClick}
-                disabled={isUploading}
-                className="text-slate-700 border-slate-300 hover:bg-slate-100"
-              >
-                {isUploading ? (
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                ) : (
-                  <Upload className="h-4 w-4 mr-2" />
-                )}
-                {isUploading ? 'Uploading...' : 'Upload your first file'}
-              </Button>
-            }
-          />
+          <div className="flex items-center justify-center gap-3 py-4 px-3 bg-slate-50/50 rounded-lg border border-dashed border-slate-200">
+            <Paperclip className="h-5 w-5 text-slate-400 flex-shrink-0" />
+            <span className="text-sm text-slate-500">No attachments yet</span>
+            <label
+              htmlFor={fileInputId}
+              className={`inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-md text-xs font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 border border-slate-300 bg-background hover:bg-slate-100 h-7 px-2 text-slate-600 cursor-pointer ${isUploading ? 'pointer-events-none opacity-50' : ''}`}
+            >
+              {isUploading ? (
+                <Loader2 className="h-3 w-3 animate-spin" />
+              ) : (
+                <Upload className="h-3 w-3" />
+              )}
+              {isUploading ? 'Uploading...' : 'Upload'}
+            </label>
+          </div>
         ) : (
           <div className="space-y-3">
             {attachments.map((attachment) => (
@@ -193,39 +180,37 @@ export const AttachmentsCard = ({ jobId, embedded = false }: AttachmentsCardProp
           </div>
         )}
 
-      {embedded && (
+      {embedded && attachments.length > 0 && (
         <div className="flex justify-end mt-3 pt-3 border-t">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleUploadClick}
-            disabled={isUploading}
-            className="text-slate-700 border-slate-300 hover:bg-slate-100"
+          <label
+            htmlFor={fileInputId}
+            className={`inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 border border-slate-300 bg-background hover:bg-slate-100 h-9 px-3 text-slate-700 cursor-pointer ${isUploading ? 'pointer-events-none opacity-50' : ''}`}
           >
             {isUploading ? (
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              <Loader2 className="h-4 w-4 animate-spin" />
             ) : (
-              <Upload className="h-4 w-4 mr-2" />
+              <Upload className="h-4 w-4" />
             )}
             {isUploading ? 'Uploading...' : 'Upload File'}
-          </Button>
+          </label>
         </div>
       )}
 
-      {/* Hidden file input for direct upload */}
-      <input
-        type="file"
-        ref={fileInputRef}
-        onChange={handleFileChange}
-        className="hidden"
-        multiple
-        accept="image/*,.heic,.heif,.pdf,.doc,.docx,.xls,.xlsx,.txt,.csv"
-      />
     </>
   );
 
   return (
     <>
+      {/* Hidden file input - using id/label pattern for reliable cross-browser support */}
+      <input
+        type="file"
+        id={fileInputId}
+        onChange={handleFileChange}
+        className="hidden"
+        multiple
+        accept="image/*,video/*,.heic,.heif,.pdf,.doc,.docx,.xls,.xlsx,.txt,.csv"
+      />
+
       {embedded ? (
         content
       ) : (

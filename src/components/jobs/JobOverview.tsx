@@ -1,5 +1,5 @@
-import { FileText, Calendar, Tags, Paperclip, Building } from "lucide-react";
-import { JobCustomFieldsDisplay } from "./JobCustomFieldsDisplay";
+import { FileText, Calendar, Tags, Paperclip, Settings2 } from "lucide-react";
+import { CustomFieldsCard } from "./overview/CustomFieldsCard";
 import { AttachmentsCard } from "./overview/AttachmentsCard";
 import { useJobDetails } from "./context/JobDetailsContext";
 import {
@@ -100,8 +100,8 @@ export const JobOverview = ({ jobId }: JobOverviewProps) => {
           <AttachmentsCard jobId={jobId} embedded />
         </SectionCard>
 
-        <SectionCard icon={Building} title="Custom Fields">
-          <JobCustomFieldsDisplay jobId={jobId} />
+        <SectionCard icon={Settings2} title="Custom Fields">
+          <CustomFieldsCard jobId={jobId} embedded />
         </SectionCard>
       </div>
     </div>

@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { PageLayout } from "@/components/layout/PageLayout";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card, CardContent } from "@/components/ui/card";
@@ -15,9 +16,32 @@ import { UpsellConfig } from "@/components/settings/configuration/UpsellConfig";
 import { Settings2, Tags, ListTodo, ClipboardList, FormInput, MessageCircle, Cog, Target, Zap, Receipt, Hash, Shield } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 
+const validTabs = ["niche", "tax", "numbering", "tags", "job-types", "job-statuses", "custom-fields", "lead-sources", "upsells"];
+
 const ConfigurationPage = () => {
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState("niche");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tabFromUrl = searchParams.get("tab");
+  const [activeTab, setActiveTab] = useState(() =>
+    tabFromUrl && validTabs.includes(tabFromUrl) ? tabFromUrl : "niche"
+  );
+
+  // Update URL when tab changes
+  const handleTabChange = (value: string) => {
+    setActiveTab(value);
+    if (value !== "niche") {
+      setSearchParams({ tab: value });
+    } else {
+      setSearchParams({});
+    }
+  };
+
+  // Sync with URL on mount/navigation
+  useEffect(() => {
+    if (tabFromUrl && validTabs.includes(tabFromUrl)) {
+      setActiveTab(tabFromUrl);
+    }
+  }, [tabFromUrl]);
   
   return (
     <PageLayout>
@@ -34,7 +58,7 @@ const ConfigurationPage = () => {
       
       <Card className="overflow-hidden">
         <CardContent className="p-0">
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
             <div className="border-b">
               <TabsList className="bg-transparent h-auto px-6 pt-4 justify-start flex-wrap gap-2">
                 <TabsTrigger value="niche" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground flex items-center gap-1.5">
