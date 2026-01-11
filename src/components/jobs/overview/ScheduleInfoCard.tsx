@@ -7,6 +7,7 @@ import { JobInfo } from "../context/types";
 import { useJobs } from "@/hooks/useJobs";
 import { toast } from "sonner";
 import { ScheduleEditDialog } from "../dialogs/ScheduleEditDialog";
+import { validateScheduleDates, autoCorrectEndDate } from "@/utils/schedule-validation";
 
 interface ScheduleInfoCardProps {
   job: JobInfo;
@@ -21,10 +22,19 @@ export const ScheduleInfoCard = ({ job, jobId, editable = false, onUpdate }: Sch
 
   const handleScheduleSave = async (startDate: string, endDate: string) => {
     if (!jobId) return;
-    
+
+    // Defense-in-depth: validate and auto-correct if needed
+    let finalEndDate = endDate;
+    const validation = validateScheduleDates(startDate, endDate);
+    if (!validation.isValid) {
+      const corrected = autoCorrectEndDate(startDate, endDate);
+      finalEndDate = corrected.toISOString();
+      toast.warning("End time was adjusted to be after start time");
+    }
+
     const result = await updateJob(jobId, {
       schedule_start: startDate,
-      schedule_end: endDate
+      schedule_end: finalEndDate
     });
     if (result) {
       toast.success("Schedule updated successfully");

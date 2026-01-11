@@ -21,6 +21,7 @@ import { useTechnicians } from "@/hooks/useTechnicians";
 import { useCompanySettings } from "@/hooks/useCompanySettings";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { validateScheduleDates, autoCorrectEndDate } from "@/utils/schedule-validation";
 
 // Generate time options in 30-minute intervals
 const generateTimeOptions = () => {
@@ -147,14 +148,24 @@ export const ScheduleEditSection = ({ job, onUpdate }: ScheduleEditSectionProps)
       const newStart = dateTime.toISOString();
       setScheduleStart(newStart);
 
-      // Auto-set end if not set
+      // Auto-set end if not set, or auto-correct if end is now before start
       if (!scheduleEnd) {
         const endDateTime = addMinutes(dateTime, 60);
         const newEnd = endDateTime.toISOString();
         setScheduleEnd(newEnd);
         saveSchedule({ schedule_start: newStart, schedule_end: newEnd }, "schedule_start");
       } else {
-        saveSchedule({ schedule_start: newStart }, "schedule_start");
+        // Check if current end date is now before new start date
+        const validation = validateScheduleDates(dateTime, scheduleEnd);
+        if (!validation.isValid) {
+          const correctedEnd = autoCorrectEndDate(dateTime, scheduleEnd);
+          const newEnd = correctedEnd.toISOString();
+          setScheduleEnd(newEnd);
+          saveSchedule({ schedule_start: newStart, schedule_end: newEnd }, "schedule_start");
+          toast.warning("End time was adjusted to be after start time");
+        } else {
+          saveSchedule({ schedule_start: newStart }, "schedule_start");
+        }
       }
 
       setStartDateOpen(false);
@@ -196,7 +207,20 @@ export const ScheduleEditSection = ({ job, onUpdate }: ScheduleEditSectionProps)
       const date = new Date(scheduleEnd);
       const [hours, minutes] = timeValue.split(':');
       date.setHours(parseInt(hours), parseInt(minutes));
-      const newEnd = date.toISOString();
+
+      // Validate against start time and auto-correct if needed
+      const startDate = scheduleStart ? new Date(scheduleStart) : null;
+      const validation = validateScheduleDates(startDate, date);
+
+      let newEnd: string;
+      if (!validation.isValid && startDate) {
+        const corrected = autoCorrectEndDate(startDate, date);
+        newEnd = corrected.toISOString();
+        toast.warning("End time adjusted to be after start time");
+      } else {
+        newEnd = date.toISOString();
+      }
+
       setScheduleEnd(newEnd);
       saveSchedule({ schedule_end: newEnd }, "schedule_end");
     }

@@ -19,6 +19,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
+import { validateScheduleDates, autoCorrectEndDate } from "@/utils/schedule-validation";
 
 interface ScheduleEditDialogProps {
   open: boolean;
@@ -65,9 +66,16 @@ export function ScheduleEditDialog({
     const [startHour, startMinute] = startTime.split(':').map(Number);
     startDateTime.setHours(startHour, startMinute);
 
-    const endDateTime = new Date(endDate);
+    let endDateTime = new Date(endDate);
     const [endHour, endMinute] = endTime.split(':').map(Number);
     endDateTime.setHours(endHour, endMinute);
+
+    // Validate and auto-correct if end is before start
+    const validation = validateScheduleDates(startDateTime, endDateTime);
+    if (!validation.isValid) {
+      endDateTime = autoCorrectEndDate(startDateTime, endDateTime);
+      toast.warning("End time was adjusted to be after start time");
+    }
 
     onSave(startDateTime.toISOString(), endDateTime.toISOString());
     onOpenChange(false);
