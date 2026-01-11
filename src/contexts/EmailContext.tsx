@@ -183,7 +183,7 @@ export const EmailProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       }
 
       // Call edge function to send actual email with conversation tracking
-      const { error: sendError } = await supabase.functions.invoke('send-email', {
+      const { error: sendError } = await supabase.functions.invoke('mailgun-email', {
         body: {
           to,
           subject,

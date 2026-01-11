@@ -33,7 +33,7 @@ export const usePayments = (jobId: string) => {
       console.log('⚠️ Fetch already in progress for payments, skipping...');
       return;
     }
-    
+
     if (!jobId) {
       setPayments([]);
       setIsLoading(false);
@@ -45,14 +45,31 @@ export const usePayments = (jobId: string) => {
       setIsLoading(true);
       console.log('Fetching payments for job:', jobId);
 
-      // Fetch payments through invoices relationship
+      // First, get invoice IDs for this job
+      const { data: invoiceData, error: invoiceError } = await supabase
+        .from('invoices')
+        .select('id')
+        .eq('job_id', jobId);
+
+      if (invoiceError) {
+        console.error('Error fetching invoices for payments:', invoiceError);
+        throw invoiceError;
+      }
+
+      const invoiceIds = invoiceData?.map(inv => inv.id) || [];
+      console.log('Found invoice IDs for job:', invoiceIds);
+
+      if (invoiceIds.length === 0) {
+        console.log('No invoices found, no payments to fetch');
+        setPayments([]);
+        return;
+      }
+
+      // Fetch payments for those invoices
       const { data, error } = await supabase
         .from('payments')
-        .select(`
-          *,
-          invoices!inner(job_id)
-        `)
-        .eq('invoices.job_id', jobId)
+        .select('*')
+        .in('invoice_id', invoiceIds)
         .order('created_at', { ascending: false });
 
       if (error) {
@@ -61,7 +78,7 @@ export const usePayments = (jobId: string) => {
       }
 
       console.log('Fetched payments:', data);
-      
+
       // Transform the data to match Payment interface
       const transformedPayments = data?.map(payment => ({
         id: payment.id,

@@ -34,7 +34,7 @@ serve(async (req) => {
       // Verify signature
       const timestamp = req.headers.get('X-Mailgun-Timestamp');
       const token = req.headers.get('X-Mailgun-Token');
-      
+
       if (!timestamp || !token) {
         console.error('Missing signature components');
         return new Response('Unauthorized', { status: 401 });
@@ -71,125 +71,240 @@ serve(async (req) => {
     // Extract company email from recipient (e.g., kyky@fixlify.app)
     const recipientEmail = emailData.recipient.toLowerCase();
     const companyEmailMatch = recipientEmail.match(/^([^@]+)@fixlify\.app$/);
-    
+
     if (!companyEmailMatch) {
       console.error('Invalid recipient format:', recipientEmail);
       return new Response('Invalid recipient', { status: 400 });
     }
 
     const companyEmailPrefix = companyEmailMatch[1];
+    const fullEmailAddress = `${companyEmailPrefix}@fixlify.app`;
 
-    // Find the user by company email address
-    const { data: userData, error: userError } = await supabaseClient
-      .from('profiles')
-      .select('id, user_id, company_name')
-      .eq('company_email_address', `${companyEmailPrefix}@fixlify.app`)
+    // ============================================
+    // NEW: Try organization-scoped lookup first
+    // ============================================
+    let organizationId: string | null = null;
+    let userId: string | null = null;
+    let organizationName: string | null = null;
+
+    // Step 1: Check organization_communication_settings for organization email
+    const { data: orgSettings, error: orgError } = await supabaseClient
+      .from('organization_communication_settings')
+      .select('organization_id')
+      .eq('organization_email_address', fullEmailAddress)
       .single();
 
-    if (userError || !userData) {
-      // Try company_settings table
-      const { data: companyData, error: companyError } = await supabaseClient
-        .from('company_settings')
-        .select('id, user_id, company_name')
-        .eq('company_email_address', `${companyEmailPrefix}@fixlify.app`)
+    if (orgSettings && !orgError) {
+      organizationId = orgSettings.organization_id;
+      console.log('Found organization by email:', organizationId);
+
+      // Get organization details
+      const { data: org } = await supabaseClient
+        .from('organizations')
+        .select('name')
+        .eq('id', organizationId)
         .single();
 
-      if (companyError || !companyData) {
-        console.error('Company email not found:', companyEmailPrefix);
-        return new Response('Recipient not found', { status: 404 });
-      }
+      organizationName = org?.name || null;
 
-      // Use company data
-      userData = companyData;
+      // Get a default user (admin) for this organization for backwards compatibility
+      const { data: adminProfile } = await supabaseClient
+        .from('profiles')
+        .select('id')
+        .eq('organization_id', organizationId)
+        .eq('role', 'admin')
+        .limit(1)
+        .single();
+
+      if (adminProfile) {
+        userId = adminProfile.id;
+      }
     }
 
-    const userId = userData.user_id;
+    // Step 2: Fallback to legacy user-scoped lookup
+    if (!organizationId) {
+      // Try profiles table
+      const { data: userData, error: userError } = await supabaseClient
+        .from('profiles')
+        .select('id, organization_id, company_name')
+        .eq('company_email_address', fullEmailAddress)
+        .single();
+
+      if (userData && !userError) {
+        userId = userData.id;
+        organizationId = userData.organization_id;
+        organizationName = userData.company_name;
+        console.log('Found user by email (legacy):', userId);
+      } else {
+        // Try company_settings table
+        const { data: companyData, error: companyError } = await supabaseClient
+          .from('company_settings')
+          .select('user_id, company_name')
+          .eq('company_email_address', fullEmailAddress)
+          .single();
+
+        if (companyData && !companyError) {
+          userId = companyData.user_id;
+          organizationName = companyData.company_name;
+
+          // Get organization_id from profile
+          const { data: profile } = await supabaseClient
+            .from('profiles')
+            .select('organization_id')
+            .eq('id', userId)
+            .single();
+
+          organizationId = profile?.organization_id || null;
+          console.log('Found user in company_settings (legacy):', userId);
+        }
+      }
+    }
+
+    if (!userId && !organizationId) {
+      console.error('Email recipient not found:', fullEmailAddress);
+      return new Response('Recipient not found', { status: 404 });
+    }
 
     // Extract client email from sender
-    const clientEmail = emailData.sender.toLowerCase();
+    const clientEmail = emailData.sender.toLowerCase().replace(/.*<([^>]+)>.*/, '$1').trim();
 
-    // Find or create client
+    // Find or create client (organization-scoped if possible)
     let clientId = null;
-    const { data: existingClient, error: clientError } = await supabaseClient
+    let clientName = 'Unknown';
+
+    // Build query based on whether we have organization or user scope
+    let clientQuery = supabaseClient
       .from('clients')
       .select('id, name')
-      .eq('email', clientEmail)
-      .eq('user_id', userId)
-      .single();
+      .eq('email', clientEmail);
+
+    if (organizationId) {
+      clientQuery = clientQuery.eq('organization_id', organizationId);
+    } else if (userId) {
+      clientQuery = clientQuery.eq('user_id', userId);
+    }
+
+    const { data: existingClient } = await clientQuery.single();
 
     if (existingClient) {
       clientId = existingClient.id;
+      clientName = existingClient.name;
     } else {
       // Extract name from email if possible
       const emailParts = clientEmail.split('@');
       const nameParts = emailParts[0].split(/[._-]/);
       const firstName = nameParts[0] || 'Unknown';
       const lastName = nameParts.slice(1).join(' ') || 'Client';
-      const clientName = `${firstName.charAt(0).toUpperCase() + firstName.slice(1)} ${lastName.charAt(0).toUpperCase() + lastName.slice(1)}`;
+      clientName = `${firstName.charAt(0).toUpperCase() + firstName.slice(1)} ${lastName.charAt(0).toUpperCase() + lastName.slice(1)}`;
 
       // Create new client
+      const clientInsert: Record<string, unknown> = {
+        name: clientName,
+        email: clientEmail,
+        type: 'individual',
+        status: 'lead',
+        notes: `Auto-created from email on ${new Date().toLocaleString()}`
+      };
+
+      // Add proper scoping
+      if (organizationId) {
+        clientInsert.organization_id = organizationId;
+      }
+      if (userId) {
+        clientInsert.user_id = userId;
+      }
+
       const { data: newClient, error: createError } = await supabaseClient
         .from('clients')
-        .insert({
-          user_id: userId,
-          name: clientName,
-          email: clientEmail,
-          type: 'individual',
-          status: 'lead',
-          notes: `Auto-created from email on ${new Date().toLocaleString()}`
-        })
+        .insert(clientInsert)
         .select()
         .single();
 
       if (createError) {
         console.error('Error creating client:', createError);
-        return new Response('Failed to create client', { status: 500 });
+        // Don't fail - continue without client
+      } else {
+        clientId = newClient.id;
       }
-
-      clientId = newClient.id;
     }
 
-    // Find or create conversation
+    // Find or create conversation (organization-scoped)
     let conversationId = null;
-    const { data: existingConversation } = await supabaseClient
+
+    // Build conversation query
+    let convQuery = supabaseClient
       .from('email_conversations')
-      .select('id')
-      .eq('user_id', userId)
-      .eq('client_id', clientId)
-      .eq('client_email', clientEmail)
-      .single();
+      .select('id, subject')
+      .eq('client_email', clientEmail);
+
+    if (organizationId) {
+      convQuery = convQuery.eq('organization_id', organizationId);
+    } else if (userId) {
+      convQuery = convQuery.eq('user_id', userId);
+    }
+
+    if (clientId) {
+      convQuery = convQuery.eq('client_id', clientId);
+    }
+
+    const { data: existingConversation } = await convQuery.single();
 
     if (existingConversation) {
       conversationId = existingConversation.id;
-      
-      // Update conversation
+
+      // Update conversation with raw SQL for increment
+      const { error: updateError } = await supabaseClient.rpc('increment_unread_count', {
+        conv_id: conversationId
+      }).catch(() => {
+        // Fallback if RPC doesn't exist
+        return supabaseClient
+          .from('email_conversations')
+          .update({
+            last_message_at: new Date().toISOString(),
+            last_message_preview: emailData.body.substring(0, 100),
+            subject: emailData.subject || existingConversation.subject,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', conversationId);
+      });
+
+      // Also try direct update
       await supabaseClient
         .from('email_conversations')
         .update({
           last_message_at: new Date().toISOString(),
           last_message_preview: emailData.body.substring(0, 100),
-          unread_count: supabaseClient.sql`unread_count + 1`,
           subject: emailData.subject || existingConversation.subject,
           updated_at: new Date().toISOString()
         })
         .eq('id', conversationId);
+
     } else {
       // Create new conversation
+      const convInsert: Record<string, unknown> = {
+        client_id: clientId,
+        client_email: clientEmail,
+        email_address: clientEmail,
+        client_name: clientName,
+        subject: emailData.subject,
+        last_message_at: new Date().toISOString(),
+        last_message_preview: emailData.body.substring(0, 100),
+        unread_count: 1,
+        is_archived: false,
+        is_starred: false
+      };
+
+      // Add proper scoping
+      if (organizationId) {
+        convInsert.organization_id = organizationId;
+      }
+      if (userId) {
+        convInsert.user_id = userId;
+      }
+
       const { data: newConversation, error: convError } = await supabaseClient
         .from('email_conversations')
-        .insert({
-          user_id: userId,
-          client_id: clientId,
-          client_email: clientEmail,
-          email_address: clientEmail,
-          client_name: existingClient?.name || 'Unknown',
-          subject: emailData.subject,
-          last_message_at: new Date().toISOString(),
-          last_message_preview: emailData.body.substring(0, 100),
-          unread_count: 1,
-          is_archived: false,
-          is_starred: false
-        })
+        .insert(convInsert)
         .select()
         .single();
 
@@ -202,36 +317,55 @@ serve(async (req) => {
     }
 
     // Store the email message
+    const messageInsert: Record<string, unknown> = {
+      conversation_id: conversationId,
+      direction: 'inbound',
+      from_email: clientEmail,
+      to_email: fullEmailAddress,
+      subject: emailData.subject,
+      body: emailData.body,
+      html_body: emailData.htmlBody,
+      is_read: false,
+      email_id: emailData.messageId,
+      status: 'received',
+      metadata: {
+        mailgun_timestamp: emailData.timestamp,
+        webhook_received_at: new Date().toISOString(),
+        organization_id: organizationId
+      }
+    };
+
+    // Add proper scoping
+    if (organizationId) {
+      messageInsert.organization_id = organizationId;
+    }
+    if (userId) {
+      messageInsert.user_id = userId;
+    }
+
     const { error: messageError } = await supabaseClient
       .from('email_messages')
-      .insert({
-        conversation_id: conversationId,
-        user_id: userId,
-        direction: 'inbound',
-        from_email: clientEmail,
-        to_email: `${companyEmailPrefix}@fixlify.app`,
-        subject: emailData.subject,
-        body: emailData.body,
-        html_body: emailData.htmlBody,
-        is_read: false,
-        email_id: emailData.messageId,
-        status: 'received',
-        metadata: {
-          mailgun_timestamp: emailData.timestamp,
-          webhook_received_at: new Date().toISOString()
-        }
-      });
+      .insert(messageInsert);
 
     if (messageError) {
       console.error('Error storing email message:', messageError);
       return new Response('Failed to store message', { status: 500 });
     }
 
-    console.log('Email processed successfully');
+    console.log('Email processed successfully', {
+      organizationId,
+      conversationId,
+      clientId
+    });
 
     return new Response(
-      JSON.stringify({ success: true, message: 'Email processed' }),
-      { 
+      JSON.stringify({
+        success: true,
+        message: 'Email processed',
+        organizationId,
+        conversationId
+      }),
+      {
         status: 200,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       }
@@ -241,7 +375,7 @@ serve(async (req) => {
     console.error('Error in email webhook:', error);
     return new Response(
       JSON.stringify({ error: error.message }),
-      { 
+      {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       }

@@ -164,31 +164,37 @@ export const ModernJobEstimatesTab = ({
 
   return (
     <>
-      <div className="space-y-4">
-        {/* Compact Summary Row */}
-        <div className="grid grid-cols-3 gap-3">
-          <div className="bg-slate-50 border border-slate-200 rounded-lg p-3">
-            <div className="flex items-center gap-2 text-slate-500 mb-1">
-              <FileText className="h-3.5 w-3.5" />
-              <span className="text-xs font-medium uppercase tracking-wide">Total</span>
+      <div className="space-y-6">
+        {/* Summary Stats Row */}
+        <div className="grid grid-cols-3 gap-4">
+          <div className="bg-white border border-slate-200 rounded-xl p-4 hover:shadow-sm transition-shadow">
+            <div className="flex items-center gap-2 text-slate-500 mb-2">
+              <div className="p-1.5 bg-violet-50 rounded-lg">
+                <FileText className="h-4 w-4 text-violet-500" />
+              </div>
+              <span className="text-xs font-semibold uppercase tracking-wide">Total</span>
             </div>
-            <p className="text-lg font-bold text-slate-900">{estimatesState.length}</p>
+            <p className="text-2xl font-bold text-slate-800 tabular-nums">{estimatesState.length}</p>
           </div>
 
-          <div className="bg-slate-50 border border-slate-200 rounded-lg p-3">
-            <div className="flex items-center gap-2 text-slate-500 mb-1">
-              <TrendingUp className="h-3.5 w-3.5" />
-              <span className="text-xs font-medium uppercase tracking-wide">Value</span>
+          <div className="bg-white border border-slate-200 rounded-xl p-4 hover:shadow-sm transition-shadow">
+            <div className="flex items-center gap-2 text-slate-500 mb-2">
+              <div className="p-1.5 bg-emerald-50 rounded-lg">
+                <TrendingUp className="h-4 w-4 text-emerald-500" />
+              </div>
+              <span className="text-xs font-semibold uppercase tracking-wide">Value</span>
             </div>
-            <p className="text-lg font-bold text-slate-900">{formatCurrency(totalEstimateValue)}</p>
+            <p className="text-2xl font-bold text-slate-800 tabular-nums">{formatCurrency(totalEstimateValue)}</p>
           </div>
 
-          <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
-            <div className="flex items-center gap-2 text-amber-600 mb-1">
-              <Clock className="h-3.5 w-3.5" />
-              <span className="text-xs font-medium uppercase tracking-wide">Pending</span>
+          <div className="bg-white border border-amber-200 rounded-xl p-4 hover:shadow-sm transition-shadow">
+            <div className="flex items-center gap-2 text-amber-600 mb-2">
+              <div className="p-1.5 bg-amber-50 rounded-lg">
+                <Clock className="h-4 w-4 text-amber-500" />
+              </div>
+              <span className="text-xs font-semibold uppercase tracking-wide">Pending</span>
             </div>
-            <p className="text-lg font-bold text-amber-700">{pendingApproval}</p>
+            <p className="text-2xl font-bold text-amber-600 tabular-nums">{pendingApproval}</p>
           </div>
         </div>
 
@@ -202,7 +208,7 @@ export const ModernJobEstimatesTab = ({
               <Button
                 onClick={handleCreateNew}
                 size="sm"
-                className="h-8 bg-slate-900 hover:bg-slate-800 text-white"
+                className="h-8 bg-violet-600 hover:bg-violet-700 text-white shadow-sm"
               >
                 <Plus className="h-3.5 w-3.5 mr-1.5" />
                 Create
@@ -222,7 +228,7 @@ export const ModernJobEstimatesTab = ({
               <p className="text-xs text-slate-400 mt-1">Create your first estimate to get started</p>
             </div>
           ) : (
-            <div className="space-y-2">
+            <div className="space-y-3">
               {estimatesState.map((estimate) => (
                 <DocumentListItem
                   key={estimate.id}

@@ -79,17 +79,18 @@ export const debugMessagingServices = async () => {
     try {
       // We'll do a dry run by checking if the edge function exists
       const testEmail = {
-        estimateId: "test-123",
+        documentType: "estimate",
+        documentId: "test-123",
         recipientEmail: "test@example.com"
       };
-      
+
       // This will fail but we can check the error to see if it's a config issue
-      const { error: mailgunError } = await supabase.functions.invoke('send-estimate', {
+      const { error: mailgunError } = await supabase.functions.invoke('send-document-email', {
         body: testEmail
       });
-      
+
       if (mailgunError?.message?.includes('not found')) {
-        results.mailgunConfig.message = "Send-estimate function not found";
+        results.mailgunConfig.message = "Send-document-email function not found";
       } else if (mailgunError?.message?.includes('authentication')) {
         results.mailgunConfig.message = "Authentication issue";
       } else {
@@ -156,11 +157,12 @@ export const testSendMessage = async (phone: string, message: string) => {
 // Function to test sending an email
 export const testSendEmail = async (email: string, estimateId: string) => {
   console.log("📧 Testing email send to:", email);
-  
+
   try {
-    const { data, error } = await supabase.functions.invoke('send-estimate', {
+    const { data, error } = await supabase.functions.invoke('send-document-email', {
       body: {
-        estimateId: estimateId,
+        documentType: 'estimate',
+        documentId: estimateId,
         recipientEmail: email
       }
     });

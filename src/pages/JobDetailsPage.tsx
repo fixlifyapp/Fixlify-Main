@@ -71,10 +71,10 @@ const JobDetailsContent = ({ jobId }: { jobId: string }) => {
           outstandingBalance={outstandingBalance}
         >
           {/* Lazy load tabs - only render active tab to prevent duplicate data fetches */}
-          <TabsContent value="overview" className="mt-0">
+          <TabsContent value="overview" className="mt-6">
             {activeTab === "overview" && <JobOverview jobId={jobId} />}
           </TabsContent>
-          <TabsContent value="estimates" className="mt-0">
+          <TabsContent value="estimates" className="mt-6">
             {activeTab === "estimates" && (
               <ModernJobEstimatesTab
                 jobId={jobId}
@@ -82,13 +82,13 @@ const JobDetailsContent = ({ jobId }: { jobId: string }) => {
               />
             )}
           </TabsContent>
-          <TabsContent value="invoices" className="mt-0">
+          <TabsContent value="invoices" className="mt-6">
             {activeTab === "invoices" && <ModernJobInvoicesTab jobId={jobId} />}
           </TabsContent>
-          <TabsContent value="payments" className="mt-0">
+          <TabsContent value="payments" className="mt-6">
             {activeTab === "payments" && <JobPayments jobId={jobId} />}
           </TabsContent>
-          <TabsContent value="history" className="mt-0">
+          <TabsContent value="history" className="mt-6">
             {activeTab === "history" && <JobHistory jobId={jobId} />}
           </TabsContent>
         </JobDetailsTabs>

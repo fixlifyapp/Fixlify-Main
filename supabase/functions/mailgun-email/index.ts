@@ -14,6 +14,7 @@ interface EmailRequest {
   from?: string;
   replyTo?: string;
   userId?: string;
+  organizationId?: string; // NEW: Organization-scoped email sending
   clientId?: string;
   template?: string;
   variables?: Record<string, any>;
@@ -172,34 +173,70 @@ serve(async (req) => {
       supabase = createClient(supabaseUrl, supabaseServiceKey);
     }
     
-    // Get user-specific email settings
+    // Get email settings - prioritize organization, fall back to user
     let fromEmail = emailRequest.from || mailgunFromEmail;
-    
-    if (supabase && emailRequest.userId) {
+
+    // Step 1: Try organization-scoped email first
+    if (supabase && emailRequest.organizationId && !emailRequest.from) {
+      try {
+        const { data: orgSettings } = await supabase
+          .from('organization_communication_settings')
+          .select('organization_email_address, default_from_name')
+          .eq('organization_id', emailRequest.organizationId)
+          .single();
+
+        if (orgSettings?.organization_email_address) {
+          fromEmail = orgSettings.organization_email_address;
+          console.log('Using organization email:', fromEmail);
+        }
+      } catch (error) {
+        console.log('Could not fetch organization email settings, trying user settings');
+      }
+    }
+
+    // Step 2: Fall back to user-specific email settings
+    if (supabase && emailRequest.userId && !emailRequest.from && fromEmail === mailgunFromEmail) {
       try {
         const { data: profile } = await supabase
           .from('profiles')
-          .select('company_name, company_email')
+          .select('company_name, company_email, organization_id')
           .eq('id', emailRequest.userId)
           .single();
-          
-        if (profile?.company_name && !emailRequest.from) {
-          // Generate dynamic email based on company name
-          const formattedCompanyName = profile.company_name
-            .toLowerCase()
-            .trim()
-            .replace(/[\s\-&+.,()]+/g, '_')
-            .replace(/[^a-z0-9_]/g, '')
-            .replace(/_+/g, '_')
-            .replace(/^_+|_+$/g, '')
-            .substring(0, 30) || 'support';
-          
-          fromEmail = `${formattedCompanyName}@${mailgunDomain}`;
+
+        // Try organization settings if user has organization_id
+        if (profile?.organization_id && !emailRequest.organizationId) {
+          const { data: orgSettings } = await supabase
+            .from('organization_communication_settings')
+            .select('organization_email_address')
+            .eq('organization_id', profile.organization_id)
+            .single();
+
+          if (orgSettings?.organization_email_address) {
+            fromEmail = orgSettings.organization_email_address;
+            console.log('Using organization email from profile:', fromEmail);
+          }
         }
-        
-        // Use company_email if they have one set
-        if (profile?.company_email && !emailRequest.from) {
-          fromEmail = profile.company_email;
+
+        // Fall back to user's company settings
+        if (fromEmail === mailgunFromEmail) {
+          if (profile?.company_name) {
+            // Generate dynamic email based on company name
+            const formattedCompanyName = profile.company_name
+              .toLowerCase()
+              .trim()
+              .replace(/[\s\-&+.,()]+/g, '_')
+              .replace(/[^a-z0-9_]/g, '')
+              .replace(/_+/g, '_')
+              .replace(/^_+|_+$/g, '')
+              .substring(0, 30) || 'support';
+
+            fromEmail = `${formattedCompanyName}@${mailgunDomain}`;
+          }
+
+          // Use company_email if they have one set
+          if (profile?.company_email) {
+            fromEmail = profile.company_email;
+          }
         }
       } catch (error) {
         console.log('Could not fetch user profile, using default email');

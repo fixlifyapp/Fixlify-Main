@@ -115,7 +115,7 @@ export const MailgunConfig = () => {
 
     setIsTesting(true);
     try {
-      const { data, error } = await supabase.functions.invoke('send-email', {
+      const { data, error } = await supabase.functions.invoke('mailgun-email', {
         body: {
           to: testEmailAddress,
           subject: 'Test Email from Fixlyfy',

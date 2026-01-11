@@ -1,0 +1,113 @@
+{
+  "$schema": "https://agentskills.io/schemas/marketplace.json",
+  "name": "fixlify-skills",
+  "displayName": "Fixlify Enterprise Skills",
+  "description": "Production-ready skills and commands for Fixlify repair shop management system. Includes QA, deployment, security, database migrations, and more.",
+  "version": "1.0.0",
+  "author": "Fixlify Team",
+  "license": "MIT",
+  "repository": "https://github.com/fixlify/fixlify-main",
+  "homepage": "https://fixlify.app",
+  "keywords": [
+    "fixlify",
+    "repair-shop",
+    "saas",
+    "supabase",
+    "react",
+    "typescript",
+    "enterprise"
+  ],
+  "skills": [
+    {
+      "name": "frontend-design",
+      "path": "skills/frontend-design",
+      "description": "Create distinctive, production-grade UI for Fixlify with shadcn/ui, Tailwind CSS, and React patterns",
+      "tags": ["frontend", "ui", "design", "react", "tailwind", "shadcn"]
+    },
+    {
+      "name": "qa-expert",
+      "path": "skills/qa-expert",
+      "description": "Comprehensive QA and testing skill with TDD support, unit/E2E tests, and coverage analysis",
+      "tags": ["testing", "qa", "tdd", "vitest", "playwright"]
+    },
+    {
+      "name": "deploy-ops",
+      "path": "skills/deploy-ops",
+      "description": "Deployment automation for Vercel and Supabase with rollback support",
+      "tags": ["deployment", "devops", "vercel", "supabase", "ci-cd"]
+    },
+    {
+      "name": "db-migration",
+      "path": "skills/db-migration",
+      "description": "Database migration management with RLS policies and type generation",
+      "tags": ["database", "migration", "postgresql", "rls"]
+    },
+    {
+      "name": "security-audit",
+      "path": "skills/security-audit",
+      "description": "OWASP-based security audit with RLS verification and vulnerability scanning",
+      "tags": ["security", "audit", "owasp", "vulnerabilities"]
+    },
+    {
+      "name": "feature-builder",
+      "path": "skills/feature-builder",
+      "description": "Feature scaffolding with component templates, hooks, and database setup",
+      "tags": ["feature", "scaffolding", "react", "typescript"]
+    },
+    {
+      "name": "hotfix-handler",
+      "path": "skills/hotfix-handler",
+      "description": "Emergency incident response and hotfix deployment workflow",
+      "tags": ["hotfix", "bugfix", "incident", "emergency"]
+    }
+  ],
+  "commands": [
+    {
+      "name": "commit",
+      "path": "commands/commit.md",
+      "description": "Smart conventional commit generation"
+    },
+    {
+      "name": "deploy",
+      "path": "commands/deploy.md",
+      "description": "Deploy to staging or production"
+    },
+    {
+      "name": "fix-issue",
+      "path": "commands/fix-issue.md",
+      "description": "Analyze and fix GitHub issues"
+    },
+    {
+      "name": "release",
+      "path": "commands/release.md",
+      "description": "Create version releases with changelog"
+    },
+    {
+      "name": "test",
+      "path": "commands/test.md",
+      "description": "Run tests with various configurations"
+    },
+    {
+      "name": "audit",
+      "path": "commands/audit.md",
+      "description": "Security and performance audit"
+    },
+    {
+      "name": "migrate",
+      "path": "commands/migrate.md",
+      "description": "Database migration management"
+    },
+    {
+      "name": "create-pr",
+      "path": "commands/create-pr.md",
+      "description": "Create well-formatted pull requests"
+    }
+  ],
+  "compatibility": {
+    "claudeCode": ">=1.0.0",
+    "openaiCodex": ">=1.0.0"
+  },
+  "install": {
+    "instructions": "Copy .claude/skills and .claude/commands directories to your project"
+  }
+}

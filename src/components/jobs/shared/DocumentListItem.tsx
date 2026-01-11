@@ -2,6 +2,7 @@ import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { FileText, Receipt, Calendar, Clock } from "lucide-react";
 
 interface DocumentListItemProps {
   type: 'estimate' | 'invoice';
@@ -14,17 +15,18 @@ interface DocumentListItemProps {
   actions: React.ReactNode;
 }
 
-const statusStyles: Record<string, string> = {
-  draft: 'bg-slate-50 text-slate-700 border-slate-300',
-  sent: 'bg-blue-50 text-blue-700 border-blue-200',
-  approved: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-  rejected: 'bg-red-50 text-red-700 border-red-200',
-  converted: 'bg-slate-100 text-slate-500 border-slate-300',
-  paid: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-  partial: 'bg-amber-50 text-amber-700 border-amber-200',
-  overdue: 'bg-red-50 text-red-700 border-red-200',
-  unpaid: 'bg-slate-50 text-slate-600 border-slate-300',
-  cancelled: 'bg-slate-100 text-slate-500 border-slate-300',
+// More vibrant, modern status styles
+const statusStyles: Record<string, { bg: string; text: string; border: string; dot: string }> = {
+  draft: { bg: 'bg-slate-50', text: 'text-slate-600', border: 'border-slate-200', dot: 'bg-slate-400' },
+  sent: { bg: 'bg-violet-50', text: 'text-violet-600', border: 'border-violet-200', dot: 'bg-violet-500' },
+  approved: { bg: 'bg-emerald-50', text: 'text-emerald-600', border: 'border-emerald-200', dot: 'bg-emerald-500' },
+  rejected: { bg: 'bg-red-50', text: 'text-red-600', border: 'border-red-200', dot: 'bg-red-500' },
+  converted: { bg: 'bg-violet-50', text: 'text-violet-600', border: 'border-violet-200', dot: 'bg-violet-500' },
+  paid: { bg: 'bg-emerald-50', text: 'text-emerald-600', border: 'border-emerald-200', dot: 'bg-emerald-500' },
+  partial: { bg: 'bg-amber-50', text: 'text-amber-600', border: 'border-amber-200', dot: 'bg-amber-500' },
+  overdue: { bg: 'bg-red-50', text: 'text-red-600', border: 'border-red-200', dot: 'bg-red-500' },
+  unpaid: { bg: 'bg-orange-50', text: 'text-orange-600', border: 'border-orange-200', dot: 'bg-orange-500' },
+  cancelled: { bg: 'bg-slate-100', text: 'text-slate-500', border: 'border-slate-300', dot: 'bg-slate-400' },
 };
 
 const formatCurrency = (value: number) =>
@@ -43,40 +45,59 @@ export const DocumentListItem = ({
   const isMobile = useIsMobile();
   const statusStyle = statusStyles[status.toLowerCase()] || statusStyles.draft;
   const hasBalance = balance !== undefined && balance > 0;
+  const Icon = type === 'estimate' ? FileText : Receipt;
 
   return (
-    <div className="bg-white border border-slate-200 rounded-lg p-4 hover:border-slate-300 hover:shadow-sm transition-all">
+    <div className="group bg-white border border-slate-200 rounded-xl p-4 hover:border-violet-200 hover:shadow-md hover:shadow-violet-50 transition-all duration-200">
       {isMobile ? (
         // Mobile Layout - Stacked
         <div className="space-y-3">
-          {/* Top row: Status + Number + Actions */}
+          {/* Top row: Icon + Number + Status + Actions */}
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Badge variant="outline" className={cn("text-xs font-medium", statusStyle)}>
-                {status.charAt(0).toUpperCase() + status.slice(1)}
-              </Badge>
-              <span className="font-semibold text-slate-800">{number}</span>
+            <div className="flex items-center gap-3">
+              <div className={cn(
+                "w-9 h-9 rounded-lg flex items-center justify-center",
+                type === 'estimate' ? 'bg-violet-50' : 'bg-emerald-50'
+              )}>
+                <Icon className={cn(
+                  "h-4.5 w-4.5",
+                  type === 'estimate' ? 'text-violet-500' : 'text-emerald-500'
+                )} />
+              </div>
+              <div>
+                <span className="font-semibold text-slate-800">{number}</span>
+                <div className="flex items-center gap-1.5 mt-0.5">
+                  <span className={cn("w-1.5 h-1.5 rounded-full", statusStyle.dot)} />
+                  <span className={cn("text-xs font-medium", statusStyle.text)}>
+                    {status.charAt(0).toUpperCase() + status.slice(1)}
+                  </span>
+                </div>
+              </div>
             </div>
             {actions}
           </div>
 
           {/* Bottom row: Date + Amount */}
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-slate-500">
-              {format(new Date(createdAt), 'MMM d, yyyy')}
+          <div className="flex items-center justify-between pt-2 border-t border-slate-100">
+            <div className="flex items-center gap-3 text-slate-500">
+              <div className="flex items-center gap-1.5">
+                <Calendar className="h-3.5 w-3.5" />
+                <span className="text-xs">{format(new Date(createdAt), 'MMM d, yyyy')}</span>
+              </div>
               {dueDate && (
-                <span className="ml-2 text-slate-400">
-                  Due: {format(new Date(dueDate), 'MMM d')}
-                </span>
+                <div className="flex items-center gap-1.5 text-amber-600">
+                  <Clock className="h-3.5 w-3.5" />
+                  <span className="text-xs">Due {format(new Date(dueDate), 'MMM d')}</span>
+                </div>
               )}
-            </span>
+            </div>
             <div className="text-right">
-              <div className="text-lg font-bold text-slate-900">
+              <div className="text-xl font-bold text-slate-900 tabular-nums">
                 {formatCurrency(amount)}
               </div>
               {hasBalance && (
-                <div className="text-sm font-medium text-red-600">
-                  Due: {formatCurrency(balance)}
+                <div className="text-sm font-semibold text-red-500 tabular-nums">
+                  {formatCurrency(balance)} due
                 </div>
               )}
             </div>
@@ -84,38 +105,56 @@ export const DocumentListItem = ({
         </div>
       ) : (
         // Desktop Layout - Single row
-        <div className="flex items-center justify-between gap-4">
-          {/* Left: Status + Info */}
-          <div className="flex items-center gap-3 min-w-0 flex-1">
-            <Badge variant="outline" className={cn("text-xs font-medium shrink-0", statusStyle)}>
-              {status.charAt(0).toUpperCase() + status.slice(1)}
-            </Badge>
-            <div className="flex items-center gap-2 text-slate-600">
+        <div className="flex items-center gap-4">
+          {/* Left: Icon */}
+          <div className={cn(
+            "w-10 h-10 rounded-lg flex items-center justify-center shrink-0",
+            type === 'estimate' ? 'bg-violet-50 group-hover:bg-violet-100' : 'bg-emerald-50 group-hover:bg-emerald-100',
+            "transition-colors duration-200"
+          )}>
+            <Icon className={cn(
+              "h-5 w-5",
+              type === 'estimate' ? 'text-violet-500' : 'text-emerald-500'
+            )} />
+          </div>
+
+          {/* Middle: Info */}
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-3">
               <span className="font-semibold text-slate-800">{number}</span>
-              <span className="text-slate-300">·</span>
-              <span className="text-sm">
-                {format(new Date(createdAt), 'MMM d, yyyy')}
-              </span>
+              <div className={cn(
+                "flex items-center gap-1.5 px-2 py-0.5 rounded-full",
+                statusStyle.bg, statusStyle.border, "border"
+              )}>
+                <span className={cn("w-1.5 h-1.5 rounded-full", statusStyle.dot)} />
+                <span className={cn("text-xs font-medium", statusStyle.text)}>
+                  {status.charAt(0).toUpperCase() + status.slice(1)}
+                </span>
+              </div>
+            </div>
+            <div className="flex items-center gap-3 mt-1 text-slate-500">
+              <div className="flex items-center gap-1.5">
+                <Calendar className="h-3.5 w-3.5" />
+                <span className="text-sm">{format(new Date(createdAt), 'MMM d, yyyy')}</span>
+              </div>
               {dueDate && (
-                <>
-                  <span className="text-slate-300">·</span>
-                  <span className="text-sm text-slate-500">
-                    Due: {format(new Date(dueDate), 'MMM d')}
-                  </span>
-                </>
+                <div className="flex items-center gap-1.5 text-amber-600">
+                  <Clock className="h-3.5 w-3.5" />
+                  <span className="text-sm">Due {format(new Date(dueDate), 'MMM d')}</span>
+                </div>
               )}
             </div>
           </div>
 
           {/* Right: Amount + Actions */}
           <div className="flex items-center gap-4">
-            <div className="text-right min-w-[100px]">
-              <div className="text-lg font-bold text-slate-900">
+            <div className="text-right min-w-[120px]">
+              <div className="text-xl font-bold text-slate-900 tabular-nums">
                 {formatCurrency(amount)}
               </div>
               {hasBalance && (
-                <div className="text-sm font-medium text-red-600">
-                  Due: {formatCurrency(balance)}
+                <div className="text-sm font-semibold text-red-500 tabular-nums">
+                  {formatCurrency(balance)} due
                 </div>
               )}
             </div>

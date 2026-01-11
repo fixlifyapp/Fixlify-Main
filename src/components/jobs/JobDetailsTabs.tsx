@@ -1,3 +1,4 @@
+import { useRef } from "react";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -123,11 +124,22 @@ export const JobDetailsTabs = ({
   outstandingBalance = 0
 }: JobDetailsTabsProps) => {
   const isMobile = useIsMobile();
+  const tabsContainerRef = useRef<HTMLDivElement>(null);
 
   const handleTabChange = (value: string) => {
     if (onTabChange) {
       onTabChange(value);
     }
+
+    // Scroll to tabs container after content loads - consistent landing point for all tabs
+    // Use setTimeout to wait for lazy content to mount
+    setTimeout(() => {
+      if (tabsContainerRef.current) {
+        const rect = tabsContainerRef.current.getBoundingClientRect();
+        const offsetTop = window.scrollY + rect.top - 16; // Small offset from top
+        window.scrollTo({ top: Math.max(0, offsetTop), behavior: 'instant' });
+      }
+    }, 50);
   };
 
   // Calculate progress steps
@@ -192,7 +204,7 @@ export const JobDetailsTabs = ({
   ];
 
   return (
-    <div className="mb-4 sm:mb-6 space-y-3">
+    <div ref={tabsContainerRef} className="mb-4 sm:mb-6 space-y-3">
       {/* Progress Indicator - Shows workflow status */}
       <JobProgressIndicator steps={progressSteps} isMobile={isMobile} />
 

@@ -89,7 +89,7 @@ export function SendReminderDialog({ selectedJobs, onOpenChange, onSuccess }: Se
                 </html>
               `;
 
-              const { error: emailError } = await supabase.functions.invoke('send-email', {
+              const { error: emailError } = await supabase.functions.invoke('mailgun-email', {
                 body: {
                   to: job.clients.email,
                   subject: subject,

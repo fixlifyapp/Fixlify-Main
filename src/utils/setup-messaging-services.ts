@@ -139,15 +139,15 @@ export const checkSecretsConfigured = async () => {
     results.telnyx = false;
   }
 
-  // We can't directly test Mailgun without sending an email, 
+  // We can't directly test Mailgun without sending an email,
   // but we can check if the edge function is accessible
   try {
-    const { error } = await supabase.functions.invoke('send-estimate', {
-      body: { estimateId: 'test', recipientEmail: 'test@test.com' }
+    const { error } = await supabase.functions.invoke('send-document-email', {
+      body: { documentType: 'estimate', documentId: 'test', recipientEmail: 'test@test.com' }
     });
-    // If we get an error about the estimate not being found, 
+    // If we get an error about the estimate not being found,
     // it means the function is accessible (good)
-    results.mailgun = error?.message?.includes('Estimate not found') || false;
+    results.mailgun = error?.message?.includes('not found') || false;
   } catch {
     results.mailgun = false;
   }

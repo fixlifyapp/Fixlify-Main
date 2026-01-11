@@ -149,7 +149,7 @@ export async function invokeEdgeFunctions() {
   try {
     // Example 1: Send an email
     console.log('📧 Sending email...');
-    const emailResult = await supabase.functions.invoke('send-email', {
+    const emailResult = await supabase.functions.invoke('mailgun-email', {
       body: {
         to: 'customer@example.com',
         subject: 'Service Appointment Reminder',
@@ -276,7 +276,7 @@ export async function batchSendNotifications(notifications: Array<{
     notifications.map(async (notification) => {
       if (notification.recipient.includes('@')) {
         // Email
-        return supabase.functions.invoke('send-email', {
+        return supabase.functions.invoke('mailgun-email', {
           body: {
             to: notification.recipient,
             subject: `Notification: ${notification.type}`,
@@ -352,12 +352,12 @@ export const EdgeFunctionExamples = {
       .select('*, clients(*), jobs(*)')
       .eq('id', invoiceId)
       .single();
-    
-    return supabase.functions.invoke('send-invoice', {
+
+    return supabase.functions.invoke('send-document-email', {
       body: {
-        invoiceId,
-        recipientEmail: invoice.clients.email,
-        invoiceData: invoice
+        documentType: 'invoice',
+        documentId: invoiceId,
+        recipientEmail: invoice.clients.email
       }
     });
   },

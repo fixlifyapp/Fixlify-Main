@@ -76,31 +76,37 @@ export const JobPayments = ({ jobId }: JobPaymentsProps) => {
   const outstandingBalance = roundToCurrency(invoices.reduce((sum, invoice) => sum + (invoice.balance || 0), 0));
 
   return (
-    <div className="space-y-4">
-      {/* Compact Summary Row */}
-      <div className="grid grid-cols-3 gap-3">
-        <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-3">
-          <div className="flex items-center gap-2 text-emerald-600 mb-1">
-            <TrendingUp className="h-3.5 w-3.5" />
-            <span className="text-xs font-medium uppercase tracking-wide">Received</span>
+    <div className="space-y-6">
+      {/* Summary Stats Row */}
+      <div className="grid grid-cols-3 gap-4">
+        <div className="bg-white border border-emerald-200 rounded-xl p-4 hover:shadow-sm transition-shadow">
+          <div className="flex items-center gap-2 text-emerald-600 mb-2">
+            <div className="p-1.5 bg-emerald-50 rounded-lg">
+              <TrendingUp className="h-4 w-4 text-emerald-500" />
+            </div>
+            <span className="text-xs font-semibold uppercase tracking-wide">Received</span>
           </div>
-          <p className="text-lg font-bold text-emerald-700">{formatCurrency(totalPaid)}</p>
+          <p className="text-2xl font-bold text-emerald-700 tabular-nums">{formatCurrency(totalPaid)}</p>
         </div>
 
-        <div className="bg-red-50 border border-red-200 rounded-lg p-3">
-          <div className="flex items-center gap-2 text-red-600 mb-1">
-            <Banknote className="h-3.5 w-3.5" />
-            <span className="text-xs font-medium uppercase tracking-wide">Refunded</span>
+        <div className="bg-white border border-red-200 rounded-xl p-4 hover:shadow-sm transition-shadow">
+          <div className="flex items-center gap-2 text-red-600 mb-2">
+            <div className="p-1.5 bg-red-50 rounded-lg">
+              <Banknote className="h-4 w-4 text-red-500" />
+            </div>
+            <span className="text-xs font-semibold uppercase tracking-wide">Refunded</span>
           </div>
-          <p className="text-lg font-bold text-red-700">{formatCurrency(totalRefunded)}</p>
+          <p className="text-2xl font-bold text-red-700 tabular-nums">{formatCurrency(totalRefunded)}</p>
         </div>
 
-        <div className="bg-slate-50 border border-slate-200 rounded-lg p-3">
-          <div className="flex items-center gap-2 text-slate-500 mb-1">
-            <CreditCard className="h-3.5 w-3.5" />
-            <span className="text-xs font-medium uppercase tracking-wide">Net</span>
+        <div className="bg-white border border-slate-200 rounded-xl p-4 hover:shadow-sm transition-shadow">
+          <div className="flex items-center gap-2 text-slate-500 mb-2">
+            <div className="p-1.5 bg-slate-100 rounded-lg">
+              <CreditCard className="h-4 w-4 text-slate-500" />
+            </div>
+            <span className="text-xs font-semibold uppercase tracking-wide">Net</span>
           </div>
-          <p className="text-lg font-bold text-slate-900">{formatCurrency(netAmount)}</p>
+          <p className="text-2xl font-bold text-slate-800 tabular-nums">{formatCurrency(netAmount)}</p>
         </div>
       </div>
 
@@ -115,7 +121,7 @@ export const JobPayments = ({ jobId }: JobPaymentsProps) => {
               onClick={handleAddPayment}
               disabled={outstandingBalance <= 0}
               size="sm"
-              className="h-8 bg-slate-900 hover:bg-slate-800 text-white"
+              className="h-8 bg-violet-600 hover:bg-violet-700 text-white shadow-sm"
             >
               <Plus className="h-3.5 w-3.5 mr-1.5" />
               Record
@@ -135,11 +141,11 @@ export const JobPayments = ({ jobId }: JobPaymentsProps) => {
             <p className="text-xs text-slate-400 mt-1">Record the first payment to get started</p>
           </div>
         ) : (
-          <div className="space-y-2">
+          <div className="space-y-3">
             {payments.map((payment) => (
               <div
                 key={payment.id}
-                className="flex items-center justify-between p-3 bg-white border border-slate-200 rounded-lg hover:border-slate-300 hover:shadow-sm transition-all"
+                className="flex items-center justify-between p-4 bg-white border border-slate-200 rounded-xl hover:border-slate-300 hover:shadow-sm transition-all"
               >
                 {/* Left side - Status and amount */}
                 <div className="flex items-center gap-3 min-w-0">

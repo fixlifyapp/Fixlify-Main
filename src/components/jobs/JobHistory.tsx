@@ -4,7 +4,6 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Clock, User, FileText, Filter, Eye, EyeOff, ChevronLeft, ChevronRight } from "lucide-react";
-import { useJobHistory } from "@/hooks/useJobHistory";
 import { useEnhancedJobHistory } from "@/hooks/useEnhancedJobHistory";
 import { formatDistanceToNow } from "date-fns";
 import { useState, useMemo } from "react";
@@ -15,8 +14,8 @@ interface JobHistoryProps {
 }
 
 export const JobHistory = ({ jobId }: JobHistoryProps) => {
-  const { historyItems, isLoading } = useJobHistory(jobId);
-  const { logUserAction } = useEnhancedJobHistory(jobId);
+  // Use enhanced hook only - it includes useJobHistory internally (prevents double fetch)
+  const { historyItems, isLoading, logUserAction } = useEnhancedJobHistory(jobId);
   const { hasPermission } = useRBAC();
   const [filter, setFilter] = useState<'all' | 'payments' | 'documents' | 'status' | 'ai-conversations'>('all');
   const [showRestrictedItems, setShowRestrictedItems] = useState(false);

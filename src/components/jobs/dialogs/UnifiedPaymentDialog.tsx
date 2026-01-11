@@ -97,7 +97,7 @@ export const UnifiedPaymentDialog = ({
               <Button
                 type="submit"
                 disabled={isFormDisabled || !isFormValid}
-                className="flex-1"
+                className="flex-1 bg-violet-600 hover:bg-violet-700 text-white"
               >
                 {isSubmitting || isProcessing ? "Recording..." : "Record Payment"}
               </Button>

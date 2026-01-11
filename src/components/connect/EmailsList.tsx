@@ -1,13 +1,16 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { Mail, Clock, Star, Loader2, ArrowRight, Bot, Sparkles } from "lucide-react";
+import { Mail, Clock, Star, Loader2, ArrowRight, Bot, Sparkles, Lock } from "lucide-react";
 import { toast } from "@/components/ui/sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useRealtimeSync } from "@/hooks/useRealtimeSync";
 import { useEmailAI } from "./hooks/useEmailAI";
+import { useOrganization } from "@/hooks/use-organization";
+import { useAuth } from "@/hooks/use-auth";
+import { useRBAC } from "@/components/auth/RBACProvider";
 
 interface Email {
   id: string;
@@ -26,6 +29,8 @@ interface Email {
   unread_count?: number;
   is_archived?: boolean;
   user_id?: string;
+  organization_id?: string;
+  assigned_to?: string;
   clients?: {
     id: string;
     name: string;
@@ -37,6 +42,18 @@ export const EmailsList = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [selectedEmail, setSelectedEmail] = useState<Email | null>(null);
   const [replyText, setReplyText] = useState("");
+  const [assignedClientIds, setAssignedClientIds] = useState<string[]>([]);
+
+  // Hooks for organization-scoped and RBAC access
+  const { organization, loading: orgLoading } = useOrganization();
+  const { user } = useAuth();
+  const { hasPermission, hasRole } = useRBAC();
+
+  // Determine email access level
+  const canViewAllEmails = hasPermission('emails.view.all') || hasRole('admin');
+  const canViewAssignedEmails = hasPermission('emails.view.assigned');
+  const canSendEmails = hasPermission('emails.send');
+  const hasAnyEmailAccess = canViewAllEmails || canViewAssignedEmails;
 
   const handleUseSuggestion = (content: string) => {
     setReplyText(content);
@@ -53,27 +70,81 @@ export const EmailsList = () => {
     onUseSuggestion: handleUseSuggestion
   });
 
+  // Fetch client IDs assigned to current user (for assigned-only access)
+  useEffect(() => {
+    const fetchAssignedClientIds = async () => {
+      if (!user?.id || canViewAllEmails) return;
+
+      try {
+        // Get clients from jobs assigned to this user
+        const { data: jobs } = await supabase
+          .from('jobs')
+          .select('client_id')
+          .eq('assigned_technician_id', user.id)
+          .not('client_id', 'is', null);
+
+        if (jobs) {
+          const clientIds = [...new Set(jobs.map(j => j.client_id).filter(Boolean))] as string[];
+          setAssignedClientIds(clientIds);
+        }
+      } catch (error) {
+        console.error('Error fetching assigned clients:', error);
+      }
+    };
+
+    fetchAssignedClientIds();
+  }, [user?.id, canViewAllEmails]);
+
   const fetchEmails = async () => {
+    // Wait for organization to load
+    if (orgLoading || !organization?.id) {
+      return;
+    }
+
+    // No access - don't fetch
+    if (!hasAnyEmailAccess) {
+      setEmails([]);
+      setIsLoading(false);
+      return;
+    }
+
     try {
       setIsLoading(true);
-      const { data, error } = await supabase
+
+      // Build base query with organization filter
+      let query = supabase
         .from('email_conversations')
         .select(`
           *,
           clients:client_id(id, name)
         `)
+        .eq('organization_id', organization.id)
         .order('created_at', { ascending: false })
-        .limit(20);
+        .limit(50);
+
+      // Apply RBAC filtering
+      if (!canViewAllEmails && canViewAssignedEmails && user?.id) {
+        // User can only see assigned emails
+        // Build OR filter for: assigned_to = user OR client_id in assignedClientIds
+        if (assignedClientIds.length > 0) {
+          query = query.or(`assigned_to.eq.${user.id},client_id.in.(${assignedClientIds.join(',')})`);
+        } else {
+          // Only emails directly assigned to user
+          query = query.eq('assigned_to', user.id);
+        }
+      }
+
+      const { data, error } = await query;
 
       if (error) throw error;
-      
+
       // Map email conversations to Email interface
       const typedEmails = (data || []).map(email => ({
         ...email,
         body: email.last_message_preview || 'No preview available',
         status: 'active'
       }));
-      
+
       setEmails(typedEmails);
     } catch (error) {
       console.error("Error fetching emails:", error);
@@ -85,7 +156,7 @@ export const EmailsList = () => {
 
   useEffect(() => {
     fetchEmails();
-  }, []);
+  }, [organization?.id, orgLoading, hasAnyEmailAccess, assignedClientIds]);
 
   // Set up real-time sync for emails
   useRealtimeSync({
@@ -143,20 +214,51 @@ export const EmailsList = () => {
     return new Date(timestamp).toLocaleString();
   };
 
+  // No email access - show permission denied
+  if (!hasAnyEmailAccess && !isLoading) {
+    return (
+      <Card className="border-fixlyfy-border">
+        <CardContent className="p-6">
+          <div className="flex flex-col items-center justify-center py-12 text-fixlyfy-text-secondary">
+            <Lock className="h-16 w-16 mb-4 text-muted-foreground" />
+            <h3 className="text-xl font-medium mb-2">Email Access Restricted</h3>
+            <p className="text-center max-w-md text-sm">
+              You don't have permission to view emails. Contact your administrator
+              to request email access for your role.
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
       <Card className="border-fixlyfy-border">
         <CardHeader className="pb-2">
-          <CardTitle>Inbox</CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle>Inbox</CardTitle>
+            {!canViewAllEmails && canViewAssignedEmails && (
+              <Badge variant="outline" className="text-xs">
+                Assigned Only
+              </Badge>
+            )}
+          </div>
         </CardHeader>
         <CardContent className="p-0">
-          {isLoading ? (
+          {isLoading || orgLoading ? (
             <div className="flex justify-center py-8">
               <Loader2 size={24} className="animate-spin text-fixlyfy" />
             </div>
           ) : emails.length === 0 ? (
             <div className="text-center py-8 text-fixlyfy-text-secondary">
-              No emails found
+              <Mail className="h-12 w-12 mx-auto mb-3 text-muted-foreground" />
+              <p className="font-medium">No emails found</p>
+              <p className="text-sm mt-1">
+                {canViewAllEmails
+                  ? "No emails have been received yet."
+                  : "No emails are assigned to you."}
+              </p>
             </div>
           ) : (
             <div className="h-[500px] overflow-y-auto">

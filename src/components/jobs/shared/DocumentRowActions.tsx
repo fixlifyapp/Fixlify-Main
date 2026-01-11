@@ -49,7 +49,7 @@ export const DocumentRowActions = ({
           variant="outline"
           size="sm"
           onClick={onView}
-          className="text-slate-700 hover:text-slate-900 hover:bg-slate-100 border-slate-200"
+          className="text-violet-600 hover:text-violet-700 hover:bg-violet-50 border-violet-200 hover:border-violet-300"
         >
           <Eye className="h-4 w-4 mr-1.5" />
           View

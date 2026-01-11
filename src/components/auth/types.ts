@@ -4,7 +4,7 @@ export interface Permission {
   id: string;
   name: string;
   description: string;
-  category: 'jobs' | 'invoices' | 'estimates' | 'products' | 'users' | 'settings' | 'reports' | 'clients' | 'automation' | 'schedule' | 'finance';
+  category: 'jobs' | 'invoices' | 'estimates' | 'products' | 'users' | 'settings' | 'reports' | 'clients' | 'automation' | 'schedule' | 'finance' | 'emails';
 }
 
 export interface RolePermissions {
@@ -51,7 +51,9 @@ export const DEFAULT_PERMISSIONS: Record<UserRole, string[]> = {
     // Finance
     'finance.view', 'finance.edit', 'finance.payments',
     // Automation
-    'automation.view', 'automation.edit', 'automation.create'
+    'automation.view', 'automation.edit', 'automation.create',
+    // Emails - Manager can view all and manage
+    'emails.view.all', 'emails.send', 'emails.reply', 'emails.assign'
   ],
   dispatcher: [
     // Jobs (view all, edit assigned)
@@ -66,7 +68,9 @@ export const DEFAULT_PERMISSIONS: Record<UserRole, string[]> = {
     // Reports (view only)
     'reports.view.assigned',
     // Communication
-    'communication.send', 'communication.view'
+    'communication.send', 'communication.view',
+    // Emails - Dispatcher can view all and respond
+    'emails.view.all', 'emails.send', 'emails.reply', 'emails.assign'
   ],
   technician: [
     // Jobs (only assigned)
@@ -85,7 +89,9 @@ export const DEFAULT_PERMISSIONS: Record<UserRole, string[]> = {
     // Reports (own only)
     'reports.view.own',
     // Communication
-    'communication.send', 'communication.view.assigned'
+    'communication.send', 'communication.view.assigned',
+    // Emails - Technician can view and reply to assigned emails only
+    'emails.view.assigned', 'emails.reply'
   ],
 };
 
@@ -168,4 +174,12 @@ export const PERMISSIONS_LIST: Permission[] = [
   { id: 'communication.send', name: 'Send Communications', description: 'Can send messages/emails', category: 'settings' },
   { id: 'communication.view', name: 'View Communications', description: 'Can view communication history', category: 'settings' },
   { id: 'communication.view.assigned', name: 'View Assigned Communications', description: 'Can view communications for assigned work', category: 'settings' },
+
+  // Emails (Organization-scoped)
+  { id: 'emails.view.all', name: 'View All Emails', description: 'Can view all organization emails', category: 'emails' },
+  { id: 'emails.view.assigned', name: 'View Assigned Emails', description: 'Can view emails for assigned clients/jobs', category: 'emails' },
+  { id: 'emails.send', name: 'Send Emails', description: 'Can send emails on behalf of organization', category: 'emails' },
+  { id: 'emails.reply', name: 'Reply to Emails', description: 'Can reply to email conversations', category: 'emails' },
+  { id: 'emails.assign', name: 'Assign Emails', description: 'Can assign email conversations to team members', category: 'emails' },
+  { id: 'emails.settings.manage', name: 'Manage Email Settings', description: 'Can configure organization email address and settings', category: 'emails' },
 ];
