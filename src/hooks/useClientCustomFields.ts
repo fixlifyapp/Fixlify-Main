@@ -25,8 +25,9 @@ export const useClientCustomFields = (clientId?: string) => {
   const [isLoading, setIsLoading] = useState(true);
 
   // Fetch available custom fields for clients (organization-scoped)
-  const fetchAvailableFields = async () => {
-    if (!organization?.id) {
+  const fetchAvailableFields = async (orgId?: string) => {
+    const organizationId = orgId || organization?.id;
+    if (!organizationId) {
       setAvailableFields([]);
       return;
     }
@@ -36,7 +37,7 @@ export const useClientCustomFields = (clientId?: string) => {
         .from('custom_fields')
         .select('*')
         .eq('entity_type', 'client')
-        .eq('organization_id', organization.id)
+        .eq('organization_id', organizationId)
         .order('name');
 
       if (error) throw error;
@@ -154,7 +155,8 @@ export const useClientCustomFields = (clientId?: string) => {
   useEffect(() => {
     const initializeData = async () => {
       setIsLoading(true);
-      await fetchAvailableFields();
+      // Pass organization.id directly to avoid stale closure issue
+      await fetchAvailableFields(organization?.id);
       if (clientId) {
         await fetchClientCustomFields(clientId);
       }

@@ -112,8 +112,6 @@ export function CustomFieldsConfig() {
               <SelectContent>
                 <SelectItem value="job">Job</SelectItem>
                 <SelectItem value="client">Client</SelectItem>
-                <SelectItem value="invoice">Invoice</SelectItem>
-                <SelectItem value="estimate">Estimate</SelectItem>
               </SelectContent>
             </Select>
             <FormMessage />

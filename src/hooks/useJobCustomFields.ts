@@ -26,8 +26,9 @@ export const useJobCustomFields = (jobId?: string) => {
   const [isLoading, setIsLoading] = useState(true);
 
   // Fetch available custom fields for jobs (organization-scoped)
-  const fetchAvailableFields = async () => {
-    if (!organization?.id) {
+  const fetchAvailableFields = async (orgId?: string) => {
+    const organizationId = orgId || organization?.id;
+    if (!organizationId) {
       setAvailableFields([]);
       return;
     }
@@ -37,7 +38,7 @@ export const useJobCustomFields = (jobId?: string) => {
         .from('custom_fields')
         .select('*')
         .eq('entity_type', 'job')
-        .eq('organization_id', organization.id)
+        .eq('organization_id', organizationId)
         .order('name');
 
       if (error) throw error;
@@ -155,7 +156,8 @@ export const useJobCustomFields = (jobId?: string) => {
   useEffect(() => {
     const initializeData = async () => {
       setIsLoading(true);
-      await fetchAvailableFields();
+      // Pass organization.id directly to avoid stale closure issue
+      await fetchAvailableFields(organization?.id);
       if (jobId) {
         await fetchJobCustomFields(jobId);
       }
