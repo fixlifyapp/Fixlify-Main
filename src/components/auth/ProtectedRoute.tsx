@@ -15,6 +15,7 @@ interface Profile {
   id: string;
   role: string;
   has_completed_onboarding: boolean;
+  organization_id?: string;
 }
 
 export function ProtectedRoute({ children, requireAdmin = false }: ProtectedRouteProps) {
@@ -44,19 +45,68 @@ export function ProtectedRoute({ children, requireAdmin = false }: ProtectedRout
       try {
         const { data, error } = await supabase
           .from('profiles')
-          .select('id, role, has_completed_onboarding')
+          .select('id, role, has_completed_onboarding, organization_id')
           .eq('id', user.id)
           .single();
 
         if (error) {
-          // If profile doesn't exist, create a default one
+          // If profile doesn't exist, create one with proper organization
           if (error.code === 'PGRST116') {
+            // Check if user was invited to an organization
+            const { data: invitation } = await supabase
+              .from('team_invitations')
+              .select('role, invited_by, organization_id')
+              .eq('email', user.email?.toLowerCase())
+              .eq('status', 'pending')
+              .single();
+
+            let organizationId: string | null = null;
+            let userRole = 'technician'; // Default role for new users (not admin!)
+
+            if (invitation && invitation.invited_by) {
+              // User was invited - get inviter's organization
+              const { data: inviterProfile } = await supabase
+                .from('profiles')
+                .select('organization_id')
+                .eq('id', invitation.invited_by)
+                .single();
+
+              if (inviterProfile?.organization_id) {
+                organizationId = inviterProfile.organization_id;
+                userRole = invitation.role || 'technician';
+
+                // Update invitation status to accepted
+                await supabase
+                  .from('team_invitations')
+                  .update({ status: 'accepted' })
+                  .eq('email', user.email?.toLowerCase())
+                  .eq('status', 'pending');
+              }
+            }
+
+            // If no invitation found, this is a new organization owner
+            if (!organizationId) {
+              // Create a new organization for this user
+              const { data: newOrg, error: orgError } = await supabase
+                .from('organizations')
+                .insert({ name: 'My Company' })
+                .select()
+                .single();
+
+              if (!orgError && newOrg) {
+                organizationId = newOrg.id;
+                userRole = 'admin'; // Only org creators become admin
+              }
+            }
+
+            // Create the profile with organization
             const { data: newProfile, error: createError } = await supabase
               .from('profiles')
               .insert({
                 id: user.id,
                 email: user.email,
-                role: 'admin', // Default to admin for new users
+                role: userRole,
+                organization_id: organizationId,
                 has_completed_onboarding: false
               })
               .select()

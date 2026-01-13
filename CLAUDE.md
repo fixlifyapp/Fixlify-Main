@@ -3,6 +3,225 @@
 ## Project Overview
 Fixlify is an AI-powered field service management platform built with cutting-edge technology and maintained by a team of specialized AI agents. This is not just a codebase - it's a living, intelligent system designed to be the best in the market.
 
+---
+
+## 🧠 BMAD v6 Framework (Core Intelligence)
+
+### Identity & Workflow
+- **Identity:** Act as an Agentic System following the cycle: `Analyst → Architect → Developer → QA`
+- **Workflow:** For ANY non-trivial task, follow the **"Think-Plan-Execute-Verify"** loop
+- **Context Awareness:** Always assume that a change in one file has a **"Blast Radius"** affecting others
+- **Scale Awareness:** Automatically adjust planning depth based on task complexity (Quick Flow for bugs, Full Flow for features)
+
+### BMAD Resources
+- **Agents:** `.bmad/bmm/agents/` - Analyst, Architect, Developer, PM, QA, UX Designer
+- **Workflows:** `.bmad/bmm/workflows/` - Analysis, Planning, Solutioning, Implementation
+- **Quick Flow:** `.bmad/bmm/workflows/bmad-quick-flow/` - For rapid 2-hour cycles
+
+---
+
+## 🔍 Dependency & Impact Rules (MANDATORY)
+
+### Search Before Edit
+Before modifying ANY function, type, hook, or component:
+1. Use `Grep` to find ALL call sites and imports across the entire codebase
+2. Map the full dependency tree of affected files
+3. Document the "Blast Radius" before making changes
+
+### Cascade Fixes
+If a change modifies a signature, type, or API contract:
+- **YOU MUST** proactively update ALL dependent files in the SAME task
+- Never leave broken imports or type mismatches
+- Fix the entire chain, not just the source file
+
+### Dependency Mapping
+- Check `package.json` for version conflicts when adding/updating libraries
+- Verify Supabase types match database schema after migrations
+- Ensure RLS policies align with frontend permission checks
+
+### No Orphaned Logic
+When removing code:
+- Remove ALL specific imports referencing it
+- Remove associated tests
+- Remove related type definitions
+- Clean up any dead code paths
+
+---
+
+## ✅ Verification Protocol (Auto-Check)
+
+### Post-Change Verification
+After EVERY significant edit:
+```bash
+# 1. Type check
+npx tsc --noEmit
+
+# 2. If migration was added
+npx supabase gen types typescript --project-id mqppvcrlvsgrsqelglod > src/integrations/supabase/types.ts
+
+# 3. Build check (for production readiness)
+npm run build
+```
+
+### Self-Correction Loop
+If the build/type-check fails due to a missed dependency:
+1. Analyze the error message
+2. Find the affected file(s)
+3. Fix immediately WITHOUT being asked
+4. Re-run verification until clean
+
+### Quality Gates
+- ❌ NEVER mark a task complete with TypeScript errors
+- ❌ NEVER leave console errors in the browser
+- ❌ NEVER skip RLS policy updates when adding organization_id
+- ✅ ALWAYS run `tsc --noEmit` before finishing code changes
+
+---
+
+## 🏢 Multi-Tenant Architecture (Organization-Based)
+
+### Data Isolation Rules
+- ALL data queries MUST filter by `organization_id`
+- Use `useOrganization()` hook to get current org context
+- Fallback to `user_id` only for single-user orgs (backward compat)
+
+### Role-Based Access
+```
+Roles: admin | manager | dispatcher | technician | custom
+- admin: Full access, can manage org settings
+- manager: Can manage jobs, clients, team
+- dispatcher: Can create/assign jobs, limited editing
+- technician: Can view/update assigned jobs only
+```
+
+### Key Organization Files
+- `src/components/auth/RBACProvider.tsx` - Permission system
+- `src/hooks/usePermissions.ts` - 40+ permission checks
+- `src/services/organizationContext.ts` - Org context service
+- `src/hooks/use-organization.tsx` - Organization hook
+
+---
+
+## 🎯 Auto-Selection: Skills & Agents Decision Matrix
+
+### When to Use Skills (Slash Commands)
+Skills are invoked with `/command` syntax. Use them for **specific, well-defined tasks**:
+
+| Trigger Keywords | Skill | Use When |
+|-----------------|-------|----------|
+| "commit", "save changes", "git commit" | `/commit` | After completing code changes, ready to commit |
+| "create PR", "pull request", "merge" | `/create-pr` | Feature complete, ready for review |
+| "deploy", "push to prod", "release" | `/deploy` | Ready to deploy to staging/production |
+| "run tests", "test this", "check tests" | `/test` | Need to run test suite |
+| "fix issue #", "github issue" | `/fix-issue` | Working on a specific GitHub issue |
+| "database change", "add column", "schema" | `/migrate` | Any database schema modification |
+| "security check", "vulnerability" | `/audit` | Security review needed |
+| "new release", "version bump" | `/release` | Creating a new version release |
+
+### When to Use Skill Activators (Auto-Activated)
+These skills activate automatically based on context:
+
+| Context/Keywords | Skill | Auto-Activates When |
+|-----------------|-------|---------------------|
+| Database, migration, schema, RLS, index | `db-migration` | Discussing database changes |
+| Deploy, CI/CD, Vercel, infrastructure | `deploy-ops` | Deployment discussions |
+| New feature, component, page, user story | `feature-builder` | Building new functionality |
+| UI, design, component, interface, styling | `frontend-design` | Any UI/UX implementation |
+| Bug, fix, urgent, production issue | `hotfix-handler` | Critical bug fixing |
+| Test, QA, coverage, unit test, e2e | `qa-expert` | Testing discussions |
+| Security, auth, OWASP, vulnerability | `security-audit` | Security-related work |
+
+### When to Use Agents
+Agents are specialized AI workers. Use them for **complex, multi-step domain tasks**:
+
+| Task Type | Agent | Use When |
+|-----------|-------|----------|
+| **Database & Backend** | | |
+| Schema design, RLS policies, migrations | `supabase-architect` | Any Supabase/PostgreSQL work |
+| Edge functions, Deno runtime issues | `supabase-functions-inspector` | Edge function debugging |
+| **Frontend Development** | | |
+| React components, hooks, UI state | `frontend-specialist` | Component development |
+| Mobile responsive, PWA, touch UI | `mobile-specialist` | Mobile-specific features |
+| **Quality & Testing** | | |
+| Unit tests, integration tests, E2E | `test-engineer` | Test creation/fixing |
+| Code review, best practices, refactor | `code-reviewer` | After significant changes |
+| Security review, penetration testing | `security-auditor` | Security assessment |
+| **Performance & Operations** | | |
+| Speed optimization, caching, lazy load | `performance-optimizer` | Performance issues |
+| CI/CD, Docker, deployment, monitoring | `devops-engineer` | Infrastructure tasks |
+| **AI & Automation** | | |
+| OpenAI/Claude API, prompts, LLM features | `ai-integration-expert` | AI-powered features |
+| Workflows, business automation | `automation-engineer` | Process automation |
+
+### Auto-Selection Rules (For Claude)
+
+**Rule 1: Keyword Matching**
+```
+IF user mentions "commit" OR "save changes" → Use /commit
+IF user mentions "deploy" OR "production" → Use /deploy
+IF user mentions "database" OR "migration" OR "schema" → Use db-migration skill
+IF user mentions "UI" OR "component" OR "design" → Use frontend-design skill
+```
+
+**Rule 2: Task Complexity**
+```
+Simple task (1-2 steps) → Use skill/command directly
+Complex task (3+ steps) → Spawn appropriate agent
+Multi-domain task → Spawn multiple agents in parallel
+```
+
+**Rule 3: Domain Detection**
+```
+Supabase/Database mentions → supabase-architect agent
+React/Component mentions → frontend-specialist agent
+Test/Coverage mentions → test-engineer agent
+Security/Auth mentions → security-auditor agent
+Speed/Performance mentions → performance-optimizer agent
+```
+
+**Rule 4: Proactive Usage**
+```
+After writing code → Proactively use test-engineer
+Before deployment → Proactively use security-auditor
+After database changes → Proactively use /migrate
+After feature complete → Proactively use code-reviewer
+```
+
+### Agent Combination Patterns
+
+**New Feature Development:**
+```
+1. supabase-architect → Database schema (if needed)
+2. frontend-specialist → UI components
+3. test-engineer → Tests
+4. code-reviewer → Final review
+```
+
+**Bug Fix Flow:**
+```
+1. hotfix-handler skill → Quick diagnosis
+2. Appropriate agent → Fix implementation
+3. test-engineer → Regression tests
+4. /commit → Save changes
+```
+
+**Performance Issue:**
+```
+Run in parallel:
+├── performance-optimizer → Frontend analysis
+├── supabase-architect → Query optimization
+└── devops-engineer → Infrastructure check
+```
+
+**Security Audit:**
+```
+1. security-auditor → Full assessment
+2. supabase-architect → RLS policy review
+3. code-reviewer → Code security patterns
+```
+
+---
+
 ## 🤖 Your AI Agent Team
 
 You have access to 10 specialized agents, each an expert in their domain. Use them like you would consult with senior engineers:
@@ -109,7 +328,7 @@ Fixlify-Main-main/
 ## 🎯 Development Guidelines
 
 ### Code Quality Standards
-- **TypeScript**: Strict mode, no any types
+- **TypeScript**: Relaxed mode (noImplicitAny: false, strictNullChecks: false) - but always use proper types, avoid `any`
 - **Testing**: Minimum 80% coverage
 - **Security**: OWASP compliance
 - **Performance**: Core Web Vitals targets met
@@ -179,8 +398,8 @@ OPENAI_API_KEY=[in-supabase-secrets]
 ## 🎨 UI/UX Principles
 
 ### Design System
-- **Colors**: Blue (#3b82f6) as primary brand color
-- **Typography**: System fonts with Inter fallback
+- **Colors**: Purple (#8A4DD5) as primary brand color (fixlyfy theme)
+- **Typography**: Inter font family
 - **Spacing**: 4px base unit (Tailwind default)
 - **Components**: shadcn/ui for consistency
 - **Icons**: Lucide React icons

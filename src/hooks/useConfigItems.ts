@@ -5,6 +5,7 @@ import { useRBAC } from "@/components/auth/RBACProvider";
 import { useUnifiedRealtime } from "@/hooks/useUnifiedRealtime";
 import { Tables, TablesInsert, TablesUpdate } from "@/integrations/supabase/types";
 import { useAuth } from "@/hooks/use-auth";
+import { useOrganization } from "@/hooks/use-organization";
 
 // Generic type for configuration items
 export interface ConfigItem {
@@ -45,36 +46,44 @@ export function useConfigItems<T extends ConfigItem>(tableName: string) {
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const { hasPermission } = useRBAC();
   const { user } = useAuth();
+  const { organization } = useOrganization();
   
   const fetchItems = async () => {
     setIsLoading(true);
     try {
-      
+
       let query = supabase.from(tableName as any).select('*');
-      
-      // Filter by user_id for data isolation (for tables that have user_id column)
-      // Tables like tags, lead_sources, job_types, job_statuses, payment_methods have user_id
-      if (['tags', 'lead_sources', 'job_types', 'job_statuses', 'payment_methods'].includes(tableName) && user?.id) {
-        query = query.eq('user_id', user.id);
+
+      // Filter by organization_id for proper multi-tenant data isolation
+      // This ensures all team members see the same configuration
+      const orgId = organization?.id;
+
+      if (['tags', 'lead_sources', 'job_types', 'job_statuses', 'payment_methods', 'custom_fields'].includes(tableName)) {
+        if (orgId && orgId !== '00000000-0000-0000-0000-000000000001') {
+          // Use organization_id for proper multi-tenant isolation
+          query = query.eq('organization_id', orgId);
+        } else if (user?.id) {
+          // Fallback to user_id for backward compatibility (single-user orgs)
+          if (tableName === 'custom_fields') {
+            query = query.eq('created_by', user.id);
+          } else {
+            query = query.eq('user_id', user.id);
+          }
+        }
       }
-      
-      // Custom fields table uses created_by instead of user_id
-      if (tableName === 'custom_fields' && user?.id) {
-        query = query.eq('created_by', user.id);
-      }
-      
+
       // For job statuses, order by sequence
       if (tableName === 'job_statuses') {
         query = query.order('sequence', { ascending: true });
       }
-      
+
       const { data, error } = await query;
-      
+
       if (error) {
         console.error(`[useConfigItems] Error fetching ${tableName}:`, error);
         throw error;
       }
-      
+
       setItems(data as unknown as T[]);
     } catch (error) {
       console.error(`Error fetching ${tableName}:`, error);
@@ -101,18 +110,29 @@ export function useConfigItems<T extends ConfigItem>(tableName: string) {
       setIsLoading(false);
       return;
     }
-    
+
     fetchItems();
-  }, [tableName, refreshTrigger, user?.id]);
+  }, [tableName, refreshTrigger, user?.id, organization?.id]);
   
   const addItem = async (item: Omit<T, 'id' | 'created_at'>) => {
     try {
-      // Add user_id if the table supports it
-      const itemWithUser = ['tags', 'lead_sources', 'job_types', 'job_statuses', 'payment_methods'].includes(tableName) && user?.id
-        ? { ...item, user_id: user.id }
-        : tableName === 'custom_fields' && user?.id
-        ? { ...item, created_by: user.id }
-        : item;
+      // Add user_id and organization_id if the table supports it
+      let itemWithUser = item as any;
+
+      // Tables with user_id column
+      if (['tags', 'lead_sources', 'job_types', 'job_statuses', 'payment_methods'].includes(tableName) && user?.id) {
+        itemWithUser = { ...itemWithUser, user_id: user.id };
+      }
+
+      // Custom fields uses created_by instead of user_id
+      if (tableName === 'custom_fields' && user?.id) {
+        itemWithUser = { ...itemWithUser, created_by: user.id };
+      }
+
+      // Add organization_id for all config tables
+      if (['tags', 'lead_sources', 'job_types', 'job_statuses', 'payment_methods', 'custom_fields'].includes(tableName) && organization?.id) {
+        itemWithUser = { ...itemWithUser, organization_id: organization.id };
+      }
         
       const { data, error } = await supabase
         .from(tableName as any)
@@ -138,9 +158,16 @@ export function useConfigItems<T extends ConfigItem>(tableName: string) {
 
   const updateItem = async (id: string, updates: Partial<T>) => {
     try {
+      // Include organization_id in updates for tables that have triggers expecting it
+      // This fixes error 42703: "record 'new' has no field 'organization_id'"
+      let updatesWithOrg = updates as any;
+      if (['tags', 'lead_sources', 'job_types', 'job_statuses', 'payment_methods', 'custom_fields'].includes(tableName) && organization?.id) {
+        updatesWithOrg = { ...updatesWithOrg, organization_id: organization.id };
+      }
+
       const { data, error } = await supabase
         .from(tableName as any)
-        .update(updates as any)
+        .update(updatesWithOrg as any)
         .eq('id', id)
         .select()
         .single();
