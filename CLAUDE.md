@@ -78,6 +78,26 @@ If the build/type-check fails due to a missed dependency:
 
 ---
 
+## 🗄️ Supabase Migrations (MANDATORY AUTO-EXECUTE)
+
+**When creating ANY migration file, IMMEDIATELY run these commands WITHOUT being asked:**
+
+```bash
+# 1. Push migration to Supabase
+npx supabase db push
+
+# 2. Regenerate TypeScript types
+npx supabase gen types typescript --project-id mqppvcrlvsgrsqelglod > src/integrations/supabase/types.ts
+```
+
+**Rules:**
+- ✅ ALWAYS push migrations immediately after creating them
+- ✅ ALWAYS regenerate types after schema changes
+- ❌ NEVER leave migrations unpushed
+- ❌ NEVER wait for user to ask "push the migration"
+
+---
+
 ## 🏢 Multi-Tenant Architecture (Organization-Based)
 
 ### Data Isolation Rules
@@ -99,6 +119,158 @@ Roles: admin | manager | dispatcher | technician | custom
 - `src/hooks/usePermissions.ts` - 40+ permission checks
 - `src/services/organizationContext.ts` - Org context service
 - `src/hooks/use-organization.tsx` - Organization hook
+
+---
+
+## 🚦 MASTER DECISION ENGINE (Fully Automatic)
+
+**Claude MUST follow this decision tree for EVERY user request:**
+
+### Step 1: Classify Request Size
+```
+┌─────────────────────────────────────────────────────────────┐
+│ USER REQUEST RECEIVED                                        │
+├─────────────────────────────────────────────────────────────┤
+│ Is it a question/info request?                               │
+│   YES → Answer directly, no tools needed                     │
+│   NO  → Continue to Step 2                                   │
+├─────────────────────────────────────────────────────────────┤
+│ How many files will change?                                  │
+│   0-1 files  → MICRO task                                    │
+│   2-5 files  → SMALL task                                    │
+│   6-15 files → MEDIUM task                                   │
+│   15+ files  → LARGE task                                    │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Step 2: Auto-Select Approach
+```
+MICRO (typo, comment, single fix):
+  → Execute directly, no agents needed
+  → Use /commit when done
+
+SMALL (bug fix, minor feature):
+  → Use appropriate skill (db-migration, frontend-design, etc.)
+  → Single agent if needed (supabase-architect OR frontend-specialist)
+  → Use /commit when done
+
+MEDIUM (new feature, refactor):
+  → Use quick-spec workflow first (plan the work)
+  → Spawn 1-2 agents sequentially or parallel
+  → Use code-reviewer before /commit
+
+LARGE (epic, architecture change):
+  → Use create-epics-and-stories workflow
+  → Use sprint-planning to track progress
+  → Spawn multiple agents in parallel where possible
+  → Use party-mode for complex decisions
+  → Full retrospective when done
+```
+
+### Step 3: Domain Detection (Automatic)
+```
+┌─────────────────┬──────────────────────────────────────────┐
+│ IF request      │ THEN auto-activate                       │
+│ mentions...     │                                          │
+├─────────────────┼──────────────────────────────────────────┤
+│ database,       │ → supabase-architect agent               │
+│ table, column,  │ → db-migration skill                     │
+│ RLS, migration  │ → Auto-push migration when created       │
+├─────────────────┼──────────────────────────────────────────┤
+│ component, UI,  │ → frontend-specialist agent              │
+│ page, form,     │ → frontend-design skill                  │
+│ button, modal   │                                          │
+├─────────────────┼──────────────────────────────────────────┤
+│ test, coverage, │ → test-engineer agent                    │
+│ spec, jest,     │ → qa-expert skill                        │
+│ playwright      │                                          │
+├─────────────────┼──────────────────────────────────────────┤
+│ security, auth, │ → security-auditor agent                 │
+│ permission,     │ → security-audit skill                   │
+│ RLS, RBAC       │                                          │
+├─────────────────┼──────────────────────────────────────────┤
+│ slow, optimize, │ → performance-optimizer agent            │
+│ cache, speed    │ → Run parallel with supabase-architect   │
+├─────────────────┼──────────────────────────────────────────┤
+│ deploy, prod,   │ → devops-engineer agent                  │
+│ staging, CI/CD  │ → deploy-ops skill                       │
+├─────────────────┼──────────────────────────────────────────┤
+│ AI, GPT, prompt,│ → ai-integration-expert agent            │
+│ LLM, OpenAI     │                                          │
+├─────────────────┼──────────────────────────────────────────┤
+│ edge function,  │ → supabase-functions-inspector agent     │
+│ Deno, webhook   │                                          │
+└─────────────────┴──────────────────────────────────────────┘
+```
+
+### Step 4: Workflow Selection (For Medium/Large Tasks)
+```
+┌─────────────────────────────────────────────────────────────┐
+│ TASK TYPE                  │ WORKFLOW TO USE                │
+├─────────────────────────────────────────────────────────────┤
+│ "I need to plan..."        │ → brainstorming (ideas)        │
+│ "Let's think about..."     │   → create-architecture (design)│
+├─────────────────────────────────────────────────────────────┤
+│ "Build a new feature..."   │ → quick-spec (specification)   │
+│ "Add functionality..."     │   → quick-dev (implementation) │
+├─────────────────────────────────────────────────────────────┤
+│ "Big feature..."           │ → create-epics-and-stories     │
+│ "Major change..."          │   → sprint-planning (tracking) │
+│ "Refactor the..."          │   → retrospective (when done)  │
+├─────────────────────────────────────────────────────────────┤
+│ "Should we use X or Y?"    │ → party-mode (multi-agent      │
+│ "What's the best way..."   │   discussion for decisions)    │
+│ "Complex decision..."      │                                │
+├─────────────────────────────────────────────────────────────┤
+│ "Fix this bug..."          │ → hotfix-handler skill         │
+│ "Something's broken..."    │   → quick-dev (direct fix)     │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Step 5: Parallel Execution Rules
+```
+CAN run in parallel (no dependencies):
+  ├── Frontend components that don't share state
+  ├── Independent database tables
+  ├── Separate test files
+  └── Documentation tasks
+
+MUST run sequentially (has dependencies):
+  ├── Database migration BEFORE frontend code
+  ├── Type definitions BEFORE components using them
+  ├── Auth setup BEFORE protected routes
+  └── API endpoint BEFORE UI that calls it
+```
+
+### Step 6: Auto-Commit & Deploy Rules
+```
+After ANY code change:
+  1. Run tsc --noEmit (fix errors if any)
+  2. If user says "commit" → /commit
+  3. If user says "deploy" → /deploy
+
+After ANY migration:
+  1. Auto-run: npx supabase db push
+  2. Auto-run: npx supabase gen types typescript...
+  3. Update any affected components
+```
+
+### 🎯 GOLDEN RULE
+```
+User should NEVER need to specify:
+  - Which agent to use
+  - Which skill to activate
+  - Which workflow to follow
+  - Whether to run parallel or sequential
+
+Claude analyzes the request and AUTOMATICALLY:
+  ✓ Selects the right approach (micro/small/medium/large)
+  ✓ Activates appropriate skills
+  ✓ Spawns correct agents
+  ✓ Uses BMAD workflows when needed
+  ✓ Runs parallel where safe
+  ✓ Commits and deploys when requested
+```
 
 ---
 
@@ -218,6 +390,87 @@ Run in parallel:
 1. security-auditor → Full assessment
 2. supabase-architect → RLS policy review
 3. code-reviewer → Code security patterns
+```
+
+---
+
+## 🔄 BMAD v6 Workflows (Advanced Automation)
+
+### When to Use BMAD Workflows
+BMAD workflows provide structured, multi-step processes for complex tasks. Load from `.bmad/` folder.
+
+| Trigger Keywords | Workflow | Use When |
+|-----------------|----------|----------|
+| "plan feature", "new epic", "user stories" | `create-epics-and-stories` | Large feature needs decomposition |
+| "tech spec", "specification", "document feature" | `quick-spec` | Feature needs detailed planning before coding |
+| "quick fix", "implement", "direct coding" | `quick-dev` | Ready to code from spec or direct instructions |
+| "sprint", "backlog", "story status" | `sprint-planning` | Managing epics/stories workflow |
+| "brainstorm", "ideas", "creative solutions" | `brainstorming` | Need 100+ ideas for problem solving |
+| "team discussion", "multi-perspective" | `party-mode` | Complex decision needs multiple viewpoints |
+| "architecture", "system design" | `create-architecture` | New module or major refactoring |
+| "review code", "check quality" | `code-review` | Post-implementation quality check |
+| "retrospective", "lessons learned" | `retrospective` | After epic completion |
+
+### BMAD Sub-Agents (Specialized Analysis)
+Located in `.bmad/bmm/sub-modules/claude-code/sub-agents/`:
+
+| Category | Sub-Agent | Auto-Use When |
+|----------|-----------|---------------|
+| **Analysis** | `codebase-analyzer` | Understanding existing code structure |
+| | `pattern-detector` | Finding conventions and patterns |
+| | `api-documenter` | Documenting APIs and integrations |
+| **Planning** | `dependency-mapper` | Mapping module dependencies |
+| | `epic-optimizer` | Story breakdown and sizing |
+| | `requirements-analyst` | Extracting requirements |
+| **Research** | `tech-debt-auditor` | Assessing technical debt |
+| | `market-researcher` | Competitive analysis |
+| **Review** | `document-reviewer` | Quality checks on docs |
+| | `test-coverage-analyzer` | Test suite analysis |
+
+### Sprint Status Machine
+```
+Epic:  backlog → in-progress → done
+Story: backlog → ready-for-dev → in-progress → review → done
+```
+
+### BMAD Auto-Selection Rules
+
+**Rule 5: Workflow Complexity**
+```
+Simple bug fix → quick-dev workflow
+New feature (small) → quick-spec → quick-dev
+New feature (large) → create-epics-and-stories → sprint-planning
+Architecture change → create-architecture → create-epics-and-stories
+```
+
+**Rule 6: Parallel Story Execution**
+```
+IF multiple stories ready AND no dependencies:
+  → Execute stories in parallel with multiple agents
+IF story has database changes:
+  → supabase-architect first, then frontend-specialist
+```
+
+**Rule 7: Party Mode Activation**
+```
+IF task involves 3+ domains (DB + UI + API + Tests):
+  → Consider party-mode for collaborative discussion
+IF stuck on complex decision:
+  → party-mode brings multiple expert perspectives
+```
+
+### Workflow Integration Example
+```
+Large Feature Implementation:
+1. brainstorming → Generate ideas (if unclear requirements)
+2. create-epics-and-stories → Break into stories
+3. sprint-planning → Track status
+4. For each story:
+   ├── quick-spec → Technical specification
+   ├── quick-dev → Implementation
+   ├── code-review → Quality check
+   └── /commit → Save progress
+5. retrospective → Lessons learned
 ```
 
 ---
