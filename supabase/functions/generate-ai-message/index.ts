@@ -1,9 +1,13 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+
+// Credit cost for AI text generation
+const AI_TEXT_GENERATION_CREDITS = 1;
 
 interface GenerateMessageRequest {
   messageType: string;
@@ -16,6 +20,8 @@ interface GenerateMessageRequest {
     businessType: string;
     tone: string;
   };
+  organization_id?: string;
+  skip_credits?: boolean;
 }
 
 const handler = async (req: Request): Promise<Response> => {
@@ -25,9 +31,52 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
-    const { messageType, context, userInput, hasUserInput, variables, triggerType, companyInfo }: GenerateMessageRequest = await req.json();
-    
-    console.log('Generating AI message with:', { messageType, context, hasUserInput, triggerType, companyInfo });
+    const { messageType, context, userInput, hasUserInput, variables, triggerType, companyInfo, organization_id, skip_credits }: GenerateMessageRequest = await req.json();
+
+    console.log('Generating AI message with:', { messageType, context, hasUserInput, triggerType, companyInfo, organization_id });
+
+    // Initialize Supabase client for credit deduction
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+
+    // Deduct credits if organization_id is provided and skip_credits is not true
+    if (organization_id && !skip_credits && supabaseUrl && supabaseServiceKey) {
+      const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+      const { data: creditResult, error: creditError } = await supabase.rpc('use_credits', {
+        p_organization_id: organization_id,
+        p_amount: AI_TEXT_GENERATION_CREDITS,
+        p_reference_type: 'ai_text_generation',
+        p_reference_id: null,
+        p_description: `AI ${messageType} generation`,
+        p_user_id: null,
+        p_metadata: { messageType, triggerType }
+      });
+
+      if (creditError) {
+        console.error('Credit check error:', creditError);
+        return new Response(
+          JSON.stringify({ error: 'Failed to check credits', details: creditError.message }),
+          { status: 400, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
+        );
+      }
+
+      const result = creditResult?.[0] || creditResult;
+      if (!result?.success) {
+        console.log('Insufficient credits:', result);
+        return new Response(
+          JSON.stringify({
+            error: 'Insufficient credits',
+            message: result?.error_message || 'Not enough credits for AI generation',
+            credits_required: AI_TEXT_GENERATION_CREDITS,
+            current_balance: result?.new_balance || 0
+          }),
+          { status: 402, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
+        );
+      }
+
+      console.log('Credits deducted. New balance:', result.new_balance);
+    }
 
     const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
     if (!openaiApiKey) {
@@ -63,7 +112,7 @@ const handler = async (req: Request): Promise<Response> => {
     }
     
     let prompt = '';
-    let isEmail = messageType === 'professional';
+    const isEmail = messageType === 'professional';
     
     if (hasUserInput && userInput) {
       // Improve user's existing message

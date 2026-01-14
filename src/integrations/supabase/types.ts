@@ -713,6 +713,75 @@ export type Database = {
         }
         Relationships: []
       }
+      auto_topup_settings: {
+        Row: {
+          created_at: string
+          current_month_spend_cents: number
+          enabled: boolean
+          failure_count: number
+          id: string
+          last_topup_at: string | null
+          last_topup_failed_at: string | null
+          max_monthly_spend_cents: number
+          organization_id: string
+          spend_reset_at: string
+          stripe_customer_id: string | null
+          stripe_payment_method_id: string | null
+          topup_package_id: string | null
+          trigger_threshold: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          current_month_spend_cents?: number
+          enabled?: boolean
+          failure_count?: number
+          id?: string
+          last_topup_at?: string | null
+          last_topup_failed_at?: string | null
+          max_monthly_spend_cents?: number
+          organization_id: string
+          spend_reset_at?: string
+          stripe_customer_id?: string | null
+          stripe_payment_method_id?: string | null
+          topup_package_id?: string | null
+          trigger_threshold?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          current_month_spend_cents?: number
+          enabled?: boolean
+          failure_count?: number
+          id?: string
+          last_topup_at?: string | null
+          last_topup_failed_at?: string | null
+          max_monthly_spend_cents?: number
+          organization_id?: string
+          spend_reset_at?: string
+          stripe_customer_id?: string | null
+          stripe_payment_method_id?: string | null
+          topup_package_id?: string | null
+          trigger_threshold?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "auto_topup_settings_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: true
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "auto_topup_settings_topup_package_id_fkey"
+            columns: ["topup_package_id"]
+            isOneToOne: false
+            referencedRelation: "credit_packages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       automation_actions: {
         Row: {
           action_config: Json | null
@@ -2358,6 +2427,191 @@ export type Database = {
           },
         ]
       }
+      credit_balances: {
+        Row: {
+          balance: number
+          created_at: string
+          id: string
+          lifetime_bonus: number
+          lifetime_purchased: number
+          lifetime_used: number
+          loyalty_tier: string
+          organization_id: string
+          updated_at: string
+        }
+        Insert: {
+          balance?: number
+          created_at?: string
+          id?: string
+          lifetime_bonus?: number
+          lifetime_purchased?: number
+          lifetime_used?: number
+          loyalty_tier?: string
+          organization_id: string
+          updated_at?: string
+        }
+        Update: {
+          balance?: number
+          created_at?: string
+          id?: string
+          lifetime_bonus?: number
+          lifetime_purchased?: number
+          lifetime_used?: number
+          loyalty_tier?: string
+          organization_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "credit_balances_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: true
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      credit_packages: {
+        Row: {
+          bonus_credits: number
+          created_at: string
+          credits: number
+          currency: string
+          description: string | null
+          id: string
+          is_active: boolean
+          is_featured: boolean
+          name: string
+          price_cents: number
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          bonus_credits?: number
+          created_at?: string
+          credits: number
+          currency?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          is_featured?: boolean
+          name: string
+          price_cents: number
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          bonus_credits?: number
+          created_at?: string
+          credits?: number
+          currency?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          is_featured?: boolean
+          name?: string
+          price_cents?: number
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      credit_transactions: {
+        Row: {
+          amount: number
+          balance_after: number
+          created_at: string
+          description: string | null
+          id: string
+          metadata: Json | null
+          organization_id: string
+          reference_id: string | null
+          reference_type: string | null
+          type: string
+          user_id: string | null
+        }
+        Insert: {
+          amount: number
+          balance_after: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          metadata?: Json | null
+          organization_id: string
+          reference_id?: string | null
+          reference_type?: string | null
+          type: string
+          user_id?: string | null
+        }
+        Update: {
+          amount?: number
+          balance_after?: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          metadata?: Json | null
+          organization_id?: string
+          reference_id?: string | null
+          reference_type?: string | null
+          type?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "credit_transactions_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "credit_transactions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      credit_usage_rates: {
+        Row: {
+          category: string
+          created_at: string
+          credits_per_unit: number
+          description: string | null
+          feature_key: string
+          feature_name: string
+          id: string
+          is_active: boolean
+          unit_type: string
+          updated_at: string
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          credits_per_unit: number
+          description?: string | null
+          feature_key: string
+          feature_name: string
+          id?: string
+          is_active?: boolean
+          unit_type?: string
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          credits_per_unit?: number
+          description?: string | null
+          feature_key?: string
+          feature_name?: string
+          id?: string
+          is_active?: boolean
+          unit_type?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       custom_fields: {
         Row: {
           created_at: string | null
@@ -2707,6 +2961,8 @@ export type Database = {
           contact_role: string | null
           created_at: string
           created_by: string | null
+          decline_reason: string | null
+          declined_at: string | null
           description: string | null
           discount_amount: number | null
           estimate_number: string
@@ -2728,6 +2984,7 @@ export type Database = {
           updated_at: string
           user_id: string | null
           valid_until: string | null
+          viewed_at: string | null
         }
         Insert: {
           approved_at?: string | null
@@ -2736,6 +2993,8 @@ export type Database = {
           contact_role?: string | null
           created_at?: string
           created_by?: string | null
+          decline_reason?: string | null
+          declined_at?: string | null
           description?: string | null
           discount_amount?: number | null
           estimate_number: string
@@ -2757,6 +3016,7 @@ export type Database = {
           updated_at?: string
           user_id?: string | null
           valid_until?: string | null
+          viewed_at?: string | null
         }
         Update: {
           approved_at?: string | null
@@ -2765,6 +3025,8 @@ export type Database = {
           contact_role?: string | null
           created_at?: string
           created_by?: string | null
+          decline_reason?: string | null
+          declined_at?: string | null
           description?: string | null
           discount_amount?: number | null
           estimate_number?: string
@@ -2786,6 +3048,7 @@ export type Database = {
           updated_at?: string
           user_id?: string | null
           valid_until?: string | null
+          viewed_at?: string | null
         }
         Relationships: [
           {
@@ -2933,6 +3196,7 @@ export type Database = {
           total: number
           updated_at: string
           user_id: string | null
+          viewed_at: string | null
         }
         Insert: {
           amount_paid?: number | null
@@ -2968,6 +3232,7 @@ export type Database = {
           total?: number
           updated_at?: string
           user_id?: string | null
+          viewed_at?: string | null
         }
         Update: {
           amount_paid?: number | null
@@ -3003,6 +3268,7 @@ export type Database = {
           total?: number
           updated_at?: string
           user_id?: string | null
+          viewed_at?: string | null
         }
         Relationships: [
           {
@@ -6261,6 +6527,35 @@ export type Database = {
       }
     }
     Functions: {
+      add_credits: {
+        Args: {
+          p_amount: number
+          p_description?: string
+          p_metadata?: Json
+          p_organization_id: string
+          p_type: string
+          p_user_id?: string
+        }
+        Returns: {
+          amount: number
+          balance_after: number
+          created_at: string
+          description: string | null
+          id: string
+          metadata: Json | null
+          organization_id: string
+          reference_id: string | null
+          reference_type: string | null
+          type: string
+          user_id: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "credit_transactions"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       assign_phone_to_organization: {
         Args: {
           p_assigned_by: string
@@ -6534,6 +6829,7 @@ export type Database = {
           total_conversations: number
         }[]
       }
+      get_credit_rate: { Args: { p_feature_key: string }; Returns: number }
       get_current_user_info: { Args: never; Returns: Json }
       get_data_summary: { Args: never; Returns: Json }
       get_default_job_statuses: {
@@ -6599,6 +6895,26 @@ export type Database = {
         Args: { p_user_id: string }
         Returns: number
       }
+      get_or_create_credit_balance: {
+        Args: { p_organization_id: string }
+        Returns: {
+          balance: number
+          created_at: string
+          id: string
+          lifetime_bonus: number
+          lifetime_purchased: number
+          lifetime_used: number
+          loyalty_tier: string
+          organization_id: string
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "credit_balances"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       get_org_primary_phone: {
         Args: { p_organization_id: string }
         Returns: string
@@ -6661,6 +6977,10 @@ export type Database = {
       handle_job_portal_request: {
         Args: { p_job_number: string }
         Returns: Json
+      }
+      has_enough_credits: {
+        Args: { p_organization_id: string; p_required_credits: number }
+        Returns: boolean
       }
       http: {
         Args: { request: Database["public"]["CompositeTypes"]["http_request"] }
@@ -6967,6 +7287,23 @@ export type Database = {
               error: true
             } & "Could not choose the best candidate function between: public.urlencode(string => bytea), public.urlencode(string => varchar). Try renaming the parameters or the function itself in the database so function overloading can be resolved"
           }
+      use_credits: {
+        Args: {
+          p_amount: number
+          p_description?: string
+          p_metadata?: Json
+          p_organization_id: string
+          p_reference_id?: string
+          p_reference_type: string
+          p_user_id?: string
+        }
+        Returns: {
+          error_message: string
+          new_balance: number
+          success: boolean
+          transaction_id: string
+        }[]
+      }
       validate_job_status_transition: {
         Args: { p_new_status: string; p_old_status: string }
         Returns: boolean

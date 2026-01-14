@@ -12,7 +12,11 @@ interface SMSRequest {
   from?: string; // Optional, will be auto-selected if not provided
   user_id?: string;
   metadata?: Record<string, any>;
+  skip_credits?: boolean; // For system messages that shouldn't charge credits
 }
+
+// Credit cost for outbound SMS
+const SMS_OUTBOUND_CREDITS = 2;
 
 // Convert phone number to E.164 format (+1XXXXXXXXXX)
 function toE164(phoneNumber: string): string {
@@ -83,6 +87,8 @@ serve(async (req) => {
     let profileHasOrg = false;
 
     // If no sender provided, fetch organization's primary phone number first (new priority)
+    let organizationId: string | null = null;
+
     if (!fromPhone && smsRequest.user_id) {
       console.log('Fetching phone number for user:', smsRequest.user_id);
 
@@ -94,6 +100,55 @@ serve(async (req) => {
         .single();
 
       profileHasOrg = !!profile?.organization_id;
+      organizationId = profile?.organization_id || null;
+
+      // Check and deduct credits (unless skip_credits is true)
+      if (!smsRequest.skip_credits && organizationId) {
+        const { data: creditResult, error: creditError } = await supabase.rpc('use_credits', {
+          p_organization_id: organizationId,
+          p_amount: SMS_OUTBOUND_CREDITS,
+          p_reference_type: 'sms_outbound',
+          p_reference_id: null,
+          p_description: `SMS to ${smsRequest.recipientPhone}`,
+          p_user_id: smsRequest.user_id,
+          p_metadata: { recipient: smsRequest.recipientPhone }
+        });
+
+        if (creditError) {
+          console.error('Credit check error:', creditError);
+          return new Response(
+            JSON.stringify({
+              success: false,
+              error: 'Failed to check credits',
+              details: creditError.message
+            }),
+            {
+              status: 400,
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+            }
+          );
+        }
+
+        const result = creditResult?.[0] || creditResult;
+        if (!result?.success) {
+          console.log('Insufficient credits:', result);
+          return new Response(
+            JSON.stringify({
+              success: false,
+              error: 'Insufficient credits',
+              message: result?.error_message || 'Not enough credits to send SMS',
+              credits_required: SMS_OUTBOUND_CREDITS,
+              current_balance: result?.new_balance || 0
+            }),
+            {
+              status: 402, // Payment Required
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+            }
+          );
+        }
+
+        console.log('Credits deducted successfully. New balance:', result.new_balance);
+      }
 
       // Priority 1: Organization's primary number (pool_status = 'assigned')
       if (profile?.organization_id) {
@@ -349,7 +404,9 @@ serve(async (req) => {
             ...smsRequest.metadata,
             telnyx_message_id: telnyxResult.data?.id,
             messaging_profile_id: telnyxMessagingProfileId,
-            sms_conversation_id: conversationId
+            sms_conversation_id: conversationId,
+            organization_id: organizationId,
+            credits_used: smsRequest.skip_credits ? 0 : SMS_OUTBOUND_CREDITS
           }
         });
 

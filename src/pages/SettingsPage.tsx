@@ -2,11 +2,14 @@
 import { PageLayout } from "@/components/layout/PageLayout";
 import { PageHeader } from "@/components/ui/page-header";
 import { Link } from "react-router-dom";
-import { Settings2, Shield, Sliders, User, Phone, Brain, Building2, Plug, Package, Zap } from "lucide-react";
+import { Settings2, Shield, Sliders, User, Phone, Brain, Building2, Plug, Package, Zap, CreditCard } from "lucide-react";
+import { usePermissions } from "@/hooks/usePermissions";
 import { useAuth } from "@/hooks/use-auth";
 
 const SettingsPage = () => {
   const { user } = useAuth();
+  const { isAdminOrManager } = usePermissions();
+  const canViewBilling = isAdminOrManager();
   
   return (
     <PageLayout>
@@ -112,6 +115,23 @@ const SettingsPage = () => {
             </div>
           </div>
         </Link>
+
+        {/* Billing & Credits Card - Admin/Manager only */}
+        {canViewBilling && (
+          <Link to="/settings/billing">
+            <div className="h-full hover:shadow-md transition-shadow fixlyfy-card cursor-pointer">
+              <div className="flex items-center p-6 space-x-4">
+                <div className="bg-green-100 p-3 rounded-full">
+                  <CreditCard className="h-6 w-6 text-green-600" />
+                </div>
+                <div>
+                  <h3 className="font-medium">Billing & Credits</h3>
+                  <p className="text-sm text-muted-foreground">Manage credits, view usage, and payment history</p>
+                </div>
+              </div>
+            </div>
+          </Link>
+        )}
 
       </div>
     </PageLayout>

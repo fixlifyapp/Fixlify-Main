@@ -6,6 +6,10 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Credit costs
+const AI_DISPATCHER_CREDITS_PER_MINUTE = 10;
+const VOICE_CALL_CREDITS_PER_MINUTE = 2;
+
 // AI Assistant SIP address for call transfer (required when AI dispatcher is enabled)
 const AI_ASSISTANT_SIP = Deno.env.get('TELNYX_AI_ASSISTANT_SIP');
 
@@ -587,16 +591,61 @@ serve(async (req) => {
           });
         break;
 
-      case 'call.hangup':
+      case 'call.hangup': {
+        // Get the call record to check if it was AI-handled and get organization_id
+        const { data: callRecord } = await supabase
+          .from('telnyx_calls')
+          .select('organization_id, status, metadata')
+          .eq('call_control_id', payload.call_control_id)
+          .single();
+
+        const callDuration = payload.call_duration_secs || 0;
+        const wasAIHandled = callRecord?.status === 'ai_handling' || callRecord?.metadata?.routed_to === 'ai_assistant';
+
         // Update call status to ended
         await supabase
           .from('telnyx_calls')
           .update({
             status: 'completed',
             ended_at: new Date().toISOString(),
-            duration: payload.call_duration_secs || 0
+            duration: callDuration
           })
           .eq('call_control_id', payload.call_control_id);
+
+        // Deduct credits based on call type and duration
+        if (callRecord?.organization_id && callDuration > 0) {
+          const minutes = Math.ceil(callDuration / 60);
+          const creditsPerMinute = wasAIHandled ? AI_DISPATCHER_CREDITS_PER_MINUTE : VOICE_CALL_CREDITS_PER_MINUTE;
+          const totalCredits = minutes * creditsPerMinute;
+          const featureKey = wasAIHandled ? 'ai_dispatcher' : 'voice_call';
+
+          console.log(`Deducting ${totalCredits} credits for ${minutes} min ${featureKey} call`);
+
+          const { data: creditResult, error: creditError } = await supabase.rpc('use_credits', {
+            p_organization_id: callRecord.organization_id,
+            p_amount: totalCredits,
+            p_reference_type: featureKey,
+            p_reference_id: null,
+            p_description: `${wasAIHandled ? 'AI Dispatcher' : 'Voice'} call - ${minutes} min`,
+            p_user_id: null,
+            p_metadata: {
+              call_control_id: payload.call_control_id,
+              duration_seconds: callDuration,
+              minutes: minutes
+            }
+          });
+
+          if (creditError) {
+            console.error('Failed to deduct credits for call:', creditError);
+          } else {
+            const result = creditResult?.[0] || creditResult;
+            if (result?.success) {
+              console.log(`Credits deducted. New balance: ${result.new_balance}`);
+            } else {
+              console.warn('Credit deduction failed:', result?.error_message);
+            }
+          }
+        }
 
         // Send real-time update (broadcast to global channel)
         await supabase
@@ -606,11 +655,12 @@ serve(async (req) => {
             event: 'call_ended',
             payload: {
               callControlId: payload.call_control_id,
-              duration: payload.call_duration_secs || 0,
+              duration: callDuration,
               timestamp: new Date().toISOString()
             }
           });
         break;
+      }
 
       case 'call.recording.saved':
         // Update call with recording URL

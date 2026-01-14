@@ -8,6 +8,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
+import { useOrganization } from "@/hooks/use-organization";
 
 type Message = {
   id: number;
@@ -25,6 +26,7 @@ const suggestedTopics = [
 ];
 
 export const AiAssistant = () => {
+  const { currentOrganization } = useOrganization();
   const [messages, setMessages] = useState<Message[]>([
     {
       id: 1,
@@ -60,7 +62,8 @@ export const AiAssistant = () => {
       const { data, error } = await supabase.functions.invoke("generate-ai-message", {
         body: {
           prompt: finalMessage,
-          context: "You are an AI assistant for a field service management application called Fixlyfy. Help users with scheduling, service recommendations, business analytics, and technician management. Provide concise, helpful responses focused on service business needs. Reference current data if available."
+          context: "You are an AI assistant for a field service management application called Fixlyfy. Help users with scheduling, service recommendations, business analytics, and technician management. Provide concise, helpful responses focused on service business needs. Reference current data if available.",
+          organization_id: currentOrganization?.id
         }
       });
       

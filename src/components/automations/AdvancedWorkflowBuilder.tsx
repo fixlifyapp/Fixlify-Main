@@ -24,6 +24,7 @@ import { WORKFLOW_TEMPLATES, getPopularTemplates } from '@/data/workflowTemplate
 import { TriggerTypes } from '@/types/automationFramework';
 import { supabase } from '@/integrations/supabase/client';
 import { useJobStatuses } from '@/hooks/useJobStatuses';
+import { useOrganization } from '@/hooks/use-organization';
 import { AIMessageGeneratorConfig } from './AIMessageGeneratorConfig';
 import { TriggerStatusChangeConfig } from './TriggerStatusChangeConfig';
 import { TriggerTagsChangeConfig } from './TriggerTagsChangeConfig';
@@ -139,7 +140,8 @@ const generateAIMessage = async (
         companyInfo: {
           businessType: 'service company',
           tone: 'professional'
-        }
+        },
+        organization_id: currentOrganization?.id
       }
     });
 
@@ -204,6 +206,7 @@ export const AdvancedWorkflowBuilder: React.FC<WorkflowBuilderProps> = ({
   businessType = 'General Service',
   companyName = 'Your Company'
 }) => {
+  const { currentOrganization } = useOrganization();
   const [steps, setSteps] = useState<WorkflowStep[]>(initialWorkflow);
   const [selectedStep, setSelectedStep] = useState<string | null>(null);
   const [showAIAssistant, setShowAIAssistant] = useState(false);

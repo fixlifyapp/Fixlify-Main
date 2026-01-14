@@ -50,6 +50,7 @@ const PhoneNumberManagementPage = React.lazy(() => import("@/pages/PhoneNumberMa
 const PhoneNumberPurchasePage = React.lazy(() => import("@/pages/PhoneNumberPurchasePage"));
 const PhoneNumberConfigPage = React.lazy(() => import("@/pages/settings/PhoneNumberConfigPage"));
 const AIInsightsPage = React.lazy(() => import("@/pages/settings/AIInsightsPage"));
+const BillingPage = React.lazy(() => import("@/pages/settings/BillingPage"));
 const DocumentsPage = React.lazy(() => import("@/pages/DocumentsPage"));
 const InventoryPage = React.lazy(() => import("@/pages/InventoryPage"));
 const AdminRolesPage = React.lazy(() => import("@/pages/AdminRolesPage"));
@@ -377,6 +378,12 @@ function App() {
             <Route path="/settings/ai-insights" element={
               <LazyProtectedRoute>
                 <AIInsightsPage />
+              </LazyProtectedRoute>
+            } />
+
+            <Route path="/settings/billing" element={
+              <LazyProtectedRoute>
+                <BillingPage />
               </LazyProtectedRoute>
             } />
 

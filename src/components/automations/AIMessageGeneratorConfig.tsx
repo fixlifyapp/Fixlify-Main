@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Bot, Sparkles, MessageSquare, Mail } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { useOrganization } from '@/hooks/use-organization';
 
 interface AIMessageGeneratorConfigProps {
   config: any;
@@ -20,6 +21,7 @@ export const AIMessageGeneratorConfig: React.FC<AIMessageGeneratorConfigProps> =
   onUpdate,
   availableVariables
 }) => {
+  const { currentOrganization } = useOrganization();
   const [isGenerating, setIsGenerating] = useState(false);
   const [messageType, setMessageType] = useState(config.messageType || 'email');
   const [tone, setTone] = useState(config.tone || 'professional');
@@ -41,7 +43,8 @@ export const AIMessageGeneratorConfig: React.FC<AIMessageGeneratorConfigProps> =
           companyInfo: {
             businessType: 'service company',
             tone: tone
-          }
+          },
+          organization_id: currentOrganization?.id
         }
       });
 
