@@ -607,6 +607,7 @@ const ClientPortal = () => {
                 formatCurrency={formatCurrency}
                 getStatusColor={getStatusColor}
                 permissions={portalData.permissions}
+                onViewDocument={(doc, type) => setSelectedDocument({ type, data: doc })}
               />
             </div>
           )}
@@ -621,6 +622,7 @@ const ClientPortal = () => {
                 formatCurrency={formatCurrency}
                 getStatusColor={getStatusColor}
                 permissions={portalData.permissions}
+                onViewDocument={(doc, type) => setSelectedDocument({ type, data: doc })}
               />
             </div>
           )}

@@ -39,6 +39,7 @@ interface DocumentListProps {
   permissions: {
     make_payments: boolean;
   };
+  onViewDocument?: (doc: any, type: 'estimate' | 'invoice') => void;
 }
 
 export const DocumentList = ({
@@ -48,7 +49,8 @@ export const DocumentList = ({
   formatDate,
   formatCurrency,
   getStatusColor,
-  permissions
+  permissions,
+  onViewDocument
 }: DocumentListProps) => {
   const [expandedItems, setExpandedItems] = useState<string[]>([]);
   const [loadingActions, setLoadingActions] = useState<{ [key: string]: boolean }>({});
@@ -77,15 +79,19 @@ export const DocumentList = ({
   const handleView = async (document: any) => {
     const actionKey = `view-${document.id}`;
     setLoadingActions(prev => ({ ...prev, [actionKey]: true }));
-    
+
     try {
       console.log(`📄 Viewing ${documentType}:`, document);
-      
-      // Navigate directly to the document view page
-      const viewUrl = `/${documentType}/${document.id}`;
-      window.open(viewUrl, '_blank');
-      
-      toast.success(`Opening ${documentType}...`);
+
+      // Use callback if provided (for portal context)
+      if (onViewDocument) {
+        onViewDocument(document, documentType);
+      } else {
+        // Fallback: Navigate to the document view page (for authenticated users)
+        const viewUrl = `/${documentType}/${document.id}`;
+        window.open(viewUrl, '_blank');
+        toast.success(`Opening ${documentType}...`);
+      }
     } catch (error) {
       console.error(`Error viewing ${documentType}:`, error);
       toast.error(`Failed to view ${documentType}`);
@@ -257,14 +263,30 @@ export const DocumentList = ({
                                   !item.name?.toLowerCase().includes('tax') &&
                                   !item.description?.toLowerCase().includes('tax')
                                 )
-                                .map((item: any, index: number) => (
-                                  <div key={index} className="flex justify-between text-sm">
-                                    <span className="text-gray-600">{item.description || item.name || `Item ${index + 1}`}</span>
-                                    <span className="text-gray-900 font-medium">
-                                      {formatCurrency(item.total || item.amount || 0)}
-                                    </span>
-                                  </div>
-                                ))}
+                                .map((item: any, index: number) => {
+                                  // Calculate item total: use total if available, otherwise calculate from quantity * price
+                                  const itemTotal = item.total || item.amount ||
+                                    ((item.quantity || 1) * (item.unit_price || item.price || item.rate || 0));
+                                  const itemName = item.description || item.name || item.service || `Item ${index + 1}`;
+                                  const qty = item.quantity || 1;
+                                  const unitPrice = item.unit_price || item.price || item.rate || 0;
+
+                                  return (
+                                    <div key={index} className="flex justify-between items-center text-sm">
+                                      <div>
+                                        <span className="text-gray-700 font-medium">{itemName}</span>
+                                        {qty > 1 && (
+                                          <span className="text-gray-500 text-xs ml-2">
+                                            ({qty} × {formatCurrency(unitPrice)})
+                                          </span>
+                                        )}
+                                      </div>
+                                      <span className="text-gray-900 font-semibold">
+                                        {formatCurrency(itemTotal)}
+                                      </span>
+                                    </div>
+                                  );
+                                })}
                             </div>
                             {doc.tax_amount && (
                               <div className="pt-2 border-t border-purple-100">
