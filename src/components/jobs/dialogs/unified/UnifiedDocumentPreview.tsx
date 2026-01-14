@@ -4,11 +4,14 @@ import { LineItem } from "../../builder/types";
 import { DocumentType } from "../UnifiedDocumentBuilder";
 import { useDocumentPreviewData } from "./hooks/useDocumentPreviewData";
 import { useTaxSettings } from "@/hooks/useTaxSettings";
+import { useOrganizationDocumentSettings } from "@/hooks/useOrganizationDocumentSettings";
 import { DocumentPreviewHeader } from "./components/DocumentPreviewHeader";
 import { DocumentInfoGrid } from "./components/DocumentInfoGrid";
 import { DocumentLineItemsTable } from "./components/DocumentLineItemsTable";
 import { DocumentTotalsSection } from "./components/DocumentTotalsSection";
 import { DocumentPreviewFooter } from "./components/DocumentPreviewFooter";
+import { BillToOption } from "./components/BillToSelector";
+import { FooterOverrides } from "./components/EditableFooter";
 
 interface UnifiedDocumentPreviewProps {
   documentType: DocumentType;
@@ -23,6 +26,10 @@ interface UnifiedDocumentPreviewProps {
   issueDate?: string;
   dueDate?: string;
   jobId?: string;
+  // Optional Bill To selection - overrides default client
+  billToOption?: BillToOption;
+  // Optional footer customization - overrides organization defaults
+  footerOverrides?: FooterOverrides;
 }
 
 export const UnifiedDocumentPreview = ({
@@ -37,10 +44,13 @@ export const UnifiedDocumentPreview = ({
   clientInfo,
   issueDate,
   dueDate,
-  jobId
+  jobId,
+  billToOption,
+  footerOverrides
 }: UnifiedDocumentPreviewProps) => {
   const { taxConfig } = useTaxSettings();
-  
+  const { settings: docSettings } = useOrganizationDocumentSettings();
+
   // Use passed taxRate or fallback to user settings
   const effectiveTaxRate = taxRate || taxConfig.rate;
   
@@ -98,6 +108,8 @@ export const UnifiedDocumentPreview = ({
         dueDate={dueDate}
         taxRate={effectiveTaxRate}
         companyInfo={companyInfo}
+        billToOption={billToOption}
+        validityDays={docSettings.estimate_validity_days}
       />
 
       {/* Line Items Section */}
@@ -143,6 +155,7 @@ export const UnifiedDocumentPreview = ({
       <DocumentPreviewFooter
         documentType={documentType}
         companyInfo={companyInfo}
+        customFooter={footerOverrides}
       />
     </div>
   );

@@ -1,4 +1,5 @@
 
+import { useCallback } from "react";
 import { useRBAC } from "@/components/auth/RBACProvider";
 import { UserRole } from "@/components/auth/types";
 
@@ -75,30 +76,30 @@ export const usePermissions = () => {
   const isTechnician = () => hasRole("technician");
   const isAdminOrManager = () => hasRole(["admin", "manager"]);
 
-  // Helper functions for UI logic
-  const getJobViewScope = () => {
-    if (canViewAllJobs()) return "all";
-    if (canViewAssignedJobs()) return "assigned";
+  // Helper functions for UI logic - memoized to prevent infinite loops in dependent hooks
+  const getJobViewScope = useCallback(() => {
+    if (hasPermission("jobs.view.all")) return "all";
+    if (hasPermission("jobs.view.assigned")) return "assigned";
     return "none";
-  };
+  }, [hasPermission]);
 
-  const getClientViewScope = () => {
-    if (canViewAllClients()) return "all";
-    if (canViewAssignedClients()) return "assigned";
+  const getClientViewScope = useCallback(() => {
+    if (hasPermission("clients.view.all")) return "all";
+    if (hasPermission("clients.view.assigned")) return "assigned";
     return "none";
-  };
+  }, [hasPermission]);
 
-  const getEstimateViewScope = () => {
-    if (canViewAllEstimates()) return "all";
-    if (canViewAssignedEstimates()) return "assigned";
+  const getEstimateViewScope = useCallback(() => {
+    if (hasPermission("estimates.view.all")) return "all";
+    if (hasPermission("estimates.view.assigned")) return "assigned";
     return "none";
-  };
+  }, [hasPermission]);
 
-  const getInvoiceViewScope = () => {
-    if (canViewAllInvoices()) return "all";
-    if (canViewAssignedInvoices()) return "assigned";
+  const getInvoiceViewScope = useCallback(() => {
+    if (hasPermission("invoices.view.all")) return "all";
+    if (hasPermission("invoices.view.assigned")) return "assigned";
     return "none";
-  };
+  }, [hasPermission]);
 
   return {
     // Job permissions

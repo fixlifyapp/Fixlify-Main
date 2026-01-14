@@ -40,7 +40,8 @@
       "Bash(git commit -m \"$\\(cat <<''EOF''\nfix: mobile responsiveness, inline validation, N+1 optimization, console spam\n\nMobile Responsiveness:\n- Add w-[95vw] to all dialog components for mobile\n- Add flex-wrap to button groups in JobPayments, Estimates, Invoices tabs\n- Fix DocumentTotalsSection responsive padding\n\nPerformance:\n- Optimize warranty check from 3 queries to 2 using .or\\(\\) filter\n- Fix useJobFinancials infinite loop with proper deps\n\nValidation:\n- Add inline validation to PaymentForm with real-time error display\n- Add inline validation to UniversalSendDialog for email/phone\n\nConsole Spam & Error Handling:\n- Remove excessive console.log statements\n- Fix send-invoice edge function error handling \\(200 with error body\\)\n- Clean up auth state logging\n\nEdge Functions:\n- Fix Telnyx SMS/phone functions\n- Improve error responses\n\n🤖 Generated with [Claude Code]\\(https://claude.com/claude-code\\)\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
       "Bash(powershell -Command \"Invoke-RestMethod -Uri ''https://api.telnyx.com/v2/phone_numbers?page[size]=5'' -Headers @{''Authorization''=''Bearer KEY0197FA241D0DD8BC7BF6A6EFA96E32B2''; ''Content-Type''=''application/json''} | ConvertTo-Json -Depth 10\")",
       "Bash(timeout /t 5 /nobreak)",
-      "Bash(curl:*)"
+      "Bash(curl:*)",
+      "mcp__playwright__browser_wait_for"
     ],
     "deny": []
   }

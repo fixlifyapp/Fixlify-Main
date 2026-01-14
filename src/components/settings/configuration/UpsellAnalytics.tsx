@@ -86,6 +86,9 @@ export const UpsellAnalytics = () => {
     return ((recentRevenue - previousRevenue) / previousRevenue) * 100;
   }, [dailyStats]);
 
+  // Check if there's any data at all
+  const hasNoData = !isLoading && (!overallStats?.totalShown || overallStats.totalShown === 0);
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -118,6 +121,52 @@ export const UpsellAnalytics = () => {
           </Button>
         </div>
       </div>
+
+      {/* Getting Started Banner - shows when no data */}
+      {hasNoData && (
+        <Card className="bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-200">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-lg flex items-center gap-2 text-blue-800">
+              <Target className="h-5 w-5" />
+              Getting Started with Analytics
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-sm text-blue-700">
+              Analytics data is collected automatically when your team creates estimates and invoices with upsell products. Here's how it works:
+            </p>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="bg-white/70 p-3 rounded-lg">
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 text-sm font-bold">1</div>
+                  <span className="font-medium text-sm">Configure Products</span>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Go to the Configuration tab and select which products to auto-suggest
+                </p>
+              </div>
+              <div className="bg-white/70 p-3 rounded-lg">
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 text-sm font-bold">2</div>
+                  <span className="font-medium text-sm">Create Documents</span>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  When technicians create estimates/invoices, products are suggested automatically
+                </p>
+              </div>
+              <div className="bg-white/70 p-3 rounded-lg">
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 text-sm font-bold">3</div>
+                  <span className="font-medium text-sm">Track Results</span>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Every accepted/rejected suggestion is tracked here for analysis
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* KPI Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">

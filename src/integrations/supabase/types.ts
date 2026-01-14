@@ -1806,6 +1806,48 @@ export type Database = {
         }
         Relationships: []
       }
+      client_custom_field_values: {
+        Row: {
+          client_id: string
+          created_at: string | null
+          custom_field_id: string
+          id: string
+          updated_at: string | null
+          value: string | null
+        }
+        Insert: {
+          client_id: string
+          created_at?: string | null
+          custom_field_id: string
+          id?: string
+          updated_at?: string | null
+          value?: string | null
+        }
+        Update: {
+          client_id?: string
+          created_at?: string | null
+          custom_field_id?: string
+          id?: string
+          updated_at?: string | null
+          value?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_custom_field_values_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_custom_field_values_custom_field_id_fkey"
+            columns: ["custom_field_id"]
+            isOneToOne: false
+            referencedRelation: "custom_fields"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       client_documents: {
         Row: {
           client_id: string
@@ -2200,11 +2242,14 @@ export type Database = {
           email_domain_name: string | null
           email_from_address: string | null
           email_from_name: string | null
+          gst_hst_number: string | null
           id: string
+          insurance_policy_number: string | null
           mailgun_api_key: string | null
           mailgun_config: Json | null
           mailgun_domain: string | null
           mailgun_settings: Json | null
+          organization_id: string | null
           phone_number_limit: number | null
           phone_numbers_used: number | null
           service_radius: number | null
@@ -2212,6 +2257,7 @@ export type Database = {
           tax_id: string | null
           team_size: string | null
           updated_at: string
+          upsell_config: Json | null
           user_id: string
         }
         Insert: {
@@ -2240,11 +2286,14 @@ export type Database = {
           email_domain_name?: string | null
           email_from_address?: string | null
           email_from_name?: string | null
+          gst_hst_number?: string | null
           id?: string
+          insurance_policy_number?: string | null
           mailgun_api_key?: string | null
           mailgun_config?: Json | null
           mailgun_domain?: string | null
           mailgun_settings?: Json | null
+          organization_id?: string | null
           phone_number_limit?: number | null
           phone_numbers_used?: number | null
           service_radius?: number | null
@@ -2252,6 +2301,7 @@ export type Database = {
           tax_id?: string | null
           team_size?: string | null
           updated_at?: string
+          upsell_config?: Json | null
           user_id: string
         }
         Update: {
@@ -2280,11 +2330,14 @@ export type Database = {
           email_domain_name?: string | null
           email_from_address?: string | null
           email_from_name?: string | null
+          gst_hst_number?: string | null
           id?: string
+          insurance_policy_number?: string | null
           mailgun_api_key?: string | null
           mailgun_config?: Json | null
           mailgun_domain?: string | null
           mailgun_settings?: Json | null
+          organization_id?: string | null
           phone_number_limit?: number | null
           phone_numbers_used?: number | null
           service_radius?: number | null
@@ -2292,46 +2345,64 @@ export type Database = {
           tax_id?: string | null
           team_size?: string | null
           updated_at?: string
+          upsell_config?: Json | null
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "company_settings_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       custom_fields: {
         Row: {
           created_at: string | null
           created_by: string | null
           default_value: string | null
+          description: string | null
           entity_type: string
           field_type: string
           id: string
           name: string
           options: Json | null
+          organization_id: string | null
           placeholder: string | null
           required: boolean | null
+          sort_order: number | null
         }
         Insert: {
           created_at?: string | null
           created_by?: string | null
           default_value?: string | null
+          description?: string | null
           entity_type: string
           field_type: string
           id?: string
           name: string
           options?: Json | null
+          organization_id?: string | null
           placeholder?: string | null
           required?: boolean | null
+          sort_order?: number | null
         }
         Update: {
           created_at?: string | null
           created_by?: string | null
           default_value?: string | null
+          description?: string | null
           entity_type?: string
           field_type?: string
           id?: string
           name?: string
           options?: Json | null
+          organization_id?: string | null
           placeholder?: string | null
           required?: boolean | null
+          sort_order?: number | null
         }
         Relationships: []
       }
@@ -2342,6 +2413,7 @@ export type Database = {
           description: string | null
           id: string
           name: string
+          organization_id: string | null
           permissions: Json
           updated_at: string | null
           user_id: string | null
@@ -2352,6 +2424,7 @@ export type Database = {
           description?: string | null
           id?: string
           name: string
+          organization_id?: string | null
           permissions?: Json
           updated_at?: string | null
           user_id?: string | null
@@ -2362,6 +2435,7 @@ export type Database = {
           description?: string | null
           id?: string
           name?: string
+          organization_id?: string | null
           permissions?: Json
           updated_at?: string | null
           user_id?: string | null
@@ -2433,6 +2507,7 @@ export type Database = {
       }
       email_conversations: {
         Row: {
+          assigned_to: string | null
           client_email: string | null
           client_id: string | null
           client_name: string | null
@@ -2443,12 +2518,14 @@ export type Database = {
           is_starred: boolean | null
           last_message_at: string | null
           last_message_preview: string | null
+          organization_id: string | null
           subject: string | null
           unread_count: number | null
           updated_at: string | null
           user_id: string
         }
         Insert: {
+          assigned_to?: string | null
           client_email?: string | null
           client_id?: string | null
           client_name?: string | null
@@ -2459,12 +2536,14 @@ export type Database = {
           is_starred?: boolean | null
           last_message_at?: string | null
           last_message_preview?: string | null
+          organization_id?: string | null
           subject?: string | null
           unread_count?: number | null
           updated_at?: string | null
           user_id: string
         }
         Update: {
+          assigned_to?: string | null
           client_email?: string | null
           client_id?: string | null
           client_name?: string | null
@@ -2475,6 +2554,7 @@ export type Database = {
           is_starred?: boolean | null
           last_message_at?: string | null
           last_message_preview?: string | null
+          organization_id?: string | null
           subject?: string | null
           unread_count?: number | null
           updated_at?: string | null
@@ -2486,6 +2566,13 @@ export type Database = {
             columns: ["client_id"]
             isOneToOne: false
             referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_conversations_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
         ]
@@ -2503,6 +2590,7 @@ export type Database = {
           id: string
           is_read: boolean | null
           metadata: Json | null
+          organization_id: string | null
           status: string | null
           subject: string | null
           thread_id: string | null
@@ -2521,6 +2609,7 @@ export type Database = {
           id?: string
           is_read?: boolean | null
           metadata?: Json | null
+          organization_id?: string | null
           status?: string | null
           subject?: string | null
           thread_id?: string | null
@@ -2539,6 +2628,7 @@ export type Database = {
           id?: string
           is_read?: boolean | null
           metadata?: Json | null
+          organization_id?: string | null
           status?: string | null
           subject?: string | null
           thread_id?: string | null
@@ -2551,6 +2641,13 @@ export type Database = {
             columns: ["conversation_id"]
             isOneToOne: false
             referencedRelation: "email_conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_messages_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
         ]
@@ -2953,6 +3050,7 @@ export type Database = {
           id: string
           job_id: string
           mime_type: string | null
+          organization_id: string | null
           uploaded_at: string
           uploaded_by: string | null
         }
@@ -2963,6 +3061,7 @@ export type Database = {
           id?: string
           job_id: string
           mime_type?: string | null
+          organization_id?: string | null
           uploaded_at?: string
           uploaded_by?: string | null
         }
@@ -2973,6 +3072,7 @@ export type Database = {
           id?: string
           job_id?: string
           mime_type?: string | null
+          organization_id?: string | null
           uploaded_at?: string
           uploaded_by?: string | null
         }
@@ -2996,6 +3096,13 @@ export type Database = {
             columns: ["job_id"]
             isOneToOne: false
             referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "job_attachments_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
         ]
@@ -3218,6 +3325,7 @@ export type Database = {
           id: string
           is_default: boolean | null
           name: string
+          organization_id: string | null
           sequence: number | null
           user_id: string | null
         }
@@ -3229,6 +3337,7 @@ export type Database = {
           id?: string
           is_default?: boolean | null
           name: string
+          organization_id?: string | null
           sequence?: number | null
           user_id?: string | null
         }
@@ -3240,6 +3349,7 @@ export type Database = {
           id?: string
           is_default?: boolean | null
           name?: string
+          organization_id?: string | null
           sequence?: number | null
           user_id?: string | null
         }
@@ -3254,6 +3364,7 @@ export type Database = {
           id: string
           is_default: boolean | null
           name: string
+          organization_id: string | null
           user_id: string | null
         }
         Insert: {
@@ -3264,6 +3375,7 @@ export type Database = {
           id?: string
           is_default?: boolean | null
           name: string
+          organization_id?: string | null
           user_id?: string | null
         }
         Update: {
@@ -3274,6 +3386,7 @@ export type Database = {
           id?: string
           is_default?: boolean | null
           name?: string
+          organization_id?: string | null
           user_id?: string | null
         }
         Relationships: []
@@ -3414,6 +3527,7 @@ export type Database = {
           id: string
           is_active: boolean | null
           name: string
+          organization_id: string | null
           user_id: string | null
         }
         Insert: {
@@ -3423,6 +3537,7 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           name: string
+          organization_id?: string | null
           user_id?: string | null
         }
         Update: {
@@ -3432,6 +3547,7 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           name?: string
+          organization_id?: string | null
           user_id?: string | null
         }
         Relationships: []
@@ -3442,6 +3558,7 @@ export type Database = {
           description: string
           discount: number | null
           id: string
+          organization_id: string | null
           our_price: number | null
           parent_id: string
           parent_type: string
@@ -3455,6 +3572,7 @@ export type Database = {
           description: string
           discount?: number | null
           id?: string
+          organization_id?: string | null
           our_price?: number | null
           parent_id: string
           parent_type: string
@@ -3468,6 +3586,7 @@ export type Database = {
           description?: string
           discount?: number | null
           id?: string
+          organization_id?: string | null
           our_price?: number | null
           parent_id?: string
           parent_type?: string
@@ -3476,7 +3595,15 @@ export type Database = {
           unit_price?: number
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "line_items_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       message_templates: {
         Row: {
@@ -3565,8 +3692,10 @@ export type Database = {
           default_from_email: string | null
           default_from_name: string | null
           email_enabled: boolean | null
+          email_visibility_mode: string | null
           id: string
           mailgun_domain: string | null
+          organization_email_address: string | null
           organization_id: string
           sms_enabled: boolean | null
           updated_at: string | null
@@ -3576,8 +3705,10 @@ export type Database = {
           default_from_email?: string | null
           default_from_name?: string | null
           email_enabled?: boolean | null
+          email_visibility_mode?: string | null
           id?: string
           mailgun_domain?: string | null
+          organization_email_address?: string | null
           organization_id: string
           sms_enabled?: boolean | null
           updated_at?: string | null
@@ -3587,25 +3718,92 @@ export type Database = {
           default_from_email?: string | null
           default_from_name?: string | null
           email_enabled?: boolean | null
+          email_visibility_mode?: string | null
           id?: string
           mailgun_domain?: string | null
+          organization_email_address?: string | null
           organization_id?: string
           sms_enabled?: boolean | null
           updated_at?: string | null
         }
         Relationships: []
       }
+      organization_document_settings: {
+        Row: {
+          created_at: string | null
+          default_tax_rate: number | null
+          estimate_terms_text: string | null
+          estimate_validity_days: number | null
+          footer_confidentiality_text: string | null
+          footer_contact_text: string | null
+          footer_show_website: boolean | null
+          footer_thank_you_message: string | null
+          id: string
+          invoice_late_fee_text: string | null
+          invoice_payment_terms: string | null
+          organization_id: string
+          show_company_logo: boolean | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          default_tax_rate?: number | null
+          estimate_terms_text?: string | null
+          estimate_validity_days?: number | null
+          footer_confidentiality_text?: string | null
+          footer_contact_text?: string | null
+          footer_show_website?: boolean | null
+          footer_thank_you_message?: string | null
+          id?: string
+          invoice_late_fee_text?: string | null
+          invoice_payment_terms?: string | null
+          organization_id: string
+          show_company_logo?: boolean | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          default_tax_rate?: number | null
+          estimate_terms_text?: string | null
+          estimate_validity_days?: number | null
+          footer_confidentiality_text?: string | null
+          footer_contact_text?: string | null
+          footer_show_website?: boolean | null
+          footer_thank_you_message?: string | null
+          id?: string
+          invoice_late_fee_text?: string | null
+          invoice_payment_terms?: string | null
+          organization_id?: string
+          show_company_logo?: boolean | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organization_document_settings_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: true
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       organization_settings: {
         Row: {
           brand_color: string | null
           business_hours: Json | null
           company_address: string | null
+          company_city: string | null
+          company_country: string | null
           company_email: string | null
           company_logo: string | null
           company_name: string | null
           company_phone: string | null
+          company_state: string | null
+          company_zip: string | null
           created_at: string | null
+          gst_hst_number: string | null
           id: string
+          insurance_policy_number: string | null
           organization_id: string
           timezone: string | null
           updated_at: string | null
@@ -3615,12 +3813,18 @@ export type Database = {
           brand_color?: string | null
           business_hours?: Json | null
           company_address?: string | null
+          company_city?: string | null
+          company_country?: string | null
           company_email?: string | null
           company_logo?: string | null
           company_name?: string | null
           company_phone?: string | null
+          company_state?: string | null
+          company_zip?: string | null
           created_at?: string | null
+          gst_hst_number?: string | null
           id?: string
+          insurance_policy_number?: string | null
           organization_id: string
           timezone?: string | null
           updated_at?: string | null
@@ -3630,12 +3834,18 @@ export type Database = {
           brand_color?: string | null
           business_hours?: Json | null
           company_address?: string | null
+          company_city?: string | null
+          company_country?: string | null
           company_email?: string | null
           company_logo?: string | null
           company_name?: string | null
           company_phone?: string | null
+          company_state?: string | null
+          company_zip?: string | null
           created_at?: string | null
+          gst_hst_number?: string | null
           id?: string
+          insurance_policy_number?: string | null
           organization_id?: string
           timezone?: string | null
           updated_at?: string | null
@@ -3670,6 +3880,7 @@ export type Database = {
           created_at: string | null
           id: string
           name: string
+          organization_id: string | null
           updated_at: string | null
           user_id: string | null
         }
@@ -3678,6 +3889,7 @@ export type Database = {
           created_at?: string | null
           id?: string
           name: string
+          organization_id?: string | null
           updated_at?: string | null
           user_id?: string | null
         }
@@ -3686,6 +3898,7 @@ export type Database = {
           created_at?: string | null
           id?: string
           name?: string
+          organization_id?: string | null
           updated_at?: string | null
           user_id?: string | null
         }
@@ -3703,6 +3916,7 @@ export type Database = {
           job_id: string | null
           method: string
           notes: string | null
+          organization_id: string | null
           payment_date: string
           payment_number: string
           processed_by: string | null
@@ -3721,6 +3935,7 @@ export type Database = {
           job_id?: string | null
           method: string
           notes?: string | null
+          organization_id?: string | null
           payment_date?: string
           payment_number: string
           processed_by?: string | null
@@ -3739,6 +3954,7 @@ export type Database = {
           job_id?: string | null
           method?: string
           notes?: string | null
+          organization_id?: string | null
           payment_date?: string
           payment_number?: string
           processed_by?: string | null
@@ -3759,6 +3975,13 @@ export type Database = {
             columns: ["invoice_id"]
             isOneToOne: false
             referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payments_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
         ]
@@ -4242,6 +4465,7 @@ export type Database = {
           description: string | null
           id: string
           name: string
+          organization_id: string | null
           ourprice: number | null
           price: number
           sku: string | null
@@ -4258,6 +4482,7 @@ export type Database = {
           description?: string | null
           id?: string
           name: string
+          organization_id?: string | null
           ourprice?: number | null
           price?: number
           sku?: string | null
@@ -4274,6 +4499,7 @@ export type Database = {
           description?: string | null
           id?: string
           name?: string
+          organization_id?: string | null
           ourprice?: number | null
           price?: number
           sku?: string | null
@@ -4950,6 +5176,7 @@ export type Database = {
           created_by: string | null
           id: string
           name: string
+          organization_id: string | null
           user_id: string | null
         }
         Insert: {
@@ -4959,6 +5186,7 @@ export type Database = {
           created_by?: string | null
           id?: string
           name: string
+          organization_id?: string | null
           user_id?: string | null
         }
         Update: {
@@ -4968,6 +5196,7 @@ export type Database = {
           created_by?: string | null
           id?: string
           name?: string
+          organization_id?: string | null
           user_id?: string | null
         }
         Relationships: []
@@ -5088,6 +5317,7 @@ export type Database = {
           invitation_token: string
           invited_by: string | null
           name: string
+          organization_id: string | null
           phone: string | null
           role: string
           service_area: string | null
@@ -5102,6 +5332,7 @@ export type Database = {
           invitation_token: string
           invited_by?: string | null
           name: string
+          organization_id?: string | null
           phone?: string | null
           role?: string
           service_area?: string | null
@@ -5116,13 +5347,22 @@ export type Database = {
           invitation_token?: string
           invited_by?: string | null
           name?: string
+          organization_id?: string | null
           phone?: string | null
           role?: string
           service_area?: string | null
           status?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "team_invitations_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       team_member_commissions: {
         Row: {
@@ -6038,6 +6278,10 @@ export type Database = {
         Returns: boolean
       }
       bytea_to_text: { Args: { data: string }; Returns: string }
+      can_access_organization_email: {
+        Args: { p_conversation_id?: string; p_organization_id: string }
+        Returns: boolean
+      }
       check_automation_triggers: { Args: never; Returns: undefined }
       check_communication_health: {
         Args: never
@@ -6122,6 +6366,7 @@ export type Database = {
           description: string | null
           id: string
           name: string
+          organization_id: string | null
           ourprice: number | null
           price: number
           sku: string | null
@@ -6185,6 +6430,13 @@ export type Database = {
             Returns: undefined
           }
       execute_automation_log: { Args: { p_log_id: string }; Returns: Json }
+      find_organization_by_email_address: {
+        Args: { p_email_address: string }
+        Returns: {
+          organization_id: string
+          organization_name: string
+        }[]
+      }
       generate_approval_token: {
         Args: {
           p_client_email?: string
@@ -6207,6 +6459,10 @@ export type Database = {
         Returns: string
       }
       generate_next_id: { Args: { p_entity_type: string }; Returns: string }
+      generate_organization_email_address: {
+        Args: { p_company_name: string; p_organization_id: string }
+        Returns: string
+      }
       generate_portal_access: {
         Args: {
           p_client_id: string
@@ -6398,6 +6654,7 @@ export type Database = {
           name: string
         }[]
       }
+      get_user_organization_id: { Args: never; Returns: string }
       get_user_phone_number: { Args: { p_user_id: string }; Returns: string }
       get_user_primary_phone: { Args: { p_user_id: string }; Returns: string }
       get_user_role: { Args: { user_uuid: string }; Returns: string }

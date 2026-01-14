@@ -94,19 +94,22 @@ export const UnifiedItemsStep = ({
         </CardContent>
       </Card>
 
-      {/* Totals Section */}
-      <DocumentTotalsSection
-        documentType={documentType}
-        subtotal={calculateSubtotal()}
-        tax={calculateTotalTax()}
-        total={calculateGrandTotal()}
-      />
-
-      {/* Notes Section */}
-      <NotesSection
-        notes={notes}
-        onNotesChange={onNotesChange}
-      />
+      {/* Compact Totals + Notes Section - Side by side on larger screens */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        {/* Totals - Compact mode */}
+        <DocumentTotalsSection
+          documentType={documentType}
+          subtotal={calculateSubtotal()}
+          tax={calculateTotalTax()}
+          total={calculateGrandTotal()}
+          compact
+        />
+        {/* Notes - Collapsible */}
+        <NotesSection
+          notes={notes}
+          onNotesChange={onNotesChange}
+        />
+      </div>
 
       {/* Product Selection Dialog */}
       <Dialog open={showProductDialog} onOpenChange={setShowProductDialog}>

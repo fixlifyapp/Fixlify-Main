@@ -16,6 +16,7 @@ interface JobData {
   title: string;
   description?: string;
   client_id?: string;
+  property_id?: string;
   address?: string;
 }
 
@@ -119,6 +120,7 @@ export const useJobData = (jobId: string) => {
     jobData,
     clientInfo,
     jobAddress,
+    propertyId: jobData?.property_id,
     loading,
     error
   };

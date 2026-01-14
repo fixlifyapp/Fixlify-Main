@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { LineItem } from "../../../builder/types";
 import { DocumentType } from "../../UnifiedDocumentBuilder";
 import { Estimate } from "@/hooks/useEstimates";
@@ -173,6 +173,44 @@ export const useDocumentInitialization = ({
     initializeDocument();
   }, [open, existingDocument, documentType]);
 
+  // Function to refetch line items from database (useful when upsells are added)
+  const refetchLineItems = useCallback(async (documentId: string, parentType: string = documentType) => {
+    if (!documentId) return;
+
+    console.log("Refetching line items for:", parentType, documentId);
+    try {
+      const { data: items, error } = await supabase
+        .from('line_items')
+        .select('*')
+        .eq('parent_type', parentType)
+        .eq('parent_id', documentId);
+
+      if (error) {
+        console.error("Error refetching line items:", error);
+        return;
+      }
+
+      if (items) {
+        console.log(`Refetched ${items.length} line items from ${parentType}`);
+        const transformedItems: LineItem[] = items.map(item => ({
+          id: `temp-${Date.now()}-${Math.random()}`,
+          description: item.description || '',
+          quantity: item.quantity || 1,
+          unitPrice: Number(item.unit_price) || 0,
+          taxable: item.taxable !== false,
+          discount: 0,
+          ourPrice: 0,
+          name: item.description || '',
+          price: Number(item.unit_price) || 0,
+          total: (item.quantity || 1) * (Number(item.unit_price) || 0)
+        }));
+        setLineItems(transformedItems);
+      }
+    } catch (error) {
+      console.error("Error in refetchLineItems:", error);
+    }
+  }, [documentType, setLineItems]);
+
   return {
     lineItems,
     setLineItems,
@@ -182,6 +220,7 @@ export const useDocumentInitialization = ({
     setNotes,
     documentNumber,
     setDocumentNumber,
-    isInitialized
+    isInitialized,
+    refetchLineItems
   };
 };

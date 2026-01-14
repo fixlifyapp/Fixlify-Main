@@ -15,6 +15,7 @@ const customFieldSchema = z.object({
   entity_type: z.string().min(1, "Entity type is required"),
   placeholder: z.string().optional(),
   default_value: z.string().optional(),
+  description: z.string().optional(),
   required: z.boolean().optional(),
   selectOptions: z.string().optional()
 });
@@ -31,36 +32,36 @@ export function CustomFieldsConfig() {
   } = useCustomFields();
 
   const handleAddField = async (values: any) => {
-    // Process options for select fields
-    if (values.field_type === 'select' && values.selectOptions) {
+    // Process options for select and multi_select fields
+    if ((values.field_type === 'select' || values.field_type === 'multi_select') && values.selectOptions) {
       const options = values.selectOptions
         .split('\n')
         .map((opt: string) => opt.trim())
         .filter((opt: string) => opt.length > 0);
-      
+
       values.options = { options };
     }
-    
+
     // Remove the temporary selectOptions field
     delete values.selectOptions;
-    
+
     return await addItem(values);
   };
 
   const handleUpdateField = async (id: string, values: any) => {
-    // Process options for select fields
-    if (values.field_type === 'select' && values.selectOptions) {
+    // Process options for select and multi_select fields
+    if ((values.field_type === 'select' || values.field_type === 'multi_select') && values.selectOptions) {
       const options = values.selectOptions
         .split('\n')
         .map((opt: string) => opt.trim())
         .filter((opt: string) => opt.length > 0);
-      
+
       values.options = { options };
     }
-    
+
     // Remove the temporary selectOptions field
     delete values.selectOptions;
-    
+
     return await updateItem(id, values);
   };
 
@@ -87,6 +88,7 @@ export function CustomFieldsConfig() {
                 <SelectItem value="number">Number</SelectItem>
                 <SelectItem value="date">Date</SelectItem>
                 <SelectItem value="select">Select (Dropdown)</SelectItem>
+                <SelectItem value="multi_select">Multi-Select (Multiple choices)</SelectItem>
                 <SelectItem value="checkbox">Checkbox</SelectItem>
               </SelectContent>
             </Select>
@@ -144,7 +146,7 @@ export function CustomFieldsConfig() {
           </FormItem>
         )}
       />
-      {fieldType === 'select' && (
+      {(fieldType === 'select' || fieldType === 'multi_select') && (
         <FormField
           control={form.control}
           name="selectOptions"
@@ -152,8 +154,8 @@ export function CustomFieldsConfig() {
             <FormItem>
               <FormLabel>Options (one per line)</FormLabel>
               <FormControl>
-                <Textarea 
-                  {...field} 
+                <Textarea
+                  {...field}
                   placeholder="Option 1&#10;Option 2&#10;Option 3"
                   rows={4}
                 />
@@ -163,6 +165,19 @@ export function CustomFieldsConfig() {
           )}
         />
       )}
+      <FormField
+        control={form.control}
+        name="description"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>Description (optional)</FormLabel>
+            <FormControl>
+              <Input {...field} placeholder="Help text shown below the field" />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
       <FormField
         control={form.control}
         name="required"
@@ -187,17 +202,29 @@ export function CustomFieldsConfig() {
 
   const getInitialValues = (item?: any) => {
     if (!item) {
-      return { field_type: "text", entity_type: "job", required: false };
+      return {
+        field_type: "text",
+        entity_type: "job",
+        required: false,
+        description: "",
+        placeholder: "",
+        default_value: ""
+      };
     }
-    
-    // Prepare selectOptions for editing
+
+    // Prepare selectOptions for editing (both select and multi_select)
     let selectOptions = '';
-    if (item.field_type === 'select' && item.options?.options) {
+    if ((item.field_type === 'select' || item.field_type === 'multi_select') && item.options?.options) {
       selectOptions = item.options.options.join('\n');
     }
-    
+
+    // Ensure null values are converted to proper defaults for form
     return {
       ...item,
+      placeholder: item.placeholder ?? "",
+      default_value: item.default_value ?? "",
+      description: item.description ?? "",
+      required: item.required ?? false,
       selectOptions
     };
   };

@@ -38,7 +38,8 @@ export const useUnifiedDocumentBuilder = ({
     setNotes,
     documentNumber,
     setDocumentNumber,
-    isInitialized
+    isInitialized,
+    refetchLineItems
   } = useDocumentInitialization({
     documentType,
     existingDocument,
@@ -172,6 +173,7 @@ export const useUnifiedDocumentBuilder = ({
     // Document operations
     saveDocumentChanges,
     convertToInvoice,
+    refetchLineItems,
 
     // Smart features
     ...smartFeatures

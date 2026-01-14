@@ -34,6 +34,11 @@ interface JobDetailsTabsProps {
   hasSentInvoice?: boolean;
   hasPayments?: boolean;
   outstandingBalance?: number;
+  // Financial summary props
+  pendingEstimateCount?: number;
+  approvedEstimateTotal?: number;
+  totalInvoiceAmount?: number;
+  totalPaidAmount?: number;
 }
 
 // Progress indicator showing job workflow status
@@ -110,6 +115,14 @@ const JobProgressIndicator = ({
   );
 };
 
+// Format currency for display
+const formatCurrency = (amount: number): string => {
+  if (amount >= 1000) {
+    return `$${(amount / 1000).toFixed(1)}k`;
+  }
+  return `$${amount.toFixed(0)}`;
+};
+
 export const JobDetailsTabs = ({
   activeTab = "overview",
   onTabChange,
@@ -121,7 +134,11 @@ export const JobDetailsTabs = ({
   hasApprovedEstimate = false,
   hasSentInvoice = false,
   hasPayments = false,
-  outstandingBalance = 0
+  outstandingBalance = 0,
+  pendingEstimateCount = 0,
+  approvedEstimateTotal = 0,
+  totalInvoiceAmount = 0,
+  totalPaidAmount = 0
 }: JobDetailsTabsProps) => {
   const isMobile = useIsMobile();
   const tabsContainerRef = useRef<HTMLDivElement>(null);
@@ -164,6 +181,37 @@ export const JobDetailsTabs = ({
     }
   ];
 
+  // Generate financial badge text
+  const getEstimateBadge = () => {
+    if (estimateCount === 0) return null;
+    if (pendingEstimateCount > 0) {
+      return { text: `${pendingEstimateCount} pending`, variant: 'warning' as const };
+    }
+    if (approvedEstimateTotal > 0) {
+      return { text: formatCurrency(approvedEstimateTotal), variant: 'success' as const };
+    }
+    return { text: String(estimateCount), variant: 'default' as const };
+  };
+
+  const getInvoiceBadge = () => {
+    if (invoiceCount === 0) return null;
+    if (outstandingBalance > 0) {
+      return { text: `${formatCurrency(outstandingBalance)} due`, variant: 'warning' as const };
+    }
+    if (totalInvoiceAmount > 0) {
+      return { text: formatCurrency(totalInvoiceAmount), variant: 'success' as const };
+    }
+    return { text: String(invoiceCount), variant: 'default' as const };
+  };
+
+  const getPaymentBadge = () => {
+    if (paymentCount === 0) return null;
+    if (totalPaidAmount > 0) {
+      return { text: formatCurrency(totalPaidAmount), variant: 'success' as const };
+    }
+    return { text: String(paymentCount), variant: 'default' as const };
+  };
+
   const tabs = [
     {
       value: "overview",
@@ -177,14 +225,14 @@ export const JobDetailsTabs = ({
       label: "Estimates",
       mobileLabel: "Quotes",
       icon: FileText,
-      badge: estimateCount > 0 ? estimateCount : null
+      badge: getEstimateBadge()
     },
     {
       value: "invoices",
       label: "Invoices",
       mobileLabel: "Bills",
       icon: Receipt,
-      badge: invoiceCount > 0 ? invoiceCount : null,
+      badge: getInvoiceBadge(),
       alert: outstandingBalance > 0
     },
     {
@@ -192,7 +240,7 @@ export const JobDetailsTabs = ({
       label: "Payments",
       mobileLabel: "Pay",
       icon: CreditCard,
-      badge: paymentCount > 0 ? paymentCount : null
+      badge: getPaymentBadge()
     },
     {
       value: "history",
@@ -253,18 +301,22 @@ export const JobDetailsTabs = ({
                       {isMobile ? tab.mobileLabel : tab.label}
                     </span>
 
-                    {/* Badge for counts */}
+                    {/* Badge with financial summary */}
                     {tab.badge !== null && (
                       <Badge
                         variant="secondary"
                         className={cn(
-                          "h-5 min-w-[20px] px-1.5 text-[10px] font-semibold",
+                          "h-5 min-w-[20px] px-1.5 text-[10px] font-semibold whitespace-nowrap",
                           isActive
                             ? "bg-violet-200 text-violet-700"
+                            : tab.badge.variant === 'warning'
+                            ? "bg-amber-100 text-amber-700"
+                            : tab.badge.variant === 'success'
+                            ? "bg-emerald-100 text-emerald-700"
                             : "bg-slate-100 text-slate-600"
                         )}
                       >
-                        {tab.badge}
+                        {tab.badge.text}
                       </Badge>
                     )}
                   </TabsTrigger>

@@ -54,6 +54,13 @@ const JobDetailsContent = ({ jobId }: { jobId: string }) => {
     return sum + (balance > 0 ? balance : 0);
   }, 0) || 0;
 
+  // Calculate financial summary data for tab badges
+  const pendingEstimateCount = estimates?.filter(e => e.status === 'draft' || e.status === 'sent').length || 0;
+  const approvedEstimateTotal = estimates?.filter(e => e.status === 'approved')
+    .reduce((sum, e) => sum + (e.total || 0), 0) || 0;
+  const totalInvoiceAmount = invoices?.reduce((sum, inv) => sum + (inv.total || 0), 0) || 0;
+  const totalPaidAmount = payments?.reduce((sum, p) => sum + (p.amount || 0), 0) || 0;
+
   return (
     <div className="container mx-auto px-2 sm:px-4 max-w-none overflow-x-hidden">
       <JobDetailsHeader />
@@ -69,6 +76,10 @@ const JobDetailsContent = ({ jobId }: { jobId: string }) => {
           hasSentInvoice={hasSentInvoice}
           hasPayments={hasPayments}
           outstandingBalance={outstandingBalance}
+          pendingEstimateCount={pendingEstimateCount}
+          approvedEstimateTotal={approvedEstimateTotal}
+          totalInvoiceAmount={totalInvoiceAmount}
+          totalPaidAmount={totalPaidAmount}
         >
           {/* Lazy load tabs - only render active tab to prevent duplicate data fetches */}
           <TabsContent value="overview" className="mt-6">

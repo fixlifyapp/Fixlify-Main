@@ -1,7 +1,6 @@
 
 import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
-import { useProducts } from "@/hooks/useProducts";
 import { Shield, Info } from "lucide-react";
 import { EstimateSummaryCard } from "../estimate-builder/components/EstimateSummaryCard";
 import { NotesSection } from "../estimate-builder/components/NotesSection";
@@ -32,8 +31,10 @@ export const InvoiceUpsellStep = ({
   const autoSelectApplied = useRef(false);
   const shownTracked = useRef(false);
 
-  const { products: warrantyProducts, isLoading } = useProducts("Warranties");
-  const { config, invoiceProducts, isLoading: isLoadingConfig } = useUpsellSettings();
+  const { config, getProductsForAmount, isLoading: isLoadingConfig } = useUpsellSettings();
+
+  // Get upsell products based on document total (uses conditional rules if configured)
+  const upsellProducts = getProductsForAmount(documentTotal, 'invoices');
   const { trackEvent } = useUpsellAnalytics();
   const { user } = useAuth();
 
@@ -73,11 +74,12 @@ export const InvoiceUpsellStep = ({
             .eq('parent_type', 'estimate');
 
           if (!estimateError && estimateLineItems) {
-            const hasWarrantiesInEstimate = estimateLineItems.some((item: any) => 
-              item.description?.toLowerCase().includes('warranty')
+            // Check if any line items match configured upsell products
+            const hasUpsellInEstimate = estimateLineItems.some((item: any) =>
+              upsellProducts.some(wp => item.description?.includes(wp.name))
             );
-            
-            if (hasWarrantiesInEstimate) {
+
+            if (hasUpsellInEstimate) {
               setHasExistingWarranties(true);
               setIsLoadingExistingWarranties(false);
               return;
@@ -98,16 +100,15 @@ export const InvoiceUpsellStep = ({
           return;
         }
 
-        // Check if any line items are warranties
-        const hasWarranties = invoiceLineItems?.some((item: any) => 
-          item.description?.toLowerCase().includes('warranty') ||
-          warrantyProducts.some(wp => item.description?.includes(wp.name))
+        // Check if any line items are upsell products
+        const hasUpsellProducts = invoiceLineItems?.some((item: any) =>
+          upsellProducts.some(wp => item.description?.includes(wp.name))
         ) || false;
 
         console.log('Invoice line items:', invoiceLineItems);
-        console.log('Has existing warranties in invoice:', hasWarranties);
-        
-        setHasExistingWarranties(hasWarranties);
+        console.log('Has existing upsell products in invoice:', hasUpsellProducts);
+
+        setHasExistingWarranties(hasUpsellProducts);
       } catch (error) {
         console.error('Error checking existing warranties:', error);
       } finally {
@@ -115,23 +116,23 @@ export const InvoiceUpsellStep = ({
       }
     };
 
-    // Only check after warranty products are loaded
-    if (!isLoading && warrantyProducts.length > 0) {
+    // Only check after upsell products are loaded
+    if (!isLoadingConfig && upsellProducts.length > 0) {
       checkExistingWarranties();
-    } else if (!isLoading) {
+    } else if (!isLoadingConfig) {
       setIsLoadingExistingWarranties(false);
     }
-  }, [invoiceId, warrantyProducts, isLoading, estimateToConvert]);
+  }, [invoiceId, upsellProducts, isLoadingConfig, estimateToConvert]);
 
-  // Convert warranty products to upsell items and restore previous selections
+  // Convert admin-configured upsell products to upsell items and restore previous selections
   useEffect(() => {
     if (hasExistingWarranties || isLoadingExistingWarranties) {
-      // If warranties already exist or we're still loading, don't show them as options
+      // If upsell items already exist or we're still loading, don't show them as options
       setUpsellItems([]);
       return;
     }
 
-    const warrantyUpsells = warrantyProducts.map(product => {
+    const productUpsells = upsellProducts.map(product => {
       const existingSelection = existingUpsellItems.find(item => item.id === product.id);
 
       return {
@@ -141,15 +142,11 @@ export const InvoiceUpsellStep = ({
         price: product.price,
         icon: Shield,
         selected: existingSelection ? existingSelection.selected : false,
-        isAutoAdded: false,
-        // Enhanced fields from database
-        costPrice: product.cost_price,
-        isTopSeller: product.is_featured,
-        conversionHint: product.conversion_hint
+        isAutoAdded: false
       };
     });
-    setUpsellItems(warrantyUpsells);
-  }, [warrantyProducts, existingUpsellItems, hasExistingWarranties, isLoadingExistingWarranties]);
+    setUpsellItems(productUpsells);
+  }, [upsellProducts, existingUpsellItems, hasExistingWarranties, isLoadingExistingWarranties]);
 
   // Track "shown" events when upsell items are displayed
   useEffect(() => {
@@ -157,7 +154,6 @@ export const InvoiceUpsellStep = ({
       shownTracked.current ||
       !invoiceId ||
       upsellItems.length === 0 ||
-      isLoading ||
       isLoadingConfig ||
       hasExistingWarranties
     ) {
@@ -179,7 +175,7 @@ export const InvoiceUpsellStep = ({
         clientId: jobContext?.clientId
       });
     });
-  }, [invoiceId, upsellItems, isLoading, isLoadingConfig, hasExistingWarranties, trackEvent, jobContext]);
+  }, [invoiceId, upsellItems, isLoadingConfig, hasExistingWarranties, trackEvent, jobContext]);
 
   // Auto-select products based on admin configuration (only for new invoices without existing warranties)
   useEffect(() => {
@@ -187,7 +183,7 @@ export const InvoiceUpsellStep = ({
       autoSelectApplied.current ||
       isLoadingConfig ||
       !config?.invoices?.auto_select ||
-      invoiceProducts.length === 0 ||
+      upsellProducts.length === 0 ||
       existingUpsellItems.length > 0 ||
       upsellItems.length === 0 ||
       hasExistingWarranties ||
@@ -199,7 +195,7 @@ export const InvoiceUpsellStep = ({
     // Mark as applied to prevent re-running
     autoSelectApplied.current = true;
 
-    const autoSelectProductIds = invoiceProducts.map(p => p.id);
+    const autoSelectProductIds = upsellProducts.map(p => p.id);
     const itemsToAutoAdd = upsellItems.filter(
       item => autoSelectProductIds.includes(item.id) && !item.selected
     );
@@ -266,7 +262,7 @@ export const InvoiceUpsellStep = ({
               });
             });
 
-          toast.success(`${newAutoAddedIds.size} warranty product(s) auto-added`);
+          toast.success(`${newAutoAddedIds.size} product(s) auto-added`);
         }
       } catch (error) {
         console.error('Error auto-adding products:', error);
@@ -276,7 +272,7 @@ export const InvoiceUpsellStep = ({
     };
 
     autoAddProducts();
-  }, [config, invoiceProducts, upsellItems, existingUpsellItems, invoiceId, hasExistingWarranties, documentTotal, isLoadingConfig, trackEvent, jobContext]);
+  }, [config, upsellProducts, upsellItems, existingUpsellItems, invoiceId, hasExistingWarranties, documentTotal, isLoadingConfig, trackEvent, jobContext]);
 
   const handleUpsellToggle = async (itemId: string) => {
     if (isProcessing || isSavingWarranty) return;
@@ -431,7 +427,7 @@ export const InvoiceUpsellStep = ({
     }
   };
 
-  if (isLoading || isLoadingExistingWarranties || isLoadingConfig) {
+  if (isLoadingExistingWarranties || isLoadingConfig) {
     return (
       <div className="space-y-6">
         <div className="text-center">
@@ -446,20 +442,20 @@ export const InvoiceUpsellStep = ({
     <div className="space-y-6">
       <div className="text-center">
         <h3 className="text-lg font-semibold">Enhance Your Invoice</h3>
-        <p className="text-muted-foreground">Add valuable warranty services for complete protection</p>
+        <p className="text-muted-foreground">Add recommended products and services</p>
       </div>
 
       {hasExistingWarranties ? (
         <Alert>
           <Shield className="h-4 w-4" />
           <AlertDescription>
-            <strong>Warranties Already Included</strong>
+            <strong>Products Already Included</strong>
             <br />
-            This invoice already includes warranty services. 
-            No additional warranty options are needed at this time.
+            This invoice already includes recommended products.
+            No additional options are needed at this time.
             {estimateToConvert && (
               <span className="block mt-1 text-sm text-muted-foreground">
-                (Warranties were included from the original estimate)
+                (Products were included from the original estimate)
               </span>
             )}
           </AlertDescription>
@@ -469,11 +465,10 @@ export const InvoiceUpsellStep = ({
           <Alert>
             <Info className="h-4 w-4" />
             <AlertDescription>
-              <strong>Warranty Recommendation</strong>
+              <strong>Recommended Products</strong>
               <br />
-              No warranty was added to this invoice. Consider offering warranty protection 
-              to provide additional value and peace of mind for your customer. Warranties help build 
-              trust and can increase customer satisfaction while protecting your work.
+              Consider adding recommended products to provide additional value and peace of mind
+              for your customer. This can help build trust and increase customer satisfaction.
             </AlertDescription>
           </Alert>
 

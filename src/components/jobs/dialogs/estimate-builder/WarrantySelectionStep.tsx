@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Check, Shield, AlertCircle } from "lucide-react";
 import { Product } from "../../builder/types";
-import { useProducts } from "@/hooks/useProducts";
+import { useUpsellSettings } from "@/hooks/useUpsellSettings";
 
 interface WarrantySelectionStepProps {
   onSelectWarranty: (warranty: Product | null, note: string) => void;
@@ -20,20 +20,20 @@ export const WarrantySelectionStep = ({
 }: WarrantySelectionStepProps) => {
   const [selectedWarrantyId, setSelectedWarrantyId] = useState<string | null>(null);
   const [customNote, setCustomNote] = useState("");
-  const { products, isLoading } = useProducts("Warranties");
+  const { estimateProducts, isLoading: isLoadingConfig } = useUpsellSettings();
   
-  // Check if we have warranty products
-  const hasWarranties = products.length > 0;
+  // Check if we have upsell products
+  const hasWarranties = estimateProducts.length > 0;
 
   useEffect(() => {
-    if (products.length > 0) {
-      // Default to first warranty
-      setSelectedWarrantyId(products[0].id);
+    if (estimateProducts.length > 0) {
+      // Default to first product
+      setSelectedWarrantyId(estimateProducts[0].id);
     }
-  }, [products]);
+  }, [estimateProducts]);
 
   const handleConfirm = () => {
-    const selectedWarranty = products.find(w => w.id === selectedWarrantyId) || null;
+    const selectedWarranty = estimateProducts.find(w => w.id === selectedWarrantyId) || null;
     onSelectWarranty(selectedWarranty, customNote);
   };
 
@@ -48,7 +48,7 @@ export const WarrantySelectionStep = ({
         Adding a warranty increases customer satisfaction and provides additional value.
       </p>
       
-      {isLoading ? (
+      {isLoadingConfig ? (
         <div className="py-8 text-center">
           <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full mx-auto"></div>
           <p className="mt-2 text-sm text-muted-foreground">Loading warranty options...</p>
@@ -56,7 +56,7 @@ export const WarrantySelectionStep = ({
       ) : hasWarranties ? (
         <ScrollArea className="h-[300px] pr-4">
           <RadioGroup value={selectedWarrantyId || ""} onValueChange={setSelectedWarrantyId}>
-            {products.map((warranty) => (
+            {estimateProducts.map((warranty) => (
               <div 
                 key={warranty.id}
                 className={`flex items-start space-x-3 border rounded-md p-3 mb-3 hover:bg-muted/50 cursor-pointer ${

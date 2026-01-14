@@ -6,7 +6,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, ArrowRight, Check } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, Eye, EyeOff, FileText } from "lucide-react";
 import { UnifiedItemsStep } from "./unified/UnifiedItemsStep";
 import { EstimateUpsellStep } from "./estimate-builder/EstimateUpsellStep";
 import { UniversalSendDialog } from "./shared/UniversalSendDialog";
@@ -18,6 +18,9 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useJobData } from "./unified/hooks/useJobData";
 import { useUpsellSettings } from "@/hooks/useUpsellSettings";
+import { UnifiedDocumentPreview } from "./unified/UnifiedDocumentPreview";
+import { BillToSelector, BillToOption } from "./unified/components/BillToSelector";
+import { cn } from "@/lib/utils";
 
 interface SteppedInvoiceBuilderProps {
   open: boolean;
@@ -50,9 +53,13 @@ export const SteppedInvoiceBuilder = ({
   const [invoiceCreated, setInvoiceCreated] = useState(false);
   const [hasExistingWarranties, setHasExistingWarranties] = useState(false);
   const [isCheckingWarranties, setIsCheckingWarranties] = useState(false);
+  const [showMobilePreview, setShowMobilePreview] = useState(false);
 
   // Get job and client data
-  const { clientInfo, loading: jobLoading } = useJobData(jobId);
+  const { clientInfo, propertyId, loading: jobLoading } = useJobData(jobId);
+
+  // Bill To selection state
+  const [billToOption, setBillToOption] = useState<BillToOption | undefined>(undefined);
 
   // Check if upsell step is enabled in admin settings
   const { isInvoiceUpsellEnabled } = useUpsellSettings();
@@ -76,7 +83,8 @@ export const SteppedInvoiceBuilder = ({
     calculateSubtotal,
     calculateTotalTax,
     calculateGrandTotal,
-    saveDocumentChanges
+    saveDocumentChanges,
+    refetchLineItems
   } = useUnifiedDocumentBuilder({
     documentType: "invoice",
     existingDocument: existingInvoice || estimateToConvert,
@@ -375,84 +383,192 @@ export const SteppedInvoiceBuilder = ({
   return (
     <>
       <Dialog open={open && currentStep !== "send" && currentStep !== "upsell"} onOpenChange={handleDialogClose}>
-        <DialogContent className="w-[95vw] sm:max-w-6xl max-h-[90vh] overflow-y-auto p-4 sm:p-6">
-          <DialogHeader>
-            <DialogTitle className="flex flex-wrap items-center gap-2">
-              <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-sm font-medium">
-                Step {currentStepNumber} of {steps.length}
-              </span>
-              {stepTitles[currentStep]}
-              {documentNumber && <span className="text-sm text-muted-foreground">(#{documentNumber})</span>}
-              {shouldSkipUpsell && (
-                <span className="bg-green-100 text-green-800 px-2 py-1 rounded text-xs">
-                  {hasExistingWarranties ? "Warranty Included" : "Quick Mode"}
+        <DialogContent className="w-[98vw] max-w-[1600px] max-h-[92vh] overflow-y-auto">
+          <DialogHeader className="space-y-3">
+            {/* Compact Header with Step Badge */}
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              <DialogTitle className="flex items-center gap-3">
+                <span className="inline-flex items-center gap-1.5 bg-blue-100 text-blue-700 px-2.5 py-1 rounded-full text-xs font-semibold">
+                  Step {currentStepNumber} of {steps.length}
+                </span>
+                <span className="text-lg font-semibold">
+                  {stepTitles[currentStep]}
+                </span>
+                {shouldSkipUpsell && (
+                  <span className="bg-green-100 text-green-800 px-2 py-1 rounded text-xs">
+                    {hasExistingWarranties ? "Warranty Included" : "Quick Mode"}
+                  </span>
+                )}
+              </DialogTitle>
+              {documentNumber && (
+                <span className="text-sm text-muted-foreground bg-slate-100 px-2 py-0.5 rounded">
+                  #{documentNumber}
                 </span>
               )}
-            </DialogTitle>
-            
-            <div className="flex items-center justify-start sm:justify-center space-x-4 py-4 overflow-x-auto">
+            </div>
+
+            {/* Compact Step Progress Bar */}
+            <div className="flex items-center justify-center gap-2 py-2">
               {steps.map((step, index) => (
-                <div key={step.number} className="flex items-center flex-shrink-0">
-                  <div className={`flex items-center justify-center w-8 h-8 rounded-full border-2 ${
-                    currentStepNumber === step.number
-                      ? "border-primary bg-primary text-primary-foreground"
-                      : isStepComplete(step.number)
-                      ? "border-green-500 bg-green-500 text-white"
-                      : "border-gray-300 bg-white text-gray-500"
-                  }`}>
-                    {isStepComplete(step.number) ? (
-                      <Check className="h-4 w-4" />
+                <div key={step.number} className="flex items-center">
+                  {/* Step Circle */}
+                  <div
+                    className={cn(
+                      "flex items-center justify-center w-7 h-7 rounded-full border-2 text-xs font-semibold transition-all",
+                      currentStepNumber === step.number
+                        ? "border-blue-500 bg-blue-500 text-white shadow-sm shadow-blue-200"
+                        : currentStepNumber > step.number || isStepComplete(step.number)
+                        ? "border-emerald-500 bg-emerald-500 text-white"
+                        : "border-slate-300 bg-white text-slate-400"
+                    )}
+                  >
+                    {currentStepNumber > step.number || (isStepComplete(step.number) && currentStepNumber !== step.number) ? (
+                      <Check className="h-3.5 w-3.5" />
                     ) : (
-                      <span className="text-sm font-medium">{step.number}</span>
+                      step.number
                     )}
                   </div>
-                  
-                  <div className="ml-3 text-left">
-                    <div className={`text-sm font-medium ${
-                      currentStepNumber === step.number ? "text-primary" : "text-gray-500"
-                    }`}>
-                      {step.title}
-                    </div>
-                    <div className="text-xs text-gray-500">{step.description}</div>
-                  </div>
-                  
+
+                  {/* Step Label - Hidden on mobile */}
+                  <span className={cn(
+                    "ml-2 text-xs font-medium hidden sm:inline",
+                    currentStepNumber === step.number
+                      ? "text-blue-600"
+                      : currentStepNumber > step.number
+                      ? "text-emerald-600"
+                      : "text-slate-400"
+                  )}>
+                    {step.title}
+                  </span>
+
+                  {/* Connector Line */}
                   {index < steps.length - 1 && (
-                    <ArrowRight className="h-4 w-4 text-gray-400 mx-4" />
+                    <div className={cn(
+                      "w-8 sm:w-12 h-0.5 mx-2 rounded-full transition-colors",
+                      currentStepNumber > step.number + 1
+                        ? "bg-emerald-500"
+                        : currentStepNumber > step.number
+                        ? "bg-blue-500"
+                        : "bg-slate-200"
+                    )} />
                   )}
                 </div>
               ))}
             </div>
           </DialogHeader>
-          
-          <div className="py-6">
+
+          <div className="py-4 sm:py-6">
             {currentStep === "items" && (
               <>
-                <UnifiedItemsStep
-                  documentType="invoice"
-                  documentNumber={documentNumber}
-                  lineItems={lineItems}
-                  taxRate={taxRate}
-                  notes={notes}
-                  onLineItemsChange={setLineItems}
-                  onTaxRateChange={setTaxRate}
-                  onNotesChange={setNotes}
-                  onAddProduct={handleAddProduct}
-                  onRemoveLineItem={handleRemoveLineItem}
-                  onUpdateLineItem={handleUpdateLineItem}
-                  calculateSubtotal={calculateSubtotal}
-                  calculateTotalTax={calculateTotalTax}
-                  calculateGrandTotal={calculateGrandTotal}
-                />
+                {/* Preview Toggle - visible on screens smaller than XL */}
+                <div className="flex justify-end mb-4 xl:hidden">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowMobilePreview(!showMobilePreview)}
+                    className="gap-2"
+                  >
+                    {showMobilePreview ? (
+                      <>
+                        <EyeOff className="h-4 w-4" />
+                        Hide Preview
+                      </>
+                    ) : (
+                      <>
+                        <Eye className="h-4 w-4" />
+                        Show Preview
+                      </>
+                    )}
+                  </Button>
+                </div>
 
-                <div className="flex justify-between pt-4 border-t">
-                  <Button 
-                    variant="outline" 
+                {/* Split View Layout - Form left, Preview right on XL screens */}
+                <div className="grid gap-6 grid-cols-1 xl:grid-cols-2 items-start">
+                  {/* Form Section - hidden on small screens when preview is shown */}
+                  <div className={cn(
+                    "block space-y-4",
+                    showMobilePreview && "hidden xl:block"
+                  )}>
+                    {/* Bill To Selector */}
+                    <BillToSelector
+                      jobId={jobId}
+                      clientId={clientInfo?.id}
+                      propertyId={propertyId}
+                      currentClient={clientInfo ? {
+                        id: clientInfo.id || '',
+                        name: clientInfo.name,
+                        company: clientInfo.company,
+                        type: (clientInfo as any)?.type,
+                        address: (clientInfo as any)?.address,
+                        city: (clientInfo as any)?.city,
+                        state: (clientInfo as any)?.state,
+                        zip: (clientInfo as any)?.zip,
+                        email: clientInfo.email,
+                        phone: clientInfo.phone
+                      } : undefined}
+                      onSelect={setBillToOption}
+                      initialSelection={billToOption}
+                    />
+
+                    <UnifiedItemsStep
+                      documentType="invoice"
+                      documentNumber={documentNumber}
+                      lineItems={lineItems}
+                      taxRate={taxRate}
+                      notes={notes}
+                      onLineItemsChange={setLineItems}
+                      onTaxRateChange={setTaxRate}
+                      onNotesChange={setNotes}
+                      onAddProduct={handleAddProduct}
+                      onRemoveLineItem={handleRemoveLineItem}
+                      onUpdateLineItem={handleUpdateLineItem}
+                      calculateSubtotal={calculateSubtotal}
+                      calculateTotalTax={calculateTotalTax}
+                      calculateGrandTotal={calculateGrandTotal}
+                    />
+                  </div>
+
+                  {/* Preview Section - Always visible on XL, toggle on smaller screens */}
+                  <div className={cn(
+                    "border rounded-lg bg-slate-50/50 overflow-hidden self-stretch flex flex-col",
+                    showMobilePreview ? "block" : "hidden xl:block"
+                  )}>
+                    <div className="bg-slate-100 px-3 py-1.5 border-b flex items-center gap-2">
+                      <FileText className="h-3.5 w-3.5 text-slate-600" />
+                      <span className="text-xs font-medium text-slate-700">Preview</span>
+                    </div>
+                    <div className="overflow-auto flex-1 p-2">
+                      <div className="transform scale-[0.8] origin-top-left w-[125%]">
+                        <UnifiedDocumentPreview
+                          documentType="invoice"
+                          documentNumber={documentNumber}
+                          lineItems={lineItems}
+                          taxRate={taxRate}
+                          calculateSubtotal={calculateSubtotal}
+                          calculateTotalTax={calculateTotalTax}
+                          calculateGrandTotal={calculateGrandTotal}
+                          notes={notes}
+                          clientInfo={clientInfo}
+                          jobId={jobId}
+                          issueDate={new Date().toLocaleDateString()}
+                          dueDate={new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString()}
+                          billToOption={billToOption}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex justify-between pt-4 border-t mt-6">
+                  <Button
+                    variant="outline"
                     onClick={lineItems.length > 0 ? handleSaveForLater : () => onOpenChange(false)}
                   >
                     {lineItems.length > 0 ? "Save for Later" : "Cancel"}
                   </Button>
-                  
-                  <Button 
+
+                  <Button
                     onClick={handleSaveAndContinue}
                     disabled={isSubmitting || lineItems.length === 0}
                     className="gap-2"
@@ -474,15 +590,21 @@ export const SteppedInvoiceBuilder = ({
             setCurrentStep("items");
           }
         }}>
-          <DialogContent className="w-[95vw] sm:max-w-6xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle className="flex flex-wrap items-center gap-2">
-                <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-sm font-medium">
-                  Step 2 of 3
-                </span>
-                Enhance Your Invoice
-                {documentNumber && <span className="text-sm text-muted-foreground">(#{documentNumber})</span>}
-              </DialogTitle>
+          <DialogContent className="w-[98vw] max-w-[1600px] max-h-[92vh] overflow-y-auto">
+            <DialogHeader className="space-y-3">
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <DialogTitle className="flex items-center gap-3">
+                  <span className="inline-flex items-center gap-1.5 bg-blue-100 text-blue-700 px-2.5 py-1 rounded-full text-xs font-semibold">
+                    Step 2 of 3
+                  </span>
+                  <span className="text-lg font-semibold">Enhance Your Invoice</span>
+                </DialogTitle>
+                {documentNumber && (
+                  <span className="text-sm text-muted-foreground bg-slate-100 px-2 py-0.5 rounded">
+                    #{documentNumber}
+                  </span>
+                )}
+              </div>
             </DialogHeader>
             
             <div className="py-6">
@@ -503,9 +625,16 @@ export const SteppedInvoiceBuilder = ({
             
             {/* Navigation buttons for upsell step */}
             <div className="flex justify-between pt-4 border-t">
-              <Button 
-                variant="outline" 
-                onClick={() => setCurrentStep("items")}
+              <Button
+                variant="outline"
+                onClick={() => {
+                  // Refetch line items to get any upsells that were added
+                  const invoiceId = savedInvoice?.id || existingInvoice?.id;
+                  if (invoiceId) {
+                    refetchLineItems(invoiceId, 'invoice');
+                  }
+                  setCurrentStep("items");
+                }}
               >
                 <ArrowLeft className="h-4 w-4 mr-2" />
                 Back to Items

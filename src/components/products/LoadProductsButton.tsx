@@ -5,6 +5,7 @@ import { Loader2, RefreshCw, AlertCircle, CheckCircle2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/use-auth";
+import { loadEnhancedNicheData } from "@/utils/enhanced-niche-data-loader";
 
 interface LoadProductsButtonProps {
   onProductsLoaded?: () => void;
@@ -25,29 +26,46 @@ export const LoadProductsButton = ({ onProductsLoaded }: LoadProductsButtonProps
     setLoadResult(null);
 
     try {
-      // Call the server function to load products
-      const { data, error } = await supabase.rpc('load_my_niche_products');
+      // Get user's business niche from profile
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('business_niche')
+        .eq('id', user.id)
+        .single();
 
-      if (error) {
-        console.error('Error loading products:', error);
-        toast.error(`Failed to load products: ${error.message}`);
-        setLoadResult({ success: false, error: error.message });
+      if (profileError || !profile?.business_niche) {
+        console.error('Error fetching profile:', profileError);
+        toast.error('Please set your business type in settings first');
+        setLoadResult({ success: false, error: 'Business niche not set' });
         return;
       }
 
-      setLoadResult(data);
+      // Use client-side loader to load niche products
+      const success = await loadEnhancedNicheData(profile.business_niche);
 
-      if ((data as any)?.success) {
-        toast.success(
-          (data as any)?.message || `Successfully loaded ${(data as any)?.inserted_count || 0} products for ${(data as any)?.business_niche}`
-        );
-        
+      if (success) {
+        // Count products to show in result
+        const { count } = await supabase
+          .from('products')
+          .select('*', { count: 'exact', head: true })
+          .eq('user_id', user.id);
+
+        setLoadResult({
+          success: true,
+          business_niche: profile.business_niche,
+          product_count: count || 0,
+          message: `Products loaded for ${profile.business_niche}`
+        });
+
+        toast.success(`Successfully loaded products for ${profile.business_niche}`);
+
         // Call callback if provided
         if (onProductsLoaded) {
           onProductsLoaded();
         }
       } else {
-        toast.error('Failed to load products. Please check your business niche settings.');
+        toast.error('Failed to load products. Please try again.');
+        setLoadResult({ success: false, error: 'Loading failed' });
       }
     } catch (error: any) {
       console.error('Unexpected error:', error);

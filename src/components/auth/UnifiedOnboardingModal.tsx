@@ -211,36 +211,31 @@ export const UnifiedOnboardingModal = ({
         // Don't throw - continue
       }
 
-      // Step 6: Try to load client-side enhanced niche data (but don't fail if it doesn't work)
-      console.log('Initializing niche data for business type:', formData.businessType);
-      try {
-        const { initializeNicheData } = await import('@/utils/enhanced-niche-data-loader');
-        const nicheResult = await initializeNicheData(formData.businessType);
-        
-        console.log('Niche data initialization result:', nicheResult);
-        
-        if (!nicheResult.success) {
-          console.warn('Failed to initialize niche data:', nicheResult.error);
-          // Don't show error toast, just log it
-        } else {
-          console.log('Niche data initialized successfully:', nicheResult.message);
+      // Step 6: Try to load client-side enhanced niche data (only if user opted in)
+      if (formData.setupProducts || formData.setupTags) {
+        console.log('Initializing niche data for business type:', formData.businessType);
+        console.log('Setup options - Products:', formData.setupProducts, 'Tags:', formData.setupTags);
+        try {
+          const { initializeNicheData } = await import('@/utils/enhanced-niche-data-loader');
+          const nicheResult = await initializeNicheData(formData.businessType);
+
+          console.log('Niche data initialization result:', nicheResult);
+
+          if (!nicheResult.success) {
+            console.warn('Failed to initialize niche data:', nicheResult.error);
+            // Don't show error toast, just log it
+          } else {
+            console.log('Niche data initialized successfully:', nicheResult.message);
+          }
+        } catch (nicheError) {
+          console.warn('Error initializing niche data:', nicheError);
+          // Don't show error toast, continue
         }
-      } catch (nicheError) {
-        console.warn('Error initializing niche data:', nicheError);
-        // Don't show error toast, continue
-      }
-
-      // Step 7: Ensure products are loaded using server function
-      console.log("Ensuring products are loaded via server function...");
-      const { data: productsResult, error: productsError } = await supabase.rpc(
-        'load_my_niche_products'
-      );
-
-      if (productsError) {
-        console.error('Failed to load products via RPC:', productsError);
       } else {
-        console.log('Products loaded via RPC:', productsResult);
+        console.log('Skipping niche data initialization - user opted out');
       }
+
+      // Step 7: Products loading is now handled by client-side loader above (if setupProducts is true)
 
       // Step 8: Verify data was created successfully
       console.log("Verifying initialization...");

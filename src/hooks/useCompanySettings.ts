@@ -122,7 +122,9 @@ export const useCompanySettings = () => {
           saturday: { start: '09:00', end: '17:00', enabled: false },
           sunday: { start: '09:00', end: '17:00', enabled: false },
         },
-        brand_color: '#3b82f6'
+        brand_color: '#3b82f6',
+        gst_hst_number: '',
+        insurance_policy_number: ''
       };
     },
     enabled: !!user?.id,
@@ -153,8 +155,10 @@ export const useCompanySettings = () => {
           company_state: updates.company_state,
           company_zip: updates.company_zip,
           company_country: updates.company_country,
-          company_website: updates.website,
+          company_website: updates.website || updates.company_website,
           company_logo_url: updates.company_logo,
+          gst_hst_number: updates.gst_hst_number,
+          insurance_policy_number: updates.insurance_policy_number,
           updated_at: new Date().toISOString()
         });
 

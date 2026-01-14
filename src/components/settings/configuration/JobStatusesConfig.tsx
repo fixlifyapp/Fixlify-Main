@@ -107,9 +107,21 @@ export function JobStatusesConfig() {
 
   const getInitialValues = (item?: any) => {
     if (!item) {
-      return { sequence: 1 };
+      return {
+        sequence: 1,
+        description: "",
+        color: "#3b82f6",
+        is_default: false
+      };
     }
-    return item;
+    // Ensure null values are converted to proper defaults for form
+    return {
+      ...item,
+      description: item.description ?? "",
+      color: item.color ?? "#3b82f6",
+      is_default: item.is_default ?? false,
+      sequence: item.sequence ?? 1
+    };
   };
 
   return (

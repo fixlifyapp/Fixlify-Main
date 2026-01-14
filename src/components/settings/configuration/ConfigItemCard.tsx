@@ -45,10 +45,14 @@ export function ConfigItemCard({
 
   const handleAdd = async (values: any) => {
     try {
-      await onAdd(values);
-      setIsAddDialogOpen(false);
-      refreshItems();
-      toast.success(`${title.slice(0, -1)} added successfully`);
+      const result = await onAdd(values);
+      // Only close dialog if add actually succeeded
+      // (onAdd returns null on error, already shows error toast)
+      if (result) {
+        setIsAddDialogOpen(false);
+        refreshItems();
+        // Note: success toast is already shown by useConfigItems hook
+      }
     } catch (error) {
       console.error(`Error adding ${title.toLowerCase()}:`, error);
       toast.error(`Failed to add ${title.toLowerCase()}`);
@@ -57,12 +61,16 @@ export function ConfigItemCard({
 
   const handleUpdate = async (values: any) => {
     if (!editingItem) return;
-    
+
     try {
-      await onUpdate(editingItem.id, values);
-      setEditingItem(null);
-      refreshItems();
-      toast.success(`${title.slice(0, -1)} updated successfully`);
+      const result = await onUpdate(editingItem.id, values);
+      // Only close dialog and show success if update actually succeeded
+      // (onUpdate returns null on error, already shows error toast)
+      if (result) {
+        setEditingItem(null);
+        refreshItems();
+        // Note: success toast is already shown by useConfigItems hook
+      }
     } catch (error) {
       console.error(`Error updating ${title.toLowerCase()}:`, error);
       toast.error(`Failed to update ${title.toLowerCase()}`);

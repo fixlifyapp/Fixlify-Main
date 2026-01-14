@@ -12,11 +12,12 @@ import { CustomFieldsConfig } from "@/components/settings/configuration/CustomFi
 import { LeadSourcesConfig } from "@/components/settings/configuration/LeadSourcesConfig";
 import { TaxConfig } from "@/components/settings/configuration/TaxConfig";
 import { DocumentNumberingConfig } from "@/components/settings/configuration/DocumentNumberingConfig";
+import { DocumentsConfig } from "@/components/settings/configuration/DocumentsConfig";
 import { UpsellConfig } from "@/components/settings/configuration/UpsellConfig";
-import { Settings2, Tags, ListTodo, ClipboardList, FormInput, MessageCircle, Cog, Target, Zap, Receipt, Hash, Shield } from "lucide-react";
+import { Settings2, Tags, ListTodo, ClipboardList, FormInput, MessageCircle, Cog, Target, Zap, Receipt, Hash, Shield, FileText } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 
-const validTabs = ["niche", "tax", "numbering", "tags", "job-types", "job-statuses", "custom-fields", "lead-sources", "upsells"];
+const validTabs = ["niche", "tax", "numbering", "documents", "tags", "job-types", "job-statuses", "custom-fields", "lead-sources", "upsells"];
 
 const ConfigurationPage = () => {
   const { user } = useAuth();
@@ -73,6 +74,10 @@ const ConfigurationPage = () => {
                   <Hash className="h-4 w-4" />
                   Document Numbering
                 </TabsTrigger>
+                <TabsTrigger value="documents" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground flex items-center gap-1.5">
+                  <FileText className="h-4 w-4" />
+                  Document Footer
+                </TabsTrigger>
                 <TabsTrigger value="tags" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground flex items-center gap-1.5">
                   <Tags className="h-4 w-4" />
                   Tags
@@ -109,6 +114,9 @@ const ConfigurationPage = () => {
               </TabsContent>
               <TabsContent value="numbering" className="m-0">
                 <DocumentNumberingConfig />
+              </TabsContent>
+              <TabsContent value="documents" className="m-0">
+                <DocumentsConfig />
               </TabsContent>
               <TabsContent value="tags" className="m-0">
                 <TagsConfig />

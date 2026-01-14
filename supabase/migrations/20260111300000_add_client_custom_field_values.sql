@@ -17,47 +17,50 @@ CREATE INDEX idx_client_custom_field_values_field ON client_custom_field_values(
 -- RLS policies
 ALTER TABLE client_custom_field_values ENABLE ROW LEVEL SECURITY;
 
--- Users can view client custom field values for clients they have access to
--- Uses user_id on clients table which references the profile who owns/created the client
-CREATE POLICY "Users can view client custom field values"
+-- Users can view client custom field values for clients in their organization
+CREATE POLICY "Users can view client custom field values in their org"
 ON client_custom_field_values FOR SELECT
 USING (
-  EXISTS (
-    SELECT 1 FROM clients c
-    WHERE c.id = client_custom_field_values.client_id
-    AND c.user_id = auth.uid()
+  client_id IN (
+    SELECT id FROM clients
+    WHERE organization_id IN (
+      SELECT organization_id FROM profiles WHERE id = auth.uid()
+    )
   )
 );
 
--- Users can insert client custom field values for their clients
-CREATE POLICY "Users can insert client custom field values"
+-- Users can insert client custom field values for clients in their organization
+CREATE POLICY "Users can insert client custom field values in their org"
 ON client_custom_field_values FOR INSERT
 WITH CHECK (
-  EXISTS (
-    SELECT 1 FROM clients c
-    WHERE c.id = client_custom_field_values.client_id
-    AND c.user_id = auth.uid()
+  client_id IN (
+    SELECT id FROM clients
+    WHERE organization_id IN (
+      SELECT organization_id FROM profiles WHERE id = auth.uid()
+    )
   )
 );
 
--- Users can update client custom field values for their clients
-CREATE POLICY "Users can update client custom field values"
+-- Users can update client custom field values for clients in their organization
+CREATE POLICY "Users can update client custom field values in their org"
 ON client_custom_field_values FOR UPDATE
 USING (
-  EXISTS (
-    SELECT 1 FROM clients c
-    WHERE c.id = client_custom_field_values.client_id
-    AND c.user_id = auth.uid()
+  client_id IN (
+    SELECT id FROM clients
+    WHERE organization_id IN (
+      SELECT organization_id FROM profiles WHERE id = auth.uid()
+    )
   )
 );
 
--- Users can delete client custom field values for their clients
-CREATE POLICY "Users can delete client custom field values"
+-- Users can delete client custom field values for clients in their organization
+CREATE POLICY "Users can delete client custom field values in their org"
 ON client_custom_field_values FOR DELETE
 USING (
-  EXISTS (
-    SELECT 1 FROM clients c
-    WHERE c.id = client_custom_field_values.client_id
-    AND c.user_id = auth.uid()
+  client_id IN (
+    SELECT id FROM clients
+    WHERE organization_id IN (
+      SELECT organization_id FROM profiles WHERE id = auth.uid()
+    )
   )
 );

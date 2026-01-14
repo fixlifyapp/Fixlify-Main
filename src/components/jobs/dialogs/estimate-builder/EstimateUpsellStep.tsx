@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
-import { useProducts } from "@/hooks/useProducts";
 import { Shield } from "lucide-react";
 import { EstimateSummaryCard } from "./components/EstimateSummaryCard";
 import { NotesSection } from "./components/NotesSection";
@@ -28,8 +27,10 @@ export const EstimateUpsellStep = ({
   const autoSelectApplied = useRef(false);
   const shownTracked = useRef(false);
 
-  const { products: warrantyProducts, isLoading } = useProducts("Warranties");
-  const { config, estimateProducts, isLoading: isLoadingConfig } = useUpsellSettings();
+  const { config, getProductsForAmount, isLoading: isLoadingConfig } = useUpsellSettings();
+
+  // Get upsell products based on document total (uses conditional rules if configured)
+  const upsellProducts = getProductsForAmount(documentTotal, 'estimates');
   const { trackEvent } = useUpsellAnalytics();
   const { user } = useAuth();
 
@@ -37,9 +38,10 @@ export const EstimateUpsellStep = ({
   const documentId = jobContext?.estimateId || jobContext?.invoiceId;
   const documentType = jobContext?.invoiceId ? 'invoice' : 'estimate';
 
-  // Convert warranty products to upsell items and restore previous selections
+  // Convert admin-configured upsell products to upsell items and restore previous selections
+  // Uses conditional rules based on document total if configured
   useEffect(() => {
-    const warrantyUpsells = warrantyProducts.map(product => {
+    const productUpsells = upsellProducts.map(product => {
       const existingSelection = existingUpsellItems.find(item => item.id === product.id);
 
       return {
@@ -49,15 +51,11 @@ export const EstimateUpsellStep = ({
         price: product.price,
         icon: Shield,
         selected: existingSelection ? existingSelection.selected : false,
-        isAutoAdded: false,
-        // Enhanced fields from database
-        costPrice: product.cost_price,
-        isTopSeller: product.is_featured,
-        conversionHint: product.conversion_hint
+        isAutoAdded: false
       };
     });
-    setUpsellItems(warrantyUpsells);
-  }, [warrantyProducts, existingUpsellItems]);
+    setUpsellItems(productUpsells);
+  }, [upsellProducts, existingUpsellItems]);
 
   // Track "shown" events when upsell items are displayed
   useEffect(() => {
@@ -65,7 +63,6 @@ export const EstimateUpsellStep = ({
       shownTracked.current ||
       !documentId ||
       upsellItems.length === 0 ||
-      isLoading ||
       isLoadingConfig
     ) {
       return;
@@ -86,7 +83,7 @@ export const EstimateUpsellStep = ({
         clientId: jobContext?.clientId
       });
     });
-  }, [documentId, upsellItems, isLoading, isLoadingConfig, trackEvent, jobContext]);
+  }, [documentId, upsellItems, isLoadingConfig, trackEvent, jobContext]);
 
   // Auto-select products based on admin configuration (only for new documents)
   useEffect(() => {
@@ -94,7 +91,7 @@ export const EstimateUpsellStep = ({
       autoSelectApplied.current ||
       isLoadingConfig ||
       !config?.estimates?.auto_select ||
-      estimateProducts.length === 0 ||
+      upsellProducts.length === 0 ||
       existingUpsellItems.length > 0 ||
       upsellItems.length === 0 ||
       !documentId
@@ -105,7 +102,7 @@ export const EstimateUpsellStep = ({
     // Mark as applied to prevent re-running
     autoSelectApplied.current = true;
 
-    const autoSelectProductIds = estimateProducts.map(p => p.id);
+    const autoSelectProductIds = upsellProducts.map(p => p.id);
     const itemsToAutoAdd = upsellItems.filter(
       item => autoSelectProductIds.includes(item.id) && !item.selected
     );
@@ -172,7 +169,7 @@ export const EstimateUpsellStep = ({
               .eq('id', documentId);
           }
 
-          toast.success(`${newAutoAddedIds.size} warranty product(s) auto-added`);
+          toast.success(`${newAutoAddedIds.size} product(s) auto-added`);
         }
       } catch (error) {
         console.error('Error auto-adding products:', error);
@@ -182,7 +179,7 @@ export const EstimateUpsellStep = ({
     };
 
     autoAddProducts();
-  }, [config, estimateProducts, upsellItems, existingUpsellItems, documentId, documentType, documentTotal, isLoadingConfig]);
+  }, [config, upsellProducts, upsellItems, existingUpsellItems, documentId, documentType, documentTotal, isLoadingConfig]);
 
   const handleUpsellToggle = async (itemId: string) => {
     if (isProcessing || isSavingWarranty) return;
@@ -358,7 +355,7 @@ export const EstimateUpsellStep = ({
     }
   };
 
-  if (isLoading || isLoadingConfig) {
+  if (isLoadingConfig) {
     return (
       <div className="space-y-6">
         <div className="text-center">
@@ -373,7 +370,7 @@ export const EstimateUpsellStep = ({
     <div className="space-y-6">
       <div className="text-center">
         <h3 className="text-lg font-semibold">Enhance Your Service</h3>
-        <p className="text-muted-foreground">Add valuable warranty services for complete protection</p>
+        <p className="text-muted-foreground">Add recommended products and services</p>
       </div>
 
       {/* AI Recommendations */}

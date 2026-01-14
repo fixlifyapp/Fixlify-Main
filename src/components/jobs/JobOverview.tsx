@@ -2,8 +2,11 @@ import { FileText, Calendar, Tags, Paperclip, Settings2 } from "lucide-react";
 import { CustomFieldsCard } from "./overview/CustomFieldsCard";
 import { AttachmentsCard } from "./overview/AttachmentsCard";
 import { useJobDetails } from "./context/JobDetailsContext";
+import { useJobCustomFields } from "@/hooks/useJobCustomFields";
+import { useJobAttachments } from "@/hooks/useJobAttachments";
 import {
   SectionCard,
+  CollapsibleSectionCard,
   JobDetailsSection,
   ScheduleEditSection,
   TagsTasksEditSection,
@@ -16,6 +19,15 @@ interface JobOverviewProps {
 export const JobOverview = ({ jobId }: JobOverviewProps) => {
   // Use shared context - real-time subscriptions handle updates automatically (no refetch needed)
   const { job, isLoading } = useJobDetails();
+
+  // Get counts for collapsible section badges
+  const { customFieldValues } = useJobCustomFields(jobId);
+  const { attachments } = useJobAttachments(jobId);
+
+  // Count filled custom fields (non-empty values)
+  const filledCustomFieldsCount = customFieldValues.filter(
+    (field) => field.value && field.value.trim() !== ""
+  ).length;
 
   if (isLoading) {
     return (
@@ -86,23 +98,41 @@ export const JobOverview = ({ jobId }: JobOverviewProps) => {
         </SectionCard>
       </div>
 
-      {/* Row 2: Tags & Tasks - full width */}
-      <SectionCard icon={Tags} title="Tags & Tasks">
+      {/* Row 2: Tags & Tasks - collapsible, shows count */}
+      <CollapsibleSectionCard
+        icon={Tags}
+        title="Tags & Tasks"
+        defaultOpen={true}
+        badge={(job.tags?.length || 0) > 0 ? job.tags?.length : null}
+        badgeVariant="secondary"
+      >
         <TagsTasksEditSection
           jobId={jobId}
           tags={job.tags || []}
         />
-      </SectionCard>
+      </CollapsibleSectionCard>
 
-      {/* Row 3: Attachments | Custom Fields */}
+      {/* Row 3: Attachments | Custom Fields - collapsible */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <SectionCard icon={Paperclip} title="Attachments">
+        <CollapsibleSectionCard
+          icon={Paperclip}
+          title="Attachments"
+          defaultOpen={true}
+          badge={attachments.length > 0 ? `${attachments.length} file${attachments.length !== 1 ? 's' : ''}` : null}
+          badgeVariant="secondary"
+        >
           <AttachmentsCard jobId={jobId} embedded />
-        </SectionCard>
+        </CollapsibleSectionCard>
 
-        <SectionCard icon={Settings2} title="Custom Fields">
+        <CollapsibleSectionCard
+          icon={Settings2}
+          title="Custom Fields"
+          defaultOpen={true}
+          badge={filledCustomFieldsCount > 0 ? `${filledCustomFieldsCount} filled` : null}
+          badgeVariant="secondary"
+        >
           <CustomFieldsCard jobId={jobId} embedded />
-        </SectionCard>
+        </CollapsibleSectionCard>
       </div>
     </div>
   );

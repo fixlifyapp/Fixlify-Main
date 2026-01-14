@@ -6,7 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { FileWarning, Plus } from "lucide-react";
 import { useState } from "react";
-import { useProducts } from "@/hooks/useProducts";
+import { useUpsellSettings } from "@/hooks/useUpsellSettings";
 
 export interface EstimateUpsellOptionsProps {
   warranty?: Product | null;
@@ -22,7 +22,7 @@ export const EstimateUpsellOptions = ({
   onNotesChange
 }: EstimateUpsellOptionsProps) => {
   const [showWarrantyOptions, setShowWarrantyOptions] = useState(false);
-  const { products, isLoading } = useProducts("Warranties");
+  const { estimateProducts, isLoading: isLoadingConfig } = useUpsellSettings();
 
   const handleWarrantySelect = (product: Product) => {
     onWarrantyChange(product);
@@ -63,11 +63,11 @@ export const EstimateUpsellOptions = ({
         {showWarrantyOptions && (
           <div className="mt-4 space-y-3">
             <h4 className="text-sm font-medium">Available Warranties</h4>
-            {isLoading ? (
-              <p className="text-sm text-muted-foreground">Loading warranties...</p>
-            ) : products.length > 0 ? (
+            {isLoadingConfig ? (
+              <p className="text-sm text-muted-foreground">Loading products...</p>
+            ) : estimateProducts.length > 0 ? (
               <div className="space-y-2">
-                {products.map(product => (
+                {estimateProducts.map(product => (
                   <Card 
                     key={product.id} 
                     className="p-3 cursor-pointer hover:bg-muted/10"

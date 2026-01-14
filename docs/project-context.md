@@ -1,6 +1,6 @@
 # Fixlify Project Context
 
-> AI-optimized context file for consistent code generation. Last updated: 2026-01-03
+> AI-optimized context file for consistent code generation. Last updated: 2026-01-12
 
 ## Technology Stack
 
@@ -232,7 +232,7 @@ tests/                   # E2E and system tests
 
 ## Edge Function Patterns
 
-### 48 Edge Functions Organized By:
+### 43 Edge Functions Organized By:
 ```
 AI Functions:      ai-*, generate-ai-*, automation-*
 Email:             send-email, mailgun-email, email-webhook
@@ -277,5 +277,5 @@ const ClientsPage = lazy(() => import("@/pages/Clients"));
 3. **DON'T** skip RLS policies on new tables
 4. **DON'T** use raw SQL without parameterization
 5. **DON'T** forget to invalidate React Query cache after mutations
-6. **DON'T** use E.164 format for phone numbers (+1XXXXXXXXXX)
+6. **DO** use E.164 format for phone numbers (+1XXXXXXXXXX)
 7. **DON'T** hardcode API keys - use Supabase secrets or .env

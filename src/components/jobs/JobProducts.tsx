@@ -5,8 +5,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Package } from "lucide-react";
+import { Plus, Package, Pencil } from "lucide-react";
 import { toast } from "sonner";
+import { ProductEditDialog } from "./dialogs/ProductEditDialog";
+import { Product } from "./builder/types";
 
 interface JobProductsProps {
   jobId: string;
@@ -25,6 +27,11 @@ export const JobProducts = ({ jobId }: JobProductsProps) => {
   const [products, setProducts] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingNiche, setIsLoadingNiche] = useState(false);
+  const [showEditDialog, setShowEditDialog] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+
+  // Get unique categories from products
+  const categories = [...new Set(products.map(p => p.category).filter(Boolean))];
 
   useEffect(() => {
     fetchProducts();
@@ -89,6 +96,68 @@ export const JobProducts = ({ jobId }: JobProductsProps) => {
     }
   };
 
+  const handleAddProduct = () => {
+    setSelectedProduct(null);
+    setShowEditDialog(true);
+  };
+
+  const handleEditProduct = (product: any) => {
+    setSelectedProduct({
+      id: product.id,
+      name: product.name,
+      description: product.description || '',
+      category: product.category || '',
+      price: product.price || 0,
+      ourPrice: product.ourprice || 0,
+      taxable: product.taxable !== undefined ? product.taxable : true,
+      quantity: 1,
+      tags: product.tags || []
+    });
+    setShowEditDialog(true);
+  };
+
+  const handleSaveProduct = async (productData: Product) => {
+    if (!user) return;
+
+    try {
+      const productRecord = {
+        name: productData.name,
+        description: productData.description,
+        category: productData.category,
+        price: productData.price,
+        ourprice: productData.ourPrice || 0,
+        taxable: productData.taxable,
+        user_id: user.id
+      };
+
+      if (selectedProduct?.id) {
+        // Update existing product
+        const { error } = await supabase
+          .from('products')
+          .update(productRecord)
+          .eq('id', selectedProduct.id);
+
+        if (error) throw error;
+        toast.success('Product updated successfully');
+      } else {
+        // Create new product
+        const { error } = await supabase
+          .from('products')
+          .insert(productRecord);
+
+        if (error) throw error;
+        toast.success('Product created successfully');
+      }
+
+      setShowEditDialog(false);
+      setSelectedProduct(null);
+      fetchProducts();
+    } catch (error) {
+      console.error('Error saving product:', error);
+      toast.error('Failed to save product');
+    }
+  };
+
   if (isLoading) {
     return <div className="p-6">Loading products...</div>;
   }
@@ -109,7 +178,7 @@ export const JobProducts = ({ jobId }: JobProductsProps) => {
             >
               {isLoadingNiche ? 'Loading...' : 'Load Niche Products'}
             </Button>
-            <Button>
+            <Button onClick={handleAddProduct}>
               <Plus className="h-4 w-4 mr-2" />
               Add Product
             </Button>
@@ -126,10 +195,27 @@ export const JobProducts = ({ jobId }: JobProductsProps) => {
         ) : (
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {products.map((product) => (
-              <Card key={product.id} className="hover:shadow-sm transition-shadow">
+              <Card
+                key={product.id}
+                className="hover:shadow-md hover:border-violet-200 transition-all cursor-pointer group"
+                onClick={() => handleEditProduct(product)}
+              >
                 <CardContent className="p-4">
                   <div className="space-y-2">
-                    <h4 className="font-medium">{product.name}</h4>
+                    <div className="flex items-start justify-between">
+                      <h4 className="font-medium">{product.name}</h4>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleEditProduct(product);
+                        }}
+                      >
+                        <Pencil className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
                     {product.description && (
                       <p className="text-sm text-muted-foreground line-clamp-2">
                         {product.description}
@@ -146,6 +232,15 @@ export const JobProducts = ({ jobId }: JobProductsProps) => {
           </div>
         )}
       </CardContent>
+
+      {/* Product Edit Dialog */}
+      <ProductEditDialog
+        open={showEditDialog}
+        onOpenChange={setShowEditDialog}
+        product={selectedProduct}
+        onSave={handleSaveProduct}
+        categories={categories}
+      />
     </Card>
   );
 };

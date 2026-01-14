@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -7,8 +7,9 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Input } from "@/components/ui/input";
 import { useUpsellSettings, UpsellConfig as UpsellConfigType } from "@/hooks/useUpsellSettings";
-import { Shield, FileText, Receipt, Info, Sparkles, DollarSign, Loader2, Settings, BarChart3, Brain } from "lucide-react";
+import { Shield, FileText, Receipt, Info, Sparkles, DollarSign, Loader2, Settings, BarChart3, Brain, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { UpsellAnalytics } from "./UpsellAnalytics";
 import { UpsellAIInsights } from "./UpsellAIInsights";
@@ -24,6 +25,29 @@ export function UpsellConfig() {
 
   const [localConfig, setLocalConfig] = useState<UpsellConfigType>(config);
   const [hasChanges, setHasChanges] = useState(false);
+  const [estimateSearch, setEstimateSearch] = useState("");
+  const [invoiceSearch, setInvoiceSearch] = useState("");
+
+  // Filter products based on search
+  const filteredEstimateProducts = useMemo(() => {
+    if (!estimateSearch.trim()) return allWarrantyProducts;
+    const search = estimateSearch.toLowerCase();
+    return allWarrantyProducts.filter(p =>
+      p.name.toLowerCase().includes(search) ||
+      p.category?.toLowerCase().includes(search) ||
+      p.description?.toLowerCase().includes(search)
+    );
+  }, [allWarrantyProducts, estimateSearch]);
+
+  const filteredInvoiceProducts = useMemo(() => {
+    if (!invoiceSearch.trim()) return allWarrantyProducts;
+    const search = invoiceSearch.toLowerCase();
+    return allWarrantyProducts.filter(p =>
+      p.name.toLowerCase().includes(search) ||
+      p.category?.toLowerCase().includes(search) ||
+      p.description?.toLowerCase().includes(search)
+    );
+  }, [allWarrantyProducts, invoiceSearch]);
 
   // Sync local config with fetched config
   useEffect(() => {
@@ -144,7 +168,7 @@ export function UpsellConfig() {
             <div className="text-sm text-blue-800">
               <p className="font-medium mb-1">How Auto-Upsell Works</p>
               <p className="text-blue-700">
-                When enabled, selected warranty products will be automatically pre-selected
+                When enabled, selected products will be automatically pre-selected
                 when technicians create new estimates or invoices. Technicians can still
                 remove items they don't need for specific jobs.
               </p>
@@ -184,14 +208,17 @@ export function UpsellConfig() {
                 <>
                   <Separator />
 
-                  {/* Auto-select toggle */}
+                  {/* Auto-select toggle for client portal */}
                   <div className="flex items-center justify-between">
                     <div className="space-y-0.5">
                       <Label htmlFor="estimates-auto" className="text-base font-medium">
-                        Auto-select products
+                        Pre-select in Client Portal
                       </Label>
                       <p className="text-sm text-muted-foreground">
-                        Automatically pre-select chosen products when creating estimates
+                        Upsells will be <strong>checked by default</strong> when clients view estimates
+                      </p>
+                      <p className="text-xs text-emerald-600 mt-1">
+                        ✓ Recommended ON - Clients can uncheck if they don't want add-ons
                       </p>
                     </div>
                     <Switch
@@ -213,15 +240,30 @@ export function UpsellConfig() {
                           </Label>
                         </div>
 
+                        {/* Search input */}
+                        <div className="relative">
+                          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                          <Input
+                            placeholder="Search products..."
+                            value={estimateSearch}
+                            onChange={(e) => setEstimateSearch(e.target.value)}
+                            className="pl-9 h-9"
+                          />
+                        </div>
+
                         {allWarrantyProducts.length === 0 ? (
                           <div className="text-center py-6 text-muted-foreground">
                             <Shield className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                            <p>No warranty products found</p>
-                            <p className="text-sm">Add products with category "Warranties" in Products settings</p>
+                            <p>No products found</p>
+                            <p className="text-sm">Add products in the Products page first</p>
+                          </div>
+                        ) : filteredEstimateProducts.length === 0 ? (
+                          <div className="text-center py-4 text-muted-foreground">
+                            <p className="text-sm">No products match "{estimateSearch}"</p>
                           </div>
                         ) : (
                           <div className="space-y-2 max-h-60 overflow-y-auto">
-                            {allWarrantyProducts.map((product) => (
+                            {filteredEstimateProducts.map((product) => (
                               <div
                                 key={product.id}
                                 className={cn(
@@ -246,11 +288,16 @@ export function UpsellConfig() {
                                     >
                                       {product.name}
                                     </Label>
-                                    {product.description && (
-                                      <p className="text-xs text-muted-foreground line-clamp-1">
-                                        {product.description}
-                                      </p>
-                                    )}
+                                    <div className="flex items-center gap-2 mt-0.5">
+                                      <Badge variant="secondary" className="text-[10px] h-4 px-1.5">
+                                        {product.category}
+                                      </Badge>
+                                      {product.description && (
+                                        <p className="text-xs text-muted-foreground line-clamp-1">
+                                          {product.description}
+                                        </p>
+                                      )}
+                                    </div>
                                   </div>
                                 </div>
                                 <Badge variant="outline" className="bg-white">
@@ -298,17 +345,17 @@ export function UpsellConfig() {
                 <>
                   <Separator />
 
-                  {/* Auto-select toggle with warning */}
+                  {/* Auto-select toggle for client portal */}
                   <div className="flex items-center justify-between">
                     <div className="space-y-0.5">
                       <Label htmlFor="invoices-auto" className="text-base font-medium">
-                        Auto-select products
+                        Pre-select in Client Portal
                       </Label>
                       <p className="text-sm text-muted-foreground">
-                        Automatically pre-select chosen products when creating invoices
+                        Upsells will be <strong>checked by default</strong> when clients view invoices
                       </p>
                       <p className="text-xs text-amber-600 mt-1">
-                        ℹ️ Recommended OFF - Invoice stage is typically for unexpected discoveries only
+                        ⚠️ Recommended OFF - Invoice is already finalized, upsells are informational only
                       </p>
                     </div>
                     <Switch
@@ -330,14 +377,29 @@ export function UpsellConfig() {
                           </Label>
                         </div>
 
+                        {/* Search input */}
+                        <div className="relative">
+                          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                          <Input
+                            placeholder="Search products..."
+                            value={invoiceSearch}
+                            onChange={(e) => setInvoiceSearch(e.target.value)}
+                            className="pl-9 h-9"
+                          />
+                        </div>
+
                         {allWarrantyProducts.length === 0 ? (
                           <div className="text-center py-6 text-muted-foreground">
                             <Shield className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                            <p>No warranty products found</p>
+                            <p>No products found</p>
+                          </div>
+                        ) : filteredInvoiceProducts.length === 0 ? (
+                          <div className="text-center py-4 text-muted-foreground">
+                            <p className="text-sm">No products match "{invoiceSearch}"</p>
                           </div>
                         ) : (
                           <div className="space-y-2 max-h-60 overflow-y-auto">
-                            {allWarrantyProducts.map((product) => (
+                            {filteredInvoiceProducts.map((product) => (
                               <div
                                 key={product.id}
                                 className={cn(
@@ -362,11 +424,16 @@ export function UpsellConfig() {
                                     >
                                       {product.name}
                                     </Label>
-                                    {product.description && (
-                                      <p className="text-xs text-muted-foreground line-clamp-1">
-                                        {product.description}
-                                      </p>
-                                    )}
+                                    <div className="flex items-center gap-2 mt-0.5">
+                                      <Badge variant="secondary" className="text-[10px] h-4 px-1.5">
+                                        {product.category}
+                                      </Badge>
+                                      {product.description && (
+                                        <p className="text-xs text-muted-foreground line-clamp-1">
+                                          {product.description}
+                                        </p>
+                                      )}
+                                    </div>
                                   </div>
                                 </div>
                                 <Badge variant="outline" className="bg-white">

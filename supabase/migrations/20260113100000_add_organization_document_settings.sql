@@ -44,6 +44,12 @@ ON organization_document_settings(organization_id);
 ALTER TABLE organization_document_settings ENABLE ROW LEVEL SECURITY;
 
 -- RLS Policies (using profiles.organization_id instead of organization_members)
+-- Drop existing policies first to make migration idempotent
+DROP POLICY IF EXISTS "Users can view document settings in their organization" ON organization_document_settings;
+DROP POLICY IF EXISTS "Admins can insert document settings" ON organization_document_settings;
+DROP POLICY IF EXISTS "Admins can update document settings" ON organization_document_settings;
+DROP POLICY IF EXISTS "Admins can delete document settings" ON organization_document_settings;
+
 CREATE POLICY "Users can view document settings in their organization"
 ON organization_document_settings FOR SELECT
 USING (
@@ -95,6 +101,8 @@ BEGIN
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS update_organization_document_settings_timestamp ON organization_document_settings;
 
 CREATE TRIGGER update_organization_document_settings_timestamp
   BEFORE UPDATE ON organization_document_settings

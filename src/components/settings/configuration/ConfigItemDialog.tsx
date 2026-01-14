@@ -73,8 +73,10 @@ export function ConfigItemDialog({
   const handleSubmit = async (values: any) => {
     setIsSubmitting(true);
     try {
+      // Call onSubmit - the parent handler decides whether to close the dialog
+      // based on success/failure of the operation
       await onSubmit(values);
-      onOpenChange(false);
+      // Note: Dialog close is handled by parent via onOpenChange
     } catch (error) {
       console.error("Error submitting form:", error);
     } finally {
