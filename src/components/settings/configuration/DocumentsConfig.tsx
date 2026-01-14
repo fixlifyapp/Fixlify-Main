@@ -15,6 +15,7 @@ import {
   DEFAULT_DOCUMENT_SETTINGS
 } from "@/hooks/useOrganizationDocumentSettings";
 import { useCompanySettings } from "@/hooks/useCompanySettings";
+import { useOrganizationPhoneNumber } from "@/hooks/useOrganizationPhoneNumber";
 import {
   FileText,
   ChevronDown,
@@ -34,6 +35,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 export function DocumentsConfig() {
   const { settings, isLoading, updateSettings, isUpdating, resetToDefaults, isResetting } = useOrganizationDocumentSettings();
   const { companySettings } = useCompanySettings();
+  const { formattedPhoneNumber: purchasedPhone, phoneNumber: rawPurchasedPhone } = useOrganizationPhoneNumber();
 
   // Form state
   const [formData, setFormData] = useState({
@@ -81,14 +83,15 @@ export function DocumentsConfig() {
   };
 
   // Preview values for template substitution
+  // Use purchased phone number first, fallback to company settings phone
   const previewValues = useMemo(() => ({
     company_name: companySettings?.company_name || 'Your Company',
     document_type: 'estimate' as const,
-    phone: companySettings?.company_phone || '(555) 123-4567',
+    phone: purchasedPhone || companySettings?.company_phone || '(555) 123-4567',
     email: companySettings?.company_email || 'info@company.com',
     website: companySettings?.website || 'https://www.company.com',
     validity_days: formData.estimate_validity_days,
-  }), [companySettings, formData.estimate_validity_days]);
+  }), [companySettings, formData.estimate_validity_days, purchasedPhone]);
 
   // Handle save
   const handleSave = () => {
