@@ -178,6 +178,7 @@ export const InvoiceUpsellStep = ({
   }, [invoiceId, upsellItems, isLoadingConfig, hasExistingWarranties, trackEvent, jobContext]);
 
   // Auto-select products based on admin configuration (only for new invoices without existing warranties)
+  // FIXED: Check existing line_items in DB to prevent re-adding after back/forward navigation
   useEffect(() => {
     if (
       autoSelectApplied.current ||
@@ -195,26 +196,63 @@ export const InvoiceUpsellStep = ({
     // Mark as applied to prevent re-running
     autoSelectApplied.current = true;
 
-    const autoSelectProductIds = upsellProducts.map(p => p.id);
-    const itemsToAutoAdd = upsellItems.filter(
-      item => autoSelectProductIds.includes(item.id) && !item.selected
-    );
-
-    if (itemsToAutoAdd.length === 0) return;
-
     // Auto-add products to database
     const autoAddProducts = async () => {
       setIsSavingWarranty(true);
-      const newAutoAddedIds = new Set<string>();
 
       try {
+        // FIXED: First fetch existing line items from database to check what's already added
+        const { data: existingLineItems } = await supabase
+          .from('line_items')
+          .select('description')
+          .eq('parent_id', invoiceId)
+          .eq('parent_type', 'invoice');
+
+        const existingDescriptions = new Set(
+          (existingLineItems || []).map(li => li.description)
+        );
+
+        // Build description for each upsell item to check if it's already in DB
+        const getItemDescription = (item: any) =>
+          item.title + (item.description ? ` - ${item.description}` : '');
+
+        // Mark items that are already in the database as selected
+        const alreadyAddedIds = new Set<string>();
+        upsellItems.forEach(item => {
+          if (existingDescriptions.has(getItemDescription(item))) {
+            alreadyAddedIds.add(item.id);
+          }
+        });
+
+        // If there are already added items, update state to reflect them
+        if (alreadyAddedIds.size > 0) {
+          setUpsellItems(prev => prev.map(item => ({
+            ...item,
+            selected: alreadyAddedIds.has(item.id) ? true : item.selected
+          })));
+        }
+
+        const autoSelectProductIds = upsellProducts.map(p => p.id);
+        const itemsToAutoAdd = upsellItems.filter(
+          item => autoSelectProductIds.includes(item.id) &&
+                  !item.selected &&
+                  !alreadyAddedIds.has(item.id) // FIXED: Skip items already in DB
+        );
+
+        if (itemsToAutoAdd.length === 0) {
+          setIsSavingWarranty(false);
+          return;
+        }
+
+        const newAutoAddedIds = new Set<string>();
+
         for (const item of itemsToAutoAdd) {
           const { error: lineItemError } = await supabase
             .from('line_items')
             .insert({
               parent_id: invoiceId,
               parent_type: 'invoice',
-              description: item.title + (item.description ? ` - ${item.description}` : ''),
+              description: getItemDescription(item),
               quantity: 1,
               unit_price: item.price,
               taxable: false
