@@ -20,6 +20,7 @@ export interface Payment {
   technicianName?: string;
   invoice_id?: string;
   created_at?: string;
+  payment_number?: string;
 }
 
 export const usePayments = (jobId: string) => {
@@ -90,6 +91,7 @@ export const usePayments = (jobId: string) => {
         notes: payment.notes,
         invoice_id: payment.invoice_id,
         created_at: payment.created_at,
+        payment_number: payment.payment_number,
         jobId: jobId
       })) || [];
 

@@ -162,6 +162,14 @@ export const JobPayments = ({ jobId }: JobPaymentsProps) => {
 
                   <div className="min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
+                      {payment.payment_number && (
+                        <>
+                          <span className="font-medium text-slate-700 text-sm">
+                            {payment.payment_number}
+                          </span>
+                          <span className="text-xs text-slate-400">·</span>
+                        </>
+                      )}
                       <span className="font-semibold text-slate-900">
                         {formatCurrency(Math.abs(payment.amount))}
                       </span>

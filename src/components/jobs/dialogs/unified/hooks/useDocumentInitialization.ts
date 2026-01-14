@@ -6,6 +6,7 @@ import { Estimate } from "@/hooks/useEstimates";
 import { Invoice } from "@/hooks/useInvoices";
 import { supabase } from "@/integrations/supabase/client";
 import { useTaxSettings } from "@/hooks/useTaxSettings";
+import { generateNextId } from "@/utils/idGeneration";
 
 interface UseDocumentInitializationProps {
   documentType: DocumentType;
@@ -144,15 +145,10 @@ export const useDocumentInitialization = ({
           console.error("Error fetching line items:", error);
         }
       } else {
-        // Generate new document number only once
+        // Generate new document number only once using unified ID generator
         if (!documentNumber) {
           try {
-            const { data: newNumber, error } = await supabase.rpc('generate_next_id', {
-              p_entity_type: documentType
-            });
-            
-            if (error) throw error;
-            
+            const newNumber = await generateNextId(documentType);
             setDocumentNumber(newNumber);
             console.log(`Generated new ${documentType} number:`, newNumber);
           } catch (error) {

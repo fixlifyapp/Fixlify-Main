@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useJobHistoryIntegration } from '@/hooks/useJobHistoryIntegration';
+import { generateNextId } from '@/utils/idGeneration';
 
 export interface PaymentData {
   invoiceId: string;
@@ -63,12 +64,11 @@ export const usePaymentActions = (jobId: string, onSuccess?: () => void) => {
         return false;
       }
 
-      // Generate payment number
-      const { data: paymentNumber, error: numberError } = await supabase.rpc('generate_next_id', {
-        p_entity_type: 'payment'
-      });
-
-      if (numberError) {
+      // Generate payment number using unified ID generator
+      let paymentNumber: string;
+      try {
+        paymentNumber = await generateNextId('payment');
+      } catch (numberError) {
         toast.error('Failed to generate payment number');
         return false;
       }
@@ -169,9 +169,7 @@ export const usePaymentActions = (jobId: string, onSuccess?: () => void) => {
       if (paymentError) throw paymentError;
 
       // Create refund record (negative amount)
-      const { data: refundNumber } = await supabase.rpc('generate_next_id', {
-        p_entity_type: 'payment'
-      });
+      const refundNumber = await generateNextId('payment');
 
       const { error: refundError } = await supabase
         .from('payments')

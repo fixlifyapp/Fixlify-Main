@@ -4,8 +4,9 @@ import { supabase } from "@/integrations/supabase/client";
 const PREFIXES: Record<string, string> = {
   job: 'J',
   estimate: '', // No prefix for estimates - just numbers
-  invoice: 'I',
-  client: 'C'
+  invoice: 'INV',
+  client: 'C',
+  payment: 'PAY'
 };
 
 // Starting values for different entities
@@ -13,10 +14,11 @@ const STARTING_VALUES: Record<string, number> = {
   job: 1000,
   estimate: 1000,
   invoice: 1000,
-  client: 2000
+  client: 2000,
+  payment: 1000
 };
 
-export const generateNextId = async (entityType: 'job' | 'estimate' | 'invoice' | 'client'): Promise<string> => {
+export const generateNextId = async (entityType: 'job' | 'estimate' | 'invoice' | 'client' | 'payment'): Promise<string> => {
   console.log('=== generateNextId Debug ===');
   console.log('Entity type:', entityType);
   
@@ -184,6 +186,8 @@ function formatEntityId(entityType: string, number: number): string {
       return `J-${number}`;
     case 'client':
       return `C-${number}`;
+    case 'payment':
+      return `PAY-${number}`;
     default:
       return `${PREFIXES[entityType] || ''}-${number}`;
   }
@@ -200,6 +204,8 @@ function getTableName(entityType: string): string {
       return 'estimates';
     case 'invoice':
       return 'invoices';
+    case 'payment':
+      return 'payments';
     default:
       return `${entityType}s`; // Fallback pluralization
   }

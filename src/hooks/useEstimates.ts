@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Estimate as EstimateType, LineItem } from "@/types/documents";
+import { generateNextId } from "@/utils/idGeneration";
 
 // Extended interface for backward compatibility
 export interface Estimate extends EstimateType {
@@ -98,12 +99,11 @@ export const useEstimates = (jobId?: string) => {
         return false;
       }
 
-      // Generate invoice number
-      const { data: invoiceNumber, error: idError } = await supabase.rpc('generate_next_id', {
-        p_entity_type: 'invoice'
-      });
-
-      if (idError) {
+      // Generate invoice number using unified ID generator
+      let invoiceNumber: string;
+      try {
+        invoiceNumber = await generateNextId('invoice');
+      } catch (idError) {
         toast.error('Failed to generate invoice number');
         return false;
       }
