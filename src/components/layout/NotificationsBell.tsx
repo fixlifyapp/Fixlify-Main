@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Bell, Phone, PhoneMissed, MessageSquare, Mail, CheckCheck, Trash2, X } from 'lucide-react';
+import { Bell, Phone, PhoneMissed, MessageSquare, Mail, CheckCheck, Trash2, X, FileText, Receipt, Eye, CheckCircle, XCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
@@ -322,6 +322,22 @@ export const NotificationsBell = () => {
       navigate('/connect?tab=messages');
     } else if (notification.type === 'call' || notification.type === 'voicemail') {
       navigate('/connect?tab=calls');
+    } else if (notification.type === 'estimate_approved' || notification.type === 'estimate_declined' || notification.type === 'estimate_viewed') {
+      // Navigate to estimates page
+      const estimateId = notification.data?.estimate_id;
+      if (estimateId) {
+        navigate(`/estimates?highlight=${estimateId}`);
+      } else {
+        navigate('/estimates');
+      }
+    } else if (notification.type === 'invoice_viewed' || notification.type === 'invoice_paid') {
+      // Navigate to invoices page
+      const invoiceId = notification.data?.invoice_id;
+      if (invoiceId) {
+        navigate(`/invoices?highlight=${invoiceId}`);
+      } else {
+        navigate('/invoices');
+      }
     }
   };
 
@@ -335,6 +351,16 @@ export const NotificationsBell = () => {
         return <MessageSquare className="h-4 w-4 text-blue-500" />;
       case 'email':
         return <Mail className="h-4 w-4 text-purple-500" />;
+      case 'estimate_approved':
+        return <CheckCircle className="h-4 w-4 text-green-500" />;
+      case 'estimate_declined':
+        return <XCircle className="h-4 w-4 text-red-500" />;
+      case 'estimate_viewed':
+        return <Eye className="h-4 w-4 text-purple-500" />;
+      case 'invoice_viewed':
+        return <Eye className="h-4 w-4 text-green-500" />;
+      case 'invoice_paid':
+        return <Receipt className="h-4 w-4 text-green-500" />;
       default:
         return <Bell className="h-4 w-4 text-gray-500" />;
     }

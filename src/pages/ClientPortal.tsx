@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { toast } from "sonner";
 import {
   Clock,
   AlertCircle,
@@ -29,14 +30,22 @@ import {
   ArrowLeft,
   Phone,
   Mail,
-  MapPin
+  MapPin,
+  Loader2,
+  Banknote,
+  Building2,
+  Wallet,
+  Copy,
+  ExternalLink,
+  XCircle
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
 import { ClientPortalHeader } from "@/components/portal/ClientPortalHeader";
 import { ClientInfoCard } from "@/components/portal/ClientInfoCard";
 import { DashboardStats } from "@/components/portal/DashboardStats";
@@ -103,7 +112,12 @@ const ClientPortal = () => {
   const [activeTab, setActiveTab] = useState("dashboard");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [selectedDocument, setSelectedDocument] = useState<{ type: 'estimate' | 'invoice'; data: any } | null>(null);
+  const [showPaymentOptions, setShowPaymentOptions] = useState(false);
+  const [showDeclineDialog, setShowDeclineDialog] = useState(false);
+  const [declineReason, setDeclineReason] = useState("");
+  const [actionLoading, setActionLoading] = useState(false);
   const loadedRef = useRef(false);
+  const trackedDocumentsRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {
     // Prevent double-loading in React Strict Mode
@@ -111,6 +125,38 @@ const ClientPortal = () => {
     loadedRef.current = true;
     validateAndLoadPortal();
   }, [accessToken]);
+
+  // Track document views when a document is selected
+  useEffect(() => {
+    const trackDocumentView = async () => {
+      if (!selectedDocument || !accessToken) return;
+
+      const docId = selectedDocument.data.id;
+      // Don't track the same document twice in this session
+      if (trackedDocumentsRef.current.has(docId)) return;
+
+      trackedDocumentsRef.current.add(docId);
+
+      try {
+        console.log(`👁️ Tracking view for ${selectedDocument.type}:`, docId);
+
+        await supabase.functions.invoke('portal-track-view', {
+          body: {
+            accessToken,
+            documentType: selectedDocument.type,
+            documentId: docId
+          }
+        });
+
+        console.log('✅ Document view tracked');
+      } catch (error) {
+        console.warn('Failed to track document view:', error);
+        // Don't show error to user - this is a background operation
+      }
+    };
+
+    trackDocumentView();
+  }, [selectedDocument, accessToken]);
 
   const validateAndLoadPortal = async () => {
     if (!accessToken) {
@@ -149,6 +195,111 @@ const ClientPortal = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  // Approve estimate function
+  const handleApproveEstimate = async () => {
+    if (!selectedDocument || selectedDocument.type !== 'estimate') return;
+
+    setActionLoading(true);
+    try {
+      console.log("✅ Approving estimate:", selectedDocument.data.id);
+
+      // Call the portal-approve-estimate edge function
+      const { data, error: approveError } = await supabase.functions.invoke(
+        'portal-approve-estimate',
+        {
+          body: {
+            accessToken,
+            estimateId: selectedDocument.data.id
+          }
+        }
+      );
+
+      if (approveError) {
+        console.error("❌ Approve error:", approveError);
+        toast.error("Failed to approve estimate. Please try again.");
+        return;
+      }
+
+      // Update local state
+      setSelectedDocument({
+        ...selectedDocument,
+        data: { ...selectedDocument.data, status: 'approved' }
+      });
+
+      // Update the estimates list in portalData
+      if (portalData) {
+        const updatedEstimates = portalData.estimates.map(est =>
+          est.id === selectedDocument.data.id ? { ...est, status: 'approved' } : est
+        );
+        setPortalData({ ...portalData, estimates: updatedEstimates });
+      }
+
+      toast.success("Estimate approved successfully! The service provider has been notified.");
+    } catch (error) {
+      console.error("❌ Error approving estimate:", error);
+      toast.error("Something went wrong. Please try again.");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  // Decline estimate function
+  const handleDeclineEstimate = async () => {
+    if (!selectedDocument || selectedDocument.type !== 'estimate') return;
+
+    setActionLoading(true);
+    try {
+      console.log("❌ Declining estimate:", selectedDocument.data.id);
+
+      // Call the portal-decline-estimate edge function
+      const { data, error: declineError } = await supabase.functions.invoke(
+        'portal-decline-estimate',
+        {
+          body: {
+            accessToken,
+            estimateId: selectedDocument.data.id,
+            reason: declineReason.trim() || undefined
+          }
+        }
+      );
+
+      if (declineError) {
+        console.error("❌ Decline error:", declineError);
+        toast.error("Failed to decline estimate. Please try again.");
+        return;
+      }
+
+      // Update local state
+      setSelectedDocument({
+        ...selectedDocument,
+        data: { ...selectedDocument.data, status: 'declined' }
+      });
+
+      // Update the estimates list in portalData
+      if (portalData) {
+        const updatedEstimates = portalData.estimates.map(est =>
+          est.id === selectedDocument.data.id ? { ...est, status: 'declined' } : est
+        );
+        setPortalData({ ...portalData, estimates: updatedEstimates });
+      }
+
+      setShowDeclineDialog(false);
+      setDeclineReason("");
+      toast.success("Estimate declined. The service provider has been notified.");
+    } catch (error) {
+      console.error("❌ Error declining estimate:", error);
+      toast.error("Something went wrong. Please try again.");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  // Copy to clipboard helper
+  const copyToClipboard = (text: string, label: string) => {
+    navigator.clipboard.writeText(text);
+    toast.success(`${label} copied to clipboard!`);
   };
 
   const formatCurrency = (amount: number) => {
@@ -693,7 +844,10 @@ const ClientPortal = () => {
       <ClientPortalFooter companyData={portalData.company} />
 
       {/* Document Viewer Dialog */}
-      <Dialog open={!!selectedDocument} onOpenChange={() => setSelectedDocument(null)}>
+      <Dialog open={!!selectedDocument} onOpenChange={() => {
+        setSelectedDocument(null);
+        setShowPaymentOptions(false);
+      }}>
         <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
           {selectedDocument && (
             <>
@@ -827,27 +981,249 @@ const ClientPortal = () => {
                   <Button
                     variant="outline"
                     className="flex-1"
-                    onClick={() => setSelectedDocument(null)}
+                    onClick={() => {
+                      setSelectedDocument(null);
+                      setShowPaymentOptions(false);
+                    }}
                   >
                     <ArrowLeft className="h-4 w-4 mr-2" />
                     Back
                   </Button>
                   {selectedDocument.type === 'invoice' && selectedDocument.data.payment_status !== 'paid' && portalData?.permissions.make_payments && (
-                    <Button className="flex-1 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700">
+                    <Button
+                      className="flex-1 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700"
+                      onClick={() => setShowPaymentOptions(true)}
+                    >
                       <CreditCard className="h-4 w-4 mr-2" />
                       Pay Now
                     </Button>
                   )}
-                  {selectedDocument.type === 'estimate' && selectedDocument.data.status !== 'approved' && (
-                    <Button className="flex-1 bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700">
-                      <CheckCircle className="h-4 w-4 mr-2" />
-                      Approve Estimate
-                    </Button>
+                  {selectedDocument.type === 'estimate' && selectedDocument.data.status !== 'approved' && selectedDocument.data.status !== 'declined' && (
+                    <>
+                      <Button
+                        variant="outline"
+                        className="flex-1 border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
+                        onClick={() => setShowDeclineDialog(true)}
+                        disabled={actionLoading}
+                      >
+                        <XCircle className="h-4 w-4 mr-2" />
+                        Decline
+                      </Button>
+                      <Button
+                        className="flex-1 bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700"
+                        onClick={handleApproveEstimate}
+                        disabled={actionLoading}
+                      >
+                        {actionLoading ? (
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        ) : (
+                          <CheckCircle className="h-4 w-4 mr-2" />
+                        )}
+                        {actionLoading ? 'Processing...' : 'Approve'}
+                      </Button>
+                    </>
+                  )}
+                  {selectedDocument.type === 'estimate' && selectedDocument.data.status === 'approved' && (
+                    <div className="flex-1 flex items-center justify-center gap-2 py-2 bg-green-50 rounded-lg border border-green-200">
+                      <CheckCircle className="h-5 w-5 text-green-600" />
+                      <span className="text-green-700 font-medium">Approved</span>
+                    </div>
+                  )}
+                  {selectedDocument.type === 'estimate' && selectedDocument.data.status === 'declined' && (
+                    <div className="flex-1 flex items-center justify-center gap-2 py-2 bg-red-50 rounded-lg border border-red-200">
+                      <XCircle className="h-5 w-5 text-red-600" />
+                      <span className="text-red-700 font-medium">Declined</span>
+                    </div>
                   )}
                 </div>
+
+                {/* Payment Options Panel */}
+                {showPaymentOptions && selectedDocument.type === 'invoice' && (
+                  <div className="mt-6 border-t pt-6 space-y-4">
+                    <div className="flex items-center justify-between">
+                      <h4 className="font-semibold text-gray-900 flex items-center gap-2">
+                        <Wallet className="h-5 w-5 text-green-600" />
+                        Payment Options
+                      </h4>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setShowPaymentOptions(false)}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+
+                    <div className="space-y-3">
+                      {/* E-Transfer Option */}
+                      <div className="p-4 bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl border border-blue-200">
+                        <div className="flex items-start gap-3">
+                          <div className="h-10 w-10 bg-blue-500 rounded-lg flex items-center justify-center flex-shrink-0">
+                            <Building2 className="h-5 w-5 text-white" />
+                          </div>
+                          <div className="flex-1">
+                            <h5 className="font-semibold text-blue-900">Interac e-Transfer</h5>
+                            <p className="text-sm text-blue-700 mt-1">Send payment directly to our email</p>
+                            {portalData?.company?.email && (
+                              <div className="mt-3 flex items-center gap-2">
+                                <code className="bg-white px-3 py-1.5 rounded-lg text-sm font-mono text-blue-800 border border-blue-200">
+                                  {portalData.company.email}
+                                </code>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="border-blue-300 text-blue-700 hover:bg-blue-50"
+                                  onClick={() => copyToClipboard(portalData.company?.email || '', 'Email')}
+                                >
+                                  <Copy className="h-3 w-3" />
+                                </Button>
+                              </div>
+                            )}
+                            <p className="text-xs text-blue-600 mt-2">
+                              Reference: Invoice #{selectedDocument.type === 'invoice' ? selectedDocument.data.invoice_number : ''}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Cash Option */}
+                      <div className="p-4 bg-gradient-to-br from-green-50 to-green-100 rounded-xl border border-green-200">
+                        <div className="flex items-start gap-3">
+                          <div className="h-10 w-10 bg-green-500 rounded-lg flex items-center justify-center flex-shrink-0">
+                            <Banknote className="h-5 w-5 text-white" />
+                          </div>
+                          <div className="flex-1">
+                            <h5 className="font-semibold text-green-900">Cash Payment</h5>
+                            <p className="text-sm text-green-700 mt-1">Pay in person at service completion</p>
+                            <p className="text-xs text-green-600 mt-2">
+                              Contact us to arrange payment pickup or pay directly to technician
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Check Option */}
+                      <div className="p-4 bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl border border-purple-200">
+                        <div className="flex items-start gap-3">
+                          <div className="h-10 w-10 bg-purple-500 rounded-lg flex items-center justify-center flex-shrink-0">
+                            <Receipt className="h-5 w-5 text-white" />
+                          </div>
+                          <div className="flex-1">
+                            <h5 className="font-semibold text-purple-900">Check / Money Order</h5>
+                            <p className="text-sm text-purple-700 mt-1">Mail your check to our address</p>
+                            {portalData?.company?.name && (
+                              <p className="text-xs text-purple-600 mt-2">
+                                Make payable to: <strong>{portalData.company.name}</strong>
+                              </p>
+                            )}
+                            {portalData?.company?.address && (
+                              <p className="text-xs text-purple-600">
+                                {portalData.company.address}
+                                {portalData.company.city && `, ${portalData.company.city}`}
+                                {portalData.company.state && `, ${portalData.company.state}`}
+                                {portalData.company.zip && ` ${portalData.company.zip}`}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Contact for Questions */}
+                      <div className="p-4 bg-gray-50 rounded-xl border border-gray-200">
+                        <p className="text-sm text-gray-600 text-center">
+                          Questions about payment?{' '}
+                          {portalData?.company?.phone ? (
+                            <a
+                              href={`tel:${portalData.company.phone}`}
+                              className="text-purple-600 font-medium hover:underline"
+                            >
+                              Call {portalData.company.phone}
+                            </a>
+                          ) : portalData?.company?.email ? (
+                            <a
+                              href={`mailto:${portalData.company.email}`}
+                              className="text-purple-600 font-medium hover:underline"
+                            >
+                              Email us
+                            </a>
+                          ) : (
+                            <span>Contact us</span>
+                          )}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             </>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Decline Estimate Dialog */}
+      <Dialog open={showDeclineDialog} onOpenChange={(open) => {
+        setShowDeclineDialog(open);
+        if (!open) setDeclineReason("");
+      }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-red-600">
+              <XCircle className="h-5 w-5" />
+              Decline Estimate
+            </DialogTitle>
+            <DialogDescription>
+              Are you sure you want to decline this estimate? The service provider will be notified.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-gray-700">
+                Reason for declining (optional)
+              </label>
+              <Textarea
+                placeholder="Let us know why you're declining this estimate..."
+                value={declineReason}
+                onChange={(e) => setDeclineReason(e.target.value)}
+                rows={3}
+                className="resize-none"
+              />
+              <p className="text-xs text-gray-500">
+                This feedback helps us improve our services.
+              </p>
+            </div>
+          </div>
+
+          <DialogFooter className="flex gap-2 sm:gap-2">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowDeclineDialog(false);
+                setDeclineReason("");
+              }}
+              disabled={actionLoading}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleDeclineEstimate}
+              disabled={actionLoading}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              {actionLoading ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Declining...
+                </>
+              ) : (
+                <>
+                  <XCircle className="h-4 w-4 mr-2" />
+                  Decline Estimate
+                </>
+              )}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
