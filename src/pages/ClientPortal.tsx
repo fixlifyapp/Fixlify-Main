@@ -1,12 +1,12 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { 
-  Clock, 
-  AlertCircle, 
-  FileText, 
-  DollarSign, 
+import {
+  Clock,
+  AlertCircle,
+  FileText,
+  DollarSign,
   Home,
   Receipt,
   History,
@@ -25,13 +25,18 @@ import {
   Zap,
   Award,
   Star,
-  Activity
+  Activity,
+  ArrowLeft,
+  Phone,
+  Mail,
+  MapPin
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ClientPortalHeader } from "@/components/portal/ClientPortalHeader";
 import { ClientInfoCard } from "@/components/portal/ClientInfoCard";
 import { DashboardStats } from "@/components/portal/DashboardStats";
@@ -97,8 +102,13 @@ const ClientPortal = () => {
   const [error, setError] = useState("");
   const [activeTab, setActiveTab] = useState("dashboard");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [selectedDocument, setSelectedDocument] = useState<{ type: 'estimate' | 'invoice'; data: any } | null>(null);
+  const loadedRef = useRef(false);
 
   useEffect(() => {
+    // Prevent double-loading in React Strict Mode
+    if (loadedRef.current) return;
+    loadedRef.current = true;
     validateAndLoadPortal();
   }, [accessToken]);
 
@@ -427,9 +437,12 @@ const ClientPortal = () => {
           {/* Tab Content */}
           {activeTab === 'dashboard' && (
             <div className="space-y-6">
-              {/* Stats Grid with 3D Cards */}
+              {/* Stats Grid with 3D Cards - Clickable */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                <Card className="glass-purple card-3d hover-lift">
+                <Card
+                  className="glass-purple card-3d cursor-pointer group hover:shadow-lg transition-shadow"
+                  onClick={() => setActiveTab('estimates')}
+                >
                   <CardContent className="p-6">
                     <div className="flex items-center justify-between">
                       <div>
@@ -441,10 +454,14 @@ const ClientPortal = () => {
                         <FileText className="h-7 w-7 text-white" />
                       </div>
                     </div>
+                    <p className="text-xs text-purple-500 mt-3 opacity-0 group-hover:opacity-100 transition-opacity">Click to view all estimates →</p>
                   </CardContent>
                 </Card>
 
-                <Card className="glass-purple card-3d hover-lift">
+                <Card
+                  className="glass-purple card-3d cursor-pointer group hover:shadow-lg transition-shadow"
+                  onClick={() => setActiveTab('invoices')}
+                >
                   <CardContent className="p-6">
                     <div className="flex items-center justify-between">
                       <div>
@@ -456,10 +473,14 @@ const ClientPortal = () => {
                         <Receipt className="h-7 w-7 text-white" />
                       </div>
                     </div>
+                    <p className="text-xs text-green-500 mt-3 opacity-0 group-hover:opacity-100 transition-opacity">Click to view all invoices →</p>
                   </CardContent>
                 </Card>
 
-                <Card className="glass-purple card-3d hover-lift">
+                <Card
+                  className="glass-purple card-3d cursor-pointer group hover:shadow-lg transition-shadow"
+                  onClick={() => setActiveTab('invoices')}
+                >
                   <CardContent className="p-6">
                     <div className="flex items-center justify-between">
                       <div>
@@ -471,10 +492,14 @@ const ClientPortal = () => {
                         <DollarSign className="h-7 w-7 text-white" />
                       </div>
                     </div>
+                    <p className="text-xs text-blue-500 mt-3 opacity-0 group-hover:opacity-100 transition-opacity">Click to view paid invoices →</p>
                   </CardContent>
                 </Card>
 
-                <Card className="glass-purple card-3d hover-lift">
+                <Card
+                  className="glass-purple card-3d cursor-pointer group hover:shadow-lg transition-shadow"
+                  onClick={() => setActiveTab('invoices')}
+                >
                   <CardContent className="p-6">
                     <div className="flex items-center justify-between">
                       <div>
@@ -486,6 +511,7 @@ const ClientPortal = () => {
                         <Clock className="h-7 w-7 text-white" />
                       </div>
                     </div>
+                    <p className="text-xs text-orange-500 mt-3 opacity-0 group-hover:opacity-100 transition-opacity">Click to view pending invoices →</p>
                   </CardContent>
                 </Card>
               </div>
@@ -518,37 +544,41 @@ const ClientPortal = () => {
                         const isEstimate = 'estimate_number' in item;
                         const total = parseFloat(item.total?.toString() || '0');
                         const documentNumber = isEstimate ? item.estimate_number : item.invoice_number;
-                        
+
                         return (
                           <div
                             key={item.id}
-                            className="flex items-center justify-between p-4 rounded-xl bg-white/50 hover:bg-white/70 transition-all cursor-pointer hover-lift"
+                            onClick={() => setSelectedDocument({ type: isEstimate ? 'estimate' : 'invoice', data: item })}
+                            className="flex items-center justify-between p-4 rounded-xl bg-white/50 hover:bg-white/70 hover:shadow-md transition-all cursor-pointer group"
                           >
                             <div className="flex items-center gap-4">
                               <div className={cn(
                                 "h-12 w-12 rounded-xl flex items-center justify-center shadow-md",
-                                isEstimate 
-                                  ? "bg-gradient-to-br from-purple-500 to-purple-700" 
+                                isEstimate
+                                  ? "bg-gradient-to-br from-purple-500 to-purple-700"
                                   : "bg-gradient-to-br from-green-500 to-green-700"
                               )}>
-                                {isEstimate ? 
-                                  <FileText className="h-6 w-6 text-white" /> : 
+                                {isEstimate ?
+                                  <FileText className="h-6 w-6 text-white" /> :
                                   <Receipt className="h-6 w-6 text-white" />
                                 }
                               </div>
                               <div>
-                                <p className="font-medium text-gray-900">
+                                <p className="font-medium text-gray-900 group-hover:text-purple-700 transition-colors">
                                   {isEstimate ? 'Estimate' : 'Invoice'} #{documentNumber}
                                 </p>
                                 <p className="text-sm text-gray-600">{formatDate(item.created_at)}</p>
                               </div>
                             </div>
-                            <div className="text-right">
-                              <p className="font-bold text-gray-900 text-lg">{formatCurrency(total)}</p>
-                              <Badge className={cn("text-xs", getStatusColor(item.status || item.payment_status))}>
-                                {getStatusIcon(item.status || item.payment_status)}
-                                <span className="ml-1">{item.status || item.payment_status || 'Draft'}</span>
-                              </Badge>
+                            <div className="text-right flex items-center gap-3">
+                              <div>
+                                <p className="font-bold text-gray-900 text-lg">{formatCurrency(total)}</p>
+                                <Badge className={cn("text-xs", getStatusColor(item.status || item.payment_status))}>
+                                  {getStatusIcon(item.status || item.payment_status)}
+                                  <span className="ml-1">{item.status || item.payment_status || 'Draft'}</span>
+                                </Badge>
+                              </div>
+                              <ChevronRight className="h-5 w-5 text-gray-400 group-hover:text-purple-600 transition-colors" />
                             </div>
                           </div>
                         );
@@ -659,6 +689,165 @@ const ClientPortal = () => {
 
       {/* Footer */}
       <ClientPortalFooter companyData={portalData.company} />
+
+      {/* Document Viewer Dialog */}
+      <Dialog open={!!selectedDocument} onOpenChange={() => setSelectedDocument(null)}>
+        <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
+          {selectedDocument && (
+            <>
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-3">
+                  <div className={cn(
+                    "h-10 w-10 rounded-xl flex items-center justify-center shadow-lg",
+                    selectedDocument.type === 'estimate'
+                      ? "bg-gradient-to-br from-purple-500 to-purple-700"
+                      : "bg-gradient-to-br from-green-500 to-green-700"
+                  )}>
+                    {selectedDocument.type === 'estimate' ?
+                      <FileText className="h-5 w-5 text-white" /> :
+                      <Receipt className="h-5 w-5 text-white" />
+                    }
+                  </div>
+                  <div>
+                    <span className="text-lg font-bold">
+                      {selectedDocument.type === 'estimate' ? 'Estimate' : 'Invoice'} #
+                      {selectedDocument.type === 'estimate'
+                        ? selectedDocument.data.estimate_number
+                        : selectedDocument.data.invoice_number}
+                    </span>
+                    <Badge className={cn("ml-3 text-xs", getStatusColor(selectedDocument.data.status || selectedDocument.data.payment_status))}>
+                      {selectedDocument.data.status || selectedDocument.data.payment_status || 'Draft'}
+                    </Badge>
+                  </div>
+                </DialogTitle>
+              </DialogHeader>
+
+              <div className="space-y-6 mt-4">
+                {/* Document Summary */}
+                <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl p-6">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-sm text-gray-600">Date</p>
+                      <p className="font-semibold text-gray-900">{formatDate(selectedDocument.data.created_at)}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600">
+                        {selectedDocument.type === 'invoice' ? 'Due Date' : 'Valid Until'}
+                      </p>
+                      <p className="font-semibold text-gray-900">
+                        {selectedDocument.data.due_date
+                          ? formatDate(selectedDocument.data.due_date)
+                          : selectedDocument.data.valid_until
+                            ? formatDate(selectedDocument.data.valid_until)
+                            : 'N/A'}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Line Items */}
+                {(() => {
+                  // Parse items - handle string, array, items or line_items field
+                  let items = selectedDocument.data.items || selectedDocument.data.line_items || [];
+                  if (typeof items === 'string') {
+                    try {
+                      items = JSON.parse(items);
+                    } catch {
+                      items = [];
+                    }
+                  }
+                  const docItems = Array.isArray(items) ? items : [];
+
+                  if (docItems.length === 0) return null;
+
+                  return (
+                    <div>
+                      <h4 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                        <FileText className="h-4 w-4 text-purple-600" />
+                        Items & Services
+                      </h4>
+                      <div className="space-y-2">
+                        {docItems.map((item: any, index: number) => (
+                        <div key={index} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                          <div>
+                            <p className="font-medium text-gray-900">{item.description || item.name}</p>
+                            <p className="text-sm text-gray-600">Qty: {item.quantity} × {formatCurrency(item.unit_price || item.price || 0)}</p>
+                          </div>
+                          <p className="font-semibold text-gray-900">
+                            {formatCurrency((item.quantity || 1) * (item.unit_price || item.price || 0))}
+                          </p>
+                        </div>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })()}
+
+                {/* Total */}
+                <div className="border-t pt-4">
+                  <div className="flex justify-between items-center">
+                    <span className="text-lg font-semibold text-gray-700">Total</span>
+                    <span className="text-2xl font-bold text-gray-900">
+                      {formatCurrency(parseFloat(selectedDocument.data.total?.toString() || '0'))}
+                    </span>
+                  </div>
+                  {selectedDocument.type === 'invoice' && selectedDocument.data.amount_paid > 0 && (
+                    <div className="mt-2 space-y-1">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-green-600">Amount Paid</span>
+                        <span className="text-green-600 font-medium">
+                          -{formatCurrency(parseFloat(selectedDocument.data.amount_paid?.toString() || '0'))}
+                        </span>
+                      </div>
+                      <div className="flex justify-between font-semibold">
+                        <span className="text-orange-600">Balance Due</span>
+                        <span className="text-orange-600">
+                          {formatCurrency(
+                            parseFloat(selectedDocument.data.total?.toString() || '0') -
+                            parseFloat(selectedDocument.data.amount_paid?.toString() || '0')
+                          )}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Notes */}
+                {selectedDocument.data.notes && (
+                  <div className="bg-gray-50 rounded-lg p-4">
+                    <h4 className="font-semibold text-gray-900 mb-2">Notes</h4>
+                    <p className="text-gray-600 text-sm">{selectedDocument.data.notes}</p>
+                  </div>
+                )}
+
+                {/* Actions */}
+                <div className="flex gap-3 pt-4 border-t">
+                  <Button
+                    variant="outline"
+                    className="flex-1"
+                    onClick={() => setSelectedDocument(null)}
+                  >
+                    <ArrowLeft className="h-4 w-4 mr-2" />
+                    Back
+                  </Button>
+                  {selectedDocument.type === 'invoice' && selectedDocument.data.payment_status !== 'paid' && portalData?.permissions.make_payments && (
+                    <Button className="flex-1 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700">
+                      <CreditCard className="h-4 w-4 mr-2" />
+                      Pay Now
+                    </Button>
+                  )}
+                  {selectedDocument.type === 'estimate' && selectedDocument.data.status !== 'approved' && (
+                    <Button className="flex-1 bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700">
+                      <CheckCircle className="h-4 w-4 mr-2" />
+                      Approve Estimate
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

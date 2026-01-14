@@ -154,6 +154,20 @@ export const DocumentList = ({
               const isOverdue = documentType === 'invoice' && doc.due_date && 
                 new Date(doc.due_date) < new Date() && !isPaid;
               
+              // Parse items - handle string, array, or line_items field
+              const getDocItems = () => {
+                let items = doc.items || doc.line_items || [];
+                if (typeof items === 'string') {
+                  try {
+                    items = JSON.parse(items);
+                  } catch {
+                    items = [];
+                  }
+                }
+                return Array.isArray(items) ? items : [];
+              };
+              const docItems = getDocItems();
+
               return (
                 <div
                   key={doc.id}
@@ -231,16 +245,16 @@ export const DocumentList = ({
                         )}
                         
                         {/* Line Items Preview */}
-                        {doc.items && doc.items.length > 0 && (
+                        {docItems.length > 0 && (
                           <div className="bg-white/50 rounded-lg p-4 space-y-2">
                             <h5 className="text-sm font-medium text-gray-700 flex items-center gap-2">
                               <TrendingUp className="h-4 w-4 text-purple-500" />
                               Items
                             </h5>
                             <div className="space-y-2">
-                              {doc.items
-                                .filter((item: any) => 
-                                  !item.name?.toLowerCase().includes('tax') && 
+                              {docItems
+                                .filter((item: any) =>
+                                  !item.name?.toLowerCase().includes('tax') &&
                                   !item.description?.toLowerCase().includes('tax')
                                 )
                                 .map((item: any, index: number) => (
