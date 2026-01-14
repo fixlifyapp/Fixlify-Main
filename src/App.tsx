@@ -55,6 +55,7 @@ const InventoryPage = React.lazy(() => import("@/pages/InventoryPage"));
 const AdminRolesPage = React.lazy(() => import("@/pages/AdminRolesPage"));
 const EdgeFunctionsPage = React.lazy(() => import("@/pages/EdgeFunctionsPage"));
 const AdminPhonePoolPage = React.lazy(() => import("@/pages/AdminPhonePoolPage"));
+const ClientPortal = React.lazy(() => import("@/pages/ClientPortal"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -139,6 +140,13 @@ function App() {
             {/* Universal Portal - handles both estimates and invoices */}
             <Route path="/portal/:token" element={
               <UniversalPortal />
+            } />
+
+            {/* Client Portal - full dashboard for client with all their documents */}
+            <Route path="/client-portal/:accessToken" element={
+              <React.Suspense fallback={<PageLoadingFallback />}>
+                <ClientPortal />
+              </React.Suspense>
             } />
 
             {/* Edge Functions Management */}

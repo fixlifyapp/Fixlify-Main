@@ -46,19 +46,20 @@ export const UniversalSendDialog = ({
   const { companySettings } = useCompanySettings();
 
   // Generate default message template
+  // Note: Portal link is automatically generated and included by the backend
+  // The message shown here is for preview only - actual portal link will be added by the server
   const generateDefaultMessage = (method: "email" | "sms") => {
     const clientName = contactInfo?.name || "Valued Customer";
     const docType = documentType === "estimate" ? "Estimate" : "Invoice";
-    const portalUrl = `https://hub.fixlify.app/portal/PORTAL_TOKEN`;
     const companyName = companySettings?.company_name || "Your Company";
-    
+
     if (method === "email") {
+      // Note: Portal link is automatically included in the email by the server
       return `Hello ${clientName},
 
 Please find your ${docType} #${documentNumber} attached. The total amount is $${total.toFixed(2)}.
 
-You can view and ${documentType === "estimate" ? "approve" : "pay"} online using this secure link:
-${portalUrl}
+A secure link to view and ${documentType === "estimate" ? "approve" : "pay"} online will be included automatically.
 
 If you have any questions, please don't hesitate to contact us.
 
