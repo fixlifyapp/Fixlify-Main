@@ -40,6 +40,8 @@ export const useDocumentOperations = ({
   onSyncToInvoice
 }: UseDocumentOperationsProps) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  // Track the created document ID to handle back/forward navigation
+  const [createdDocumentId, setCreatedDocumentId] = useState<string | null>(existingDocument?.id || null);
 
   const saveDocumentChanges = useCallback(async (): Promise<Estimate | Invoice | null> => {
     if (isSubmitting) {
@@ -153,14 +155,17 @@ export const useDocumentOperations = ({
 
       console.log('📦 Document data to save:', documentData);
 
+      // Use createdDocumentId if we already saved this document (handles back/forward navigation)
+      const documentIdToUse = formData.documentId || createdDocumentId;
+
       let document;
-      if (formData.documentId) {
+      if (documentIdToUse) {
         // Update existing document
-        console.log('📝 Updating existing document:', formData.documentId);
+        console.log('📝 Updating existing document:', documentIdToUse);
         const { data, error } = await supabase
           .from(tableName)
           .update(documentData)
-          .eq('id', formData.documentId)
+          .eq('id', documentIdToUse)
           .select()
           .single();
           
@@ -204,6 +209,8 @@ export const useDocumentOperations = ({
           }
         }
         document = data;
+        // Store the created document ID for subsequent saves (handles back/forward navigation)
+        setCreatedDocumentId(document.id);
         console.log('✅ Document created:', document);
       }
       
@@ -392,7 +399,7 @@ export const useDocumentOperations = ({
       setIsSubmitting(false);
       console.log('=== SAVE DOCUMENT CHANGES END ===');
     }
-  }, [documentType, jobId, formData, lineItems, notes, calculateGrandTotal, isSubmitting]);
+  }, [documentType, jobId, formData, lineItems, notes, calculateGrandTotal, isSubmitting, createdDocumentId]);
 
   // Enhanced conversion from estimate to invoice with better error handling
   const convertToInvoice = useCallback(async (): Promise<Invoice | null> => {
@@ -564,9 +571,16 @@ export const useDocumentOperations = ({
     }
   }, [existingDocument, documentType, jobId, lineItems, notes, calculateGrandTotal, onSyncToInvoice]);
 
+  // Reset created document ID (useful when dialog closes)
+  const resetCreatedDocumentId = useCallback(() => {
+    setCreatedDocumentId(existingDocument?.id || null);
+  }, [existingDocument?.id]);
+
   return {
     isSubmitting,
     saveDocumentChanges,
-    convertToInvoice
+    convertToInvoice,
+    createdDocumentId,
+    resetCreatedDocumentId
   };
 };
