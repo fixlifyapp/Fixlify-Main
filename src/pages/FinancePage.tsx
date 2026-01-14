@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import { PageLayout } from "@/components/layout/PageLayout";
 import { PageHeader } from "@/components/ui/page-header";
 import { FinancialDashboard } from "@/components/finance/FinancialDashboard";
@@ -10,19 +10,26 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AnimatedContainer } from "@/components/ui/animated-container";
 import { UniversalSendDialog } from "@/components/jobs/dialogs/shared/UniversalSendDialog";
 import { useUniversalDocumentSend } from "@/hooks/useUniversalDocumentSend";
-import { 
-  DollarSign, 
-  FileText, 
-  CreditCard, 
-  TrendingUp, 
+import { useInvoices } from "@/hooks/useInvoices";
+import { useAllPayments } from "@/hooks/useAllPayments";
+import {
+  DollarSign,
+  FileText,
+  CreditCard,
+  TrendingUp,
   Target,
   BarChart3
 } from "lucide-react";
 import { toast } from "sonner";
 
 export default function FinancePage() {
-  const [searchParams] = useSearchParams();
-  
+  const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
+
+  // Real data hooks
+  const { invoices: rawInvoices, isLoading: invoicesLoading, refreshInvoices } = useInvoices();
+  const { payments: rawPayments, isLoading: paymentsLoading, totalPayments, totalRefunds, failedPayments, refreshPayments } = useAllPayments();
+
   // Universal document send hook
   const {
     sendState,
@@ -33,124 +40,113 @@ export default function FinancePage() {
   } = useUniversalDocumentSend({
     onSuccess: () => {
       toast.success("Invoice sent successfully!");
+      refreshInvoices();
     }
   });
 
   // Get active tab from URL params, default to "dashboard"
   const activeTab = searchParams.get("tab") || "dashboard";
 
-  // Mock data - in a real app, this would come from your data hooks
-  const mockInvoices = useMemo(() => [
-    {
-      id: "inv1",
-      invoice_number: "INV-001",
-      number: "INV-001",
-      client_name: "John Smith",
-      client_email: "john.smith@example.com",
-      client_phone: "(555) 123-4567",
-      clientName: "John Smith",
-      amount: 1250,
-      total: 1250,
-      status: "paid" as const,
-      dueDate: "2024-01-15",
-      createdDate: "2024-01-01",
-      paidAmount: 1250
-    },
-    {
-      id: "inv2",
-      invoice_number: "INV-002",
-      number: "INV-002",
-      client_name: "Sarah Johnson",
-      client_email: "sarah.johnson@example.com", 
-      client_phone: "(555) 234-5678",
-      clientName: "Sarah Johnson",
-      amount: 850,
-      total: 850,
-      status: "sent" as const,
-      dueDate: "2024-01-20",
-      createdDate: "2024-01-05"
-    },
-    {
-      id: "inv3",
-      invoice_number: "INV-003",
-      number: "INV-003",
-      client_name: "Mike Wilson",
-      client_email: "mike.wilson@example.com",
-      client_phone: "(555) 345-6789",
-      clientName: "Mike Wilson",
-      amount: 2100,
-      total: 2100,
-      status: "overdue" as const,
-      dueDate: "2024-01-10",
-      createdDate: "2023-12-20"
-    },
-    {
-      id: "inv4",
-      invoice_number: "INV-004",
-      number: "INV-004",
-      client_name: "Lisa Brown",
-      client_email: "lisa.brown@example.com",
-      client_phone: "(555) 456-7890",
-      clientName: "Lisa Brown",
-      amount: 675,
-      total: 675,
-      status: "partial" as const,
-      dueDate: "2024-01-25",
-      createdDate: "2024-01-08",
-      paidAmount: 400
-    }
-  ], []);
+  // Handle tab change - update URL
+  const handleTabChange = (value: string) => {
+    setSearchParams({ tab: value });
+  };
 
-  const mockPayments = useMemo(() => [
-    {
-      id: "pay1",
-      invoiceNumber: "INV-001",
-      clientName: "John Smith",
-      amount: 1250,
-      method: "credit-card" as const,
-      status: "completed" as const,
-      date: "2024-01-15",
-      reference: "ch_1234567890",
-      processingFee: 37.50
-    },
-    {
-      id: "pay2",
-      invoiceNumber: "INV-004",
-      clientName: "Lisa Brown",
-      amount: 400,
-      method: "cash" as const,
-      status: "completed" as const,
-      date: "2024-01-12",
-      reference: "CASH-001"
-    },
-    {
-      id: "pay3",
-      invoiceNumber: "INV-005",
-      clientName: "Test Client",
-      amount: 200,
-      method: "credit-card" as const,
-      status: "failed" as const,
-      date: "2024-01-10",
-      reference: "ch_failed_123"
-    }
-  ], []);
+  // Transform invoices to match InvoiceManager interface
+  const transformedInvoices = useMemo(() => {
+    return rawInvoices.map(inv => {
+      // Determine status based on payment and due date
+      let status: 'draft' | 'sent' | 'paid' | 'overdue' | 'partial' = 'draft';
+      const balance = (inv.total || 0) - (inv.amount_paid || 0);
+      const dueDate = inv.due_date ? new Date(inv.due_date) : null;
+      const isOverdue = dueDate && dueDate < new Date();
 
-  // Calculate financial metrics
+      if (inv.status === 'paid' || balance <= 0) {
+        status = 'paid';
+      } else if (inv.amount_paid && inv.amount_paid > 0) {
+        status = isOverdue ? 'overdue' : 'partial';
+      } else if (inv.status === 'sent' || inv.status === 'unpaid') {
+        status = isOverdue ? 'overdue' : 'sent';
+      } else {
+        status = 'draft';
+      }
+
+      // Format dates properly - use created_at + 30 days if no due_date
+      const createdAt = inv.created_at ? new Date(inv.created_at) : new Date();
+      const defaultDueDate = new Date(createdAt);
+      defaultDueDate.setDate(defaultDueDate.getDate() + 30);
+
+      const dueDateValue = inv.due_date ? new Date(inv.due_date) : defaultDueDate;
+      const formattedDueDate = !isNaN(dueDateValue.getTime())
+        ? dueDateValue.toISOString().split('T')[0]
+        : defaultDueDate.toISOString().split('T')[0];
+
+      return {
+        id: inv.id,
+        invoice_number: inv.invoice_number,
+        number: inv.invoice_number || '',
+        client_name: inv.client_name || 'Unknown Client',
+        client_email: inv.client_email || '',
+        client_phone: inv.client_phone || '',
+        clientName: inv.client_name || 'Unknown Client',
+        amount: inv.total || 0,
+        total: inv.total || 0,
+        status,
+        dueDate: formattedDueDate,
+        createdDate: inv.created_at || new Date().toISOString(),
+        paidAmount: inv.amount_paid || 0
+      };
+    });
+  }, [rawInvoices]);
+
+  // Transform payments to match PaymentTracker interface
+  const transformedPayments = useMemo(() => {
+    return rawPayments.map(pay => ({
+      id: pay.id,
+      invoiceNumber: pay.invoice_number || pay.payment_number || 'N/A',
+      clientName: pay.client_name || 'Unknown',
+      amount: Math.abs(pay.amount),
+      method: (pay.method as 'credit-card' | 'cash' | 'check' | 'bank-transfer' | 'e-transfer') || 'cash',
+      status: pay.amount < 0 ? 'refunded' as const : (pay.status === 'completed' ? 'completed' as const : 'pending' as const),
+      date: pay.date || pay.created_at,
+      reference: pay.reference || pay.payment_number
+    }));
+  }, [rawPayments]);
+
+  // Calculate financial metrics from real data
   const metrics = useMemo(() => {
-    const totalRevenue = mockInvoices.reduce((sum, inv) => sum + inv.amount, 0);
-    const totalPaid = mockInvoices.reduce((sum, inv) => sum + (inv.paidAmount || 0), 0);
-    const pendingPayments = mockInvoices
-      .filter(inv => inv.status === 'sent')
-      .reduce((sum, inv) => sum + inv.amount, 0);
-    const overdueAmount = mockInvoices
+    const totalRevenue = transformedInvoices.reduce((sum, inv) => sum + inv.amount, 0);
+    const totalPaid = transformedInvoices.reduce((sum, inv) => sum + (inv.paidAmount || 0), 0);
+    const pendingPayments = transformedInvoices
+      .filter(inv => inv.status === 'sent' || inv.status === 'partial')
+      .reduce((sum, inv) => sum + (inv.amount - (inv.paidAmount || 0)), 0);
+    const overdueAmount = transformedInvoices
       .filter(inv => inv.status === 'overdue')
-      .reduce((sum, inv) => sum + inv.amount, 0);
-    
-    const monthlyGoal = 15000;
-    const averageJobValue = totalRevenue / mockInvoices.length;
-    const thisMonth = totalPaid;
-    const lastMonth = 3200;
-    const growth = ((thisMonth - lastMonth) / lastMonth) * 100;
+      .reduce((sum, inv) => sum + (inv.amount - (inv.paidAmount || 0)), 0);
+
+    const monthlyGoal = 15000; // TODO: Make configurable in settings
+    const averageJobValue = transformedInvoices.length > 0 ? totalRevenue / transformedInvoices.length : 0;
+
+    // Calculate this month vs last month payments
+    const now = new Date();
+    const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0);
+
+    const thisMonthPayments = rawPayments
+      .filter(p => p.amount > 0 && new Date(p.created_at) >= thisMonthStart)
+      .reduce((sum, p) => sum + p.amount, 0);
+
+    const lastMonthPayments = rawPayments
+      .filter(p => {
+        const payDate = new Date(p.created_at);
+        return p.amount > 0 && payDate >= lastMonthStart && payDate <= lastMonthEnd;
+      })
+      .reduce((sum, p) => sum + p.amount, 0);
+
+    const growth = lastMonthPayments > 0
+      ? ((thisMonthPayments - lastMonthPayments) / lastMonthPayments) * 100
+      : 0;
 
     return {
       totalRevenue,
@@ -160,38 +156,43 @@ export default function FinancePage() {
       monthlyGoal,
       averageJobValue,
       paymentTrends: {
-        thisMonth,
-        lastMonth,
+        thisMonth: thisMonthPayments,
+        lastMonth: lastMonthPayments,
         growth: Math.round(growth)
       }
     };
-  }, [mockInvoices]);
+  }, [transformedInvoices, rawPayments]);
 
+  // Calculate payment metrics
   const paymentMetrics = useMemo(() => {
-    const totalPayments = mockPayments.reduce((sum, payment) => sum + payment.amount, 0);
-    const processingFees = mockPayments.reduce((sum, payment) => sum + (payment.processingFee || 0), 0);
-    const failedPayments = mockPayments.filter(p => p.status === 'failed').length;
+    const processingFees = 0; // We don't track processing fees currently
 
     return {
       totalPayments,
       processingFees,
       failedPayments
     };
-  }, [mockPayments]);
+  }, [totalPayments, failedPayments]);
 
   // Event handlers
   function handleCreateInvoice() {
-    toast.info("Invoice creation feature coming soon!");
+    toast.info("Use the Jobs page to create invoices for specific jobs.");
   }
 
   function handleEditInvoice(id: string) {
-    toast.info(`Edit invoice ${id} - Feature coming soon!`);
+    // Find the invoice and navigate to its job
+    const invoice = rawInvoices.find(inv => inv.id === id);
+    if (invoice?.job_id) {
+      navigate(`/jobs/${invoice.job_id}?tab=invoices`);
+    } else {
+      toast.info("Invoice details page coming soon!");
+    }
   }
 
   function handleSendInvoice(invoice: any) {
-    // Find the full invoice object from mockInvoices
-    const fullInvoice = mockInvoices.find(inv => inv.id === invoice.id) || invoice;
-    
+    // Find the full invoice object from real data
+    const fullInvoice = transformedInvoices.find(inv => inv.id === invoice.id) || invoice;
+
     openSendDialog(fullInvoice, 'invoice', {
       name: fullInvoice.client_name || fullInvoice.clientName,
       email: fullInvoice.client_email || '',
@@ -200,19 +201,25 @@ export default function FinancePage() {
   }
 
   function handleViewInvoice(id: string) {
-    toast.info(`View invoice ${id} - Feature coming soon!`);
+    // Find the invoice and navigate to its job
+    const invoice = rawInvoices.find(inv => inv.id === id);
+    if (invoice?.job_id) {
+      navigate(`/jobs/${invoice.job_id}?tab=invoices`);
+    } else {
+      toast.info("Invoice details page coming soon!");
+    }
   }
 
   function handleAddPayment() {
-    toast.info("Payment recording feature coming soon!");
+    toast.info("Use the Jobs page to record payments for specific invoices.");
   }
 
   function handleRefundPayment(id: string) {
-    toast.info(`Refund payment ${id} - Feature coming soon!`);
+    toast.info("Use the Jobs page to refund payments.");
   }
 
   function handleExportPayments() {
-    toast.success("Payment export started!");
+    toast.success("Payment export feature coming soon!");
   }
 
   return (
@@ -231,7 +238,7 @@ export default function FinancePage() {
       </AnimatedContainer>
       
       <AnimatedContainer animation="fade-in" delay={200}>
-        <Tabs value={activeTab} className="space-y-6">
+        <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
           <TabsList className="grid grid-cols-4 gap-1">
             <TabsTrigger value="dashboard" className="flex items-center gap-2">
               <Target className="h-4 w-4" />
@@ -265,7 +272,7 @@ export default function FinancePage() {
 
           <TabsContent value="invoices" className="space-y-6">
             <InvoiceManager
-              invoices={mockInvoices}
+              invoices={transformedInvoices}
               onCreateInvoice={handleCreateInvoice}
               onEditInvoice={handleEditInvoice}
               onSendInvoice={handleSendInvoice}
@@ -275,7 +282,7 @@ export default function FinancePage() {
 
           <TabsContent value="payments" className="space-y-6">
             <PaymentTracker
-              payments={mockPayments}
+              payments={transformedPayments}
               totalPayments={paymentMetrics.totalPayments}
               processingFees={paymentMetrics.processingFees}
               failedPayments={paymentMetrics.failedPayments}
