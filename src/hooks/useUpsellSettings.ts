@@ -140,26 +140,30 @@ export const useUpsellSettings = () => {
   });
 
   // Get products that should be auto-added for estimates (default/fallback)
-  const estimateProducts = allProducts.filter(
-    p => config?.estimates.products.includes(p.id)
-  );
+  // Returns empty array if estimates upsell is disabled
+  const estimateProducts = config?.estimates.enabled
+    ? allProducts.filter(p => config?.estimates.products.includes(p.id))
+    : [];
 
   // Get products that should be auto-added for invoices (default/fallback)
-  const invoiceProducts = allProducts.filter(
-    p => config?.invoices.products.includes(p.id)
-  );
+  // Returns empty array if invoices upsell is disabled
+  const invoiceProducts = config?.invoices.enabled
+    ? allProducts.filter(p => config?.invoices.products.includes(p.id))
+    : [];
 
   /**
    * Get upsell products based on document amount
    * Evaluates rules in priority order and returns matching products
    * Falls back to default products if no rules match
+   * Returns empty array if upsell is disabled for this document type
    */
   const getProductsForAmount = useCallback((
     amount: number,
     type: 'estimates' | 'invoices'
   ): UpsellProduct[] => {
     const docConfig = config?.[type];
-    if (!docConfig) return [];
+    // Return empty if config not found OR upsell is disabled for this document type
+    if (!docConfig || !docConfig.enabled) return [];
 
     const rules = docConfig.rules || [];
 

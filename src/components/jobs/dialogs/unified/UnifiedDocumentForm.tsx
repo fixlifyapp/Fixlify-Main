@@ -94,9 +94,14 @@ export const UnifiedDocumentForm = ({
         </div>
 
         {lineItems.length === 0 ? (
-          <div className="text-center py-8 text-muted-foreground border-2 border-dashed rounded-lg">
+          <button
+            type="button"
+            onClick={onAddEmptyLineItem}
+            className="w-full text-center py-8 text-muted-foreground border-2 border-dashed rounded-lg hover:bg-muted/50 hover:border-primary/50 transition-colors cursor-pointer"
+          >
+            <Plus className="mx-auto h-8 w-8 text-gray-400 mb-2" />
             <p>No items added yet. Add products or custom line items to get started.</p>
-          </div>
+          </button>
         ) : (
           <div className="space-y-2">
             {lineItems.map((item) => (

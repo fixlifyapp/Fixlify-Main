@@ -57,25 +57,25 @@ export function TopUpModal({ open, onOpenChange }: TopUpModalProps) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[600px]">
+      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto p-4 sm:p-6">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Coins className="h-5 w-5 text-primary" />
+          <DialogTitle className="flex items-center gap-2 text-base sm:text-lg">
+            <Coins className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
             Add Credits
           </DialogTitle>
-          <DialogDescription>
+          <DialogDescription className="text-xs sm:text-sm">
             Choose a credit package to top up your balance
           </DialogDescription>
         </DialogHeader>
 
         {/* Current Balance */}
-        <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
+        <div className="flex flex-col xs:flex-row xs:items-center justify-between gap-2 p-3 bg-muted rounded-lg">
           <div className="flex items-center gap-2">
-            <span className="text-sm text-muted-foreground">Current Balance:</span>
-            <span className="font-semibold">{balance.toLocaleString()} credits</span>
+            <span className="text-xs sm:text-sm text-muted-foreground">Current Balance:</span>
+            <span className="font-semibold text-sm sm:text-base">{balance.toLocaleString()} credits</span>
           </div>
           {loyaltyTier !== "none" && (
-            <Badge variant="outline" className="gap-1">
+            <Badge variant="outline" className="gap-1 text-xs w-fit">
               <Sparkles className="h-3 w-3" />
               {loyaltyTier.charAt(0).toUpperCase() + loyaltyTier.slice(1)} (+{loyaltyBonus}% bonus)
             </Badge>
@@ -83,10 +83,10 @@ export function TopUpModal({ open, onOpenChange }: TopUpModalProps) {
         </div>
 
         {/* Package Grid */}
-        <div className="grid grid-cols-2 gap-3 py-2">
+        <div className="grid grid-cols-1 xs:grid-cols-2 gap-2 sm:gap-3 py-2">
           {isLoadingPackages ? (
-            <div className="col-span-2 flex items-center justify-center py-8">
-              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            <div className="col-span-full flex items-center justify-center py-6 sm:py-8">
+              <Loader2 className="h-5 w-5 sm:h-6 sm:w-6 animate-spin text-muted-foreground" />
             </div>
           ) : (
             packages.map((pkg) => {
@@ -100,7 +100,7 @@ export function TopUpModal({ open, onOpenChange }: TopUpModalProps) {
                   key={pkg.id}
                   onClick={() => setSelectedPackageId(pkg.id)}
                   className={cn(
-                    "relative flex flex-col p-4 rounded-lg border-2 transition-all text-left",
+                    "relative flex flex-col p-3 sm:p-4 rounded-lg border-2 transition-all text-left",
                     isSelected
                       ? "border-primary bg-primary/5"
                       : "border-border hover:border-primary/50",
@@ -110,8 +110,8 @@ export function TopUpModal({ open, onOpenChange }: TopUpModalProps) {
                   {/* Featured Badge */}
                   {pkg.is_featured && (
                     <div className="absolute -top-2 left-1/2 -translate-x-1/2">
-                      <Badge className="bg-yellow-500 text-yellow-950 gap-1">
-                        <Star className="h-3 w-3" />
+                      <Badge className="bg-yellow-500 text-yellow-950 gap-1 text-[10px] sm:text-xs">
+                        <Star className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
                         Popular
                       </Badge>
                     </div>
@@ -120,36 +120,36 @@ export function TopUpModal({ open, onOpenChange }: TopUpModalProps) {
                   {/* Selected Check */}
                   {isSelected && (
                     <div className="absolute top-2 right-2">
-                      <Check className="h-5 w-5 text-primary" />
+                      <Check className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
                     </div>
                   )}
 
                   {/* Package Name */}
-                  <div className="font-semibold mb-1">{pkg.name}</div>
+                  <div className="font-semibold mb-1 text-sm sm:text-base">{pkg.name}</div>
 
                   {/* Description */}
                   {pkg.description && (
-                    <div className="text-xs text-muted-foreground mb-2">
+                    <div className="text-[10px] sm:text-xs text-muted-foreground mb-2 line-clamp-2">
                       {pkg.description}
                     </div>
                   )}
 
                   {/* Credits */}
                   <div className="flex items-baseline gap-1 mb-1">
-                    <span className="text-2xl font-bold">{pkg.credits.toLocaleString()}</span>
-                    <span className="text-sm text-muted-foreground">credits</span>
+                    <span className="text-xl sm:text-2xl font-bold">{pkg.credits.toLocaleString()}</span>
+                    <span className="text-xs sm:text-sm text-muted-foreground">credits</span>
                   </div>
 
                   {/* Bonus Credits */}
                   {(pkg.bonus_credits > 0 || loyaltyCredits > 0) && (
                     <div className="flex flex-wrap gap-1 mb-2">
                       {pkg.bonus_credits > 0 && (
-                        <Badge variant="secondary" className="text-xs">
+                        <Badge variant="secondary" className="text-[10px] sm:text-xs px-1.5 py-0">
                           +{pkg.bonus_credits} bonus
                         </Badge>
                       )}
                       {loyaltyCredits > 0 && (
-                        <Badge variant="outline" className="text-xs text-purple-600">
+                        <Badge variant="outline" className="text-[10px] sm:text-xs text-purple-600 px-1.5 py-0">
                           +{loyaltyCredits} loyalty
                         </Badge>
                       )}
@@ -159,10 +159,10 @@ export function TopUpModal({ open, onOpenChange }: TopUpModalProps) {
                   {/* Price */}
                   <div className="mt-auto pt-2 border-t">
                     <div className="flex items-baseline justify-between">
-                      <span className="text-lg font-bold">
+                      <span className="text-base sm:text-lg font-bold">
                         ${(pkg.price_cents / 100).toFixed(0)}
                       </span>
-                      <span className="text-xs text-muted-foreground">
+                      <span className="text-[10px] sm:text-xs text-muted-foreground">
                         ${pricePerCredit}/credit
                       </span>
                     </div>
@@ -175,14 +175,14 @@ export function TopUpModal({ open, onOpenChange }: TopUpModalProps) {
 
         {/* Summary */}
         {selectedPackage && (
-          <div className="p-4 bg-primary/5 rounded-lg border border-primary/20">
+          <div className="p-3 sm:p-4 bg-primary/5 rounded-lg border border-primary/20">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium">Summary</span>
-              <span className="text-sm text-muted-foreground">
+              <span className="text-xs sm:text-sm font-medium">Summary</span>
+              <span className="text-xs sm:text-sm text-muted-foreground">
                 {selectedPackage.name} Package
               </span>
             </div>
-            <div className="space-y-1 text-sm">
+            <div className="space-y-1 text-xs sm:text-sm">
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Base credits:</span>
                 <span>{selectedPackage.credits.toLocaleString()}</span>
@@ -195,15 +195,15 @@ export function TopUpModal({ open, onOpenChange }: TopUpModalProps) {
               )}
               {loyaltyBonus > 0 && (
                 <div className="flex justify-between text-purple-600">
-                  <span>Loyalty bonus ({loyaltyBonus}%):</span>
-                  <span>+{Math.floor(selectedPackage.credits * loyaltyBonus / 100).toLocaleString()}</span>
+                  <span className="truncate mr-2">Loyalty bonus ({loyaltyBonus}%):</span>
+                  <span className="shrink-0">+{Math.floor(selectedPackage.credits * loyaltyBonus / 100).toLocaleString()}</span>
                 </div>
               )}
               <div className="flex justify-between font-semibold pt-2 border-t">
                 <span>Total credits:</span>
                 <span>{totalCredits.toLocaleString()}</span>
               </div>
-              <div className="flex justify-between text-xs text-muted-foreground">
+              <div className="flex justify-between text-[10px] sm:text-xs text-muted-foreground">
                 <span>Value:</span>
                 <span>{formatCreditsAsCurrency(totalCredits)}</span>
               </div>
@@ -212,16 +212,16 @@ export function TopUpModal({ open, onOpenChange }: TopUpModalProps) {
         )}
 
         {/* Purchase Button */}
-        <div className="flex gap-2">
+        <div className="flex flex-col xs:flex-row gap-2">
           <Button
             variant="outline"
-            className="flex-1"
+            className="flex-1 text-sm"
             onClick={() => onOpenChange(false)}
           >
             Cancel
           </Button>
           <Button
-            className="flex-1 gap-2"
+            className="flex-1 gap-2 text-sm"
             onClick={handlePurchase}
             disabled={!selectedPackageId || isProcessing}
           >

@@ -85,11 +85,15 @@ export const UnifiedItemsStep = ({
               onRemoveLineItem={onRemoveLineItem}
             />
           ) : (
-            <div className="text-center py-6 sm:py-8 text-muted-foreground px-4">
+            <button
+              type="button"
+              onClick={() => setShowProductDialog(true)}
+              className="w-full text-center py-6 sm:py-8 text-muted-foreground px-4 hover:bg-muted/50 transition-colors cursor-pointer rounded-b-lg"
+            >
               <Plus className="mx-auto h-8 w-8 sm:h-12 sm:w-12 text-gray-400 mb-3 sm:mb-4" />
               <p className="text-sm sm:text-lg font-medium">No items added yet</p>
               <p className="text-xs sm:text-sm">Add products to get started</p>
-            </div>
+            </button>
           )}
         </CardContent>
       </Card>
