@@ -530,31 +530,29 @@ export const SteppedInvoiceBuilder = ({
 
                   {/* Preview Section - Always visible on XL, toggle on smaller screens */}
                   <div className={cn(
-                    "border rounded-lg bg-slate-50/50 overflow-hidden self-stretch flex flex-col",
+                    "border rounded-lg bg-slate-50/50 overflow-hidden",
                     showMobilePreview ? "block" : "hidden xl:block"
                   )}>
                     <div className="bg-slate-100 px-3 py-1.5 border-b flex items-center gap-2">
                       <FileText className="h-3.5 w-3.5 text-slate-600" />
                       <span className="text-xs font-medium text-slate-700">Preview</span>
                     </div>
-                    <div className="overflow-auto flex-1 p-2">
-                      <div className="transform scale-[0.8] origin-top-left w-[125%]">
-                        <UnifiedDocumentPreview
-                          documentType="invoice"
-                          documentNumber={documentNumber}
-                          lineItems={lineItems}
-                          taxRate={taxRate}
-                          calculateSubtotal={calculateSubtotal}
-                          calculateTotalTax={calculateTotalTax}
-                          calculateGrandTotal={calculateGrandTotal}
-                          notes={notes}
-                          clientInfo={clientInfo}
-                          jobId={jobId}
-                          issueDate={new Date().toLocaleDateString()}
-                          dueDate={new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString()}
-                          billToOption={billToOption}
-                        />
-                      </div>
+                    <div className="overflow-auto max-h-[60vh]">
+                      <UnifiedDocumentPreview
+                        documentType="invoice"
+                        documentNumber={documentNumber}
+                        lineItems={lineItems}
+                        taxRate={taxRate}
+                        calculateSubtotal={calculateSubtotal}
+                        calculateTotalTax={calculateTotalTax}
+                        calculateGrandTotal={calculateGrandTotal}
+                        notes={notes}
+                        clientInfo={clientInfo}
+                        jobId={jobId}
+                        issueDate={new Date().toLocaleDateString()}
+                        dueDate={new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString()}
+                        billToOption={billToOption}
+                      />
                     </div>
                   </div>
                 </div>
