@@ -54,8 +54,8 @@ export interface PlanDetails {
 // Hook
 export function useSubscription() {
   const queryClient = useQueryClient();
-  const { currentOrganization } = useOrganization();
-  const organizationId = currentOrganization?.id;
+  const { organization } = useOrganization();
+  const organizationId = organization?.id;
 
   // Fetch all available plans
   const {

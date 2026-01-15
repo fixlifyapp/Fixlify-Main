@@ -199,7 +199,7 @@ const BillingPage = () => {
                         <span>Jobs this month</span>
                       </div>
                       <span className="font-medium">
-                        {planDetails?.jobs_used || 0} / {planDetails?.max_jobs === null ? "∞" : planDetails?.max_jobs}
+                        {planDetails?.jobs_used ?? 0} / {planDetails?.max_jobs == null ? "∞" : planDetails.max_jobs}
                       </span>
                     </div>
                     <Progress
