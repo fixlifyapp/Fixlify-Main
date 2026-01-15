@@ -343,20 +343,25 @@ export const SteppedInvoiceBuilder = ({
 
   const isStepComplete = (stepNumber: number) => {
     if (shouldSkipUpsell) {
+      // 2-step mode: Items -> Send
       switch (stepNumber) {
         case 1:
-          return lineItems.length > 0;
+          // Step 1 complete when we've moved past it AND has items
+          return currentStep !== 'items' && lineItems.length > 0;
         case 2:
           return false;
         default:
           return false;
       }
     } else {
+      // 3-step mode: Items -> Upsell -> Send
       switch (stepNumber) {
         case 1:
-          return lineItems.length > 0;
+          // Step 1 complete when we've moved past it AND has items
+          return currentStep !== 'items' && lineItems.length > 0;
         case 2:
-          return true;
+          // Step 2 complete only when we're on send step
+          return currentStep === 'send';
         case 3:
           return false;
         default:

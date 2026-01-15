@@ -108,10 +108,11 @@ export const UnifiedItemsStep = ({
           total={calculateGrandTotal()}
           compact
         />
-        {/* Notes - Collapsible */}
+        {/* Notes - Open by default for easy input */}
         <NotesSection
           notes={notes}
           onNotesChange={onNotesChange}
+          defaultOpen={true}
         />
       </div>
 

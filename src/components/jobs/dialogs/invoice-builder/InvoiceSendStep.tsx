@@ -181,14 +181,6 @@ export const InvoiceSendStep = ({
                   <span className="text-base sm:text-lg font-semibold">{formatCurrency(total)}</span>
                 </div>
               </div>
-
-              {/* Notes */}
-              {notes && (
-                <div className="pt-4 border-t">
-                  <h4 className="font-medium mb-2">Notes</h4>
-                  <p className="text-sm text-muted-foreground break-words">{notes}</p>
-                </div>
-              )}
             </div>
           </CardContent>
         </Card>

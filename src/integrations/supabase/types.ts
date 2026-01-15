@@ -4119,6 +4119,81 @@ export type Database = {
         }
         Relationships: []
       }
+      organization_subscriptions: {
+        Row: {
+          cancel_at_period_end: boolean
+          canceled_at: string | null
+          created_at: string
+          credits_allocated_this_period: boolean
+          current_period_end: string
+          current_period_start: string
+          extra_users: number
+          id: string
+          jobs_used_this_period: number
+          organization_id: string
+          payment_provider: string | null
+          payment_provider_customer_id: string | null
+          payment_provider_subscription_id: string | null
+          plan_id: string
+          status: string
+          trial_ends_at: string | null
+          updated_at: string
+        }
+        Insert: {
+          cancel_at_period_end?: boolean
+          canceled_at?: string | null
+          created_at?: string
+          credits_allocated_this_period?: boolean
+          current_period_end?: string
+          current_period_start?: string
+          extra_users?: number
+          id?: string
+          jobs_used_this_period?: number
+          organization_id: string
+          payment_provider?: string | null
+          payment_provider_customer_id?: string | null
+          payment_provider_subscription_id?: string | null
+          plan_id: string
+          status?: string
+          trial_ends_at?: string | null
+          updated_at?: string
+        }
+        Update: {
+          cancel_at_period_end?: boolean
+          canceled_at?: string | null
+          created_at?: string
+          credits_allocated_this_period?: boolean
+          current_period_end?: string
+          current_period_start?: string
+          extra_users?: number
+          id?: string
+          jobs_used_this_period?: number
+          organization_id?: string
+          payment_provider?: string | null
+          payment_provider_customer_id?: string | null
+          payment_provider_subscription_id?: string | null
+          plan_id?: string
+          status?: string
+          trial_ends_at?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organization_subscriptions_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: true
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "organization_subscriptions_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "subscription_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       organizations: {
         Row: {
           created_at: string | null
@@ -5434,6 +5509,69 @@ export type Database = {
         }
         Relationships: []
       }
+      subscription_plans: {
+        Row: {
+          created_at: string
+          currency: string
+          description: string | null
+          display_name: string
+          extra_user_price_cents: number
+          features: Json | null
+          id: string
+          included_credits_monthly: number
+          included_phone_numbers: number
+          is_active: boolean
+          is_featured: boolean
+          max_clients: number | null
+          max_jobs_per_month: number | null
+          max_users: number
+          name: string
+          price_cents: number
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          currency?: string
+          description?: string | null
+          display_name: string
+          extra_user_price_cents?: number
+          features?: Json | null
+          id?: string
+          included_credits_monthly?: number
+          included_phone_numbers?: number
+          is_active?: boolean
+          is_featured?: boolean
+          max_clients?: number | null
+          max_jobs_per_month?: number | null
+          max_users?: number
+          name: string
+          price_cents?: number
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          currency?: string
+          description?: string | null
+          display_name?: string
+          extra_user_price_cents?: number
+          features?: Json | null
+          id?: string
+          included_credits_monthly?: number
+          included_phone_numbers?: number
+          is_active?: boolean
+          is_featured?: boolean
+          max_clients?: number | null
+          max_jobs_per_month?: number | null
+          max_users?: number
+          name?: string
+          price_cents?: number
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       tags: {
         Row: {
           category: string
@@ -6556,6 +6694,14 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      allocate_monthly_credits: {
+        Args: { p_organization_id: string }
+        Returns: {
+          credits_added: number
+          message: string
+          success: boolean
+        }[]
+      }
       assign_phone_to_organization: {
         Args: {
           p_assigned_by: string
@@ -6576,6 +6722,24 @@ export type Database = {
       can_access_organization_email: {
         Args: { p_conversation_id?: string; p_organization_id: string }
         Returns: boolean
+      }
+      can_add_user: {
+        Args: { p_organization_id: string }
+        Returns: {
+          allowed: boolean
+          can_add_extra: boolean
+          current_users: number
+          max_users: number
+        }[]
+      }
+      can_create_job: {
+        Args: { p_organization_id: string }
+        Returns: {
+          allowed: boolean
+          is_unlimited: boolean
+          jobs_limit: number
+          jobs_used: number
+        }[]
       }
       check_automation_triggers: { Args: never; Returns: undefined }
       check_communication_health: {
@@ -6915,6 +7079,51 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      get_or_create_org_subscription: {
+        Args: { p_organization_id: string }
+        Returns: {
+          cancel_at_period_end: boolean
+          canceled_at: string | null
+          created_at: string
+          credits_allocated_this_period: boolean
+          current_period_end: string
+          current_period_start: string
+          extra_users: number
+          id: string
+          jobs_used_this_period: number
+          organization_id: string
+          payment_provider: string | null
+          payment_provider_customer_id: string | null
+          payment_provider_subscription_id: string | null
+          plan_id: string
+          status: string
+          trial_ends_at: string | null
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "organization_subscriptions"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      get_org_plan_details: {
+        Args: { p_organization_id: string }
+        Returns: {
+          current_users: number
+          extra_users: number
+          included_credits: number
+          included_phone_numbers: number
+          jobs_used: number
+          max_jobs: number
+          max_users: number
+          period_end: string
+          plan_display_name: string
+          plan_name: string
+          price_cents: number
+          status: string
+        }[]
+      }
       get_org_primary_phone: {
         Args: { p_organization_id: string }
         Returns: string
@@ -7111,6 +7320,10 @@ export type Database = {
         Args: { success: boolean; workflow_id: string }
         Returns: undefined
       }
+      increment_job_count: {
+        Args: { p_organization_id: string }
+        Returns: undefined
+      }
       increment_workflow_metrics: {
         Args: {
           execution_count?: number
@@ -7217,6 +7430,10 @@ export type Database = {
           status: string
           user_id: string
         }[]
+      }
+      reset_subscription_period: {
+        Args: { p_organization_id: string }
+        Returns: undefined
       }
       safe_insert_products: {
         Args: { p_products: Json; p_user_id: string }
