@@ -13,7 +13,7 @@ const CRITICAL_CREDITS_THRESHOLD = 10;
  * Only admins/managers see these notifications.
  */
 export function useLowCreditsNotification() {
-  const { balance, isLoadingBalance } = useCredits();
+  const { balance, balanceData, isLoadingBalance } = useCredits();
   const { isAdminOrManager } = usePermissions();
   const navigate = useNavigate();
   const hasShownLowNotification = useRef(false);
@@ -23,7 +23,8 @@ export function useLowCreditsNotification() {
 
   useEffect(() => {
     // Only show for admins/managers
-    if (!canViewCredits || isLoadingBalance || balance === undefined) return;
+    // IMPORTANT: Check balanceData exists to avoid showing 0 during loading
+    if (!canViewCredits || isLoadingBalance || !balanceData) return;
 
     // Critical balance notification (<=10 credits)
     if (balance <= CRITICAL_CREDITS_THRESHOLD && !hasShownCriticalNotification.current) {
@@ -51,7 +52,7 @@ export function useLowCreditsNotification() {
         },
       });
     }
-  }, [balance, isLoadingBalance, navigate]);
+  }, [balance, balanceData, isLoadingBalance, canViewCredits, navigate]);
 
   return {
     isLowBalance: balance <= LOW_CREDITS_THRESHOLD,

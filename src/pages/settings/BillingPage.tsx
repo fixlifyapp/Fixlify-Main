@@ -23,6 +23,8 @@ import {
   Check,
   Info,
   Zap,
+  Filter,
+  ChevronDown,
 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -39,10 +41,14 @@ import { TopUpModal } from "@/components/credits/TopUpModal";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 
+const TRANSACTIONS_PER_PAGE = 15;
+
 const BillingPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const [showTopUp, setShowTopUp] = useState(false);
   const [activeTab, setActiveTab] = useState("transactions");
+  const [visibleCount, setVisibleCount] = useState(TRANSACTIONS_PER_PAGE);
+  const [transactionFilter, setTransactionFilter] = useState<string>("all");
 
   // Handle URL tab parameter
   useEffect(() => {
@@ -89,6 +95,39 @@ const BillingPage = () => {
 
   const loyaltyBonus = getLoyaltyBonus();
   const daysRemaining = getDaysRemaining();
+
+  // Reset visible count when filter changes
+  useEffect(() => {
+    setVisibleCount(TRANSACTIONS_PER_PAGE);
+  }, [transactionFilter]);
+
+  // Filter transactions based on selected filter
+  const filteredTransactions = transactions.filter((tx) => {
+    if (transactionFilter === "all") return true;
+    if (transactionFilter === "sms") {
+      return tx.reference_type?.includes("sms") || tx.description?.toLowerCase().includes("sms");
+    }
+    if (transactionFilter === "ai") {
+      return tx.reference_type?.includes("ai") || tx.description?.toLowerCase().includes("ai") || tx.description?.toLowerCase().includes("gemini");
+    }
+    if (transactionFilter === "purchase") {
+      return tx.type === "purchase";
+    }
+    if (transactionFilter === "bonus") {
+      return tx.type === "bonus" || tx.type === "referral";
+    }
+    if (transactionFilter === "voice") {
+      return tx.reference_type?.includes("voice") || tx.reference_type?.includes("call");
+    }
+    return tx.type === transactionFilter;
+  });
+
+  const visibleTransactions = filteredTransactions.slice(0, visibleCount);
+  const hasMoreTransactions = filteredTransactions.length > visibleCount;
+
+  const handleLoadMore = () => {
+    setVisibleCount((prev) => prev + TRANSACTIONS_PER_PAGE);
+  };
 
   // Calculate usage by category
   const usageByCategory = transactions
@@ -404,19 +443,40 @@ const BillingPage = () => {
         <TabsContent value="transactions">
           <Card>
             <CardHeader className="px-4 sm:px-6">
-              <CardTitle className="text-base sm:text-lg">Transaction History</CardTitle>
-              <CardDescription className="text-xs sm:text-sm">All credit transactions for your organization</CardDescription>
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                  <CardTitle className="text-base sm:text-lg">Transaction History</CardTitle>
+                  <CardDescription className="text-xs sm:text-sm">All credit transactions for your organization</CardDescription>
+                </div>
+                {/* Filter Dropdown */}
+                <Select value={transactionFilter} onValueChange={setTransactionFilter}>
+                  <SelectTrigger className="w-full sm:w-[160px] h-9">
+                    <Filter className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
+                    <SelectValue placeholder="Filter" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Transactions</SelectItem>
+                    <SelectItem value="sms">SMS Only</SelectItem>
+                    <SelectItem value="ai">AI Only</SelectItem>
+                    <SelectItem value="voice">Voice Calls</SelectItem>
+                    <SelectItem value="purchase">Purchases</SelectItem>
+                    <SelectItem value="bonus">Bonuses</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </CardHeader>
             <CardContent className="px-4 sm:px-6">
               {isLoadingTransactions ? (
                 <div className="text-center py-6 sm:py-8 text-muted-foreground text-sm">Loading...</div>
-              ) : transactions.length === 0 ? (
+              ) : filteredTransactions.length === 0 ? (
                 <div className="text-center py-6 sm:py-8 text-muted-foreground text-sm">
-                  No transactions yet. Purchase credits to get started!
+                  {transactionFilter === "all"
+                    ? "No transactions yet. Purchase credits to get started!"
+                    : "No transactions match this filter."}
                 </div>
               ) : (
                 <div className="space-y-2">
-                  {transactions.map((tx) => (
+                  {visibleTransactions.map((tx) => (
                     <div
                       key={tx.id}
                       className="flex items-center justify-between p-2.5 sm:p-3 rounded-lg border hover:bg-muted/50 transition-colors gap-2"
@@ -451,6 +511,23 @@ const BillingPage = () => {
                       </div>
                     </div>
                   ))}
+
+                  {/* Load More Button */}
+                  {hasMoreTransactions && (
+                    <div className="pt-4 flex flex-col items-center gap-2">
+                      <Button
+                        variant="outline"
+                        onClick={handleLoadMore}
+                        className="w-full sm:w-auto"
+                      >
+                        <ChevronDown className="h-4 w-4 mr-2" />
+                        Load More
+                      </Button>
+                      <p className="text-xs text-muted-foreground">
+                        Showing {visibleTransactions.length} of {filteredTransactions.length} transactions
+                      </p>
+                    </div>
+                  )}
                 </div>
               )}
             </CardContent>
