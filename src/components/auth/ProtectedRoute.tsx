@@ -201,11 +201,17 @@ export function ProtectedRoute({ children, requireAdmin = false }: ProtectedRout
     return <Navigate to="/auth" state={{ from: location }} replace />;
   }
 
-  // If profile failed to load after multiple retries, redirect to auth
-  // This handles cases where the session appears valid but API returns 401
-  if (!profile && !profileLoading) {
-    console.warn('Profile could not be loaded, redirecting to auth');
-    return <Navigate to="/auth" state={{ from: location }} replace />;
+  // Wait for profile to load before rendering children
+  // The 401 handling above will catch invalid sessions
+  if (!profile) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto mb-4" />
+          <p className="text-muted-foreground">Setting up your profile...</p>
+        </div>
+      </div>
+    );
   }
 
   // Check role-based access
