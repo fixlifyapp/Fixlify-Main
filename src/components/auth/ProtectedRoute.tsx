@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useNavigate, Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/hooks/use-auth';
 import { toast } from 'sonner';
@@ -19,20 +19,35 @@ interface Profile {
 }
 
 export function ProtectedRoute({ children, requireAdmin = false }: ProtectedRouteProps) {
-  const { user, loading, error, isAuthenticated } = useAuth();
+  const { user, loading, error, isAuthenticated, signOut } = useAuth();
   const location = useLocation();
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [isCheckingOnboarding, setIsCheckingOnboarding] = useState(true);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [profileLoading, setProfileLoading] = useState(true);
-  
+  const [authError, setAuthError] = useState(false);
+
+  // Force sign out and redirect on auth error
+  const handleAuthError = useCallback(async () => {
+    console.log('Auth error detected, signing out...');
+    setAuthError(true);
+    try {
+      await signOut();
+    } catch (e) {
+      console.error('Error signing out:', e);
+    }
+    // Clear any cached auth data
+    localStorage.removeItem('fixlify-auth-token');
+    localStorage.removeItem('sb-mqppvcrlvsgrsqelglod-auth-token');
+    window.location.href = '/auth';
+  }, [signOut]);
+
   // Handle auth errors
   useEffect(() => {
     if (error && error.includes('refresh_token')) {
-      localStorage.removeItem('fixlify-auth-token');
-      window.location.href = '/auth';
+      handleAuthError();
     }
-  }, [error]);
+  }, [error, handleAuthError]);
 
   // Fetch user profile
   useEffect(() => {
@@ -50,6 +65,13 @@ export function ProtectedRoute({ children, requireAdmin = false }: ProtectedRout
           .single();
 
         if (error) {
+          // Handle 401 unauthorized - session is invalid
+          if (error.message?.includes('401') || error.code === '401' || error.message?.includes('JWT')) {
+            console.error('Profile fetch returned 401 - session invalid');
+            handleAuthError();
+            return;
+          }
+
           // If profile doesn't exist, create one with proper organization
           if (error.code === 'PGRST116') {
             // Check if user was invited to an organization
@@ -119,15 +141,22 @@ export function ProtectedRoute({ children, requireAdmin = false }: ProtectedRout
         } else {
           setProfile(data);
         }
-      } catch (error) {
-        // Silent fail - profile will be null
+      } catch (error: any) {
+        // Check if it's an auth error (401)
+        if (error?.status === 401 || error?.message?.includes('401')) {
+          console.error('Profile fetch threw 401 error');
+          handleAuthError();
+          return;
+        }
+        // Silent fail for other errors - profile will be null
+        console.error('Profile fetch error:', error);
       } finally {
         setProfileLoading(false);
       }
     };
 
     fetchProfile();
-  }, [user]);
+  }, [user, handleAuthError]);
 
   // Check onboarding status
   useEffect(() => {
@@ -151,6 +180,11 @@ export function ProtectedRoute({ children, requireAdmin = false }: ProtectedRout
     checkOnboardingStatus();
   }, [user, profile]);
 
+  // If auth error occurred, redirect to auth page
+  if (authError) {
+    return <Navigate to="/auth" state={{ from: location }} replace />;
+  }
+
   if (loading || profileLoading || isCheckingOnboarding) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -167,15 +201,11 @@ export function ProtectedRoute({ children, requireAdmin = false }: ProtectedRout
     return <Navigate to="/auth" state={{ from: location }} replace />;
   }
 
-  if (!profile) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto mb-4" />
-          <p className="text-muted-foreground">Setting up your profile...</p>
-        </div>
-      </div>
-    );
+  // If profile failed to load after multiple retries, redirect to auth
+  // This handles cases where the session appears valid but API returns 401
+  if (!profile && !profileLoading) {
+    console.warn('Profile could not be loaded, redirecting to auth');
+    return <Navigate to="/auth" state={{ from: location }} replace />;
   }
 
   // Check role-based access
