@@ -1,0 +1,41 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e2]:
+  - region "Notifications alt+T"
+  - generic [ref=e4]:
+    - generic [ref=e5]:
+      - generic [ref=e7]: F
+      - heading "Fixlify" [level=3] [ref=e8]
+      - paragraph [ref=e9]: Field service management simplified
+    - generic [ref=e10]:
+      - button "Continue with Google" [ref=e11] [cursor=pointer]:
+        - img
+        - text: Continue with Google
+      - generic [ref=e16]: Or continue with email
+      - generic [ref=e17]:
+        - tablist [ref=e18]:
+          - tab "Sign In" [selected] [ref=e19] [cursor=pointer]
+          - tab "Sign Up" [ref=e20] [cursor=pointer]
+        - tabpanel "Sign In" [ref=e21]:
+          - generic [ref=e22]:
+            - generic [ref=e23]:
+              - text: Email
+              - textbox "Email" [active] [ref=e24]:
+                - /placeholder: your@email.com
+                - text: petrusenkocorp
+            - generic [ref=e25]:
+              - text: Password
+              - generic [ref=e26]:
+                - textbox "Password" [ref=e27]:
+                  - /placeholder: ••••••••
+                  - text: "2806456"
+                - button [ref=e28] [cursor=pointer]:
+                  - img [ref=e29]
+            - button "Sign In" [ref=e32] [cursor=pointer]
+    - generic [ref=e33]:
+      - paragraph [ref=e34]: By continuing, you agree to Fixlify's Terms of Service and Privacy Policy.
+      - button "Refresh Page" [ref=e35] [cursor=pointer]:
+        - img
+        - text: Refresh Page
+```

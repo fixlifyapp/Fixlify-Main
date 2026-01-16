@@ -28,7 +28,9 @@ serve(async (req) => {
 
     console.log('[portal-approve-estimate] Processing approval for estimate:', estimateId);
 
-    // First, verify the access token belongs to this estimate
+    // Validate by directly checking the estimate's portal_access_token
+    // This bypasses the client_portal_access table validation since estimate tokens
+    // are stored directly on the estimates table
     const { data: estimate, error: estimateError } = await supabase
       .from('estimates')
       .select('*, clients(*)')
@@ -37,20 +39,22 @@ serve(async (req) => {
       .maybeSingle();
 
     if (estimateError) {
-      console.error('[portal-approve-estimate] Error fetching estimate:', estimateError);
+      console.error('[portal-approve-estimate] Error validating estimate:', estimateError);
       return new Response(
-        JSON.stringify({ error: 'Failed to verify estimate access' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({ error: 'Failed to validate access token' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
     if (!estimate) {
-      console.error('[portal-approve-estimate] Invalid access token or estimate not found');
+      console.error('[portal-approve-estimate] Invalid token or estimate not found');
       return new Response(
-        JSON.stringify({ error: 'Invalid access token or estimate not found' }),
-        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({ error: 'Invalid or expired access token' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+
+    console.log('[portal-approve-estimate] Token validated for estimate:', estimate.id);
 
     // Check if estimate is already approved
     if (estimate.status === 'approved') {
@@ -84,6 +88,31 @@ serve(async (req) => {
     }
 
     console.log('[portal-approve-estimate] Estimate approved successfully:', estimateId);
+
+    const clientName = estimate.clients?.name || 'Client';
+    const estNumber = estimate.estimate_number || estimate.id.substring(0, 8);
+    const total = estimate.total?.toFixed(2) || '0.00';
+
+    // Log to job_history for the History tab
+    try {
+      await supabase.from('job_history').insert({
+        job_id: estimate.job_id,
+        type: 'estimate',
+        title: `Estimate #${estNumber} Approved`,
+        description: `${clientName} approved estimate for $${total} via client portal`,
+        user_name: clientName,
+        meta: {
+          estimate_id: estimateId,
+          estimate_number: estNumber,
+          client_name: clientName,
+          total: estimate.total,
+          action: 'approved',
+          approved_via: 'client_portal'
+        }
+      });
+    } catch (historyError) {
+      console.warn('[portal-approve-estimate] Failed to log to job_history:', historyError);
+    }
 
     // Log the approval in estimate_communications
     try {
@@ -137,10 +166,6 @@ serve(async (req) => {
         .maybeSingle();
 
       console.log('[portal-approve-estimate] Last communication:', lastComm);
-
-      const clientName = estimate.clients?.name || 'Client';
-      const estNumber = estimate.estimate_number || estimate.id.substring(0, 8);
-      const total = estimate.total?.toFixed(2) || '0.00';
 
       if (lastComm?.type === 'sms' && lastComm.recipient_phone) {
         // SMS notification to inbox

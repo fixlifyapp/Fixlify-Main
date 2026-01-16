@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { PageLayout } from "@/components/layout/PageLayout";
 import { PageHeader } from "@/components/ui/page-header";
 import {
@@ -39,7 +40,28 @@ import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 
 const BillingPage = () => {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [showTopUp, setShowTopUp] = useState(false);
+  const [activeTab, setActiveTab] = useState("transactions");
+
+  // Handle URL tab parameter
+  useEffect(() => {
+    const tabParam = searchParams.get("tab");
+    if (tabParam && ["transactions", "usage", "rates", "plans", "settings", "credits"].includes(tabParam)) {
+      // "credits" is an alias for "transactions" (for deep linking from notifications)
+      setActiveTab(tabParam === "credits" ? "transactions" : tabParam);
+      // Open top-up modal if coming from insufficient credits flow
+      if (tabParam === "credits") {
+        setShowTopUp(true);
+      }
+    }
+  }, [searchParams]);
+
+  const handleTabChange = (tab: string) => {
+    setActiveTab(tab);
+    setSearchParams({ tab });
+  };
+
   const {
     balance,
     balanceData,
@@ -350,7 +372,7 @@ const BillingPage = () => {
       </div>
 
       {/* Tabs */}
-      <Tabs defaultValue="transactions" className="space-y-4">
+      <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-4">
         <div className="w-full overflow-x-auto -mx-1 px-1 pb-1">
           <TabsList className="w-full sm:w-auto inline-flex">
             <TabsTrigger value="transactions" className="gap-1.5 sm:gap-2 text-xs sm:text-sm px-2 sm:px-3">

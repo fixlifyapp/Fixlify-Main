@@ -7,6 +7,7 @@ import {
   SidebarProvider,
   SidebarInset
 } from '@/components/ui/sidebar';
+import { useLowCreditsNotification } from '@/hooks/useLowCreditsNotification';
 
 interface PageLayoutProps {
   children: ReactNode;
@@ -14,6 +15,9 @@ interface PageLayoutProps {
 
 export const PageLayout = ({ children }: PageLayoutProps) => {
   const isMobile = useIsMobile();
+
+  // Show low credits notification (permission check is inside the hook)
+  useLowCreditsNotification();
 
   return (
     <SidebarProvider defaultOpen={!isMobile}>

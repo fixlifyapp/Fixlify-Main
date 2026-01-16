@@ -338,6 +338,39 @@ function InvoicePortalContent() {
     loadInvoiceData();
   }, [loadInvoiceData]);
 
+  // Track view when invoice loads successfully
+  useEffect(() => {
+    const trackView = async () => {
+      if (!invoice || !token) return;
+
+      try {
+        const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+        const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+        // Call the portal-view-invoice edge function
+        const response = await fetch(`${supabaseUrl}/functions/v1/portal-view-invoice`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'apikey': supabaseAnonKey,
+          },
+          body: JSON.stringify({
+            accessToken: token,
+            invoiceId: invoice.id,
+          }),
+        });
+
+        const data = await response.json();
+        console.log('[InvoicePortal] View tracking response:', data);
+      } catch (err) {
+        // Silently fail - view tracking is not critical
+        console.warn('[InvoicePortal] Failed to track view:', err);
+      }
+    };
+
+    trackView();
+  }, [invoice?.id, token]);
+
   const handlePayNow = useCallback(() => {
     toast.info(
       'Online payment will be available soon. Please contact us for payment options.'

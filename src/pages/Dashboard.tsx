@@ -14,6 +14,7 @@ import { RecentJobs } from "@/components/dashboard/RecentJobs";
 import { UpcomingJobs } from "@/components/dashboard/UpcomingJobs";
 import { ActivityFeed } from "@/components/dashboard/ActivityFeed";
 import { AIAgentWidget } from "@/components/dashboard/AIAgentWidget";
+import { DeclineInsightsWidget } from "@/components/dashboard/DeclineInsightsWidget";
 import { DashboardFilterControls } from "@/components/dashboard/DashboardFilterControls";
 import { useIsMobile } from "@/hooks/use-mobile";
 
@@ -89,6 +90,7 @@ const Dashboard = () => {
           {/* Widgets and Insights */}
           <div className={`space-y-4 lg:space-y-6 ${isMobile ? 'order-first' : ''}`}>
             <AiInsightsPanel />
+            <DeclineInsightsWidget />
             <AIAgentWidget />
             {!isMobile && <ClientValuePanel />}
             <QuickActionsPanel />

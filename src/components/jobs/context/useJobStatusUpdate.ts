@@ -1,11 +1,14 @@
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { AutomationService } from '@/services/automationService';
+import { recordStatusChange } from '@/services/jobHistoryService';
+import { useRBAC } from '@/components/auth/RBACProvider';
 
 // Track ongoing automations to prevent duplicates
 const ongoingAutomations = new Set<string>();
 
 export function useJobStatusUpdate(jobId?: string, refreshJob?: () => void) {
+  const { currentUser } = useRBAC();
 
   const updateJobStatus = async (newStatus: string, oldStatus?: string) => {
     if (!jobId) {
@@ -61,6 +64,15 @@ export function useJobStatusUpdate(jobId?: string, refreshJob?: () => void) {
       }
 
       toast.success(`Job status updated to ${newStatus}`);
+
+      // Log status change to job history
+      try {
+        const userName = currentUser?.name || currentUser?.email || 'System';
+        const userId = currentUser?.id;
+        await recordStatusChange(jobId, currentStatus, normalizedNewStatus, userName, userId);
+      } catch (historyError) {
+        console.warn('Failed to log status change to history:', historyError);
+      }
 
       // Process automations through the frontend service
       AutomationService.processJobStatusChange(

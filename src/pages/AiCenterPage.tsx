@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Brain, MessageSquare, Phone, Zap, TrendingUp, Clock, Play, Square } from "lucide-react";
+import { Brain, MessageSquare, Phone, Zap, TrendingUp, Clock, Play, Square, FileX } from "lucide-react";
 import { TelnyxCallsView } from "@/components/telnyx/TelnyxCallsView";
 import { VoiceDispatchInterface } from "@/components/voice/VoiceDispatchInterface";
 import { AutomationEngineStatus } from "@/components/automations/AutomationEngineStatus";
@@ -13,6 +13,7 @@ import { AutomationProcessorProvider } from "@/contexts/AutomationProcessorConte
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { DeclineInsightsAI } from "@/components/ai/DeclineInsightsAI";
 
 const AiCenterPage = () => {
   const [activeTab, setActiveTab] = useState("calls");
@@ -206,10 +207,14 @@ const AiCenterPage = () => {
         )}
 
         <Tabs defaultValue={activeTab} value={activeTab} className="w-full" onValueChange={setActiveTab}>
-          <TabsList className="grid grid-cols-2 mb-6">
+          <TabsList className="grid grid-cols-3 mb-6">
             <TabsTrigger value="calls" className="flex items-center gap-2">
               <Phone size={16} />
               AI Calls
+            </TabsTrigger>
+            <TabsTrigger value="decline-insights" className="flex items-center gap-2">
+              <FileX size={16} />
+              Decline Insights
             </TabsTrigger>
             <TabsTrigger value="analytics" className="flex items-center gap-2">
               <TrendingUp size={16} />
@@ -220,7 +225,11 @@ const AiCenterPage = () => {
           <TabsContent value="calls" className="mt-0">
             <TelnyxCallsView />
           </TabsContent>
-          
+
+          <TabsContent value="decline-insights" className="mt-0">
+            <DeclineInsightsAI />
+          </TabsContent>
+
           <TabsContent value="analytics" className="mt-0">
             <Card>
               <CardHeader>

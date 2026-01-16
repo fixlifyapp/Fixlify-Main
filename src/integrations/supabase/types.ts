@@ -2047,8 +2047,12 @@ export type Database = {
           client_id: string
           country: string | null
           created_at: string
+          formatted_address: string | null
+          geocoded_at: string | null
           id: string
           is_primary: boolean | null
+          latitude: number | null
+          longitude: number | null
           notes: string | null
           property_name: string
           property_type: string | null
@@ -2065,8 +2069,12 @@ export type Database = {
           client_id: string
           country?: string | null
           created_at?: string
+          formatted_address?: string | null
+          geocoded_at?: string | null
           id?: string
           is_primary?: boolean | null
+          latitude?: number | null
+          longitude?: number | null
           notes?: string | null
           property_name: string
           property_type?: string | null
@@ -2083,8 +2091,12 @@ export type Database = {
           client_id?: string
           country?: string | null
           created_at?: string
+          formatted_address?: string | null
+          geocoded_at?: string | null
           id?: string
           is_primary?: boolean | null
+          latitude?: number | null
+          longitude?: number | null
           notes?: string | null
           property_name?: string
           property_type?: string | null
@@ -3672,7 +3684,9 @@ export type Database = {
           description: string | null
           id: string
           job_type: string | null
+          latitude: number | null
           lead_source: string | null
+          longitude: number | null
           notes: string | null
           organization_id: string | null
           property_id: string | null
@@ -3704,7 +3718,9 @@ export type Database = {
           description?: string | null
           id: string
           job_type?: string | null
+          latitude?: number | null
           lead_source?: string | null
+          longitude?: number | null
           notes?: string | null
           organization_id?: string | null
           property_id?: string | null
@@ -3736,7 +3752,9 @@ export type Database = {
           description?: string | null
           id?: string
           job_type?: string | null
+          latitude?: number | null
           lead_source?: string | null
+          longitude?: number | null
           notes?: string | null
           organization_id?: string | null
           property_id?: string | null
@@ -5325,6 +5343,7 @@ export type Database = {
           id: string
           last_message_at: string | null
           last_message_preview: string | null
+          organization_id: string | null
           phone_number: string
           status: string
           stopped_at: string | null
@@ -5339,6 +5358,7 @@ export type Database = {
           id?: string
           last_message_at?: string | null
           last_message_preview?: string | null
+          organization_id?: string | null
           phone_number: string
           status?: string
           stopped_at?: string | null
@@ -5353,6 +5373,7 @@ export type Database = {
           id?: string
           last_message_at?: string | null
           last_message_preview?: string | null
+          organization_id?: string | null
           phone_number?: string
           status?: string
           stopped_at?: string | null
@@ -5366,6 +5387,13 @@ export type Database = {
             columns: ["client_id"]
             isOneToOne: false
             referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sms_conversations_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
         ]
@@ -6183,30 +6211,39 @@ export type Database = {
       }
       weather_cache: {
         Row: {
+          cache_key: string
+          city_name: string | null
           created_at: string | null
           expires_at: string
+          fetched_at: string | null
+          forecast_date: string
           id: string
-          latitude: number | null
-          location: string
-          longitude: number | null
+          latitude: number
+          longitude: number
           weather_data: Json
         }
         Insert: {
+          cache_key: string
+          city_name?: string | null
           created_at?: string | null
           expires_at: string
+          fetched_at?: string | null
+          forecast_date?: string
           id?: string
-          latitude?: number | null
-          location: string
-          longitude?: number | null
+          latitude: number
+          longitude: number
           weather_data: Json
         }
         Update: {
+          cache_key?: string
+          city_name?: string | null
           created_at?: string | null
           expires_at?: string
+          fetched_at?: string | null
+          forecast_date?: string
           id?: string
-          latitude?: number | null
-          location?: string
-          longitude?: number | null
+          latitude?: number
+          longitude?: number
           weather_data?: Json
         }
         Relationships: []
@@ -6651,6 +6688,31 @@ export type Database = {
         }
         Relationships: []
       }
+      unified_conversations: {
+        Row: {
+          assigned_to: string | null
+          business_identifier: string | null
+          channel: string | null
+          client_email: string | null
+          client_id: string | null
+          client_name: string | null
+          client_phone_formatted: string | null
+          contact_identifier: string | null
+          created_at: string | null
+          id: string | null
+          is_archived: boolean | null
+          is_starred: boolean | null
+          last_message_at: string | null
+          last_message_preview: string | null
+          organization_id: string | null
+          status: string | null
+          subject: string | null
+          unread_count: number | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Relationships: []
+      }
       warranty_analytics_summary: {
         Row: {
           avg_job_value: number | null
@@ -6741,6 +6803,14 @@ export type Database = {
           jobs_used: number
         }[]
       }
+      can_view_client_messages: {
+        Args: {
+          p_client_id: string
+          p_organization_id: string
+          p_user_id: string
+        }
+        Returns: boolean
+      }
       check_automation_triggers: { Args: never; Returns: undefined }
       check_communication_health: {
         Args: never
@@ -6793,6 +6863,7 @@ export type Database = {
       check_user_products_by_email: { Args: { p_email: string }; Returns: Json }
       check_user_products_status: { Args: never; Returns: Json }
       clean_duplicate_automation_logs: { Args: never; Returns: number }
+      clean_expired_weather_cache: { Args: never; Returns: undefined }
       cleanup_all_user_data: {
         Args: { p_dry_run?: boolean; p_keep_system_users?: boolean }
         Returns: Json
@@ -7107,6 +7178,24 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      get_org_conversations: {
+        Args: {
+          p_channel?: string
+          p_limit?: number
+          p_organization_id: string
+          p_user_id: string
+        }
+        Returns: {
+          channel: string
+          client_id: string
+          client_name: string
+          contact_identifier: string
+          conv_id: string
+          last_message_at: string
+          last_message_preview: string
+          unread_count: number
+        }[]
+      }
       get_org_plan_details: {
         Args: { p_organization_id: string }
         Returns: {
@@ -7177,6 +7266,12 @@ export type Database = {
         Returns: {
           id: string
           name: string
+        }[]
+      }
+      get_technician_assigned_clients: {
+        Args: { p_user_id: string }
+        Returns: {
+          client_id: string
         }[]
       }
       get_user_organization_id: { Args: never; Returns: string }
@@ -7413,6 +7508,28 @@ export type Database = {
       process_pending_automation_logs: { Args: never; Returns: undefined }
       process_pending_automations: { Args: never; Returns: undefined }
       process_scheduled_workflow_executions: { Args: never; Returns: undefined }
+      process_subscription_cancellations: {
+        Args: never
+        Returns: {
+          errors: string[]
+          processed_count: number
+        }[]
+      }
+      process_subscription_renewals: {
+        Args: never
+        Returns: {
+          credits_allocated: number
+          errors: string[]
+          processed_count: number
+        }[]
+      }
+      process_trial_expirations: {
+        Args: never
+        Returns: {
+          errors: string[]
+          processed_count: number
+        }[]
+      }
       recalculate_job_revenue: { Args: { p_job_id: string }; Returns: number }
       refresh_user_products: { Args: never; Returns: Json }
       release_phone_to_pool: {
@@ -7435,6 +7552,7 @@ export type Database = {
         Args: { p_organization_id: string }
         Returns: undefined
       }
+      run_subscription_maintenance: { Args: never; Returns: Json }
       safe_insert_products: {
         Args: { p_products: Json; p_user_id: string }
         Returns: Json

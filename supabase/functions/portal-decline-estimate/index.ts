@@ -28,7 +28,9 @@ serve(async (req) => {
 
     console.log('[portal-decline-estimate] Processing decline for estimate:', estimateId);
 
-    // Verify the access token belongs to this estimate
+    // Validate by directly checking the estimate's portal_access_token
+    // This bypasses the client_portal_access table validation since estimate tokens
+    // are stored directly on the estimates table
     const { data: estimate, error: estimateError } = await supabase
       .from('estimates')
       .select('*, clients(*)')
@@ -37,38 +39,40 @@ serve(async (req) => {
       .maybeSingle();
 
     if (estimateError) {
-      console.error('[portal-decline-estimate] Error fetching estimate:', estimateError);
+      console.error('[portal-decline-estimate] Error validating estimate:', estimateError);
       return new Response(
-        JSON.stringify({ error: 'Failed to verify estimate access' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({ error: 'Failed to validate access token' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
     if (!estimate) {
-      console.error('[portal-decline-estimate] Invalid access token or estimate not found');
+      console.error('[portal-decline-estimate] Invalid token or estimate not found');
       return new Response(
-        JSON.stringify({ error: 'Invalid access token or estimate not found' }),
-        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({ error: 'Invalid or expired access token' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // Check if estimate is already declined
-    if (estimate.status === 'declined') {
+    console.log('[portal-decline-estimate] Token validated for estimate:', estimate.id);
+
+    // Check if estimate is already rejected
+    if (estimate.status === 'rejected') {
       return new Response(
         JSON.stringify({
           success: true,
-          message: 'Estimate is already declined',
-          estimate: { id: estimate.id, status: 'declined' }
+          message: 'Estimate is already rejected',
+          estimate: { id: estimate.id, status: 'rejected' }
         }),
         { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // Update estimate status to declined
+    // Update estimate status to rejected (the valid status value in the database)
     const { data: updatedEstimate, error: updateError } = await supabase
       .from('estimates')
       .update({
-        status: 'declined',
+        status: 'rejected',
         declined_at: new Date().toISOString(),
         decline_reason: reason || null
       })
@@ -89,6 +93,28 @@ serve(async (req) => {
     const clientName = estimate.clients?.name || 'Client';
     const estNumber = estimate.estimate_number || estimate.id.substring(0, 8);
     const total = estimate.total?.toFixed(2) || '0.00';
+
+    // Log to job_history for the History tab
+    try {
+      await supabase.from('job_history').insert({
+        job_id: estimate.job_id,
+        type: 'estimate',
+        title: `Estimate #${estNumber} Declined`,
+        description: `${clientName} declined estimate for $${total}${reason ? ` - Reason: "${reason}"` : ''} via client portal`,
+        user_name: clientName,
+        meta: {
+          estimate_id: estimateId,
+          estimate_number: estNumber,
+          client_name: clientName,
+          total: estimate.total,
+          action: 'declined',
+          reason: reason || null,
+          declined_via: 'client_portal'
+        }
+      });
+    } catch (historyError) {
+      console.warn('[portal-decline-estimate] Failed to log to job_history:', historyError);
+    }
 
     // Log the decline in estimate_communications
     try {

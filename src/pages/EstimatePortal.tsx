@@ -17,6 +17,17 @@ import { PortalRoleBanner } from '@/components/portal/PortalRoleBanner';
 import { PortalUpsellSection, type UpsellItem } from '@/components/portal/PortalUpsellSection';
 import { cn } from '@/lib/utils';
 import { generateFromEmail } from '@/utils/emailUtils';
+import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Textarea } from '@/components/ui/textarea';
+import { XCircle } from 'lucide-react';
 
 interface EstimateData {
   id: string;
@@ -309,12 +320,134 @@ function EstimatePortalContent() {
     loadEstimateData();
   }, [loadEstimateData]);
 
-  const handleAccept = useCallback(() => {
-    toast.info(
-      'Online estimate acceptance will be available soon. Please contact us to accept this estimate.'
-    );
-    // TODO: Implement online acceptance flow
-  }, [toast]);
+  // Track view when estimate loads successfully
+  useEffect(() => {
+    const trackView = async () => {
+      if (!estimate || !token) return;
+
+      try {
+        const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+        const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+        // Call the portal-view-estimate edge function
+        const response = await fetch(`${supabaseUrl}/functions/v1/portal-view-estimate`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'apikey': supabaseAnonKey,
+          },
+          body: JSON.stringify({
+            accessToken: token,
+            estimateId: estimate.id,
+          }),
+        });
+
+        const data = await response.json();
+        console.log('[EstimatePortal] View tracking response:', data);
+      } catch (err) {
+        // Silently fail - view tracking is not critical
+        console.warn('[EstimatePortal] Failed to track view:', err);
+      }
+    };
+
+    trackView();
+  }, [estimate?.id, token]);
+
+  const [isAccepting, setIsAccepting] = useState(false);
+  const [isDeclining, setIsDeclining] = useState(false);
+  const [showDeclineDialog, setShowDeclineDialog] = useState(false);
+  const [declineReason, setDeclineReason] = useState('');
+
+  const handleAccept = useCallback(async () => {
+    if (!estimate || !token) return;
+
+    setIsAccepting(true);
+    try {
+      // Get the Supabase URL from the client
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+      // Call the portal-approve-estimate edge function directly
+      // This is a public endpoint (no JWT required) that validates via portal_access_token
+      const response = await fetch(`${supabaseUrl}/functions/v1/portal-approve-estimate`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': supabaseAnonKey,
+        },
+        body: JSON.stringify({
+          accessToken: token,
+          estimateId: estimate.id,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        console.error('Error approving estimate:', data);
+        toast.error(data?.error || 'Failed to approve estimate. Please try again or contact support.');
+        return;
+      }
+
+      if (data?.success) {
+        toast.success('Estimate approved successfully! Thank you for your business.');
+        // Update local state to reflect the approval
+        setEstimate((prev) => prev ? { ...prev, status: 'approved' } : null);
+      } else {
+        toast.error(data?.error || 'Failed to approve estimate. Please try again.');
+      }
+    } catch (err) {
+      console.error('Error approving estimate:', err);
+      toast.error('An unexpected error occurred. Please try again.');
+    } finally {
+      setIsAccepting(false);
+    }
+  }, [estimate, token, toast]);
+
+  const handleDecline = useCallback(async () => {
+    if (!estimate || !token) return;
+
+    setIsDeclining(true);
+    try {
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+      const response = await fetch(`${supabaseUrl}/functions/v1/portal-decline-estimate`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': supabaseAnonKey,
+        },
+        body: JSON.stringify({
+          accessToken: token,
+          estimateId: estimate.id,
+          reason: declineReason.trim() || undefined,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        console.error('Error declining estimate:', data);
+        toast.error(data?.error || 'Failed to decline estimate. Please try again.');
+        return;
+      }
+
+      if (data?.success) {
+        toast.success('Estimate declined. We appreciate your feedback.');
+        setEstimate((prev) => prev ? { ...prev, status: 'declined' } : null);
+        setShowDeclineDialog(false);
+        setDeclineReason('');
+      } else {
+        toast.error(data?.error || 'Failed to decline estimate. Please try again.');
+      }
+    } catch (err) {
+      console.error('Error declining estimate:', err);
+      toast.error('An unexpected error occurred. Please try again.');
+    } finally {
+      setIsDeclining(false);
+    }
+  }, [estimate, token, declineReason, toast]);
 
   // Handle upsell selection changes
   const handleUpsellSelectionChange = useCallback((items: UpsellItem[], totalAmount: number) => {
@@ -376,8 +509,63 @@ function EstimatePortalContent() {
         status={estimate.status}
         companyName={company?.name}
         onPrimaryAction={canAccept ? handleAccept : undefined}
-        primaryActionLabel="Accept Estimate"
-      />
+        primaryActionLabel={isAccepting ? "Approving..." : "Accept Estimate"}
+        primaryActionDisabled={isAccepting || isDeclining}
+      >
+        {/* Decline button */}
+        {canAccept && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowDeclineDialog(true)}
+            disabled={isAccepting || isDeclining}
+            className="hidden sm:flex items-center gap-1.5 border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-900/20"
+          >
+            <XCircle className="h-4 w-4" />
+            <span>Decline</span>
+          </Button>
+        )}
+      </PortalActionBar>
+
+      {/* Decline Reason Dialog */}
+      <Dialog open={showDeclineDialog} onOpenChange={setShowDeclineDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Decline Estimate</DialogTitle>
+            <DialogDescription>
+              We're sorry this estimate doesn't work for you. Would you like to share why?
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <Textarea
+              placeholder="Optional: Let us know what we could improve or why this doesn't meet your needs..."
+              value={declineReason}
+              onChange={(e) => setDeclineReason(e.target.value)}
+              rows={4}
+              className="resize-none"
+            />
+          </div>
+          <DialogFooter className="flex-col sm:flex-row gap-2">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowDeclineDialog(false);
+                setDeclineReason('');
+              }}
+              disabled={isDeclining}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleDecline}
+              disabled={isDeclining}
+            >
+              {isDeclining ? "Declining..." : "Decline Estimate"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Main Content */}
       <main className="flex-1">
@@ -538,17 +726,36 @@ function EstimatePortalContent() {
             {/* Mobile CTA - Sticky at bottom on mobile */}
             {canAccept && (
               <div className="sm:hidden sticky bottom-0 px-4 py-4 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800 shadow-lg">
-                <button
-                  onClick={handleAccept}
-                  className={cn(
-                    'w-full py-3 px-4 rounded-lg font-semibold text-white',
-                    'bg-purple-600 hover:bg-purple-700 active:bg-purple-800',
-                    'transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2',
-                    'dark:focus:ring-offset-gray-900'
-                  )}
-                >
-                  Accept Estimate - ${total.toFixed(2)}
-                </button>
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setShowDeclineDialog(true)}
+                    disabled={isAccepting || isDeclining}
+                    className={cn(
+                      'flex-shrink-0 py-3 px-4 rounded-lg font-semibold',
+                      'border border-red-200 text-red-600 bg-white',
+                      'hover:bg-red-50 active:bg-red-100',
+                      'dark:border-red-800 dark:text-red-400 dark:bg-gray-900 dark:hover:bg-red-900/20',
+                      'transition-colors focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2',
+                      'dark:focus:ring-offset-gray-900',
+                      'disabled:opacity-50 disabled:cursor-not-allowed'
+                    )}
+                  >
+                    <XCircle className="h-5 w-5" />
+                  </button>
+                  <button
+                    onClick={handleAccept}
+                    disabled={isAccepting || isDeclining}
+                    className={cn(
+                      'flex-1 py-3 px-4 rounded-lg font-semibold text-white',
+                      'bg-purple-600 hover:bg-purple-700 active:bg-purple-800',
+                      'transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2',
+                      'dark:focus:ring-offset-gray-900',
+                      'disabled:opacity-50 disabled:cursor-not-allowed'
+                    )}
+                  >
+                    {isAccepting ? "Approving..." : `Accept - $${total.toFixed(2)}`}
+                  </button>
+                </div>
               </div>
             )}
 

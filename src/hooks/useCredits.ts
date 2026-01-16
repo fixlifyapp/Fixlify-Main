@@ -63,8 +63,8 @@ export interface UseCreditsResult {
 // Hook
 export function useCredits() {
   const queryClient = useQueryClient();
-  const { currentOrganization } = useOrganization();
-  const organizationId = currentOrganization?.id;
+  const { organization } = useOrganization();
+  const organizationId = organization?.id;
 
   // Fetch credit balance
   const {

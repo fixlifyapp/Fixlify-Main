@@ -4,6 +4,7 @@ import { MessageSquare, Phone, Mail, Clock, Loader2 } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { linkifyText } from "@/utils/linkify";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -250,7 +251,7 @@ export const MessageThread = ({ selectedConversation }: MessageThreadProps) => {
                       : "bg-fixlyfy text-white rounded-br-md"
                   )}>
                     <p className={`${isMobile ? 'text-sm' : 'text-sm'} break-words leading-relaxed`}>
-                      {message.body}
+                      {linkifyText(message.body || message.content)}
                     </p>
                   </div>
                   <div className={cn(

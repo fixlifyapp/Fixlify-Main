@@ -379,6 +379,32 @@ serve(async (req) => {
       .update({ status: "sent" })
       .eq("id", documentId);
 
+    // Log to job_history for the History tab
+    if (document.job_id) {
+      try {
+        const docTypeCapitalized = documentType.charAt(0).toUpperCase() + documentType.slice(1);
+        await supabase.from('job_history').insert({
+          job_id: document.job_id,
+          type: documentType,
+          title: `${docTypeCapitalized} #${documentNumber} Sent`,
+          description: `${docTypeCapitalized} for $${documentTotal} sent via email to ${client?.name || toEmail}`,
+          user_name: 'System',
+          meta: {
+            document_id: documentId,
+            document_number: documentNumber,
+            total: document.total,
+            recipient_email: toEmail,
+            client_name: client?.name,
+            action: 'sent',
+            sent_via: 'email',
+            portal_url: portalLink
+          }
+        });
+      } catch (historyError) {
+        console.warn('[send-document-email] Failed to log to job_history:', historyError);
+      }
+    }
+
     return new Response(
       JSON.stringify({
         success: true,

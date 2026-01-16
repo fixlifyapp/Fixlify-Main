@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { AutomationService } from '@/services/automationService';
 import { toast } from 'sonner';
+import { recordStatusChange } from '@/services/jobHistoryService';
+import { useRBAC } from '@/components/auth/RBACProvider';
 
 interface UseJobUpdateOptions {
   onSuccess?: (job: any) => void;
@@ -11,6 +13,7 @@ interface UseJobUpdateOptions {
 
 export const useJobUpdate = (options: UseJobUpdateOptions = {}) => {
   const [isUpdating, setIsUpdating] = useState(false);
+  const { currentUser } = useRBAC();
 
   const updateJobStatus = async (jobId: string, newStatus: string) => {
     setIsUpdating(true);
@@ -40,6 +43,17 @@ export const useJobUpdate = (options: UseJobUpdateOptions = {}) => {
       
       if (updateError) throw updateError;
       
+      // Log status change to job history
+      if (oldStatus !== newStatus) {
+        try {
+          const userName = currentUser?.name || currentUser?.email || 'System';
+          const userId = currentUser?.id;
+          await recordStatusChange(jobId, oldStatus, newStatus, userName, userId);
+        } catch (historyError) {
+          console.warn('Failed to log status change to history:', historyError);
+        }
+      }
+
       // Process automations (unless skipped)
       if (!options.skipAutomation && oldStatus !== newStatus) {
         console.log('🤖 Processing automations for job status change...');
@@ -52,7 +66,7 @@ export const useJobUpdate = (options: UseJobUpdateOptions = {}) => {
           // Don't fail the update if automation fails
         });
       }
-      
+
       toast.success(`Job status updated to ${newStatus}`);
       options.onSuccess?.(updatedJob);
       
@@ -97,6 +111,17 @@ export const useJobUpdate = (options: UseJobUpdateOptions = {}) => {
       
       if (error) throw error;
       
+      // Log status change to job history if status changed
+      if (updates.status && oldStatus && oldStatus !== updates.status) {
+        try {
+          const userName = currentUser?.name || currentUser?.email || 'System';
+          const userId = currentUser?.id;
+          await recordStatusChange(jobId, oldStatus, updates.status, userName, userId);
+        } catch (historyError) {
+          console.warn('Failed to log status change to history:', historyError);
+        }
+      }
+
       // Process automations if status changed
       if (!options.skipAutomation && updates.status && oldStatus && oldStatus !== updates.status) {
         console.log('🤖 Processing automations for job update...');
@@ -108,7 +133,7 @@ export const useJobUpdate = (options: UseJobUpdateOptions = {}) => {
           console.error('Automation processing error:', error);
         });
       }
-      
+
       toast.success('Job updated successfully');
       options.onSuccess?.(updatedJob);
       

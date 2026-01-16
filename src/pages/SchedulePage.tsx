@@ -141,7 +141,7 @@ const SchedulePage = () => {
           { text: "Smart Scheduling", icon: Clock, variant: "fixlyfy" },
           { text: "Team Coordination", icon: Users, variant: "success" },
           { text: "AI Optimization", icon: CheckCircle, variant: "info" },
-          ...(useRevolutionary ? [{ text: "2026 Mode", icon: Rocket, variant: "warning" as const }] : [])
+          ...(useRevolutionary ? [{ text: "AI Mode", icon: Rocket, variant: "warning" as const }] : [])
         ]}
         actionButton={{
           text: "New Job",
@@ -156,7 +156,7 @@ const SchedulePage = () => {
           {useRevolutionary && (
             <Badge className="bg-gradient-to-r from-violet-600 to-purple-600 text-white gap-1">
               <Sparkles className="h-3 w-3" />
-              Revolutionary Calendar 2026
+              Revolutionary Calendar
             </Badge>
           )}
         </div>
@@ -167,7 +167,7 @@ const SchedulePage = () => {
           className={useRevolutionary ? "bg-violet-600 hover:bg-violet-700" : ""}
         >
           <Rocket className="h-4 w-4 mr-2" />
-          {useRevolutionary ? "Using 2026 Mode" : "Try 2026 Mode"}
+          {useRevolutionary ? "AI Mode Active" : "Try AI Mode"}
         </Button>
       </div>
 

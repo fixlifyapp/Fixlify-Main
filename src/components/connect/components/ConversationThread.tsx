@@ -1,11 +1,14 @@
+import { useState, useRef, useEffect } from "react";
 import { formatDistanceToNow } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Archive, Phone, Mail, User, CheckCheck, Check, X, Clock, MoreVertical, MessageSquare, Loader2, History } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { MessageInput } from "./MessageInput";
+import { ConversationInputPanel } from "./ConversationInputPanel";
+import { AIWritingAssistant } from "./AIWritingAssistant";
 import { useSMS } from "@/contexts/SMSContext";
+import { linkifyText } from "@/utils/linkify";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -32,6 +35,9 @@ interface ConversationThreadProps {
 }
 
 export const ConversationThread = ({ messages, clientName, client, onArchive }: ConversationThreadProps) => {
+  const [messageText, setMessageText] = useState("");
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const scrollAreaRef = useRef<HTMLDivElement>(null);
   const {
     activeConversation,
     sendMessage,
@@ -41,6 +47,28 @@ export const ConversationThread = ({ messages, clientName, client, onArchive }: 
     loadMoreMessages,
     totalMessageCount
   } = useSMS();
+
+  // Auto-scroll to bottom when new messages arrive
+  const scrollToBottom = () => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
+    }
+  };
+
+  // Scroll to bottom when messages change (new message arrives)
+  useEffect(() => {
+    if (messages.length > 0) {
+      // Small delay to ensure DOM is updated
+      const timer = setTimeout(scrollToBottom, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [messages.length, messages[messages.length - 1]?.id]);
+
+  // Build conversation context for AI assistant
+  const conversationContext = messages
+    .slice(-5)
+    .map(m => `${m.direction === 'inbound' ? 'Client' : 'You'}: ${m.content}`)
+    .join('\n');
 
   const getStatusIcon = (status: string) => {
     switch (status) {
@@ -70,10 +98,22 @@ export const ConversationThread = ({ messages, clientName, client, onArchive }: 
     }
   };
 
-  const handleSendMessage = async (content: string) => {
-    if (activeConversation?.id && content.trim()) {
-      await sendMessage(activeConversation.id, content);
+  const handleSendMessage = async () => {
+    if (activeConversation?.id && messageText.trim()) {
+      await sendMessage(activeConversation.id, messageText);
+      setMessageText("");
     }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSendMessage();
+    }
+  };
+
+  const handleAISuggestion = (suggestion: string) => {
+    setMessageText(suggestion);
   };
 
   return (
@@ -166,7 +206,7 @@ export const ConversationThread = ({ messages, clientName, client, onArchive }: 
                 >
                   <div
                     className={`
-                      max-w-[70%] rounded-2xl px-4 py-2 
+                      max-w-[70%] rounded-2xl px-4 py-2
                       ${message.direction === 'outbound'
                         ? 'bg-gradient-to-r from-violet-600 to-purple-600 text-white'
                         : 'bg-gray-100 dark:bg-gray-800'
@@ -174,7 +214,7 @@ export const ConversationThread = ({ messages, clientName, client, onArchive }: 
                     `}
                   >
                     <p className="text-sm whitespace-pre-wrap break-words">
-                      {message.content}
+                      {linkifyText(message.content)}
                     </p>
                     <div className={`
                       flex items-center gap-2 mt-1 text-xs
@@ -192,19 +232,29 @@ export const ConversationThread = ({ messages, clientName, client, onArchive }: 
                   </div>
                 </div>
               ))}
+              {/* Auto-scroll anchor */}
+              <div ref={messagesEndRef} />
               </>
             )}
           </div>
         </ScrollArea>
         
-        {/* Message Input */}
-        <div className="border-t p-4">
-          <MessageInput
-            onSend={handleSendMessage}
-            disabled={isSending || !activeConversation}
-            placeholder="Type your message..."
-          />
-        </div>
+        {/* AI Writing Assistant */}
+        <AIWritingAssistant
+          onUseSuggestion={handleAISuggestion}
+          clientName={clientName}
+          conversationContext={conversationContext}
+          disabled={isSending || !activeConversation}
+        />
+
+        {/* AI-Enhanced Message Input */}
+        <ConversationInputPanel
+          messageText={messageText}
+          setMessageText={setMessageText}
+          onSendMessage={handleSendMessage}
+          onKeyDown={handleKeyDown}
+          isSending={isSending}
+        />
       </CardContent>
     </Card>
   );

@@ -91,4 +91,23 @@ verify_jwt = false
 [functions.automation-ai-assistant]
 verify_jwt = true
 
+# Portal Functions (public access for clients)
+[functions.portal-data]
+verify_jwt = false
+
+[functions.portal-approve-estimate]
+verify_jwt = false
+
+[functions.portal-decline-estimate]
+verify_jwt = false
+
+[functions.portal-view-estimate]
+verify_jwt = false
+
+[functions.portal-view-invoice]
+verify_jwt = false
+
+[functions.get-decline-analytics]
+# Requires JWT authentication
+
 # Note: intelligent-ai-assistant removed - folder doesn't exist in repo

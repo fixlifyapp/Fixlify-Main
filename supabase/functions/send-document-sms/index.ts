@@ -204,6 +204,32 @@ serve(async (req) => {
       }
     });
 
+    // Log to job_history for the History tab
+    if (document.job_id) {
+      try {
+        const docTypeCapitalized = documentType.charAt(0).toUpperCase() + documentType.slice(1);
+        await supabase.from('job_history').insert({
+          job_id: document.job_id,
+          type: documentType,
+          title: `${docTypeCapitalized} #${documentNumber} Sent`,
+          description: `${docTypeCapitalized} for $${totalAmount} sent via SMS to ${client?.name || recipientPhone}`,
+          user_name: 'System',
+          meta: {
+            [config.idField]: documentId,
+            document_number: documentNumber,
+            total: totalAmount,
+            recipient_phone: recipientPhone,
+            client_name: client?.name,
+            action: 'sent',
+            sent_via: 'sms',
+            portal_url: portalUrl
+          }
+        });
+      } catch (historyError) {
+        console.warn('Failed to log to job_history:', historyError);
+      }
+    }
+
     return new Response(
       JSON.stringify({
         success: true,

@@ -699,7 +699,7 @@ Fixlify-Main-main/
 - **SMS**: Telnyx (+14375249932)
 - **Email**: Mailgun (mg.fixlify.app)
 - **Payments**: Stripe
-- **AI**: OpenAI GPT-4, Claude API
+- **AI**: OpenAI GPT-4, Claude API, **Gemini 3 Flash** (unified messaging smart replies)
 - **Phone**: AI Dispatcher system
 
 ### DevOps

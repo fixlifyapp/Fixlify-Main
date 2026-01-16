@@ -1,20 +1,14 @@
 
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Bell, Search } from 'lucide-react';
+import { Search } from 'lucide-react';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import { UserMenu } from '@/components/auth/UserMenu';
 import { HeaderSearch } from './HeaderSearch';
 import { NotificationsBell } from './NotificationsBell';
-import { CreditBalanceWidget } from '@/components/credits';
-import { usePermissions } from '@/hooks/usePermissions';
 
 export const Header = () => {
-  const navigate = useNavigate();
   const [showSearch, setShowSearch] = useState(false);
-  const { isAdminOrManager } = usePermissions();
-  const canViewCredits = isAdminOrManager();
 
   return (
     <header className="layout-header">
@@ -25,8 +19,8 @@ export const Header = () => {
               <SidebarTrigger className="hamburger-menu touch-target" />
             </div>
             <div className="flex items-center gap-2">
-              <Button 
-                variant="ghost" 
+              <Button
+                variant="ghost"
                 size="sm"
                 className="touch-target"
                 onClick={() => setShowSearch(!showSearch)}
@@ -35,20 +29,14 @@ export const Header = () => {
               </Button>
             </div>
           </div>
-          
+
           {showSearch && (
             <div className="flex-1 max-w-md mx-4">
               <HeaderSearch />
             </div>
           )}
-          
+
           <div className="flex items-center gap-2">
-            {canViewCredits && (
-              <>
-                <CreditBalanceWidget compact className="sm:hidden" />
-                <CreditBalanceWidget className="hidden sm:flex" />
-              </>
-            )}
             <NotificationsBell />
             <UserMenu />
           </div>
