@@ -28,9 +28,118 @@ import {
   Car,
   Timer,
   Zap,
+  Calendar,
+  Cloud,
+  Sun,
+  CloudRain,
+  Snowflake,
+  CloudSun,
+  CloudLightning,
+  Thermometer,
+  Wind,
+  Droplets,
 } from 'lucide-react';
+import { GoogleMap, useJsApiLoader, Marker, Polyline, InfoWindow } from '@react-google-maps/api';
 import type { CalendarEvent, CalendarResource } from '../../calendar/CalendarProvider';
 import type { MapJob, RouteOptimization } from '../types';
+import { useWeather, type WeatherInfo, getWeatherGradient } from '@/hooks/useWeather';
+
+const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '';
+
+const mapContainerStyle = {
+  width: '100%',
+  height: '100%',
+};
+
+// Default center: Toronto area
+const defaultCenter = {
+  lat: 43.6532,
+  lng: -79.3832,
+};
+
+// Weather icon component
+function WeatherIcon({ condition, className }: { condition: WeatherInfo['condition']; className?: string }) {
+  const iconMap: Record<WeatherInfo['condition'], React.ReactNode> = {
+    sunny: <Sun className={cn("text-yellow-500", className)} />,
+    cloudy: <Cloud className={cn("text-gray-400", className)} />,
+    partly_cloudy: <CloudSun className={cn("text-blue-300", className)} />,
+    rainy: <CloudRain className={cn("text-blue-500", className)} />,
+    snowy: <Snowflake className={cn("text-blue-200", className)} />,
+    stormy: <CloudLightning className={cn("text-purple-500", className)} />,
+    hot: <Sun className={cn("text-orange-500", className)} />,
+    cold: <Snowflake className={cn("text-cyan-500", className)} />,
+  };
+  return iconMap[condition] || <Cloud className={cn("text-gray-400", className)} />;
+}
+
+// Weather widget for the map overlay
+function WeatherWidget({ weather, loading }: { weather: WeatherInfo | null; loading: boolean }) {
+  if (loading) {
+    return (
+      <div className="flex items-center gap-2 bg-white/90 backdrop-blur-sm rounded-lg px-3 py-2 shadow-lg">
+        <Loader2 className="h-4 w-4 animate-spin text-violet-600" />
+        <span className="text-sm text-muted-foreground">Loading weather...</span>
+      </div>
+    );
+  }
+
+  if (!weather) return null;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: -10 }}
+      animate={{ opacity: 1, y: 0 }}
+      className={cn(
+        "bg-white/95 backdrop-blur-sm rounded-lg px-4 py-3 shadow-lg border",
+        `bg-gradient-to-r ${getWeatherGradient(weather.condition)}`
+      )}
+    >
+      <div className="flex items-center gap-3">
+        <WeatherIcon condition={weather.condition} className="h-8 w-8" />
+        <div>
+          <div className="flex items-center gap-2">
+            <span className="text-2xl font-bold">{weather.temperature}°{weather.temperatureUnit}</span>
+            <span className="text-sm text-muted-foreground capitalize">{weather.description}</span>
+          </div>
+          <div className="flex items-center gap-3 text-xs text-muted-foreground mt-1">
+            <span className="flex items-center gap-1">
+              <Droplets className="h-3 w-3" />
+              {weather.humidity}%
+            </span>
+            <span className="flex items-center gap-1">
+              <Wind className="h-3 w-3" />
+              {weather.windSpeed} {weather.windUnit}
+            </span>
+            {weather.uvIndex > 0 && (
+              <span className="flex items-center gap-1">
+                <Sun className="h-3 w-3" />
+                UV {weather.uvIndex}
+              </span>
+            )}
+          </div>
+        </div>
+      </div>
+      {weather.recommendation && (
+        <p className="text-xs text-violet-600 mt-2 font-medium">{weather.recommendation}</p>
+      )}
+    </motion.div>
+  );
+}
+
+const mapOptions: google.maps.MapOptions = {
+  disableDefaultUI: false,
+  zoomControl: true,
+  streetViewControl: false,
+  mapTypeControl: false,
+  fullscreenControl: true,
+  styles: [
+    {
+      featureType: 'poi',
+      elementType: 'labels',
+      stylers: [{ visibility: 'off' }],
+    },
+  ],
+};
 
 interface MapScheduleViewProps {
   events: CalendarEvent[];
@@ -43,8 +152,8 @@ interface MapScheduleViewProps {
   googleMapsApiKey?: string;
 }
 
-// Placeholder map component (replace with actual Google Maps implementation)
-function MapPlaceholder({
+// Google Maps component with job markers
+function GoogleMapsView({
   jobs,
   selectedJobId,
   onJobSelect,
@@ -57,96 +166,159 @@ function MapPlaceholder({
   showRoute: boolean;
   optimizedOrder?: string[];
 }) {
-  // In production, this would be replaced with actual Google Maps implementation
-  // using @react-google-maps/api
+  const { isLoaded, loadError } = useJsApiLoader({
+    googleMapsApiKey: GOOGLE_MAPS_API_KEY,
+  });
+  const [infoWindowJobId, setInfoWindowJobId] = useState<string | null>(null);
+  const mapRef = useRef<google.maps.Map | null>(null);
+
+  const onMapLoad = useCallback((map: google.maps.Map) => {
+    mapRef.current = map;
+
+    // Fit bounds to show all markers
+    if (jobs.length > 0) {
+      const bounds = new google.maps.LatLngBounds();
+      jobs.forEach((job) => {
+        bounds.extend({ lat: job.coordinates.lat, lng: job.coordinates.lng });
+      });
+      map.fitBounds(bounds, 50);
+    }
+  }, [jobs]);
+
+  // Get route path for polyline
+  const routePath = useMemo(() => {
+    if (!showRoute || jobs.length < 2) return [];
+
+    const orderedJobs = optimizedOrder
+      ? optimizedOrder.map(id => jobs.find(j => j.id === id)).filter(Boolean) as MapJob[]
+      : jobs;
+
+    return orderedJobs.map((job) => ({
+      lat: job.coordinates.lat,
+      lng: job.coordinates.lng,
+    }));
+  }, [jobs, showRoute, optimizedOrder]);
+
+  // Create custom marker icon with number
+  const getMarkerIcon = (index: number, isSelected: boolean) => {
+    const color = isSelected ? '#7c3aed' : '#8b5cf6';
+    const textColor = '#ffffff';
+
+    return {
+      path: google.maps.SymbolPath.CIRCLE,
+      fillColor: color,
+      fillOpacity: 1,
+      strokeColor: '#ffffff',
+      strokeWeight: 2,
+      scale: isSelected ? 16 : 12,
+      labelOrigin: new google.maps.Point(0, 0),
+    };
+  };
+
+  if (loadError) {
+    return (
+      <div className="h-full flex items-center justify-center bg-slate-100 rounded-lg">
+        <div className="text-center p-8">
+          <MapPin className="h-12 w-12 text-red-400 mx-auto mb-4" />
+          <p className="text-red-600 font-medium">Error loading Google Maps</p>
+          <p className="text-sm text-muted-foreground mt-2">
+            Please check your API key configuration
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isLoaded) {
+    return (
+      <div className="h-full flex items-center justify-center bg-slate-100 rounded-lg">
+        <Loader2 className="h-8 w-8 animate-spin text-violet-600" />
+      </div>
+    );
+  }
+
+  if (!GOOGLE_MAPS_API_KEY) {
+    return (
+      <div className="h-full flex items-center justify-center bg-slate-100 rounded-lg">
+        <div className="text-center p-8">
+          <MapPin className="h-12 w-12 text-slate-400 mx-auto mb-4" />
+          <p className="text-slate-600 font-medium">Google Maps API Key not configured</p>
+          <p className="text-sm text-muted-foreground mt-2">
+            Add VITE_GOOGLE_MAPS_API_KEY to your .env file
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="relative h-full bg-slate-100 rounded-lg overflow-hidden">
-      {/* Simulated Map Background */}
-      <div className="absolute inset-0 bg-gradient-to-br from-slate-200 to-slate-300">
-        <svg className="w-full h-full opacity-20">
-          <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
-            <path d="M 40 0 L 0 0 0 40" fill="none" stroke="currentColor" strokeWidth="1" />
-          </pattern>
-          <rect width="100%" height="100%" fill="url(#grid)" />
-        </svg>
-      </div>
+    <GoogleMap
+      mapContainerStyle={mapContainerStyle}
+      center={jobs.length > 0 ? jobs[0].coordinates : defaultCenter}
+      zoom={12}
+      options={mapOptions}
+      onLoad={onMapLoad}
+    >
+      {/* Route polyline */}
+      {showRoute && routePath.length > 1 && (
+        <Polyline
+          path={routePath}
+          options={{
+            strokeColor: '#8b5cf6',
+            strokeOpacity: 0.8,
+            strokeWeight: 4,
+            geodesic: true,
+          }}
+        />
+      )}
 
-      {/* Job Markers */}
-      <div className="absolute inset-0 p-8">
-        {jobs.map((job, index) => {
-          const isSelected = job.id === selectedJobId;
-          const orderIndex = optimizedOrder?.indexOf(job.id) ?? index;
+      {/* Job markers */}
+      {jobs.map((job, index) => {
+        const isSelected = job.id === selectedJobId;
+        const orderIndex = optimizedOrder?.indexOf(job.id) ?? index;
 
-          // Simple positioning (in production, use actual coordinates)
-          const x = 15 + (index % 4) * 20;
-          const y = 20 + Math.floor(index / 4) * 25;
+        return (
+          <Marker
+            key={job.id}
+            position={{ lat: job.coordinates.lat, lng: job.coordinates.lng }}
+            icon={getMarkerIcon(orderIndex, isSelected)}
+            label={{
+              text: String(orderIndex + 1),
+              color: '#ffffff',
+              fontWeight: 'bold',
+              fontSize: isSelected ? '14px' : '11px',
+            }}
+            onClick={() => {
+              onJobSelect(job.id);
+              setInfoWindowJobId(job.id);
+            }}
+            zIndex={isSelected ? 1000 : index}
+          />
+        );
+      })}
 
-          return (
-            <motion.div
-              key={job.id}
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              transition={{ delay: index * 0.1 }}
-              className="absolute cursor-pointer"
-              style={{ left: `${x}%`, top: `${y}%` }}
-              onClick={() => onJobSelect(job.id)}
-            >
-              <motion.div
-                whileHover={{ scale: 1.2 }}
-                whileTap={{ scale: 0.9 }}
-                className={cn(
-                  "relative flex items-center justify-center",
-                  "w-10 h-10 rounded-full shadow-lg",
-                  isSelected
-                    ? "bg-violet-600 ring-4 ring-violet-200"
-                    : "bg-white border-2 border-violet-500"
-                )}
-              >
-                {showRoute && optimizedOrder ? (
-                  <span className={cn(
-                    "font-bold",
-                    isSelected ? "text-white" : "text-violet-600"
-                  )}>
-                    {orderIndex + 1}
-                  </span>
-                ) : (
-                  <MapPin
-                    className={cn(
-                      "h-5 w-5",
-                      isSelected ? "text-white" : "text-violet-600"
-                    )}
-                  />
-                )}
-              </motion.div>
+      {/* Info Window for selected job */}
+      {infoWindowJobId && (() => {
+        const job = jobs.find(j => j.id === infoWindowJobId);
+        if (!job) return null;
 
-              {/* Connecting Lines */}
-              {showRoute && optimizedOrder && orderIndex < jobs.length - 1 && (
-                <svg
-                  className="absolute top-5 left-10 w-32 h-8 pointer-events-none overflow-visible"
-                >
-                  <motion.path
-                    d="M 0 0 Q 60 -20 120 0"
-                    fill="none"
-                    stroke="#8b5cf6"
-                    strokeWidth="2"
-                    strokeDasharray="4 4"
-                    initial={{ pathLength: 0 }}
-                    animate={{ pathLength: 1 }}
-                    transition={{ delay: index * 0.2, duration: 0.5 }}
-                  />
-                </svg>
-              )}
-            </motion.div>
-          );
-        })}
-      </div>
-
-      {/* Map Attribution Placeholder */}
-      <div className="absolute bottom-2 right-2 text-xs text-slate-500 bg-white/80 px-2 py-1 rounded">
-        Map data placeholder - integrate Google Maps
-      </div>
-    </div>
+        return (
+          <InfoWindow
+            position={{ lat: job.coordinates.lat, lng: job.coordinates.lng }}
+            onCloseClick={() => setInfoWindowJobId(null)}
+          >
+            <div className="p-2 min-w-[200px]">
+              <p className="font-semibold">{job.event.title}</p>
+              <p className="text-sm text-gray-600">{job.event.extendedProps?.clientName}</p>
+              <p className="text-xs text-gray-500 mt-1">{job.address}</p>
+              <p className="text-xs text-violet-600 mt-1">
+                {format(new Date(job.event.start), 'h:mm a')}
+              </p>
+            </div>
+          </InfoWindow>
+        );
+      })()}
+    </GoogleMap>
   );
 }
 
@@ -165,6 +337,9 @@ export function MapScheduleView({
   const [optimization, setOptimization] = useState<RouteOptimization | null>(null);
   const [showRoute, setShowRoute] = useState(true);
 
+  // Fetch weather for the default center (will use server-side cache)
+  const { weather, loading: weatherLoading } = useWeather(defaultCenter.lat, defaultCenter.lng);
+
   // Filter events for current date and selected resource
   const todaysJobs = useMemo(() => {
     return events
@@ -176,19 +351,29 @@ export function MapScheduleView({
       .sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime());
   }, [events, currentDate, selectedResourceId]);
 
-  // Convert events to MapJobs
+  // Convert events to MapJobs - use real coordinates from job/property data
   const mapJobs: MapJob[] = useMemo(() => {
-    return todaysJobs.map((event, index) => ({
-      id: event.id,
-      event,
-      coordinates: {
-        // Placeholder coordinates - in production, geocode from address
-        lat: 43.65 + Math.random() * 0.1,
-        lng: -79.38 + Math.random() * 0.1,
-      },
-      address: event.extendedProps?.address || 'Address not set',
-      routeOrder: index,
-    }));
+    return todaysJobs.map((event, index) => {
+      // Get coordinates from extendedProps (populated from job.latitude/longitude)
+      const lat = event.extendedProps?.latitude;
+      const lng = event.extendedProps?.longitude;
+
+      // Use real coordinates if available, otherwise fallback to Toronto area with offset
+      // The offset ensures jobs without coords don't all stack on the same point
+      const hasRealCoords = typeof lat === 'number' && typeof lng === 'number';
+
+      return {
+        id: event.id,
+        event,
+        coordinates: {
+          lat: hasRealCoords ? lat : defaultCenter.lat + (index * 0.01) - 0.025,
+          lng: hasRealCoords ? lng : defaultCenter.lng + (index * 0.01) - 0.025,
+        },
+        address: event.extendedProps?.address || 'Address not set',
+        routeOrder: index,
+        hasRealCoordinates: hasRealCoords, // Track if we have real geocoded coordinates
+      };
+    });
   }, [todaysJobs]);
 
   const selectedJob = mapJobs.find((j) => j.id === selectedJobId);
@@ -221,13 +406,18 @@ export function MapScheduleView({
     <div className="flex h-full gap-4 p-4">
       {/* Map Area */}
       <div className="flex-1 relative">
-        <MapPlaceholder
+        <GoogleMapsView
           jobs={mapJobs}
           selectedJobId={selectedJobId || undefined}
           onJobSelect={setSelectedJobId}
           showRoute={showRoute}
           optimizedOrder={optimizedOrder}
         />
+
+        {/* Weather Widget */}
+        <div className="absolute top-4 right-4 z-10">
+          <WeatherWidget weather={weather} loading={weatherLoading} />
+        </div>
 
         {/* Map Overlay Controls */}
         <div className="absolute top-4 left-4 flex flex-col gap-2">
@@ -326,6 +516,23 @@ export function MapScheduleView({
                 <p className="text-xs text-muted-foreground">Drive Time (min)</p>
               </div>
             </div>
+            {/* Weather Summary */}
+            {weather && (
+              <div className={cn(
+                "mt-3 rounded-lg p-3 flex items-center gap-3",
+                `bg-gradient-to-r ${getWeatherGradient(weather.condition)}`
+              )}>
+                <WeatherIcon condition={weather.condition} className="h-6 w-6" />
+                <div className="flex-1">
+                  <p className="text-sm font-medium">
+                    {weather.temperature}°{weather.temperatureUnit} - {weather.description}
+                  </p>
+                  {weather.recommendation && (
+                    <p className="text-xs text-muted-foreground">{weather.recommendation}</p>
+                  )}
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -453,6 +660,3 @@ export function MapScheduleView({
     </div>
   );
 }
-
-// Missing import
-import { Calendar } from 'lucide-react';

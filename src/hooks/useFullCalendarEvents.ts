@@ -18,6 +18,8 @@ interface CalendarJob {
   scheduledEnd: Date | null;
   address: string;
   description: string;
+  latitude: number | null;
+  longitude: number | null;
 }
 
 interface Technician {
@@ -109,8 +111,10 @@ export function useFullCalendarEvents() {
           status: job.status || 'scheduled',
           scheduledDate,
           scheduledEnd,
-          address: job.description || '',
-          description: job.description || ''
+          address: job.address || '',
+          description: job.description || '',
+          latitude: job.latitude ?? null,
+          longitude: job.longitude ?? null,
         };
       });
 
@@ -154,7 +158,9 @@ export function useFullCalendarEvents() {
           technicianName: job.technicianName,
           status: job.status,
           address: job.address,
-          description: job.description
+          description: job.description,
+          latitude: job.latitude,
+          longitude: job.longitude,
         },
         classNames: [`status-${job.status}`]
       }));
