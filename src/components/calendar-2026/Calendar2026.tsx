@@ -37,9 +37,11 @@ import { AICommandBar } from './ai/AICommandBar';
 import { AIConflictWizard } from './ai/AIConflictWizard';
 import { TimelineView } from './views/TimelineView';
 import { MapScheduleView } from './views/MapScheduleView';
+import { PlaceholderView } from './views/PlaceholderView';
 import { ScheduleBottomSheet } from './mobile/ScheduleBottomSheet';
 import { QuickActionsWheel, useQuickActionsWheel } from './mobile/QuickActionsWheel';
 import { SmartAgenda } from './smart/SmartAgenda';
+import { CalendarOnboarding } from './onboarding/CalendarOnboarding';
 import { useCalendar2026Store } from './store/calendarStore';
 import type { CalendarEvent, CalendarResource, TimeRange } from '../calendar/CalendarProvider';
 import type { ScheduleConflict, ParsedIntent, TimelineConfig } from './types';
@@ -186,6 +188,9 @@ export function Calendar2026({
       onEventDrop={onEventDrop}
       onSlotClick={onSlotClick}
     >
+      {/* Onboarding for first-time users */}
+      <CalendarOnboarding />
+
       <div
         className={cn("flex flex-col h-full bg-white rounded-lg overflow-hidden", className)}
         {...quickActionsWheel.handlers}
@@ -343,21 +348,13 @@ export function Calendar2026({
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="h-full flex items-center justify-center bg-slate-50"
+                className="h-full"
               >
-                <div className="text-center p-8">
-                  <CurrentViewIcon className="h-16 w-16 mx-auto mb-4 text-slate-300" />
-                  <h3 className="text-lg font-semibold text-slate-600 mb-2">
-                    {VIEW_OPTIONS.find((v) => v.id === activeView)?.label} View
-                  </h3>
-                  <p className="text-sm text-muted-foreground mb-4">
-                    Existing calendar view will be rendered here
-                  </p>
-                  <Badge variant="outline" className="gap-1">
-                    <Sparkles className="h-3 w-3" />
-                    Try Timeline or Map for new features
-                  </Badge>
-                </div>
+                <PlaceholderView
+                  viewType={activeView as 'day' | 'week' | 'month' | 'team'}
+                  onNavigate={(view) => setActiveView(view as any)}
+                  onOpenAISchedule={() => setCommandBarOpen(true)}
+                />
               </motion.div>
             )}
           </AnimatePresence>
@@ -412,3 +409,4 @@ export { SmartAgenda } from './smart/SmartAgenda';
 export { AICommandBar } from './ai/AICommandBar';
 export { TimelineView } from './views/TimelineView';
 export { MapScheduleView } from './views/MapScheduleView';
+export { CalendarOnboarding, resetCalendarOnboarding } from './onboarding/CalendarOnboarding';
