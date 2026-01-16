@@ -445,10 +445,6 @@ export function AICommandBar({
                 <kbd className="rounded border bg-white px-1">Esc</kbd> Close
               </span>
             </div>
-            <div className="flex items-center gap-1 text-xs text-violet-600">
-              <Sparkles className="h-3 w-3" />
-              <span>Powered by Gemini AI</span>
-            </div>
           </div>
         </Command>
       </div>

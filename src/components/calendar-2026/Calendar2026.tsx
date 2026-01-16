@@ -34,7 +34,6 @@ import {
 
 // Import sub-components
 import { AICommandBar } from './ai/AICommandBar';
-import { AIAssistantBubble } from './ai/AIAssistantBubble';
 import { AIConflictWizard } from './ai/AIConflictWizard';
 import { TimelineView } from './views/TimelineView';
 import { MapScheduleView } from './views/MapScheduleView';
@@ -112,42 +111,6 @@ export function Calendar2026({
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
-
-  // AI insights for assistant bubble
-  const aiInsights = useMemo(() => {
-    const insights: any[] = [];
-
-    // Check for schedule gaps
-    const todaysEvents = events.filter((e) => isSameDay(new Date(e.start), currentDate));
-    if (todaysEvents.length > 0 && todaysEvents.length < 4) {
-      insights.push({
-        id: 'gap',
-        type: 'gap',
-        message: 'You have gaps in today\'s schedule. Want me to find jobs to fill them?',
-        priority: 'medium',
-        action: {
-          label: 'Fill gaps',
-          onClick: () => setCommandBarOpen(true),
-        },
-      });
-    }
-
-    // Check for conflicts
-    if (conflicts.length > 0) {
-      insights.push({
-        id: 'conflict',
-        type: 'conflict',
-        message: `${conflicts.length} scheduling ${conflicts.length === 1 ? 'conflict' : 'conflicts'} detected`,
-        priority: 'high',
-        action: {
-          label: 'Resolve',
-          onClick: () => setSelectedConflict(conflicts[0]),
-        },
-      });
-    }
-
-    return insights;
-  }, [events, currentDate, conflicts, setCommandBarOpen]);
 
   // Handle AI command result
   const handleScheduleFromAI = useCallback(
@@ -407,18 +370,6 @@ export function Calendar2026({
           onOptimizeRoutes={onOptimizeRoutes}
           technicians={technicians}
           clients={clients}
-        />
-
-        {/* AI Assistant Bubble */}
-        <AIAssistantBubble
-          insights={aiInsights}
-          onSendMessage={async (message) => {
-            // Simulate AI response
-            return `I understand you want to "${message}". Let me help with that. You can use the command bar (⌘K) for quick actions or the schedule button to create a new job.`;
-          }}
-          onDismissInsight={(id) => {
-            // Handle insight dismissal
-          }}
         />
 
         {/* Conflict Wizard */}

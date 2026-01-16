@@ -183,37 +183,48 @@ const handler = async (req: Request): Promise<Response> => {
       }
 
       const data = await response.json();
-      console.log('Google Weather response:', JSON.stringify(data).substring(0, 500));
+      console.log('Google Weather response:', JSON.stringify(data).substring(0, 1000));
 
       // Parse Google Weather API response
-      const currentConditions = data.currentConditions || data;
-      const temp = Math.round(currentConditions.temperature?.degrees || currentConditions.temperature?.value || 20);
-      const weatherCode = currentConditions.weatherCondition?.description ||
-                          currentConditions.weatherCondition?.type ||
-                          currentConditions.description ||
-                          'PARTLY_CLOUDY';
-      const condition = mapGoogleWeatherCondition(weatherCode, temp);
-      const uvIndex = Math.round(currentConditions.uvIndex?.value || currentConditions.uvIndex || 0);
+      // Response structure: https://developers.google.com/maps/documentation/weather/reference/rest/v1/currentConditions/lookup
+      // temperature: { degrees: number, unit: "CELSIUS"|"FAHRENHEIT" }
+      // weatherCondition: { type: "CLEAR"|"CLOUDY"|..., description: { text: string }, iconBaseUri: string }
+      // relativeHumidity: number (0-100)
+      // uvIndex: number
+      // wind: { direction: {...}, speed: { value: number, unit: "METERS_PER_SECOND" }, gust: {...} }
+
+      const temp = Math.round(data.temperature?.degrees ?? 20);
+      const weatherType = data.weatherCondition?.type || 'PARTLY_CLOUDY';
+      const condition = mapGoogleWeatherCondition(weatherType, temp);
+      const uvIndex = data.uvIndex ?? 0;
+      const humidity = data.relativeHumidity ?? 50;
+
+      // Wind speed comes in m/s, convert to km/h
+      const windSpeedMs = data.wind?.speed?.value ?? 0;
+      const windSpeedKmh = Math.round(windSpeedMs * 3.6);
+
+      // Get description text from LocalizedText object
+      const descriptionText = data.weatherCondition?.description?.text ||
+                              weatherType.replace(/_/g, ' ').toLowerCase();
+
+      // Use Google's weather icon if available
+      const googleIconUrl = data.weatherCondition?.iconBaseUri
+        ? `${data.weatherCondition.iconBaseUri}.svg`
+        : getWeatherIcon(condition);
 
       weatherData = {
         condition,
         temperature: temp,
         temperatureUnit: 'C',
-        feelsLike: Math.round(currentConditions.feelsLikeTemperature?.degrees ||
-                              currentConditions.apparentTemperature?.degrees || temp),
-        humidity: Math.round(currentConditions.relativeHumidity?.value ||
-                             currentConditions.humidity?.value ||
-                             currentConditions.humidity || 50),
-        windSpeed: Math.round((currentConditions.wind?.speed?.value ||
-                               currentConditions.windSpeed?.value || 0) * 3.6), // m/s to km/h
+        feelsLike: Math.round(data.feelsLikeTemperature?.degrees ?? temp),
+        humidity,
+        windSpeed: windSpeedKmh,
         windUnit: 'km/h',
-        precipitation: currentConditions.precipitation?.value || 0,
+        precipitation: data.precipitation?.probability?.value ?? 0,
         uvIndex,
-        description: currentConditions.weatherCondition?.description ||
-                     currentConditions.description ||
-                     weatherCode.replace(/_/g, ' ').toLowerCase(),
-        icon: getWeatherIcon(condition),
-        visibility: currentConditions.visibility?.distance?.value || undefined,
+        description: descriptionText,
+        icon: googleIconUrl,
+        visibility: data.visibility?.distance?.value,
         recommendation: getRecommendation(condition, temp, uvIndex),
       };
 
@@ -225,7 +236,7 @@ const handler = async (req: Request): Promise<Response> => {
         .from('weather_cache')
         .upsert({
           cache_key: cacheKey,
-          city_name: currentConditions.locationName || null,
+          city_name: null, // Google Weather API doesn't return location name in currentConditions
           latitude: roundedLat,
           longitude: roundedLng,
           weather_data: weatherData,

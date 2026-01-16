@@ -210,7 +210,7 @@ export function AIAssistantBubble({
                   </div>
                   <div>
                     <h3 className="font-semibold text-white">AI Assistant</h3>
-                    <p className="text-xs text-white/70">Powered by Gemini</p>
+                    <p className="text-xs text-white/70">Smart scheduling helper</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-1">

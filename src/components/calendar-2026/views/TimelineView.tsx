@@ -159,7 +159,7 @@ export function TimelineView({
   }, [currentDate, zoomConfig]);
 
   return (
-    <div className="flex flex-col h-full bg-white rounded-lg border shadow-sm overflow-hidden">
+    <div className="relative flex flex-col h-full bg-white rounded-lg border shadow-sm overflow-hidden">
       {/* Header Controls */}
       <div className="flex items-center justify-between border-b bg-slate-50 px-4 py-2">
         <div className="flex items-center gap-2">
@@ -414,7 +414,7 @@ function TimelineEvent({
   );
 }
 
-// Current time indicator
+// Current time indicator - positioned within the timeline content area
 function NowIndicator({
   currentDate,
   scrollRef,
@@ -429,12 +429,20 @@ function NowIndicator({
 
   const dayStart = addHours(startOfDay(currentDate), 6);
   const minutesSinceStart = differenceInMinutes(now, dayStart);
-  const left = (minutesSinceStart / zoomConfig.slotMinutes) * zoomConfig.slotWidth + 192; // + resource column width
+  // Position: resource column (192px / w-48) + time offset
+  const left = (minutesSinceStart / zoomConfig.slotMinutes) * zoomConfig.slotWidth + 192;
+
+  // Header height (controls) = ~50px, we start below that
+  const topOffset = 50; // Below the header controls
 
   return (
     <div
-      className="absolute top-0 bottom-0 w-0.5 bg-red-500 z-20 pointer-events-none"
-      style={{ left }}
+      className="absolute w-0.5 bg-red-500 z-20 pointer-events-none"
+      style={{
+        left,
+        top: topOffset,
+        bottom: 0,
+      }}
     >
       <div className="absolute -top-1 -left-1.5 w-3 h-3 rounded-full bg-red-500" />
     </div>
