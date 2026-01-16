@@ -157,8 +157,8 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log(`Cache MISS for ${cacheKey}, fetching from API...`);
 
-    // Get Google Maps API key (also works for Weather API)
-    const googleApiKey = Deno.env.get("GOOGLE_MAPS_API_KEY");
+    // Get Weather API key (prefer dedicated key, fallback to Maps key)
+    const googleApiKey = Deno.env.get("GOOGLE_WEATHER_API_KEY") || Deno.env.get("GOOGLE_MAPS_API_KEY");
 
     let weatherData: WeatherInfo;
 
@@ -166,19 +166,14 @@ const handler = async (req: Request): Promise<Response> => {
       const roundedLat = roundToCity(latitude);
       const roundedLng = roundToCity(longitude);
 
-      // Use Google Weather API (currentConditions endpoint)
-      const weatherUrl = `https://weather.googleapis.com/v1/currentConditions:lookup?key=${googleApiKey}`;
+      // Use Google Weather API (currentConditions endpoint) - GET request with query params
+      const weatherUrl = `https://weather.googleapis.com/v1/currentConditions:lookup?key=${googleApiKey}&location.latitude=${roundedLat}&location.longitude=${roundedLng}&unitsSystem=METRIC`;
+
+      console.log(`Fetching weather from: ${weatherUrl.replace(googleApiKey, 'API_KEY_HIDDEN')}`);
 
       const response = await fetch(weatherUrl, {
-        method: 'POST',
+        method: 'GET',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          location: {
-            latitude: roundedLat,
-            longitude: roundedLng,
-          },
-          unitsSystem: 'METRIC',
-        }),
       });
 
       if (!response.ok) {
