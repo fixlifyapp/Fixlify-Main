@@ -320,9 +320,8 @@ export function FullCalendarSchedule({
           select={handleDateSelect}
           datesSet={handleDatesSet}
 
-          // Sizing
-          height={isMobile ? 'calc(100vh - 200px)' : 'auto'}
-          contentHeight={isMobile ? undefined : 700}
+          // Sizing - fixed height allows proper scrolling within the calendar
+          height={isMobile ? 'calc(100vh - 200px)' : 700}
 
           // Locale
           locale="en"
