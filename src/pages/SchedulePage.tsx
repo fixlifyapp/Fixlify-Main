@@ -180,7 +180,7 @@ const SchedulePage = () => {
 
       {/* Revolutionary Calendar 2026 */}
       {useRevolutionary ? (
-        <div className="h-[calc(100vh-280px)] min-h-[600px]">
+        <div className="pb-8">
           <Calendar2026
             events={events}
             resources={resources}
