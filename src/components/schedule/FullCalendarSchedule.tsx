@@ -1,4 +1,4 @@
-import { useRef, useState, useCallback, useEffect } from 'react';
+import { useRef, useState, useCallback, useEffect, useMemo } from 'react';
 import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
@@ -7,12 +7,14 @@ import resourceTimeGridPlugin from '@fullcalendar/resource-timegrid';
 import { EventClickArg, DatesSetArg, DateSelectArg } from '@fullcalendar/core';
 import { useNavigate } from 'react-router-dom';
 import { useFullCalendarEvents } from '@/hooks/useFullCalendarEvents';
+import { useCompanySettings } from '@/hooks/useCompanySettings';
 import { EventBottomSheet } from './mobile/EventBottomSheet';
 import { QuickAddFAB } from './mobile/QuickAddFAB';
 import { Loader2, AlertCircle, CalendarPlus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import '@/styles/fullcalendar.css';
+import { DEFAULT_BUSINESS_HOURS, BusinessHours } from '@/types/businessHours';
 
 interface FullCalendarScheduleProps {
   view?: 'day' | 'week' | 'month' | 'team';
@@ -63,6 +65,51 @@ export function FullCalendarSchedule({
     handleEventResize,
     getJobById
   } = useFullCalendarEvents();
+
+  const { companySettings } = useCompanySettings();
+
+  // Calculate business hours range from settings
+  const { slotMinTime, slotMaxTime, scrollTime } = useMemo(() => {
+    const businessHours: BusinessHours = companySettings?.business_hours || DEFAULT_BUSINESS_HOURS;
+
+    let earliestOpen = '23:59';
+    let latestClose = '00:00';
+
+    // Find the earliest open time and latest close time across all enabled days
+    const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+
+    days.forEach(day => {
+      const dayHours = businessHours[day];
+      if (dayHours?.enabled !== false) { // Include if enabled or enabled is undefined
+        const openTime = dayHours?.open || '09:00';
+        const closeTime = dayHours?.close || '17:00';
+
+        if (openTime < earliestOpen) {
+          earliestOpen = openTime;
+        }
+        if (closeTime > latestClose) {
+          latestClose = closeTime;
+        }
+      }
+    });
+
+    // Fallback if no enabled days found
+    if (earliestOpen === '23:59') earliestOpen = '06:00';
+    if (latestClose === '00:00') latestClose = '22:00';
+
+    // Add buffer: 1 hour before earliest open, 1 hour after latest close
+    const [openHour] = earliestOpen.split(':').map(Number);
+    const [closeHour] = latestClose.split(':').map(Number);
+
+    const bufferOpenHour = Math.max(0, openHour - 1);
+    const bufferCloseHour = Math.min(24, closeHour + 1);
+
+    return {
+      slotMinTime: `${String(bufferOpenHour).padStart(2, '0')}:00:00`,
+      slotMaxTime: `${String(bufferCloseHour).padStart(2, '0')}:00:00`,
+      scrollTime: earliestOpen + ':00' // Scroll to first business hour
+    };
+  }, [companySettings?.business_hours]);
 
   // Handle window resize for responsive behavior
   useEffect(() => {
@@ -248,11 +295,11 @@ export function FullCalendarSchedule({
           // Header toolbar - disabled, using ScheduleFilters instead
           headerToolbar={false}
 
-          // Time settings
-          slotMinTime="06:00:00"
-          slotMaxTime="22:00:00"
+          // Time settings - use business hours from settings
+          slotMinTime={slotMinTime}
+          slotMaxTime={slotMaxTime}
           slotDuration="00:30:00"
-          scrollTime="08:00:00"
+          scrollTime={scrollTime}
 
           // Display settings
           nowIndicator={true}
