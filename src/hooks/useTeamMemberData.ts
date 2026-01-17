@@ -99,7 +99,11 @@ export const useTeamMemberData = (id: string | undefined) => {
           // Add commission data
           commissionRate,
           commissionRules,
-          commissionFees
+          commissionFees,
+          // Home location for AI travel distance calculation
+          homeLatitude: typedProfile.home_latitude,
+          homeLongitude: typedProfile.home_longitude,
+          maxTravelDistanceKm: typedProfile.max_travel_distance_km || 50,
         };
         
         setMember(memberProfile);

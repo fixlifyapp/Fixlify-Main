@@ -3,7 +3,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Info, Globe, Clock, Loader2, Check, FileText, Shield, Receipt, AlertCircle } from "lucide-react";
+import { Info, Globe, Clock, Loader2, Check, FileText, Shield, Receipt } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { formatCompanyNameForEmail, generateFromEmail } from "@/utils/emailUtils";
 import { TIMEZONES, DEFAULT_TIMEZONE, getTimezonesGrouped, getCurrentTimeInTimezone } from "@/utils/timezones";
@@ -29,6 +29,7 @@ export const CompanyInfoSection = ({ companySettings, updateCompanySettings, isE
   const [localSettings, setLocalSettings] = useState(companySettings);
   const [savingField, setSavingField] = useState<string | null>(null);
   const [savedField, setSavedField] = useState<string | null>(null);
+  const [currentTime, setCurrentTime] = useState<string>('');
   const isInitialMount = useRef(true);
 
   // Debounced settings for autosave (800ms delay for company info)
@@ -39,6 +40,19 @@ export const CompanyInfoSection = ({ companySettings, updateCompanySettings, isE
     setLocalSettings(companySettings);
     isInitialMount.current = true; // Reset on external update
   }, [companySettings]);
+
+  // Real-time clock update for timezone display
+  useEffect(() => {
+    const updateTime = () => {
+      const tz = localSettings.company_timezone || DEFAULT_TIMEZONE;
+      setCurrentTime(getCurrentTimeInTimezone(tz));
+    };
+
+    updateTime(); // Initial update
+    const interval = setInterval(updateTime, 1000); // Update every second
+
+    return () => clearInterval(interval);
+  }, [localSettings.company_timezone]);
 
   // Autosave effect - triggers when debounced settings changes
   useEffect(() => {
@@ -265,10 +279,6 @@ export const CompanyInfoSection = ({ companySettings, updateCompanySettings, isE
                 disabled={!isEditing}
                 placeholder="123456789 RT0001"
               />
-              <p className="text-xs text-muted-foreground flex items-center gap-1">
-                <AlertCircle className="h-3 w-3" />
-                Required if annual revenue exceeds $30,000 CAD
-              </p>
             </div>
             <div className="space-y-2">
               <Label htmlFor="tax-id">Tax ID / EIN (US)</Label>
@@ -352,10 +362,10 @@ export const CompanyInfoSection = ({ companySettings, updateCompanySettings, isE
               ))}
             </SelectContent>
           </Select>
-          {localSettings.company_timezone && (
+          {localSettings.company_timezone && currentTime && (
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <Clock className="h-3 w-3" />
-              Current time: {getCurrentTimeInTimezone(localSettings.company_timezone || DEFAULT_TIMEZONE)}
+              Current time: {currentTime}
             </div>
           )}
           <p className="text-xs text-muted-foreground">

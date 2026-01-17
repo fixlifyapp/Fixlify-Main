@@ -123,7 +123,7 @@ const TeamManagementPage = () => {
     }
   };
   const handleViewTeamMember = (id: string) => {
-    navigate(`/admin/team/${id}`);
+    navigate(`/team/${id}`);
   };
   const handleImportTestData = async () => {
     setIsImporting(true);

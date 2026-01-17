@@ -29,15 +29,13 @@ import {
   Command,
   Settings,
   LayoutGrid,
-  GanttChart,
 } from 'lucide-react';
 
 // Import sub-components
 import { AICommandBar } from './ai/AICommandBar';
 import { AIConflictWizard } from './ai/AIConflictWizard';
-import { TimelineView } from './views/TimelineView';
 import { MapScheduleView } from './views/MapScheduleView';
-import { PlaceholderView } from './views/PlaceholderView';
+import { FullCalendarSchedule } from '@/components/schedule/FullCalendarSchedule';
 import { ScheduleBottomSheet } from './mobile/ScheduleBottomSheet';
 import { QuickActionsWheel, useQuickActionsWheel } from './mobile/QuickActionsWheel';
 import { SmartAgenda } from './smart/SmartAgenda';
@@ -67,7 +65,6 @@ const VIEW_OPTIONS = [
   { id: 'week', label: 'Week', icon: CalendarDays },
   { id: 'month', label: 'Month', icon: LayoutGrid },
   { id: 'team', label: 'Team', icon: Users },
-  { id: 'timeline', label: 'Timeline', icon: GanttChart },
   { id: 'map', label: 'Map', icon: Map },
 ] as const;
 
@@ -307,26 +304,7 @@ export function Calendar2026({
         {/* Main Content */}
         <div className="flex-1 overflow-hidden">
           <AnimatePresence mode="wait">
-            {activeView === 'timeline' ? (
-              <motion.div
-                key="timeline"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="h-full"
-              >
-                <TimelineView
-                  events={events}
-                  resources={resources}
-                  currentDate={currentDate}
-                  config={timelineConfig}
-                  aiHighlightedSlots={aiHighlightedSlots}
-                  onEventClick={onEventClick}
-                  onSlotClick={onSlotClick}
-                  onEventDrop={onEventDrop}
-                />
-              </motion.div>
-            ) : activeView === 'map' ? (
+            {activeView === 'map' ? (
               <motion.div
                 key="map"
                 initial={{ opacity: 0 }}
@@ -344,16 +322,20 @@ export function Calendar2026({
               </motion.div>
             ) : (
               <motion.div
-                key="default"
+                key="calendar"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 className="h-full"
               >
-                <PlaceholderView
-                  viewType={activeView as 'day' | 'week' | 'month' | 'team'}
-                  onNavigate={(view) => setActiveView(view as any)}
-                  onOpenAISchedule={() => setCommandBarOpen(true)}
+                <FullCalendarSchedule
+                  view={activeView as 'day' | 'week' | 'month' | 'team'}
+                  currentDate={currentDate}
+                  onViewChange={(view) => setActiveView(view as any)}
+                  onDateChange={setCurrentDate}
+                  onCreateJob={(startDate, endDate, technicianId) => {
+                    onSlotClick?.(startDate, technicianId);
+                  }}
                 />
               </motion.div>
             )}
@@ -407,6 +389,5 @@ export function Calendar2026({
 // Re-export for convenience
 export { SmartAgenda } from './smart/SmartAgenda';
 export { AICommandBar } from './ai/AICommandBar';
-export { TimelineView } from './views/TimelineView';
 export { MapScheduleView } from './views/MapScheduleView';
 export { CalendarOnboarding, resetCalendarOnboarding } from './onboarding/CalendarOnboarding';

@@ -11,11 +11,11 @@ export interface BusinessHours {
 }
 
 export const DEFAULT_BUSINESS_HOURS: BusinessHours = {
-  monday: { open: '08:00', close: '17:00', enabled: true },
-  tuesday: { open: '08:00', close: '17:00', enabled: true },
-  wednesday: { open: '08:00', close: '17:00', enabled: true },
-  thursday: { open: '08:00', close: '17:00', enabled: true },
-  friday: { open: '08:00', close: '17:00', enabled: true },
-  saturday: { open: '09:00', close: '15:00', enabled: true },
-  sunday: { open: '10:00', close: '14:00', enabled: false }
+  monday: { open: '07:00', close: '22:00', enabled: true },
+  tuesday: { open: '07:00', close: '22:00', enabled: true },
+  wednesday: { open: '07:00', close: '22:00', enabled: true },
+  thursday: { open: '07:00', close: '22:00', enabled: true },
+  friday: { open: '07:00', close: '22:00', enabled: true },
+  saturday: { open: '07:00', close: '22:00', enabled: true },
+  sunday: { open: '07:00', close: '22:00', enabled: true }
 };

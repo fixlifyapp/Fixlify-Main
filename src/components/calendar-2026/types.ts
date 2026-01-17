@@ -184,7 +184,7 @@ export interface Calendar2026State {
   conflicts: ScheduleConflict[];
 
   // View State
-  activeView: 'day' | 'week' | 'month' | 'team' | 'timeline' | 'map';
+  activeView: 'day' | 'week' | 'month' | 'team' | 'map';
   timelineConfig: TimelineConfig;
 
   // Mobile State

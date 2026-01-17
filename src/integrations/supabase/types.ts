@@ -3643,6 +3643,7 @@ export type Database = {
           is_default: boolean | null
           name: string
           organization_id: string | null
+          required_skills: string[] | null
           user_id: string | null
         }
         Insert: {
@@ -3654,6 +3655,7 @@ export type Database = {
           is_default?: boolean | null
           name: string
           organization_id?: string | null
+          required_skills?: string[] | null
           user_id?: string | null
         }
         Update: {
@@ -3665,6 +3667,7 @@ export type Database = {
           is_default?: boolean | null
           name?: string
           organization_id?: string | null
+          required_skills?: string[] | null
           user_id?: string | null
         }
         Relationships: []
@@ -4888,16 +4891,20 @@ export type Database = {
           custom_role_id: string | null
           email: string | null
           has_completed_onboarding: boolean | null
+          home_latitude: number | null
+          home_longitude: number | null
           id: string
           internal_notes: string | null
           is_public: boolean | null
           labor_cost_per_hour: number | null
+          max_travel_distance_km: number | null
           name: string | null
           organization_id: string | null
           phone: string | null
           referral_source: string | null
           role: string | null
           schedule_color: string | null
+          skills: string[] | null
           status: string | null
           timezone: string | null
           two_factor_enabled: boolean | null
@@ -4924,16 +4931,20 @@ export type Database = {
           custom_role_id?: string | null
           email?: string | null
           has_completed_onboarding?: boolean | null
+          home_latitude?: number | null
+          home_longitude?: number | null
           id: string
           internal_notes?: string | null
           is_public?: boolean | null
           labor_cost_per_hour?: number | null
+          max_travel_distance_km?: number | null
           name?: string | null
           organization_id?: string | null
           phone?: string | null
           referral_source?: string | null
           role?: string | null
           schedule_color?: string | null
+          skills?: string[] | null
           status?: string | null
           timezone?: string | null
           two_factor_enabled?: boolean | null
@@ -4960,16 +4971,20 @@ export type Database = {
           custom_role_id?: string | null
           email?: string | null
           has_completed_onboarding?: boolean | null
+          home_latitude?: number | null
+          home_longitude?: number | null
           id?: string
           internal_notes?: string | null
           is_public?: boolean | null
           labor_cost_per_hour?: number | null
+          max_travel_distance_km?: number | null
           name?: string | null
           organization_id?: string | null
           phone?: string | null
           referral_source?: string | null
           role?: string | null
           schedule_color?: string | null
+          skills?: string[] | null
           status?: string | null
           timezone?: string | null
           two_factor_enabled?: boolean | null
@@ -6781,6 +6796,10 @@ export type Database = {
         Returns: boolean
       }
       bytea_to_text: { Args: { data: string }; Returns: string }
+      calculate_skill_match: {
+        Args: { required_job_skills: string[]; technician_skills: string[] }
+        Returns: number
+      }
       can_access_organization_email: {
         Args: { p_conversation_id?: string; p_organization_id: string }
         Returns: boolean

@@ -49,6 +49,10 @@ export function FullCalendarSchedule({
   const [selectedEvent, setSelectedEvent] = useState<any>(null);
   const [showBottomSheet, setShowBottomSheet] = useState(false);
 
+  // Track last known values to prevent infinite loops
+  const lastViewRef = useRef<string>(view);
+  const lastDateRef = useRef<number>(currentDate.getTime());
+
   const {
     events,
     resources,
@@ -76,6 +80,7 @@ export function FullCalendarSchedule({
     if (calendarApi) {
       const fcView = VIEW_MAP[view];
       if (calendarApi.view.type !== fcView) {
+        lastViewRef.current = view; // Sync ref before changing view
         calendarApi.changeView(fcView);
       }
     }
@@ -85,6 +90,7 @@ export function FullCalendarSchedule({
   useEffect(() => {
     const calendarApi = calendarRef.current?.getApi();
     if (calendarApi && currentDate) {
+      lastDateRef.current = currentDate.getTime(); // Sync ref before changing date
       calendarApi.gotoDate(currentDate);
     }
   }, [currentDate]);
@@ -119,13 +125,20 @@ export function FullCalendarSchedule({
     }
   }, [onCreateJob]);
 
-  // Handle dates change (navigation)
+  // Handle dates change (navigation) - with guards to prevent infinite loops
   const handleDatesSet = useCallback((arg: DatesSetArg) => {
     const newView = REVERSE_VIEW_MAP[arg.view.type];
-    if (newView && onViewChange) {
+    const newDateTimestamp = arg.start.getTime();
+
+    // Only call onViewChange if view actually changed
+    if (newView && onViewChange && newView !== lastViewRef.current) {
+      lastViewRef.current = newView;
       onViewChange(newView);
     }
-    if (onDateChange) {
+
+    // Only call onDateChange if date actually changed (compare timestamps)
+    if (onDateChange && newDateTimestamp !== lastDateRef.current) {
+      lastDateRef.current = newDateTimestamp;
       onDateChange(arg.start);
     }
   }, [onViewChange, onDateChange]);

@@ -12,14 +12,14 @@ import { useTeamMemberData } from "@/hooks/useTeamMemberData";
 import { supabase } from "@/integrations/supabase/client";
 
 const TeamMemberProfilePage = () => {
-  const { id } = useParams<{ id: string }>();
+  const { memberId } = useParams<{ memberId: string }>();
   const navigate = useNavigate();
   const { hasRole, hasPermission } = useRBAC();
   const [activeTab, setActiveTab] = useState("profile");
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   
-  const { member, isLoading, error, refetch } = useTeamMemberData(id);
+  const { member, isLoading, error, refetch } = useTeamMemberData(memberId);
   
   // Check permissions
   const isAdmin = hasRole('admin');
@@ -30,7 +30,7 @@ const TeamMemberProfilePage = () => {
   useEffect(() => {
     if (!isLoading && !canViewProfile) {
       toast.error("You don't have permission to view team member profiles");
-      navigate("/admin/team");
+      navigate("/team");
     }
   }, [isLoading, canViewProfile, navigate]);
   
@@ -38,7 +38,7 @@ const TeamMemberProfilePage = () => {
   const canEditTeamMembers = canEditProfile;
   
   const handleGoBack = () => {
-    navigate("/admin/team");
+    navigate("/team");
   };
   
   const handleSave = async () => {

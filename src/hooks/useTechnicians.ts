@@ -26,10 +26,12 @@ export function useTechnicians() {
       setIsLoading(true);
       setError(null);
 
+      // Include all team members who can be assigned to jobs
+      // (technicians, managers, and admins)
       const { data: profiles, error: fetchError } = await supabase
         .from('profiles')
         .select('id, name, email, role, avatar_url')
-        .eq('role', 'technician');
+        .in('role', ['technician', 'manager', 'admin']);
 
       if (fetchError) throw fetchError;
 

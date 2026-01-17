@@ -7,6 +7,7 @@ import { BusinessHoursCard } from "@/components/settings/profile/BusinessHoursCa
 import { EmailSettingsCard } from "@/components/settings/EmailSettingsCard";
 import { useCompanySettings } from "@/hooks/useCompanySettings";
 import { Building2 } from "lucide-react";
+import { DEFAULT_BUSINESS_HOURS, BusinessHours } from "@/types/businessHours";
 
 const ProfileCompanyPage = () => {
   const { companySettings, isLoading, updateCompanySettings } = useCompanySettings();
@@ -51,7 +52,7 @@ const ProfileCompanyPage = () => {
         />
 
         <BusinessHoursCard
-          businessHours={{} as any}
+          businessHours={(companySettings.business_hours as BusinessHours) || DEFAULT_BUSINESS_HOURS}
           onBusinessHoursChange={handleBusinessHoursChange}
         />
 

@@ -11,7 +11,7 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { RoleDropdown } from "@/components/team/RoleDropdown";
-import { Plus, X, Upload, Phone, MapPin, Loader2, Check } from "lucide-react";
+import { Plus, X, Upload, Phone, MapPin, Loader2, Check, Navigation, MapPinned } from "lucide-react";
 import { useRBAC } from "@/components/auth/RBACProvider";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -44,8 +44,14 @@ export const ProfileTab = ({ member, isEditing, onUpdate }: ProfileTabProps) => 
     isPublic: member.isPublic ?? true,
     availableForJobs: member.availableForJobs ?? true,
     twoFactorEnabled: member.twoFactorEnabled || false,
-    callMaskingEnabled: member.callMaskingEnabled || false
+    callMaskingEnabled: member.callMaskingEnabled || false,
+    // Home location for AI travel distance
+    homeLatitude: member.homeLatitude || null,
+    homeLongitude: member.homeLongitude || null,
+    maxTravelDistanceKm: member.maxTravelDistanceKm || 50,
   });
+
+  const [isGeocoding, setIsGeocoding] = useState(false);
 
   const [phoneNumbers, setPhoneNumbers] = useState<string[]>(member.phone || []);
   const [newPhone, setNewPhone] = useState("");
@@ -74,7 +80,10 @@ export const ProfileTab = ({ member, isEditing, onUpdate }: ProfileTabProps) => 
       isPublic: member.isPublic ?? true,
       availableForJobs: member.availableForJobs ?? true,
       twoFactorEnabled: member.twoFactorEnabled || false,
-      callMaskingEnabled: member.callMaskingEnabled || false
+      callMaskingEnabled: member.callMaskingEnabled || false,
+      homeLatitude: member.homeLatitude || null,
+      homeLongitude: member.homeLongitude || null,
+      maxTravelDistanceKm: member.maxTravelDistanceKm || 50,
     });
     setPhoneNumbers(member.phone || []);
     setSkills(member.skills || []);
@@ -108,7 +117,11 @@ export const ProfileTab = ({ member, isEditing, onUpdate }: ProfileTabProps) => 
           is_public: debouncedFormData.isPublic,
           available_for_jobs: debouncedFormData.availableForJobs,
           two_factor_enabled: debouncedFormData.twoFactorEnabled,
-          call_masking_enabled: debouncedFormData.callMaskingEnabled
+          call_masking_enabled: debouncedFormData.callMaskingEnabled,
+          // Home location for AI travel distance
+          home_latitude: debouncedFormData.homeLatitude,
+          home_longitude: debouncedFormData.homeLongitude,
+          max_travel_distance_km: debouncedFormData.maxTravelDistanceKm,
         })
         .eq('id', member.id);
 
@@ -170,6 +183,55 @@ export const ProfileTab = ({ member, isEditing, onUpdate }: ProfileTabProps) => 
     if (isAdmin) {
       setSkills(skills.filter(s => s.id !== skillId));
     }
+  };
+
+  // Geocode address to get coordinates for AI travel distance
+  const handleGeocodeAddress = async () => {
+    if (!formData.address) {
+      toast.error('Please enter an address first');
+      return;
+    }
+
+    setIsGeocoding(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('geocode-address', {
+        body: {
+          address: formData.address,
+          country: 'USA' // Default to USA for US addresses
+        }
+      });
+
+      if (error) throw error;
+
+      // The geocode function returns { success, result: { latitude, longitude } }
+      const result = data?.result;
+      if (result?.latitude && result?.longitude) {
+        setFormData(prev => ({
+          ...prev,
+          homeLatitude: result.latitude,
+          homeLongitude: result.longitude,
+        }));
+        toast.success('Location set successfully');
+      } else if (data?.error) {
+        toast.error(data.error);
+      } else {
+        toast.error('Could not find coordinates for this address');
+      }
+    } catch (error) {
+      console.error('Geocoding error:', error);
+      toast.error('Failed to geocode address');
+    } finally {
+      setIsGeocoding(false);
+    }
+  };
+
+  // Clear home location coordinates
+  const handleClearLocation = () => {
+    setFormData(prev => ({
+      ...prev,
+      homeLatitude: null,
+      homeLongitude: null,
+    }));
   };
 
   // Only allow editing if user is admin and editing mode is active
@@ -515,6 +577,109 @@ export const ProfileTab = ({ member, isEditing, onUpdate }: ProfileTabProps) => 
                   onCheckedChange={(checked) => handleFieldChange('callMaskingEnabled', checked)}
                   disabled={!isEditing}
                 />
+              </div>
+            </div>
+          </div>
+        </Card>
+
+        {/* Home Location for AI Travel Distance */}
+        <Card className="p-6 border-fixlyfy-border shadow-sm">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <Navigation className="h-5 w-5 text-primary" />
+              <h3 className="text-lg font-medium">Home Base Location</h3>
+            </div>
+            {(formData.homeLatitude && formData.homeLongitude) && (
+              <Badge variant="outline" className="text-emerald-600 border-emerald-200 bg-emerald-50">
+                <MapPinned className="h-3 w-3 mr-1" />
+                Set
+              </Badge>
+            )}
+          </div>
+
+          <p className="text-sm text-muted-foreground mb-4">
+            Set the technician's home or office location for AI-powered job recommendations based on travel distance.
+          </p>
+
+          <div className="space-y-4">
+            {/* Use address to geocode */}
+            <div>
+              <Label>Set from Address</Label>
+              <p className="text-xs text-muted-foreground mb-2">
+                Click "Set Location" to convert the address above to coordinates
+              </p>
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleGeocodeAddress}
+                  disabled={!formData.address || isGeocoding || !isEditing}
+                  className="flex-1"
+                >
+                  {isGeocoding ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Geocoding...
+                    </>
+                  ) : (
+                    <>
+                      <MapPinned className="h-4 w-4 mr-2" />
+                      Set Location from Address
+                    </>
+                  )}
+                </Button>
+                {(formData.homeLatitude && formData.homeLongitude) && isEditing && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    onClick={handleClearLocation}
+                    className="text-destructive hover:text-destructive"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
+            </div>
+
+            {/* Show current coordinates if set */}
+            {(formData.homeLatitude && formData.homeLongitude) ? (
+              <div className="p-3 bg-muted/50 rounded-lg space-y-2">
+                <div className="flex items-center gap-2 text-sm">
+                  <span className="text-muted-foreground">Latitude:</span>
+                  <span className="font-mono">{formData.homeLatitude?.toFixed(6)}</span>
+                </div>
+                <div className="flex items-center gap-2 text-sm">
+                  <span className="text-muted-foreground">Longitude:</span>
+                  <span className="font-mono">{formData.homeLongitude?.toFixed(6)}</span>
+                </div>
+              </div>
+            ) : (
+              <div className="p-3 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-lg">
+                <p className="text-sm text-amber-800 dark:text-amber-200">
+                  No location set. AI will use job history to estimate travel distance.
+                </p>
+              </div>
+            )}
+
+            {/* Max travel distance */}
+            <div>
+              <Label htmlFor="maxTravelDistance">Maximum Travel Distance</Label>
+              <p className="text-xs text-muted-foreground mb-2">
+                How far this technician is willing to travel for jobs
+              </p>
+              <div className="flex items-center gap-2">
+                <Input
+                  id="maxTravelDistance"
+                  type="number"
+                  value={formData.maxTravelDistanceKm}
+                  onChange={(e) => handleFieldChange('maxTravelDistanceKm', Number(e.target.value))}
+                  disabled={!isEditing}
+                  className="w-24"
+                  min={1}
+                  max={500}
+                />
+                <span className="text-sm text-muted-foreground">km</span>
               </div>
             </div>
           </div>

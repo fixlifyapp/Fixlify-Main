@@ -62,11 +62,11 @@ export const UnifiedJobTypeSelector = ({
             <SelectItem value="no-types" disabled>No job types found</SelectItem>
           ) : (
             jobTypes.map(type => (
-              <SelectItem key={type.id} value={type.name}>
+              <SelectItem key={type.id} value={type.id}>
                 <div className="flex items-center gap-2">
                   {type.color && (
-                    <div 
-                      className="w-3 h-3 rounded-full" 
+                    <div
+                      className="w-3 h-3 rounded-full"
                       style={{ backgroundColor: type.color }}
                     />
                   )}

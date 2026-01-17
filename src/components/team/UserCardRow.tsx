@@ -23,7 +23,7 @@ export const UserCardRow = ({ user }: UserCardRowProps) => {
   };
 
   const handleViewDetails = () => {
-    navigate(`/admin/team/${user.id}`);
+    navigate(`/team/${user.id}`);
   };
 
   return (

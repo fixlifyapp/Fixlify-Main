@@ -35,6 +35,10 @@ export interface TeamMemberProfile {
   commissionRate?: number;
   commissionRules?: CommissionRule[];
   commissionFees?: CommissionFee[];
+  // Home location for AI travel distance calculation
+  homeLatitude?: number | null;
+  homeLongitude?: number | null;
+  maxTravelDistanceKm?: number;
 }
 
 export interface CommissionRule {

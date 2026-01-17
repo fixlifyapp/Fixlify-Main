@@ -195,6 +195,10 @@ export const ScheduleJobModal = ({
                 setFormData={setFormData}
                 handleSelectChange={handleSelectChange}
                 companySettings={companySettings}
+                jobTypeId={formData.job_type}
+                jobTypeName={jobTypes.find(jt => jt.id === formData.job_type)?.name}
+                clientProperties={clientProperties}
+                selectedPropertyId={formData.property_id}
               />
             </SectionCard>
 

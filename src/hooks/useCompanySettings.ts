@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/use-auth';
 import { useOrganization } from '@/hooks/use-organization';
 import { toast } from 'sonner';
+import { DEFAULT_BUSINESS_HOURS } from '@/types/businessHours';
 
 export const useCompanySettings = () => {
   const { user } = useAuth();
@@ -28,15 +29,7 @@ export const useCompanySettings = () => {
           company_logo: companyData.company_logo_url || '',
           website: companyData.company_website || '',
           timezone: companyData.company_timezone || 'America/New_York',
-          business_hours: companyData.business_hours || {
-            monday: { start: '09:00', end: '17:00', enabled: true },
-            tuesday: { start: '09:00', end: '17:00', enabled: true },
-            wednesday: { start: '09:00', end: '17:00', enabled: true },
-            thursday: { start: '09:00', end: '17:00', enabled: true },
-            friday: { start: '09:00', end: '17:00', enabled: true },
-            saturday: { start: '09:00', end: '17:00', enabled: false },
-            sunday: { start: '09:00', end: '17:00', enabled: false },
-          },
+          business_hours: companyData.business_hours || DEFAULT_BUSINESS_HOURS,
           brand_color: '#3b82f6',
           ...companyData
         };
@@ -58,15 +51,7 @@ export const useCompanySettings = () => {
           company_logo: profile.company_logo || '',
           website: profile.website || '',
           timezone: profile.timezone || 'America/New_York',
-          business_hours: profile.business_hours || {
-            monday: { start: '09:00', end: '17:00', enabled: true },
-            tuesday: { start: '09:00', end: '17:00', enabled: true },
-            wednesday: { start: '09:00', end: '17:00', enabled: true },
-            thursday: { start: '09:00', end: '17:00', enabled: true },
-            friday: { start: '09:00', end: '17:00', enabled: true },
-            saturday: { start: '09:00', end: '17:00', enabled: false },
-            sunday: { start: '09:00', end: '17:00', enabled: false },
-          },
+          business_hours: profile.business_hours || DEFAULT_BUSINESS_HOURS,
           brand_color: profile.brand_color || '#3b82f6',
           ...profile
         };
@@ -89,15 +74,7 @@ export const useCompanySettings = () => {
             company_logo: orgSettings.company_logo || '',
             website: orgSettings.website || '',
             timezone: orgSettings.timezone || 'America/New_York',
-            business_hours: orgSettings.business_hours || {
-              monday: { start: '09:00', end: '17:00', enabled: true },
-              tuesday: { start: '09:00', end: '17:00', enabled: true },
-              wednesday: { start: '09:00', end: '17:00', enabled: true },
-              thursday: { start: '09:00', end: '17:00', enabled: true },
-              friday: { start: '09:00', end: '17:00', enabled: true },
-              saturday: { start: '09:00', end: '17:00', enabled: false },
-              sunday: { start: '09:00', end: '17:00', enabled: false },
-            },
+            business_hours: orgSettings.business_hours || DEFAULT_BUSINESS_HOURS,
             brand_color: orgSettings.brand_color || '#3b82f6',
             ...orgSettings
           };
@@ -113,15 +90,7 @@ export const useCompanySettings = () => {
         company_logo: '',
         website: '',
         timezone: 'America/New_York',
-        business_hours: {
-          monday: { start: '09:00', end: '17:00', enabled: true },
-          tuesday: { start: '09:00', end: '17:00', enabled: true },
-          wednesday: { start: '09:00', end: '17:00', enabled: true },
-          thursday: { start: '09:00', end: '17:00', enabled: true },
-          friday: { start: '09:00', end: '17:00', enabled: true },
-          saturday: { start: '09:00', end: '17:00', enabled: false },
-          sunday: { start: '09:00', end: '17:00', enabled: false },
-        },
+        business_hours: DEFAULT_BUSINESS_HOURS,
         brand_color: '#3b82f6',
         gst_hst_number: '',
         insurance_policy_number: ''
@@ -143,41 +112,85 @@ export const useCompanySettings = () => {
       if (profileError) throw profileError;
 
       // Also update the company_settings table
-      const { error: companyError } = await supabase
+      // First check if record exists
+      const { data: existingCompanySettings } = await supabase
         .from('company_settings')
-        .upsert({
-          user_id: user.id,
-          company_name: updates.company_name,
-          company_email: updates.company_email,
-          company_phone: updates.company_phone,
-          company_address: updates.company_address,
-          company_city: updates.company_city,
-          company_state: updates.company_state,
-          company_zip: updates.company_zip,
-          company_country: updates.company_country,
-          company_website: updates.website || updates.company_website,
-          company_logo_url: updates.company_logo,
-          gst_hst_number: updates.gst_hst_number,
-          insurance_policy_number: updates.insurance_policy_number,
-          updated_at: new Date().toISOString()
-        });
+        .select('id')
+        .eq('user_id', user.id)
+        .maybeSingle();
 
-      if (companyError) {
-        console.error('Error updating company_settings:', companyError);
-        // Don't throw here, as profiles was updated successfully
+      const companySettingsData = {
+        user_id: user.id,
+        company_name: updates.company_name,
+        company_email: updates.company_email,
+        company_phone: updates.company_phone,
+        company_address: updates.company_address,
+        company_city: updates.company_city,
+        company_state: updates.company_state,
+        company_zip: updates.company_zip,
+        company_country: updates.company_country,
+        company_website: updates.website || updates.company_website,
+        company_logo_url: updates.company_logo,
+        company_timezone: updates.timezone,
+        business_hours: updates.business_hours,
+        gst_hst_number: updates.gst_hst_number,
+        insurance_policy_number: updates.insurance_policy_number,
+        updated_at: new Date().toISOString()
+      };
+
+      if (existingCompanySettings) {
+        // Update existing record
+        const { error: companyError } = await supabase
+          .from('company_settings')
+          .update(companySettingsData)
+          .eq('user_id', user.id);
+
+        if (companyError) {
+          console.error('Error updating company_settings:', companyError);
+        }
+      } else {
+        // Insert new record
+        const { error: companyError } = await supabase
+          .from('company_settings')
+          .insert(companySettingsData);
+
+        if (companyError) {
+          console.error('Error inserting company_settings:', companyError);
+        }
       }
 
       // If organization exists, update there too
       if (organization?.id) {
-        const { error: orgError } = await supabase
+        const { data: existingOrgSettings } = await supabase
           .from('organization_settings')
-          .upsert({
-            organization_id: organization.id,
-            ...updates,
-            updated_at: new Date().toISOString()
-          });
+          .select('id')
+          .eq('organization_id', organization.id)
+          .maybeSingle();
 
-        if (orgError) throw orgError;
+        const orgSettingsData = {
+          organization_id: organization.id,
+          ...updates,
+          updated_at: new Date().toISOString()
+        };
+
+        if (existingOrgSettings) {
+          const { error: orgError } = await supabase
+            .from('organization_settings')
+            .update(orgSettingsData)
+            .eq('organization_id', organization.id);
+
+          if (orgError) {
+            console.error('Error updating organization_settings:', orgError);
+          }
+        } else {
+          const { error: orgError } = await supabase
+            .from('organization_settings')
+            .insert(orgSettingsData);
+
+          if (orgError) {
+            console.error('Error inserting organization_settings:', orgError);
+          }
+        }
       }
 
       return updates;

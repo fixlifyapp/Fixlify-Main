@@ -20,6 +20,7 @@ import {
 import { useTechnicians } from "@/hooks/useTechnicians";
 import { FormData } from "./useScheduleJobForm";
 import { AIFormHint, useAIScheduling, AIRecommendation } from "@/components/calendar/ai";
+import { AIJobSuggestions } from "./AIJobSuggestions";
 
 // Generate time options in 30-minute intervals
 const generateTimeOptions = () => {
@@ -56,11 +57,21 @@ interface CompanySettings {
   business_hours?: BusinessHours;
 }
 
+interface ClientProperty {
+  id: string;
+  latitude?: number | null;
+  longitude?: number | null;
+}
+
 interface ScheduleSectionProps {
   formData: FormData;
   setFormData: (data: FormData) => void;
   handleSelectChange: (field: string) => (value: string) => void;
   companySettings?: CompanySettings | null;
+  jobTypeId?: string;
+  jobTypeName?: string;
+  clientProperties?: ClientProperty[];
+  selectedPropertyId?: string;
 }
 
 export const ScheduleSection = ({
@@ -68,6 +79,10 @@ export const ScheduleSection = ({
   setFormData,
   handleSelectChange,
   companySettings,
+  jobTypeId,
+  jobTypeName,
+  clientProperties,
+  selectedPropertyId,
 }: ScheduleSectionProps) => {
   const [startDateOpen, setStartDateOpen] = useState(false);
   const [endDateOpen, setEndDateOpen] = useState(false);
@@ -98,6 +113,17 @@ export const ScheduleSection = ({
       .map(([day]) => dayNameToNumber[day.toLowerCase()])
       .filter((num): num is number => num !== undefined);
   }, [businessHours]);
+
+  // Compute property coordinates for AI distance calculation
+  const propertyCoords = useMemo(() => {
+    if (selectedPropertyId && clientProperties) {
+      const property = clientProperties.find(p => p.id === selectedPropertyId);
+      if (property?.latitude && property?.longitude) {
+        return { lat: property.latitude, lng: property.longitude };
+      }
+    }
+    return undefined;
+  }, [selectedPropertyId, clientProperties]);
 
   // Get default start/end times from business hours based on selected day
   const getDefaultTimes = (date: Date) => {
@@ -216,7 +242,7 @@ export const ScheduleSection = ({
       date.setHours(parseInt(hours), parseInt(minutes));
 
       // Auto-adjust end time if it's before start time or if they're the same day
-      let newFormData = { ...formData, schedule_start: date.toISOString() };
+      const newFormData = { ...formData, schedule_start: date.toISOString() };
 
       if (formData.schedule_end) {
         const endDate = new Date(formData.schedule_end);
@@ -377,14 +403,36 @@ export const ScheduleSection = ({
         </div>
       </div>
 
+      {/* AI Job Suggestions - Smart technician matching based on skills */}
+      {jobTypeId && (
+        <AIJobSuggestions
+          jobTypeId={jobTypeId}
+          jobTypeName={jobTypeName}
+          propertyCoords={propertyCoords}
+          onAccept={(suggestion) => {
+            setFormData({
+              ...formData,
+              technician_id: suggestion.technicianId,
+              ...(suggestion.slotStart && {
+                schedule_start: suggestion.slotStart,
+                schedule_end: suggestion.slotEnd,
+              }),
+            });
+          }}
+          className="mb-4"
+        />
+      )}
+
       {/* AI Scheduling Recommendation */}
-      <AIFormHint
-        recommendation={topRecommendation}
-        alternativeRecommendations={recommendations.slice(1, 4)}
-        isLoading={aiLoading}
-        onAccept={handleAcceptRecommendation}
-        onRequestNew={handleGetAIRecommendations}
-      />
+      {!jobTypeId && (
+        <AIFormHint
+          recommendation={topRecommendation}
+          alternativeRecommendations={recommendations.slice(1, 4)}
+          isLoading={aiLoading}
+          onAccept={handleAcceptRecommendation}
+          onRequestNew={handleGetAIRecommendations}
+        />
+      )}
 
       {/* Technician Assignment - Full width */}
       <div className="space-y-3">
