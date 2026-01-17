@@ -34,8 +34,12 @@ import {
 // Import sub-components
 import { AICommandBar } from './ai/AICommandBar';
 import { AIConflictWizard } from './ai/AIConflictWizard';
+// Custom calendar views (replacing FullCalendar)
+import { DayView } from './views/DayView';
+import { WeekView } from './views/WeekView';
+import { MonthView } from './views/MonthView';
+import { TeamView } from './views/TeamView';
 import { MapScheduleView } from './views/MapScheduleView';
-import { FullCalendarSchedule } from '@/components/schedule/FullCalendarSchedule';
 import { ScheduleBottomSheet } from './mobile/ScheduleBottomSheet';
 import { QuickActionsWheel, useQuickActionsWheel } from './mobile/QuickActionsWheel';
 import { SmartAgenda } from './smart/SmartAgenda';
@@ -52,6 +56,10 @@ interface Calendar2026Props {
   resources: CalendarResource[];
   technicians?: Array<{ id: string; name: string }>;
   clients?: Array<{ id: string; name: string }>;
+  businessHoursStart?: number;
+  businessHoursEnd?: number;
+  startHour?: number;
+  endHour?: number;
   onEventClick?: (event: CalendarEvent) => void;
   onEventDrop?: (event: CalendarEvent, newStart: Date, newEnd: Date, newResourceId?: string) => void;
   onSlotClick?: (date: Date, resourceId?: string) => void;
@@ -73,6 +81,10 @@ export function Calendar2026({
   resources,
   technicians = [],
   clients = [],
+  businessHoursStart = 9,
+  businessHoursEnd = 17,
+  startHour = 6,
+  endHour = 22,
   onEventClick,
   onEventDrop,
   onSlotClick,
@@ -93,8 +105,22 @@ export function Calendar2026({
     timelineConfig,
   } = useCalendar2026Store();
 
-  const { currentDate, setCurrentDate, goToToday, goToPrevious, goToNext, aiHighlightedSlots } =
+  const { currentDate, setCurrentDate, goToToday, goToPrevious, goToNext, aiHighlightedSlots, setView } =
     useCalendarStore();
+
+  // Sync activeView with CalendarStore's view for navigation to work correctly
+  useEffect(() => {
+    // Map Calendar2026 views to CalendarProvider views
+    const viewMap: Record<string, 'day' | 'week' | 'month' | 'team' | 'gantt'> = {
+      'day': 'day',
+      'week': 'week',
+      'month': 'month',
+      'team': 'team',
+      'map': 'day', // Map view uses day navigation
+    };
+    const mappedView = viewMap[activeView] || 'week';
+    setView(mappedView);
+  }, [activeView, setView]);
 
   // Local state
   const [selectedConflict, setSelectedConflict] = useState<ScheduleConflict | null>(null);
@@ -304,7 +330,7 @@ export function Calendar2026({
         {/* Main Content */}
         <div className="flex-1 overflow-hidden">
           <AnimatePresence mode="wait">
-            {activeView === 'map' ? (
+            {activeView === 'map' && (
               <motion.div
                 key="map"
                 initial={{ opacity: 0 }}
@@ -320,22 +346,121 @@ export function Calendar2026({
                   onOptimizeRoutes={onOptimizeRoutes}
                 />
               </motion.div>
-            ) : (
+            )}
+
+            {activeView === 'day' && (
               <motion.div
-                key="calendar"
+                key="day"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 className="h-full"
               >
-                <FullCalendarSchedule
-                  view={activeView as 'day' | 'week' | 'month' | 'team'}
+                <DayView
+                  events={events}
+                  resources={resources}
                   currentDate={currentDate}
-                  onViewChange={(view) => setActiveView(view as any)}
-                  onDateChange={setCurrentDate}
-                  onCreateJob={(startDate, endDate, technicianId) => {
-                    onSlotClick?.(startDate, technicianId);
+                  startHour={startHour}
+                  endHour={endHour}
+                  businessHoursStart={businessHoursStart}
+                  businessHoursEnd={businessHoursEnd}
+                  aiHighlightedSlots={aiHighlightedSlots}
+                  onEventClick={onEventClick}
+                  onEventDrop={(event, newStart, newEnd) => {
+                    onEventDrop?.(event, newStart, newEnd);
                   }}
+                  onSlotClick={(date) => onSlotClick?.(date)}
+                />
+              </motion.div>
+            )}
+
+            {activeView === 'week' && (
+              <motion.div
+                key="week"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="h-full"
+              >
+                <WeekView
+                  events={events}
+                  resources={resources}
+                  currentDate={currentDate}
+                  startHour={startHour}
+                  endHour={endHour}
+                  businessHoursStart={businessHoursStart}
+                  businessHoursEnd={businessHoursEnd}
+                  aiHighlightedSlots={aiHighlightedSlots}
+                  onEventClick={onEventClick}
+                  onEventDrop={(event, newStart, newEnd) => {
+                    onEventDrop?.(event, newStart, newEnd);
+                  }}
+                  onSlotClick={(date) => onSlotClick?.(date)}
+                  onDayClick={(date) => {
+                    setCurrentDate(date);
+                    setActiveView('day');
+                  }}
+                  onNavigate={(direction) => {
+                    if (direction === 'prev') {
+                      goToPrevious();
+                    } else {
+                      goToNext();
+                    }
+                  }}
+                />
+              </motion.div>
+            )}
+
+            {activeView === 'month' && (
+              <motion.div
+                key="month"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="h-full"
+              >
+                <MonthView
+                  events={events}
+                  resources={resources}
+                  currentDate={currentDate}
+                  onEventClick={onEventClick}
+                  onDayClick={(date) => {
+                    setCurrentDate(date);
+                    setActiveView('day');
+                  }}
+                  onNavigate={(direction) => {
+                    if (direction === 'prev') {
+                      goToPrevious();
+                    } else {
+                      goToNext();
+                    }
+                  }}
+                />
+              </motion.div>
+            )}
+
+            {activeView === 'team' && (
+              <motion.div
+                key="team"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="h-full"
+              >
+                <TeamView
+                  events={events}
+                  resources={resources}
+                  currentDate={currentDate}
+                  startHour={startHour}
+                  endHour={endHour}
+                  businessHoursStart={businessHoursStart}
+                  businessHoursEnd={businessHoursEnd}
+                  aiHighlightedSlots={aiHighlightedSlots}
+                  onEventClick={onEventClick}
+                  onEventDrop={(event, newStart, newEnd, newResourceId) => {
+                    onEventDrop?.(event, newStart, newEnd, newResourceId);
+                  }}
+                  onSlotClick={(date, resourceId) => onSlotClick?.(date, resourceId)}
                 />
               </motion.div>
             )}

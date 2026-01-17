@@ -445,7 +445,7 @@ export function CalendarProvider({
   );
 }
 
-// Status colors matching existing FullCalendar implementation
+// Status colors for calendar events
 export const STATUS_COLORS: Record<CalendarEvent["status"], { bg: string; border: string; text: string }> = {
   scheduled: { bg: "#3b82f6", border: "#2563eb", text: "#ffffff" },
   "in-progress": { bg: "#f59e0b", border: "#d97706", text: "#ffffff" },

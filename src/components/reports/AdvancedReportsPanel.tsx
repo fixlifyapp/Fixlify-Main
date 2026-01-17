@@ -19,10 +19,22 @@ import {
 import { toast } from "sonner";
 import { exportElementToPDF, exportToExcel, getReportExportColumns } from "@/utils/exportUtils";
 import { supabase } from "@/integrations/supabase/client";
+import { useAnalyticsData } from "@/hooks/useAnalyticsData";
 
 export const AdvancedReportsPanel = () => {
   const [activeTab, setActiveTab] = useState("dashboard");
   const [isExporting, setIsExporting] = useState(false);
+  const [timeRange, setTimeRange] = useState("30d");
+
+  // Fetch real analytics data
+  const {
+    revenueData,
+    serviceData,
+    technicianData,
+    performanceData,
+    kpis,
+    isLoading: analyticsLoading
+  } = useAnalyticsData(timeRange);
 
   const handleExportReport = async (format: 'pdf' | 'excel') => {
     setIsExporting(true);
@@ -130,12 +142,40 @@ export const AdvancedReportsPanel = () => {
 
         <TabsContent value="dashboard" className="space-y-6">
           <div id="reports-dashboard">
-            <BusinessIntelligenceDashboard />
+            <BusinessIntelligenceDashboard
+              revenueData={revenueData}
+              serviceData={serviceData}
+              technicianData={technicianData}
+              kpis={{
+                monthlyRevenue: kpis.monthlyRevenue,
+                revenueGrowth: kpis.revenueGrowth,
+                activeCustomers: kpis.activeCustomers,
+                customerGrowth: kpis.customerGrowth,
+                avgResponseTime: kpis.avgResponseTime,
+                responseTimeImprovement: kpis.responseTimeImprovement
+              }}
+              isLoading={analyticsLoading}
+            />
           </div>
         </TabsContent>
 
         <TabsContent value="performance" className="space-y-6">
-          <PerformanceAnalytics />
+          <PerformanceAnalytics
+            performanceData={performanceData}
+            technicianData={technicianData}
+            serviceData={serviceData}
+            kpis={{
+              avgResponseTime: kpis.avgResponseTime,
+              responseTimeImprovement: kpis.responseTimeImprovement,
+              revenuePerJob: kpis.revenuePerJob,
+              revenuePerJobGrowth: kpis.revenuePerJobGrowth,
+              teamUtilization: kpis.teamUtilization,
+              jobCompletionRate: kpis.jobCompletionRate
+            }}
+            timeRange={timeRange}
+            onTimeRangeChange={setTimeRange}
+            isLoading={analyticsLoading}
+          />
         </TabsContent>
 
         <TabsContent value="custom" className="space-y-6">

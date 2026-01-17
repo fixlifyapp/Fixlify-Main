@@ -1,15 +1,16 @@
 // Smart Agenda - AI Morning Brief with Weather
-// Revolutionary daily overview for technicians
+// Revolutionary daily overview for technicians with Gemini AI insights
 
 import * as React from 'react';
-import { useMemo } from 'react';
-import { motion } from 'framer-motion';
+import { useMemo, useState, useEffect, useCallback } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { format, differenceInMinutes, isSameDay } from 'date-fns';
 import {
@@ -33,17 +34,24 @@ import {
   CheckCircle2,
   Timer,
   Sparkles,
+  RefreshCw,
+  Brain,
+  Target,
+  Activity,
 } from 'lucide-react';
-import type { CalendarEvent } from '../../calendar/CalendarProvider';
+import type { CalendarEvent, CalendarResource } from '../../calendar/CalendarProvider';
 import type { DailyBrief, WeatherInfo, AgendaInsight, AgendaWarning } from '../types';
+import { useAIScheduling2026 } from '../hooks/useAIScheduling2026';
 
 interface SmartAgendaProps {
   date?: Date;
   events: CalendarEvent[];
+  resources?: CalendarResource[];
   technicianName?: string;
   weather?: WeatherInfo;
   estimatedRevenue?: number;
   completedJobs?: number;
+  enableAI?: boolean;
   onJobClick?: (jobId: string) => void;
   onOptimizeRoutes?: () => void;
   className?: string;
@@ -67,17 +75,58 @@ const WEATHER_COLORS = {
   cold: 'bg-indigo-100 text-indigo-700',
 };
 
+// Helper to get icon name from insight type
+function getInsightIcon(type: string): string {
+  switch (type) {
+    case 'optimization':
+    case 'route_optimization':
+      return 'route';
+    case 'workload':
+    case 'workload_balance':
+      return 'balance';
+    case 'scheduling_gap':
+    case 'gap':
+      return 'gap';
+    case 'client_preference':
+      return 'client';
+    case 'efficiency':
+      return 'efficiency';
+    case 'warning':
+    case 'alert':
+      return 'alert';
+    default:
+      return 'tip';
+  }
+}
+
 export function SmartAgenda({
   date = new Date(),
   events,
+  resources = [],
   technicianName = 'there',
   weather,
   estimatedRevenue = 0,
   completedJobs = 0,
+  enableAI = true,
   onJobClick,
   onOptimizeRoutes,
   className,
 }: SmartAgendaProps) {
+  // AI scheduling hook for insights
+  const { generateInsights, isLoading: aiLoading } = useAIScheduling2026({
+    events,
+    resources,
+    useGemini: enableAI,
+  });
+
+  // State for AI insights
+  const [aiInsights, setAiInsights] = useState<AgendaInsight[]>([]);
+  const [scheduleHealth, setScheduleHealth] = useState<{
+    score: number;
+    factors: { efficiency: number; balance: number; gaps: number; travel: number };
+  } | null>(null);
+  const [isLoadingInsights, setIsLoadingInsights] = useState(false);
+
   // Filter today's events
   const todaysEvents = useMemo(() => {
     return events
@@ -114,8 +163,44 @@ export function SmartAgenda({
     };
   }, [todaysEvents]);
 
-  // Generate insights
-  const insights = useMemo((): AgendaInsight[] => {
+  // Fetch AI insights
+  const fetchAIInsights = useCallback(async () => {
+    if (!enableAI || todaysEvents.length === 0) return;
+
+    setIsLoadingInsights(true);
+    try {
+      const result = await generateInsights(todaysEvents, resources);
+
+      if (result?.insights) {
+        // Transform AI insights to AgendaInsight format
+        const transformed: AgendaInsight[] = result.insights.map((insight: any, idx: number) => ({
+          id: `ai-${idx}`,
+          type: insight.type || 'tip',
+          message: insight.message,
+          icon: getInsightIcon(insight.type),
+        }));
+        setAiInsights(transformed);
+      }
+
+      if (result?.scheduleHealth) {
+        setScheduleHealth(result.scheduleHealth);
+      }
+    } catch (error) {
+      console.error('Failed to fetch AI insights:', error);
+    } finally {
+      setIsLoadingInsights(false);
+    }
+  }, [enableAI, todaysEvents, resources, generateInsights]);
+
+  // Fetch insights on mount and when events change
+  useEffect(() => {
+    if (enableAI && todaysEvents.length > 0) {
+      fetchAIInsights();
+    }
+  }, [date, todaysEvents.length]);
+
+  // Generate local insights as fallback
+  const localInsights = useMemo((): AgendaInsight[] => {
     const result: AgendaInsight[] = [];
 
     if (stats.highPriority > 0) {
@@ -147,6 +232,9 @@ export function SmartAgenda({
 
     return result;
   }, [stats, weather]);
+
+  // Use AI insights if available, otherwise fall back to local
+  const insights = aiInsights.length > 0 ? aiInsights : localInsights;
 
   // Get greeting based on time
   const greeting = useMemo(() => {
@@ -215,27 +303,104 @@ export function SmartAgenda({
       </div>
 
       <CardContent className="p-4">
+        {/* Schedule Health Score (AI-powered) */}
+        {scheduleHealth && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-4 p-3 rounded-lg bg-gradient-to-r from-violet-50 to-purple-50 border border-violet-100"
+          >
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <Brain className="h-4 w-4 text-violet-600" />
+                <span className="font-medium text-sm text-violet-800">Schedule Health</span>
+                <Badge variant="outline" className="text-[10px] bg-violet-100 border-violet-200 text-violet-700">
+                  AI
+                </Badge>
+              </div>
+              <span className={cn(
+                "text-lg font-bold",
+                scheduleHealth.score >= 80 ? "text-emerald-600" :
+                scheduleHealth.score >= 60 ? "text-amber-600" : "text-red-600"
+              )}>
+                {scheduleHealth.score}%
+              </span>
+            </div>
+            <div className="grid grid-cols-4 gap-2 text-xs">
+              <div className="text-center">
+                <Activity className="h-3 w-3 mx-auto mb-1 text-violet-500" />
+                <span className="text-muted-foreground">Efficiency</span>
+                <div className="font-medium">{scheduleHealth.factors.efficiency}%</div>
+              </div>
+              <div className="text-center">
+                <Target className="h-3 w-3 mx-auto mb-1 text-violet-500" />
+                <span className="text-muted-foreground">Balance</span>
+                <div className="font-medium">{scheduleHealth.factors.balance}%</div>
+              </div>
+              <div className="text-center">
+                <Clock className="h-3 w-3 mx-auto mb-1 text-violet-500" />
+                <span className="text-muted-foreground">Gaps</span>
+                <div className="font-medium">{scheduleHealth.factors.gaps}%</div>
+              </div>
+              <div className="text-center">
+                <Route className="h-3 w-3 mx-auto mb-1 text-violet-500" />
+                <span className="text-muted-foreground">Travel</span>
+                <div className="font-medium">{scheduleHealth.factors.travel}%</div>
+              </div>
+            </div>
+          </motion.div>
+        )}
+
         {/* AI Insights */}
-        {insights.length > 0 && (
+        {(insights.length > 0 || isLoadingInsights) && (
           <div className="mb-4">
-            <div className="flex items-center gap-2 mb-3">
-              <Sparkles className="h-4 w-4 text-violet-600" />
-              <span className="font-medium text-sm">AI Insights</span>
-            </div>
-            <div className="space-y-2">
-              {insights.map((insight, index) => (
-                <motion.div
-                  key={insight.id}
-                  initial={{ opacity: 0, x: -10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: index * 0.1 }}
-                  className="flex items-center gap-3 p-2 rounded-lg bg-violet-50 text-sm"
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <Sparkles className="h-4 w-4 text-violet-600" />
+                <span className="font-medium text-sm">AI Insights</span>
+                {aiInsights.length > 0 && (
+                  <Badge variant="outline" className="text-[10px] bg-violet-100 border-violet-200 text-violet-700">
+                    Gemini
+                  </Badge>
+                )}
+              </div>
+              {enableAI && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 w-6 p-0"
+                  onClick={fetchAIInsights}
+                  disabled={isLoadingInsights}
                 >
-                  <Lightbulb className="h-4 w-4 text-violet-600 shrink-0" />
-                  <span className="text-violet-800">{insight.message}</span>
-                </motion.div>
-              ))}
+                  <RefreshCw className={cn("h-3 w-3", isLoadingInsights && "animate-spin")} />
+                </Button>
+              )}
             </div>
+
+            {isLoadingInsights ? (
+              <div className="space-y-2">
+                <Skeleton className="h-10 w-full" />
+                <Skeleton className="h-10 w-full" />
+              </div>
+            ) : (
+              <AnimatePresence mode="wait">
+                <div className="space-y-2">
+                  {insights.map((insight, index) => (
+                    <motion.div
+                      key={insight.id}
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: 10 }}
+                      transition={{ delay: index * 0.1 }}
+                      className="flex items-center gap-3 p-2 rounded-lg bg-violet-50 text-sm"
+                    >
+                      <InsightIcon type={insight.icon} />
+                      <span className="text-violet-800">{insight.message}</span>
+                    </motion.div>
+                  ))}
+                </div>
+              </AnimatePresence>
+            )}
           </div>
         )}
 
@@ -338,6 +503,28 @@ function QuickStat({
       <span className="text-xs text-violet-200">{label}</span>
     </motion.div>
   );
+}
+
+// Dynamic icon for insights
+function InsightIcon({ type }: { type: string }) {
+  const iconClass = "h-4 w-4 text-violet-600 shrink-0";
+
+  switch (type) {
+    case 'route':
+      return <Route className={iconClass} />;
+    case 'balance':
+      return <Target className={iconClass} />;
+    case 'gap':
+      return <Clock className={iconClass} />;
+    case 'client':
+      return <User className={iconClass} />;
+    case 'efficiency':
+      return <TrendingUp className={iconClass} />;
+    case 'alert':
+      return <AlertTriangle className={cn(iconClass, "text-amber-600")} />;
+    default:
+      return <Lightbulb className={iconClass} />;
+  }
 }
 
 // Job card component

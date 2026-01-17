@@ -2,82 +2,80 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { 
-  Clock, 
-  DollarSign, 
-  Users, 
+import {
+  Clock,
+  DollarSign,
+  Users,
   TrendingUp,
   Target,
   CheckCircle,
   Calendar
 } from "lucide-react";
-import { 
-  LineChart, 
-  Line, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
   ResponsiveContainer,
   BarChart,
   Bar,
   ComposedChart
 } from "recharts";
-import { useState } from "react";
 
-export const PerformanceAnalytics = () => {
-  const [timeRange, setTimeRange] = useState("30d");
+interface PerformanceDataPoint {
+  date: string;
+  jobsCompleted: number;
+  revenue: number;
+  avgResponseTime: number;
+}
 
-  // Mock performance data
-  const performanceData = [
-    { date: 'Week 1', jobsCompleted: 28, revenue: 21500, avgResponseTime: 2.8, customerSat: 92 },
-    { date: 'Week 2', jobsCompleted: 32, revenue: 24800, avgResponseTime: 2.5, customerSat: 94 },
-    { date: 'Week 3', jobsCompleted: 29, revenue: 22300, avgResponseTime: 2.1, customerSat: 96 },
-    { date: 'Week 4', jobsCompleted: 35, revenue: 28200, avgResponseTime: 1.9, customerSat: 95 }
-  ];
+interface TechnicianMetric {
+  id: string;
+  name: string;
+  jobs: number;
+  revenue: number;
+  avgJobTime: number;
+  efficiency: number;
+}
 
-  const technicianMetrics = [
-    { 
-      name: 'John Smith', 
-      jobsCompleted: 24, 
-      revenue: 18500, 
-      avgJobTime: 3.2, 
-      customerRating: 4.8,
-      efficiency: 92 
-    },
-    { 
-      name: 'Sarah Johnson', 
-      jobsCompleted: 22, 
-      revenue: 17200, 
-      avgJobTime: 3.5, 
-      customerRating: 4.6,
-      efficiency: 88 
-    },
-    { 
-      name: 'Mike Wilson', 
-      jobsCompleted: 20, 
-      revenue: 15800, 
-      avgJobTime: 4.1, 
-      customerRating: 4.4,
-      efficiency: 85 
-    },
-    { 
-      name: 'Lisa Brown', 
-      jobsCompleted: 18, 
-      revenue: 14200, 
-      avgJobTime: 3.8, 
-      customerRating: 4.7,
-      efficiency: 82 
-    }
-  ];
+interface ServiceMetric {
+  name: string;
+  value: number;
+  revenue: number;
+}
 
-  const serviceMetrics = [
-    { service: 'HVAC Repair', avgTime: 2.5, revenue: 42000, satisfaction: 96 },
-    { service: 'Plumbing', avgTime: 1.8, revenue: 30000, satisfaction: 94 },
-    { service: 'Electrical', avgTime: 3.2, revenue: 24000, satisfaction: 92 },
-    { service: 'Appliance', avgTime: 2.1, revenue: 18000, satisfaction: 88 }
-  ];
+interface KPIs {
+  avgResponseTime: number;
+  responseTimeImprovement: number;
+  revenuePerJob: number;
+  revenuePerJobGrowth: number;
+  teamUtilization: number;
+  jobCompletionRate: number;
+}
+
+interface PerformanceAnalyticsProps {
+  performanceData: PerformanceDataPoint[];
+  technicianData: TechnicianMetric[];
+  serviceData: ServiceMetric[];
+  kpis: KPIs;
+  timeRange: string;
+  onTimeRangeChange: (value: string) => void;
+  isLoading?: boolean;
+}
+
+export const PerformanceAnalytics = ({
+  performanceData,
+  technicianData,
+  serviceData,
+  kpis,
+  timeRange,
+  onTimeRangeChange,
+  isLoading = false
+}: PerformanceAnalyticsProps) => {
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', { 
@@ -87,12 +85,39 @@ export const PerformanceAnalytics = () => {
     }).format(amount);
   };
 
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex justify-between items-center">
+          <Skeleton className="h-7 w-48" />
+          <Skeleton className="h-10 w-[180px]" />
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {[1, 2, 3, 4].map((i) => (
+            <Card key={i}>
+              <CardHeader className="pb-2">
+                <Skeleton className="h-4 w-24" />
+              </CardHeader>
+              <CardContent>
+                <Skeleton className="h-8 w-20 mb-2" />
+                <Skeleton className="h-3 w-32" />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  const isResponseTimeImproved = kpis.responseTimeImprovement >= 0;
+  const isRevenuePerJobGrowthPositive = kpis.revenuePerJobGrowth >= 0;
+
   return (
     <div className="space-y-6">
       {/* Time Range Selector */}
       <div className="flex justify-between items-center">
         <h2 className="text-xl font-semibold">Performance Analytics</h2>
-        <Select value={timeRange} onValueChange={setTimeRange}>
+        <Select value={timeRange} onValueChange={onTimeRangeChange}>
           <SelectTrigger className="w-[180px]">
             <SelectValue placeholder="Select time range" />
           </SelectTrigger>
@@ -113,9 +138,9 @@ export const PerformanceAnalytics = () => {
             <Clock className="h-4 w-4 text-blue-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-blue-600">2.3h</div>
-            <div className="text-xs text-muted-foreground">
-              18% faster than last month
+            <div className="text-2xl font-bold text-blue-600">{kpis.avgResponseTime}h</div>
+            <div className={`text-xs ${isResponseTimeImproved ? 'text-green-600' : 'text-orange-600'}`}>
+              {isResponseTimeImproved ? '-' : '+'}{Math.abs(kpis.responseTimeImprovement)}% {isResponseTimeImproved ? 'faster' : 'slower'} than last period
             </div>
           </CardContent>
         </Card>
@@ -126,9 +151,11 @@ export const PerformanceAnalytics = () => {
             <DollarSign className="h-4 w-4 text-green-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">$748</div>
-            <div className="text-xs text-muted-foreground">
-              +12% from target
+            <div className={`text-2xl font-bold ${isRevenuePerJobGrowthPositive ? 'text-green-600' : 'text-orange-600'}`}>
+              {formatCurrency(kpis.revenuePerJob)}
+            </div>
+            <div className={`text-xs ${isRevenuePerJobGrowthPositive ? 'text-green-600' : 'text-orange-600'}`}>
+              {isRevenuePerJobGrowthPositive ? '+' : ''}{kpis.revenuePerJobGrowth}% from last period
             </div>
           </CardContent>
         </Card>
@@ -139,8 +166,8 @@ export const PerformanceAnalytics = () => {
             <Users className="h-4 w-4 text-purple-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-purple-600">87%</div>
-            <Progress value={87} className="h-2 mt-2" />
+            <div className="text-2xl font-bold text-purple-600">{kpis.teamUtilization}%</div>
+            <Progress value={kpis.teamUtilization} className="h-2 mt-2" />
           </CardContent>
         </Card>
 
@@ -150,9 +177,11 @@ export const PerformanceAnalytics = () => {
             <CheckCircle className="h-4 w-4 text-green-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">98.5%</div>
+            <div className={`text-2xl font-bold ${kpis.jobCompletionRate >= 90 ? 'text-green-600' : 'text-orange-600'}`}>
+              {kpis.jobCompletionRate}%
+            </div>
             <div className="text-xs text-muted-foreground">
-              Excellent performance
+              {kpis.jobCompletionRate >= 95 ? 'Excellent' : kpis.jobCompletionRate >= 85 ? 'Good' : 'Needs improvement'}
             </div>
           </CardContent>
         </Card>
@@ -167,24 +196,34 @@ export const PerformanceAnalytics = () => {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <ResponsiveContainer width="100%" height={300}>
-            <ComposedChart data={performanceData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="date" />
-              <YAxis yAxisId="left" />
-              <YAxis yAxisId="right" orientation="right" />
-              <Tooltip />
-              <Bar yAxisId="left" dataKey="jobsCompleted" fill="#8884d8" name="Jobs Completed" />
-              <Line 
-                yAxisId="right" 
-                type="monotone" 
-                dataKey="customerSat" 
-                stroke="#82ca9d" 
-                strokeWidth={2}
-                name="Customer Satisfaction %"
-              />
-            </ComposedChart>
-          </ResponsiveContainer>
+          {performanceData.length === 0 ? (
+            <div className="text-center py-12 text-muted-foreground">
+              <TrendingUp className="h-8 w-8 mx-auto mb-2 opacity-50" />
+              <p>No performance data available for this period</p>
+            </div>
+          ) : (
+            <ResponsiveContainer width="100%" height={300}>
+              <ComposedChart data={performanceData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="date" />
+                <YAxis yAxisId="left" />
+                <YAxis yAxisId="right" orientation="right" />
+                <Tooltip formatter={(value, name) => {
+                  if (name === 'Revenue') return formatCurrency(value as number);
+                  return value;
+                }} />
+                <Bar yAxisId="left" dataKey="jobsCompleted" fill="#8884d8" name="Jobs Completed" />
+                <Line
+                  yAxisId="right"
+                  type="monotone"
+                  dataKey="revenue"
+                  stroke="#82ca9d"
+                  strokeWidth={2}
+                  name="Revenue"
+                />
+              </ComposedChart>
+            </ResponsiveContainer>
+          )}
         </CardContent>
       </Card>
 
@@ -197,37 +236,44 @@ export const PerformanceAnalytics = () => {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
-            {technicianMetrics.map((tech) => (
-              <div key={tech.name} className="p-4 border rounded-lg">
-                <div className="flex justify-between items-center mb-3">
-                  <h4 className="font-semibold">{tech.name}</h4>
-                  <Badge variant={tech.efficiency >= 90 ? "default" : "secondary"}>
-                    {tech.efficiency}% efficiency
-                  </Badge>
+          {technicianData.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              <Users className="h-8 w-8 mx-auto mb-2 opacity-50" />
+              <p>No technician performance data available</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {technicianData.map((tech) => (
+                <div key={tech.id} className="p-4 border rounded-lg">
+                  <div className="flex justify-between items-center mb-3">
+                    <h4 className="font-semibold">{tech.name}</h4>
+                    <Badge variant={tech.efficiency >= 90 ? "default" : "secondary"}>
+                      {tech.efficiency}% efficiency
+                    </Badge>
+                  </div>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                    <div>
+                      <p className="text-muted-foreground">Jobs Completed</p>
+                      <p className="font-medium">{tech.jobs}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">Revenue</p>
+                      <p className="font-medium">{formatCurrency(tech.revenue)}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">Avg Job Time</p>
+                      <p className="font-medium">{tech.avgJobTime}h</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">Customer Rating</p>
+                      <Badge variant="secondary" className="text-xs">Coming Soon</Badge>
+                    </div>
+                  </div>
+                  <Progress value={tech.efficiency} className="h-2 mt-3" />
                 </div>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                  <div>
-                    <p className="text-muted-foreground">Jobs Completed</p>
-                    <p className="font-medium">{tech.jobsCompleted}</p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground">Revenue</p>
-                    <p className="font-medium">{formatCurrency(tech.revenue)}</p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground">Avg Job Time</p>
-                    <p className="font-medium">{tech.avgJobTime}h</p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground">Customer Rating</p>
-                    <p className="font-medium">{tech.customerRating}/5.0</p>
-                  </div>
-                </div>
-                <Progress value={tech.efficiency} className="h-2 mt-3" />
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -240,32 +286,35 @@ export const PerformanceAnalytics = () => {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
-            {serviceMetrics.map((service) => (
-              <div key={service.service} className="p-4 border rounded-lg">
-                <div className="flex justify-between items-center mb-3">
-                  <h4 className="font-semibold">{service.service}</h4>
-                  <Badge variant="outline">
-                    {service.satisfaction}% satisfaction
-                  </Badge>
+          {serviceData.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              <Target className="h-8 w-8 mx-auto mb-2 opacity-50" />
+              <p>No service data available</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {serviceData.map((service) => (
+                <div key={service.name} className="p-4 border rounded-lg">
+                  <div className="flex justify-between items-center mb-3">
+                    <h4 className="font-semibold">{service.name}</h4>
+                    <Badge variant="outline">
+                      {service.value}% of jobs
+                    </Badge>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <p className="text-muted-foreground">Total Revenue</p>
+                      <p className="font-medium">{formatCurrency(service.revenue)}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">Customer Satisfaction</p>
+                      <Badge variant="secondary" className="text-xs mt-1">Coming Soon</Badge>
+                    </div>
+                  </div>
                 </div>
-                <div className="grid grid-cols-3 gap-4 text-sm">
-                  <div>
-                    <p className="text-muted-foreground">Avg Time</p>
-                    <p className="font-medium">{service.avgTime}h</p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground">Total Revenue</p>
-                    <p className="font-medium">{formatCurrency(service.revenue)}</p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground">Customer Satisfaction</p>
-                    <Progress value={service.satisfaction} className="h-2 mt-1" />
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

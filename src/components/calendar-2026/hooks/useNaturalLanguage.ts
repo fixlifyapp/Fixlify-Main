@@ -150,71 +150,65 @@ export function useNaturalLanguage(): UseNaturalLanguageReturn {
       }
     }
 
-    // For complex commands, use Gemini AI
+    // For complex commands, use Gemini AI scheduling function
     setIsLoading(true);
     try {
-      const { data, error: fnError } = await supabase.functions.invoke('gemini-ai', {
+      const { data, error: fnError } = await supabase.functions.invoke('gemini-schedule', {
         body: {
-          action: 'parse_scheduling_command',
-          prompt: `Parse this scheduling command and extract the intent:
-            Command: "${command}"
-
-            Available technicians: ${context?.technicians?.map(t => t.name).join(', ') || 'none provided'}
-            Available clients: ${context?.clients?.map(c => c.name).join(', ') || 'none provided'}
-
-            Return a JSON object with these fields:
-            - action: "schedule" | "move" | "find" | "optimize" | "create" | "cancel"
-            - technician: name if mentioned
-            - client: name if mentioned
-            - jobType: type of job if mentioned
-            - date: ISO date string if mentioned (relative to today: ${new Date().toISOString().split('T')[0]})
-            - timePreference: "morning" | "afternoon" | "evening" | "any"
-            - location: address if mentioned
-            - duration: estimated minutes if mentioned
-
-            Only include fields that are explicitly mentioned or can be clearly inferred.`,
+          action: 'parse_command',
+          command,
+          context: {
+            technicians: context?.technicians || [],
+            clients: context?.clients || [],
+            jobTypes: context?.jobTypes || [
+              'AC Repair', 'HVAC', 'Plumbing', 'Electrical', 'Appliance Repair',
+              'Heating', 'Cooling', 'Water Heater', 'Drain Cleaning', 'Pipe Repair',
+              'Installation', 'Maintenance', 'Tune-Up', 'Inspection', 'Emergency', 'Service Call'
+            ],
+            currentDate: new Date().toISOString(),
+          },
         },
       });
 
       if (fnError) throw fnError;
 
-      // Parse the AI response
-      if (data?.response) {
-        try {
-          // Extract JSON from response
-          const jsonMatch = data.response.match(/\{[\s\S]*\}/);
-          if (jsonMatch) {
-            const parsed = JSON.parse(jsonMatch[0]);
-            // Convert date string back to Date object
-            if (parsed.date) {
-              parsed.date = new Date(parsed.date);
-            }
-            // Map technician name to ID
-            if (parsed.technician && context?.technicians) {
-              const tech = context.technicians.find(
-                t => t.name.toLowerCase().includes(parsed.technician.toLowerCase())
-              );
-              if (tech) {
-                parsed.technicianId = tech.id;
-              }
-            }
-            // Map client name to ID
-            if (parsed.client && context?.clients) {
-              const client = context.clients.find(
-                c => c.name.toLowerCase().includes(parsed.client.toLowerCase())
-              );
-              if (client) {
-                parsed.clientId = client.id;
-              }
-            }
-            return parsed;
-          }
-        } catch (parseError) {
-          console.error('Error parsing AI response:', parseError);
+      // Parse the Gemini response
+      if (data?.intent) {
+        const parsed = data.intent;
+
+        // Convert date string back to Date object
+        if (parsed.date) {
+          parsed.date = new Date(parsed.date);
         }
+
+        // Map technician name to ID if not already mapped
+        if (parsed.technician && !parsed.technicianId && context?.technicians) {
+          const tech = context.technicians.find(
+            t => t.name.toLowerCase().includes(parsed.technician.toLowerCase())
+          );
+          if (tech) {
+            parsed.technicianId = tech.id;
+          }
+        }
+
+        // Map client name to ID if not already mapped
+        if (parsed.client && !parsed.clientId && context?.clients) {
+          const client = context.clients.find(
+            c => c.name.toLowerCase().includes(parsed.client.toLowerCase())
+          );
+          if (client) {
+            parsed.clientId = client.id;
+          }
+        }
+
+        return {
+          ...parsed,
+          aiPowered: true,
+          confidence: data.confidence || 0.8,
+        };
       }
 
-      // Fallback to local result if AI failed
+      // Fallback to local result if AI returned no intent
       return localResult || { action: 'find' };
     } catch (err) {
       console.error('NLP Error:', err);

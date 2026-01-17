@@ -1,14 +1,9 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { PageLayout } from "@/components/layout/PageLayout";
 import { PageHeader } from "@/components/ui/page-header";
-import { FullCalendarSchedule } from "@/components/schedule/FullCalendarSchedule";
-import { CustomCalendarSchedule } from "@/components/schedule/CustomCalendarSchedule";
-import { ScheduleFilters } from "@/components/schedule/ScheduleFilters";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Plus, Calendar, Loader2, Clock, Users, CheckCircle, Sparkles, Rocket } from "lucide-react";
-import { AIInsightsPanel } from "@/components/schedule/AIInsightsPanel";
-import { useSearchParams, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { ScheduleJobModal } from "@/components/schedule/ScheduleJobModal";
 import { Job } from "@/types/job";
 import { toast } from "sonner";
@@ -16,31 +11,115 @@ import { useAuth } from "@/hooks/use-auth";
 import { useJobs } from "@/hooks/useJobs";
 import { useTechnicians } from "@/hooks/useTechnicians";
 import { useClientsOptimized } from "@/hooks/useClientsOptimized";
-import { useFullCalendarEvents } from "@/hooks/useFullCalendarEvents";
+import { useCalendarEvents } from "@/hooks/useCalendarEvents";
+import { useUserProfile } from "@/hooks/use-user-profile";
+import { DEFAULT_BUSINESS_HOURS } from "@/types/businessHours";
 
-// Revolutionary Calendar 2026
-import { Calendar2026, SmartAgendaCompact, useAIScheduling2026 } from "@/components/calendar-2026";
-
-// Feature flags
-const USE_CUSTOM_CALENDAR = import.meta.env.VITE_CUSTOM_CALENDAR === "true";
-const USE_CALENDAR_2026 = import.meta.env.VITE_CALENDAR_2026 === "true" || true; // Enable by default for testing
+// Calendar 2026 - 100% custom calendar (no third-party dependencies)
+import { Calendar2026 } from "@/components/calendar-2026";
 
 const SchedulePage = () => {
   const { user, loading: authLoading } = useAuth();
+  const { profile } = useUserProfile();
   const navigate = useNavigate();
-  const [searchParams, setSearchParams] = useSearchParams();
-  const [view, setView] = useState<'day' | 'week' | 'month' | 'team'>(searchParams.get('view') as 'day' | 'week' | 'month' | 'team' || 'week');
-  const [currentDate, setCurrentDate] = useState(new Date());
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-  const [showAIInsights, setShowAIInsights] = useState(false);
   const [scheduleError, setScheduleError] = useState<string | null>(null);
   const [selectedJobDate, setSelectedJobDate] = useState<Date | undefined>(undefined);
-  const [useRevolutionary, setUseRevolutionary] = useState(USE_CALENDAR_2026);
 
-  const { addJob, refreshJobs, jobs } = useJobs();
+  const { addJob, refreshJobs } = useJobs();
   const { technicians } = useTechnicians();
   const { clients } = useClientsOptimized();
-  const { events, resources } = useFullCalendarEvents();
+  const { events, resources } = useCalendarEvents();
+
+  // Extract business hours from profile settings
+  const businessHours = useMemo(() => {
+    // Parse time string like "08:00" to hour number
+    const parseTime = (timeStr: string | undefined | null): number | null => {
+      if (!timeStr) return null;
+      const [hour] = timeStr.split(':').map(Number);
+      return isNaN(hour) ? null : hour;
+    };
+
+    // Default fallback hours (only used if no profile hours exist)
+    // Shows 6 AM - 10 PM range with business hours 7 AM - 10 PM
+    const defaultHours = {
+      startHour: 6,
+      endHour: 22,
+      businessHoursStart: 7,
+      businessHoursEnd: 22
+    };
+
+    if (!profile?.business_hours) return defaultHours;
+
+    try {
+      const hours = profile.business_hours as Record<string, any>;
+      const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+
+      // Helper to get hours from a day config
+      const getDayHours = (dayConfig: any): { start: number; end: number } | null => {
+        if (!dayConfig) return null;
+        // Check if day is enabled (if enabled property exists)
+        if (dayConfig.enabled === false) return null;
+
+        const startKey = dayConfig.open || dayConfig.start;
+        const endKey = dayConfig.close || dayConfig.end;
+        const start = parseTime(startKey);
+        const end = parseTime(endKey);
+
+        if (start !== null && end !== null) {
+          return { start, end };
+        }
+        return null;
+      };
+
+      // Try to get hours: first from today, then Monday, then any enabled day
+      const today = dayNames[new Date().getDay()];
+      let businessStart: number | null = null;
+      let businessEnd: number | null = null;
+
+      // 1. Try today's hours
+      const todayConfig = getDayHours(hours[today]);
+      if (todayConfig) {
+        businessStart = todayConfig.start;
+        businessEnd = todayConfig.end;
+      }
+
+      // 2. If today is closed, try Monday
+      if (businessStart === null && hours['monday']) {
+        const mondayConfig = getDayHours(hours['monday']);
+        if (mondayConfig) {
+          businessStart = mondayConfig.start;
+          businessEnd = mondayConfig.end;
+        }
+      }
+
+      // 3. If Monday doesn't work, try any day with hours
+      if (businessStart === null) {
+        for (const dayName of dayNames) {
+          const dayConfig = getDayHours(hours[dayName]);
+          if (dayConfig) {
+            businessStart = dayConfig.start;
+            businessEnd = dayConfig.end;
+            break;
+          }
+        }
+      }
+
+      // If we found business hours from profile, use them
+      if (businessStart !== null && businessEnd !== null) {
+        return {
+          startHour: Math.max(businessStart - 1, 5),  // Show 1 hour before business start
+          endHour: Math.min(businessEnd + 1, 23),     // Show 1 hour after business end
+          businessHoursStart: businessStart,
+          businessHoursEnd: businessEnd,
+        };
+      }
+    } catch (e) {
+      console.error('Error parsing business hours:', e);
+    }
+
+    return defaultHours;
+  }, [profile?.business_hours]);
 
   // Transform data for Calendar2026
   const calendar2026Data = useMemo(() => ({
@@ -57,26 +136,11 @@ const SchedulePage = () => {
     }
   }, [user, authLoading]);
 
-  // Update URL when view changes
-  const handleViewChange = (newView: 'day' | 'week' | 'month' | 'team') => {
-    setView(newView);
-    setSearchParams(params => {
-      params.set('view', newView);
-      return params;
-    });
-  };
-
-  // Handle date change from filters
-  const handleDateChange = (newDate: Date) => {
-    setCurrentDate(newDate);
-  };
-
   // Handle job creation using centralized logic
   const handleJobCreated = async (jobData: any) => {
     try {
       const createdJob = await addJob(jobData);
       if (createdJob) {
-        // Toast notification handled by ScheduleJobModal
         refreshJobs();
         return createdJob;
       }
@@ -91,17 +155,6 @@ const SchedulePage = () => {
   const handleJobSuccess = (job: Job) => {
     toast.success(`Job ${job.id} has been created and scheduled`);
   };
-
-  // Handle creating a job from calendar selection
-  const handleCreateJobFromCalendar = useCallback((startDate: Date, endDate?: Date) => {
-    setSelectedJobDate(startDate);
-    setIsCreateModalOpen(true);
-  }, []);
-
-  // Handle event click - navigate to job detail page
-  const handleEventClick = useCallback((jobId: string) => {
-    navigate(`/jobs/${jobId}`);
-  }, [navigate]);
 
   // Show loading state while checking authentication
   if (authLoading) {
@@ -141,7 +194,7 @@ const SchedulePage = () => {
           { text: "Smart Scheduling", icon: Clock, variant: "fixlyfy" },
           { text: "Team Coordination", icon: Users, variant: "success" },
           { text: "AI Optimization", icon: CheckCircle, variant: "info" },
-          ...(useRevolutionary ? [{ text: "AI Mode", icon: Rocket, variant: "warning" as const }] : [])
+          { text: "AI Mode", icon: Rocket, variant: "warning" as const }
         ]}
         actionButton={{
           text: "New Job",
@@ -150,115 +203,66 @@ const SchedulePage = () => {
         }}
       />
 
-      {/* Revolutionary Calendar Toggle */}
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-2">
-          {useRevolutionary && (
-            <Badge className="bg-gradient-to-r from-violet-600 to-purple-600 text-white gap-1">
-              <Sparkles className="h-3 w-3" />
-              Revolutionary Calendar
-            </Badge>
-          )}
-        </div>
-        <Button
-          variant={useRevolutionary ? "default" : "outline"}
-          size="sm"
-          onClick={() => setUseRevolutionary(!useRevolutionary)}
-          className={useRevolutionary ? "bg-violet-600 hover:bg-violet-700" : ""}
-        >
-          <Rocket className="h-4 w-4 mr-2" />
-          {useRevolutionary ? "AI Mode Active" : "Try AI Mode"}
-        </Button>
+      {/* AI-Powered Calendar Badge */}
+      <div className="flex items-center gap-2 mb-4">
+        <Badge className="bg-gradient-to-r from-violet-600 to-purple-600 text-white gap-1">
+          <Sparkles className="h-3 w-3" />
+          AI-Powered Calendar
+        </Badge>
       </div>
 
-      {/* Show AI Insights panel when toggled */}
-      {showAIInsights && !useRevolutionary && (
-        <div className="mb-6">
-          <AIInsightsPanel />
-        </div>
-      )}
-
-      {/* Revolutionary Calendar 2026 */}
-      {useRevolutionary ? (
-        <div className="pb-8">
-          <Calendar2026
-            events={events}
-            resources={resources}
-            technicians={calendar2026Data.technicians}
-            clients={calendar2026Data.clients}
-            onEventClick={(event) => {
-              if (event.extendedProps?.jobId) {
-                navigate(`/jobs/${event.extendedProps.jobId}`);
-              }
-            }}
-            onSlotClick={(date, resourceId) => {
-              setSelectedJobDate(date);
-              setIsCreateModalOpen(true);
-            }}
-            onScheduleJob={async (data) => {
-              try {
-                const jobData = {
-                  schedule_start: data.startTime.toISOString(),
-                  schedule_end: data.endTime.toISOString(),
-                  technician_id: data.technicianId,
-                  client_id: data.clientId,
-                  job_type: data.jobType,
-                  description: data.notes,
-                };
-                await handleJobCreated(jobData);
-                toast.success('Job scheduled successfully!');
-              } catch (error) {
-                toast.error('Failed to schedule job');
-              }
-            }}
-            onOptimizeRoutes={async () => {
-              toast.info('Route optimization is processing...');
-              // Simulate optimization
-              await new Promise(resolve => setTimeout(resolve, 2000));
-              toast.success('Routes optimized! Saved ~25 minutes');
-              return {
-                originalRoute: [],
-                optimizedRoute: [],
-                timeSaved: 25,
-                distanceSaved: 12.5,
+      {/* Calendar 2026 - Main Calendar Component */}
+      <div className="pb-8">
+        <Calendar2026
+          events={events}
+          resources={resources}
+          technicians={calendar2026Data.technicians}
+          clients={calendar2026Data.clients}
+          startHour={businessHours.startHour}
+          endHour={businessHours.endHour}
+          businessHoursStart={businessHours.businessHoursStart}
+          businessHoursEnd={businessHours.businessHoursEnd}
+          onEventClick={(event) => {
+            if (event.extendedProps?.jobId) {
+              navigate(`/jobs/${event.extendedProps.jobId}`);
+            }
+          }}
+          onSlotClick={(date, resourceId) => {
+            setSelectedJobDate(date);
+            setIsCreateModalOpen(true);
+          }}
+          onScheduleJob={async (data) => {
+            try {
+              const jobData = {
+                schedule_start: data.startTime.toISOString(),
+                schedule_end: data.endTime.toISOString(),
+                technician_id: data.technicianId,
+                client_id: data.clientId,
+                job_type: data.jobType,
+                description: data.notes,
               };
-            }}
-          />
-        </div>
-      ) : (
-        <>
-          {/* Filters */}
-          <div className="fixlyfy-card p-4 mb-6">
-            <ScheduleFilters
-              view={view}
-              onViewChange={handleViewChange}
-              currentDate={currentDate}
-              onDateChange={handleDateChange}
-            />
-          </div>
+              await handleJobCreated(jobData);
+              toast.success('Job scheduled successfully!');
+            } catch (error) {
+              toast.error('Failed to schedule job');
+            }
+          }}
+          onOptimizeRoutes={async () => {
+            toast.info('Route optimization is processing...');
+            // Simulate optimization
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            toast.success('Routes optimized! Saved ~25 minutes');
+            return {
+              originalRoute: [],
+              optimizedRoute: [],
+              timeSaved: 25,
+              distanceSaved: 12.5,
+            };
+          }}
+        />
+      </div>
 
-          {USE_CUSTOM_CALENDAR ? (
-            <CustomCalendarSchedule
-              view={view}
-              currentDate={currentDate}
-              onViewChange={handleViewChange}
-              onDateChange={handleDateChange}
-              onCreateJob={handleCreateJobFromCalendar}
-              onEventClick={handleEventClick}
-            />
-          ) : (
-            <FullCalendarSchedule
-              view={view}
-              currentDate={currentDate}
-              onViewChange={handleViewChange}
-              onDateChange={handleDateChange}
-              onCreateJob={handleCreateJobFromCalendar}
-            />
-          )}
-        </>
-      )}
-
-      {/* Use centralized ScheduleJobModal */}
+      {/* Job Creation Modal */}
       <ScheduleJobModal
         open={isCreateModalOpen}
         onOpenChange={setIsCreateModalOpen}

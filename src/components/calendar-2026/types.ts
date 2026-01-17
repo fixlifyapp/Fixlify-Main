@@ -23,6 +23,10 @@ export interface ParsedIntent {
   timePreference?: 'morning' | 'afternoon' | 'evening' | 'any';
   duration?: number;
   location?: string;
+  // AI metadata
+  aiPowered?: boolean;
+  confidence?: number;
+  reasoning?: string[];
 }
 
 export interface SuggestedAction {
