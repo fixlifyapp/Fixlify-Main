@@ -2,6 +2,7 @@
 
 /* Container */
 .fullcalendar-wrapper {
+  margin-bottom: 2rem;
   --fc-border-color: hsl(var(--border));
   --fc-button-bg-color: hsl(var(--primary));
   --fc-button-border-color: hsl(var(--primary));
